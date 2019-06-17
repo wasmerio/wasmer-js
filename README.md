@@ -6,9 +6,13 @@
 [![Coveralls](https://img.shields.io/coveralls/wasmerio/js-wasi.svg)](https://coveralls.io/github/wasmerio/js-wasi)
 [![Dev Dependencies](https://david-dm.org/wasmerio/js-wasi/dev-status.svg)](https://david-dm.org/wasmerio/js-wasi?type=dev)
 
+JavaScript WASI is a library for interacting with WASI Modules from JavaScript easily.
+It's focused on compatibility with Node.js and browsers.
+
 ## Install
 
-You 
+For instaling WASI, just run this command in your shell
+
 ```bash
 npm install --save @wasmer/wasi
 ```
