@@ -3,6 +3,7 @@ import { WASI } from '../src'
 import '../src/webassembly.d'
 import { createFsFromVolume, IFs } from 'memfs'
 import { Volume } from 'memfs/lib/volume'
+import NodeBindings from "../src/bindings/node";
 
 const instantiateWasi = async (
   file: string,
@@ -15,7 +16,7 @@ const instantiateWasi = async (
     env: env,
     args: args,
     bindings: {
-      ...WASI.defaultConfig.bindings,
+      ...NodeBindings,
       fs: memfs
     }
   })

@@ -7,11 +7,6 @@
 /// * Make easy to plug different filesystems
 /// * Make it type-safe using Typescript
 
-const crypto = require('crypto')
-const fs_node = require('fs')
-const path = require('path')
-const { isatty: isTTY } = require('tty')
-
 const WASI_ESUCCESS = 0
 const WASI_E2BIG = 1
 const WASI_EACCES = 2
@@ -613,7 +608,7 @@ type TypedArray = ArrayLike<any> & {
   slice(start?: number, end?: number): TypedArray
 }
 
-type WASIBindings = {
+export type WASIBindings = {
   // Current high-resolution real time in a bigint
   hrtime: () => bigint
   // Process functions
@@ -626,38 +621,22 @@ type WASIBindings = {
 
   // Filesystem
   fs: any
+
+  // Path
+  path: any
 }
 
-type WASIArgs = string[]
-type WASIEnv = { [key: string]: string | undefined }
-type WASIPreopenedDirs = { [key: string]: string }
-type WASIConfig = {
+export type WASIArgs = string[]
+export type WASIEnv = { [key: string]: string | undefined }
+export type WASIPreopenedDirs = { [key: string]: string }
+export type WASIConfig = {
   preopenDirectories: WASIPreopenedDirs
   env: WASIEnv
   args: WASIArgs
   bindings: WASIBindings
 }
 
-const WASINodeBindings = {
-  hrtime: process.hrtime.bigint,
-  exit: process.exit,
-  kill: (signal: string) => {
-    process.kill(process.pid, signal)
-  },
-  randomFillSync: crypto.randomFillSync,
-  isTTY: isTTY,
-  fs: fs_node
-}
-
 class WASI {
-  static defaultConfig = {
-    // https://github.com/WebAssembly/WASI/issues/5
-    preopenDirectories: {},
-    args: process.argv,
-    env: process.env,
-    bindings: WASINodeBindings
-  }
-
   memory: WebAssembly.Memory
   view: DataView
   FD_MAP: Map<number, File>
@@ -668,7 +647,7 @@ class WASI {
     preopenDirectories = {},
     env = {},
     args = [],
-    bindings = WASINodeBindings
+    bindings
   }: WASIConfig) {
     // @ts-ignore
     this.memory = undefined
@@ -713,6 +692,7 @@ class WASI {
     ])
 
     let fs = this.bindings.fs
+    let path = this.bindings.path
 
     for (const [k, v] of Object.entries(preopenDirectories)) {
       const real = fs.openSync(v, fs.constants.O_RDONLY)
