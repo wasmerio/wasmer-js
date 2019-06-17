@@ -67,18 +67,13 @@ npm install
  - `npm run precompile`: Precompile all the source files (requires Rust nightly) to the WebAssembly WASI binaries
  - `npm run commit`: Commit using conventional commit style ([husky](https://github.com/typicode/husky) will tell you to use it if you haven't :wink:)
 
-### Excluding peerDependencies
-
-On library development, one might want to set some peer dependencies, and thus remove those from the final bundle. You can see in [Rollup docs](https://rollupjs.org/#peer-dependencies) how to do that.
-
-Good news: the setup is here for you, you must only include the dependency name in `external` property within `rollup.config.js`. For example, if you want to exclude `lodash`, just write there `external: ['lodash']`.
 
 ## Credits
 
 This project is based from the Node implementation made by Gus Caplan: https://github.com/devsnek/node-wasi
 
 However, `@wasmer/wasi` is focused on:
-* Bringing WASI to the Browsers (so it can be used in [WAPM](https://wapm.io/))
+* Bringing WASI to the Browsers (so it can be used in the [WAPM](https://wapm.io/) shell)
 * Make easy to plug different filesystems (via [memfs](https://github.com/streamich/memfs))
 * Make it type-safe using [Typescript](http://www.typescriptlang.org/)
 
