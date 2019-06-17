@@ -1,14 +1,16 @@
 /* eslint-disable no-unused-vars */
 
-// const binding = internalBinding('wasi')
-// const { SEEK_SET, SEEK_CUR, SEEK_END } = internalBinding('constants').fs
+/// This project is based from the Node implementation made by Gus Caplan
+/// https://github.com/devsnek/node-wasi
+/// However, this JS-WASI is focused on:
+/// * Bringing WASI to the Browsers
+/// * Make easy to plug different filesystems
+/// * Make it type-safe using Typescript
 
 const crypto = require('crypto')
 const fs_node = require('fs')
 const path = require('path')
 const { isatty: isTTY } = require('tty')
-// const { Buffer } = require('buffer');
-// const { Math, Object } = primordials;
 
 const WASI_ESUCCESS = 0
 const WASI_E2BIG = 1

@@ -1,10 +1,10 @@
 # JavaScript WASI
 
 [![styled with prettier](https://img.shields.io/badge/styled_with-prettier-ff69b4.svg)](https://github.com/prettier/prettier)
-[![Greenkeeper badge](https://badges.greenkeeper.io/alexjoverm/typescript-library-starter.svg)](https://greenkeeper.io/)
-[![Travis](https://img.shields.io/travis/alexjoverm/typescript-library-starter.svg)](https://travis-ci.org/wasmerio/node-wasi)
-[![Coveralls](https://img.shields.io/coveralls/alexjoverm/typescript-library-starter.svg)](https://coveralls.io/github/wasmerio/node-wasi)
-[![Dev Dependencies](https://david-dm.org/alexjoverm/typescript-library-starter/dev-status.svg)](https://david-dm.org/wasmerio/node-wasi?type=dev)
+[![Greenkeeper badge](https://badges.greenkeeper.io/wasmerio/js-wasi.svg)](https://greenkeeper.io/)
+[![Travis](https://img.shields.io/travis/wasmerio/js-wasi.svg)](https://travis-ci.org/wasmerio/js-wasi)
+[![Coveralls](https://img.shields.io/coveralls/wasmerio/js-wasi.svg)](https://coveralls.io/github/wasmerio/js-wasi)
+[![Dev Dependencies](https://david-dm.org/wasmerio/js-wasi/dev-status.svg)](https://david-dm.org/wasmerio/js-wasi?type=dev)
 
 ## Install
 
@@ -50,8 +50,8 @@ instance.exports._start()
 First, clone the project locally:
 
 ```bash
-git clone https://github.com/wasmerio/node-wasi
-cd node-wasi
+git clone https://github.com/wasmerio/js-wasi
+cd js-wasi
 
 npm install
 ```
@@ -74,6 +74,13 @@ On library development, one might want to set some peer dependencies, and thus r
 Good news: the setup is here for you, you must only include the dependency name in `external` property within `rollup.config.js`. For example, if you want to exclude `lodash`, just write there `external: ['lodash']`.
 
 ## Credits
+
+This project is based from the Node implementation made by Gus Caplan: https://github.com/devsnek/node-wasi
+
+However, `@wasmer/wasi` is focused on:
+* Bringing WASI to the Browsers (so it can be used in [WAPM](https://wapm.io/))
+* Make easy to plug different filesystems (via [memfs](https://github.com/streamich/memfs))
+* Make it type-safe using [Typescript](http://www.typescriptlang.org/)
 
 This project follows the [all-contributors](https://github.com/kentcdodds/all-contributors) specification. 
 Contributions of any kind are welcome!
