@@ -4,10 +4,15 @@ import '../src/webassembly.d'
 import { createFsFromVolume, IFs } from 'memfs'
 import { Volume } from 'memfs/lib/volume'
 
-const instantiateWasi = async (file: string, memfs: IFs, args: string[] = []) => {
+const instantiateWasi = async (
+  file: string,
+  memfs: IFs,
+  args: string[] = [],
+  env: { [key: string]: string } = {}
+) => {
   let wasi = new WASI({
     preopenDirectories: {},
-    env: {},
+    env: env,
     args: args,
     bindings: {
       ...WASI.defaultConfig.bindings,
@@ -22,9 +27,12 @@ const instantiateWasi = async (file: string, memfs: IFs, args: string[] = []) =>
 }
 
 const getStdout = (memfs: IFs) => {
+  // console.log(memfs.toJSON("/dev/stdout"))
   let promise = new Promise((resolve, reject) => {
     const rs_out = memfs.createReadStream('/dev/stdout', 'utf8')
+    // let prevData = ''
     rs_out.on('data', data => {
+      // prevData = prevData + data.toString('utf8')
       resolve(data.toString('utf8'))
     })
   })
@@ -33,8 +41,9 @@ const getStdout = (memfs: IFs) => {
 
 describe('WASI interaction', () => {
   let memfs: IFs
+  let vol: Volume
   beforeEach(async () => {
-    let vol = Volume.fromJSON({
+    vol = Volume.fromJSON({
       '/dev/stdin': '',
       '/dev/stdout': '',
       '/dev/stderr': ''
@@ -54,9 +63,9 @@ describe('WASI interaction', () => {
     let { instance, wasi } = await instantiateWasi('test/rs/helloworld.wasm', memfs)
     instance.exports._start()
     expect(await getStdout(memfs)).toMatchInlineSnapshot(`
-      "Hello world!
-      "
-    `)
+                              "Hello world!
+                              "
+                    `)
   })
 
   it('WASI args work', async () => {
@@ -69,7 +78,24 @@ describe('WASI interaction', () => {
     ])
     instance.exports._start()
     expect(await getStdout(memfs)).toMatchInlineSnapshot(`
-      "[\\"demo\\", \\"-h\\", \\"--help\\", \\"--\\", \\"other\\"]
+                              "[\\"demo\\", \\"-h\\", \\"--help\\", \\"--\\", \\"other\\"]
+                              "
+                    `)
+  })
+
+  it('WASI env work', async () => {
+    let { instance, wasi } = await instantiateWasi('test/rs/env.wasm', memfs, [], {
+      WASM_EXISTING: 'VALUE'
+    })
+    instance.exports._start()
+    expect(await getStdout(memfs)).toMatchInlineSnapshot(`
+      "should be set (WASM_EXISTING): Some(\\"VALUE\\")
+      shouldn't be set (WASM_UNEXISTING): None
+      Set existing var (WASM_EXISTING): Some(\\"NEW_VALUE\\")
+      Set unexisting var (WASM_UNEXISTING): Some(\\"NEW_VALUE\\")
+      All vars in env:
+      WASM_EXISTING: NEW_VALUE
+      WASM_UNEXISTING: NEW_VALUE
       "
     `)
   })
