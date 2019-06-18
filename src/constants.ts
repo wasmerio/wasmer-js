@@ -433,7 +433,6 @@ export const SIGNAL_MAP: { [key: string]: string } = {
   // [WASI_SIGSYS]: 'SIGSYS',
 }
 
-
 // All constants exported:
 
 // WASI_ESUCCESS,
