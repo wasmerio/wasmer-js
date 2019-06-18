@@ -162,12 +162,12 @@ const stat = (wasi: WASI, fd: number): File => {
         break
     }
     entry.filetype = filetype
-    if (entry.rights === undefined) {
-      entry.rights = {
-        base: rightsBase as bigint,
-        inheriting: rightsInheriting
-      }
-    }
+    // if (entry.rights === undefined) {
+    //   entry.rights = {
+    //     base: rightsBase as bigint,
+    //     inheriting: rightsInheriting
+    //   }
+    // }
   }
   return entry
 }
@@ -233,8 +233,7 @@ class WASI {
   constructor({ preopenDirectories = {}, env = {}, args = [], bindings }: WASIConfig) {
     // @ts-ignore
     this.memory = undefined
-    // @ts-ignore
-    this.view = undefined
+    this.view = new DataView(new ArrayBuffer(0))
     this.bindings = bindings
 
     this.FD_MAP = new Map([
@@ -1033,7 +1032,8 @@ class WASI {
   }
 
   refreshMemory() {
-    if (this.view === undefined || this.view.byteLength === 0) {
+    if (this.view.byteLength === 0) {
+      // this.view === undefined ||
       this.view = new DataView(this.memory.buffer)
     }
   }

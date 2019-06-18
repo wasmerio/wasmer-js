@@ -1,5 +1,5 @@
 const crypto = require('crypto')
-const fs_node = require('fs')
+const fs = require('fs')
 const { isatty: isTTY } = require('tty')
 const path = require('path')
 
@@ -13,7 +13,7 @@ const bindings: WASIBindings = {
     },
     randomFillSync: crypto.randomFillSync,
     isTTY: isTTY,
-    fs: fs_node,
+    fs: fs,
     path: path,
 }
 

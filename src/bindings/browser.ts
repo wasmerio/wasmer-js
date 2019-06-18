@@ -7,8 +7,10 @@ import { WASIBindings } from "../wasi";
 const bindings: WASIBindings = {
     hrtime: hrtime,
     exit: (code: number | null) => {
+        return;
     },
     kill: (signal: string) => {
+        return;
     },
     randomFillSync: randomfill.randomFillSync,
     isTTY: () => true,
