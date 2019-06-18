@@ -89,7 +89,7 @@ import {
 const msToNs = (ms: number) => {
   const msInt = Math.trunc(ms)
   const decimal = BigInt(Math.round((ms - msInt) * 1000))
-  const ns = BigInt(msInt) * 1000n
+  const ns = BigInt(msInt) * BigInt(1000)
   return ns + decimal
 }
 
@@ -312,7 +312,7 @@ class WASI {
 
     const CHECK_FD = (fd: number, rights: bigint) => {
       const stats = stat(this, fd)
-      if (rights !== 0n && (stats.rights.base & rights) === 0n) {
+      if (rights !== BigInt(0) && (stats.rights.base & rights) === BigInt(0)) {
         throw WASI_EPERM
       }
       return stats
@@ -373,7 +373,7 @@ class WASI {
         return WASI_ESUCCESS
       },
       clock_res_get: (clockId: number, resolution: number) => {
-        this.view.setBigUint64(resolution, 0n)
+        this.view.setBigUint64(resolution, BigInt(0))
         return WASI_ESUCCESS
       },
       clock_time_get: (clockId: number, precision: number, time: number) => {
@@ -393,7 +393,7 @@ class WASI {
         return WASI_ENOSYS
       }),
       fd_close: wrap((fd: number) => {
-        const stats = CHECK_FD(fd, 0n)
+        const stats = CHECK_FD(fd, BigInt(0))
         fs.closeSync(stats.real)
         this.FD_MAP.delete(fd)
         return WASI_ESUCCESS
@@ -404,7 +404,7 @@ class WASI {
         return WASI_ESUCCESS
       },
       fd_fdstat_get: wrap((fd: number, bufPtr: number) => {
-        const stats = CHECK_FD(fd, 0n)
+        const stats = CHECK_FD(fd, BigInt(0))
         this.refreshMemory()
         this.view.setUint8(bufPtr, stats.filetype) // FILETYPE u8
         this.view.setUint16(bufPtr + 2, 0, true) // FDFLAG u16
@@ -418,7 +418,7 @@ class WASI {
         return WASI_ENOSYS
       }),
       fd_fdstat_set_rights: wrap((fd: number, fsRightsBase: bigint, fsRightsInheriting: bigint) => {
-        const stats = CHECK_FD(fd, 0n)
+        const stats = CHECK_FD(fd, BigInt(0))
         const nrb = stats.rights.base | fsRightsBase
         if (nrb > stats.rights.base) {
           return WASI_EPERM
@@ -469,7 +469,7 @@ class WASI {
         }
       ),
       fd_prestat_get: wrap((fd: number, bufPtr: number) => {
-        const stats = CHECK_FD(fd, 0n)
+        const stats = CHECK_FD(fd, BigInt(0))
         if (!stats.path) {
           return WASI_EINVAL
         }
@@ -479,7 +479,7 @@ class WASI {
         return WASI_ESUCCESS
       }),
       fd_prestat_dir_name: wrap((fd: number, pathPtr: number, pathLen: number) => {
-        const stats = CHECK_FD(fd, 0n)
+        const stats = CHECK_FD(fd, BigInt(0))
         if (!stats.path) {
           return WASI_EINVAL
         }
@@ -601,8 +601,8 @@ class WASI {
         }
       ),
       fd_renumber: wrap((from: number, to: number) => {
-        CHECK_FD(from, 0n)
-        CHECK_FD(to, 0n)
+        CHECK_FD(from, BigInt(0))
+        CHECK_FD(to, BigInt(0))
         fs.closeSync((this.FD_MAP.get(from) as File).real)
         this.FD_MAP.set(from, this.FD_MAP.get(to) as File)
         this.FD_MAP.delete(to)
@@ -631,7 +631,7 @@ class WASI {
       fd_tell: wrap((fd: number, offsetPtr: number) => {
         const stats = CHECK_FD(fd, WASI_RIGHT_FD_TELL)
         throw new Error('fd_tell to be implemented (without binding)')
-        // const currentOffset = binding.seek(stats.real, 0n, SEEK_CUR)
+        // const currentOffset = binding.seek(stats.real, BigInt(0), SEEK_CUR)
         // if (typeof currentOffset === 'number') {
         //   // errno
         //   throw currentOffset
@@ -741,14 +741,14 @@ class WASI {
         ) => {
           const stats = CHECK_FD(dirfd, WASI_RIGHT_PATH_OPEN)
 
-          const read = (fsRightsBase & (WASI_RIGHT_FD_READ | WASI_RIGHT_FD_READDIR)) !== 0n
+          const read = (fsRightsBase & (WASI_RIGHT_FD_READ | WASI_RIGHT_FD_READDIR)) !== BigInt(0)
           const write =
             (fsRightsBase &
               (WASI_RIGHT_FD_DATASYNC |
                 WASI_RIGHT_FD_WRITE |
                 WASI_RIGHT_FD_ALLOCATE |
                 WASI_RIGHT_FD_FILESTAT_SET_SIZE)) !==
-            0n
+            BigInt(0)
 
           let noflags
           if (write && read) {
