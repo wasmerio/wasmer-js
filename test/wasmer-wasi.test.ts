@@ -3,7 +3,7 @@ import { WASI } from '../src'
 import '../src/webassembly.d'
 import { createFsFromVolume, IFs } from 'memfs'
 import { Volume } from 'memfs/lib/volume'
-import NodeBindings from "../src/bindings/node";
+import NodeBindings from '../src/bindings/node'
 
 const instantiateWasi = async (
   file: string,
