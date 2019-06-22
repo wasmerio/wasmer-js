@@ -114,53 +114,7 @@ const stat = (wasi: WASI, fd: number): File => {
   }
   if (entry.filetype === undefined) {
     const stats = wasi.bindings.fs.fstatSync(entry.real)
-    let filetype
-    let rightsBase
-    let rightsInheriting
-    switch (true) {
-      case stats.isBlockDevice():
-        filetype = WASI_FILETYPE_BLOCK_DEVICE
-        rightsBase = RIGHTS_BLOCK_DEVICE_BASE
-        rightsInheriting = RIGHTS_BLOCK_DEVICE_INHERITING
-        break
-      case stats.isCharacterDevice(): {
-        filetype = WASI_FILETYPE_CHARACTER_DEVICE
-        if (wasi.bindings.isTTY(fd)) {
-          rightsBase = RIGHTS_TTY_BASE
-          rightsInheriting = RIGHTS_TTY_INHERITING
-        } else {
-          rightsBase = RIGHTS_CHARACTER_DEVICE_BASE
-          rightsInheriting = RIGHTS_CHARACTER_DEVICE_INHERITING
-        }
-        break
-      }
-      case stats.isDirectory():
-        filetype = WASI_FILETYPE_DIRECTORY
-        rightsBase = RIGHTS_DIRECTORY_BASE
-        rightsInheriting = RIGHTS_DIRECTORY_INHERITING
-        break
-      case stats.isFIFO():
-        filetype = WASI_FILETYPE_SOCKET_STREAM
-        rightsBase = RIGHTS_SOCKET_BASE
-        rightsInheriting = RIGHTS_SOCKET_INHERITING
-        break
-      case stats.isFile():
-        filetype = WASI_FILETYPE_REGULAR_FILE
-        rightsBase = RIGHTS_REGULAR_FILE_BASE
-        rightsInheriting = RIGHTS_REGULAR_FILE_INHERITING
-        break
-      case stats.isSocket():
-        filetype = WASI_FILETYPE_SOCKET_STREAM
-        rightsBase = RIGHTS_SOCKET_BASE
-        rightsInheriting = RIGHTS_SOCKET_INHERITING
-        break
-      case stats.isSymbolicLink():
-        filetype = WASI_FILETYPE_SYMBOLIC_LINK
-        break
-      default:
-        filetype = WASI_FILETYPE_UNKNOWN
-        break
-    }
+    const { filetype, rightsBase, rightsInheriting } = translateFileAttributes(wasi, fd, stats)
     entry.filetype = filetype
     // if (entry.rights === undefined) {
     //   entry.rights = {
@@ -170,6 +124,68 @@ const stat = (wasi: WASI, fd: number): File => {
     // }
   }
   return entry
+}
+
+const translateFileAttributes = (wasi: WASI, fd: number | undefined, stats: any) => {
+  switch (true) {
+    case stats.isBlockDevice():
+      return {
+        filetype: WASI_FILETYPE_BLOCK_DEVICE,
+        rightsBase: RIGHTS_BLOCK_DEVICE_BASE,
+        rightsInheriting: RIGHTS_BLOCK_DEVICE_INHERITING
+      }
+    case stats.isCharacterDevice(): {
+      const filetype = WASI_FILETYPE_CHARACTER_DEVICE
+      if (fd !== undefined && wasi.bindings.isTTY(fd)) {
+        return {
+          filetype,
+          rightsBase: RIGHTS_TTY_BASE,
+          rightsInheriting: RIGHTS_TTY_INHERITING
+        }
+      }
+      return {
+        filetype,
+        rightsBase: RIGHTS_CHARACTER_DEVICE_BASE,
+        rightsInheriting: RIGHTS_CHARACTER_DEVICE_INHERITING
+      }
+    }
+    case stats.isDirectory():
+      return {
+        filetype: WASI_FILETYPE_DIRECTORY,
+        rightsBase: RIGHTS_DIRECTORY_BASE,
+        rightsInheriting: RIGHTS_DIRECTORY_INHERITING
+      }
+    case stats.isFIFO():
+      return {
+        filetype: WASI_FILETYPE_SOCKET_STREAM,
+        rightsBase: RIGHTS_SOCKET_BASE,
+        rightsInheriting: RIGHTS_SOCKET_INHERITING
+      }
+    case stats.isFile():
+      return {
+        filetype: WASI_FILETYPE_REGULAR_FILE,
+        rightsBase: RIGHTS_REGULAR_FILE_BASE,
+        rightsInheriting: RIGHTS_REGULAR_FILE_INHERITING
+      }
+    case stats.isSocket():
+      return {
+        filetype: WASI_FILETYPE_SOCKET_STREAM,
+        rightsBase: RIGHTS_SOCKET_BASE,
+        rightsInheriting: RIGHTS_SOCKET_INHERITING
+      }
+    case stats.isSymbolicLink():
+      return {
+        filetype: WASI_FILETYPE_SYMBOLIC_LINK,
+        rightsBase: BigInt(0),
+        rightsInheriting: BigInt(0)
+      }
+    default:
+      return {
+        filetype: WASI_FILETYPE_UNKNOWN,
+        rightsBase: BigInt(0),
+        rightsInheriting: BigInt(0)
+      }
+  }
 }
 
 interface Rights {
@@ -355,17 +371,16 @@ class WASI {
         this.refreshMemory()
         let coffset = environ
         let offset = environBuf
-        const envProcessed = Object.entries(env).map(([key, value]) => `${key}=${value}`)
-        envProcessed.forEach(e => {
+        Object.entries(env).forEach(([key, value]) => {
           this.view.setUint32(coffset, offset, true)
           coffset += 4
-          offset += Buffer.from(this.memory.buffer).write(e, offset)
+          offset += Buffer.from(this.memory.buffer).write(`${key}=${value}\0`, offset)
         })
         return WASI_ESUCCESS
       },
       environ_sizes_get: (environCount: number, environBufSize: number) => {
         this.refreshMemory()
-        const envProcessed = Object.entries(env).map(([key, value]) => `${key}=${value}`)
+        const envProcessed = Object.entries(env).map(([key, value]) => `${key}=${value}\0`)
         const size = envProcessed.reduce((acc, e) => acc + Buffer.byteLength(e), 0)
         this.view.setUint32(environCount, envProcessed.length, true)
         this.view.setUint32(environBufSize, size, true)
@@ -667,7 +682,7 @@ class WASI {
           bufPtr += 8
           this.view.setBigUint64(bufPtr, BigInt(rstats.ino), true)
           bufPtr += 8
-          this.view.setUint8(bufPtr, stats.filetype)
+          this.view.setUint8(bufPtr, translateFileAttributes(this, undefined, rstats).filetype)
           bufPtr += 4
           this.view.setUint32(bufPtr, Number(rstats.nlink), true)
           bufPtr += 4
