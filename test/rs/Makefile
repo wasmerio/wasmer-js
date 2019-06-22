@@ -1,6 +1,6 @@
-SOURCES := $(shell find ./ -name '*.rs')
+SOURCES := $(shell find ./ -name '*.rs' | sed -e "s/\.rs/\.wasm/g")
 
-%.rs: $(addprefix ./,%.wasm)
-	rustc +nightly $@ --target=wasm32-wasi -o $<
+%.wasm: $(addprefix ./,%.rs)
+	rustc +nightly $< --target=wasm32-wasi -o $@
 
 all: $(SOURCES)
