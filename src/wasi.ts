@@ -1048,8 +1048,16 @@ class WASI {
   }
 
   refreshMemory() {
+    // console.log(this.view, this.memory);
+    // let isEmpty;
+    // try {
+    //   isEmpty = this.view.byteLength === 0;
+    // }
+    // catch (e) {
+    //   isEmpty = true;
+    // }
     // @ts-ignore
-    if (this.view === undefined || this.view.byteLength === 0) {
+    if (this.view === undefined || this.view.buffer.byteLength === 0) {
       this.view = new DataView(this.memory.buffer)
     }
   }
