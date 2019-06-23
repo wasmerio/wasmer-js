@@ -249,7 +249,8 @@ class WASI {
   constructor({ preopenDirectories = {}, env = {}, args = [], bindings }: WASIConfig) {
     // @ts-ignore
     this.memory = undefined
-    this.view = new DataView(new ArrayBuffer(0))
+    // @ts-ignore
+    this.view = undefined
     this.bindings = bindings
 
     this.FD_MAP = new Map([
@@ -1047,8 +1048,7 @@ class WASI {
   }
 
   refreshMemory() {
-    if (this.view.byteLength === 0) {
-      // this.view === undefined ||
+    if (this.view === undefined || this.view.byteLength === 0) {
       this.view = new DataView(this.memory.buffer)
     }
   }
