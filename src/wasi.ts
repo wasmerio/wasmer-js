@@ -1048,6 +1048,7 @@ class WASI {
   }
 
   refreshMemory() {
+    // @ts-ignore
     if (this.view === undefined || this.view.byteLength === 0) {
       this.view = new DataView(this.memory.buffer)
     }
