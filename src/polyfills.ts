@@ -9,7 +9,7 @@ if (!DataView.prototype.setBigUint64) {
   DataView.prototype.setBigUint64 = function(
     byteOffset: number,
     value: bigint,
-    littleEndian: boolean
+    littleEndian: boolean | undefined
   ) {
     let lowWord = value,
       highWord = 0
