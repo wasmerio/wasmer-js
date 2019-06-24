@@ -1,17 +1,26 @@
 import React from 'react'
 import { Terminal, ITerminalOptions } from 'xterm'
-// import * as fit from 'xterm/lib/addons/fit/fit';
 import parse_ from 'shell-parse'
 import { Volume, createFsFromVolume, IFs } from 'memfs'
 
 import { Duplex } from 'stream'
+import { PassThrough } from 'stream'
 import './polyfills'
 import WASI from './wasi'
 import BrowserBindings, {WASIExitError, WASIKillError} from './bindings/browser'
 // declare function parse(moduleName: string): any;
 
 const parse = parse_
-// Terminal.applyAddon(fit);
+
+const merge = (...streams: Duplex[]) => {
+    let pass = new PassThrough()
+    let waiting = streams.length
+    for (let stream of streams) {
+        pass = stream.pipe(pass, {end: false})
+        stream.once('end', () => --waiting === 0 && pass.emit('end'))
+    }
+    return pass
+}
 
 export type CommandOptions = {
   args: string[]
@@ -91,17 +100,9 @@ export class WASICommand extends Command {
     this.wasi.setMemory((instance as any).exports.memory)
     let stdoutRead = this.memfs.createReadStream('/dev/stdout');
     let stderrRead = this.memfs.createReadStream('/dev/stderr');
-    let d = new Duplex({
-      read(...args) {
-        // stdoutRead.read(...args);
-      }
-    })
-    stdoutRead.pipe(d);
-    stderrRead.pipe(d);
-    return d;
-    // return ( as unknown) as Duplex
-    // this.memfs.createReadStream("/dev/stdout").pipe(this.pipe)
-    // return this.pipe;
+    // We join the stdout and stderr together
+    let stream = merge(stdoutRead as unknown as Duplex, stderrRead as unknown as Duplex);
+    return stream;
   }
 
   run() {
@@ -118,6 +119,7 @@ export class EmscriptenCommand extends Command {}
 
 export interface XTermProps {
   options?: ITerminalOptions
+  onSetup?: (term: XTerm) => void
   getCommand: (options: {
     args: string[]
     env: { [key: string]: string }
@@ -143,6 +145,9 @@ export default class XTerm extends React.Component<XTermProps> {
     this.xterm.on('key', this.onKey.bind(this))
     this.xterm.on('paste', this.onPaste.bind(this))
     this.xterm.focus()
+    if (this.props.onSetup) {
+      this.props.onSetup(this);
+    }
   }
   onPaste(data: string) {
     this.xterm.write(data)

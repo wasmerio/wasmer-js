@@ -1,6 +1,9 @@
-import XTerm, { Command, WASICommand, CommandOptions } from '../src/term'
+import XTerm, { Command, WASICommand, CommandOptions, Terminal } from '../src/term'
 import React from 'react'
 import ReactDOM from 'react-dom'
+import * as fit from 'xterm/lib/addons/fit/fit';
+
+Terminal.applyAddon(fit);
 
 let compiledModules: { [key: string]: WebAssembly.Module } = {}
 
@@ -40,4 +43,6 @@ const getCommand = async (options: CommandOptions): Promise<WASICommand> => {
   })
 }
 
-ReactDOM.render(<XTerm getCommand={getCommand} />, document.getElementById('root'))
+ReactDOM.render(<XTerm getCommand={getCommand} onSetup={(component) => {
+  (component.xterm as any).fit()
+}} />, document.getElementById('root'))
