@@ -5,7 +5,7 @@
 /// However, JavaScript WASI is focused on:
 /// * Bringing WASI to the Browsers
 /// * Make easy to plug different filesystems
-/// * Make it type-safe using Typescript
+/// * Provide a type-safe api using Typescript
 
 import {
   WASI_ESUCCESS,
@@ -190,7 +190,7 @@ const translateFileAttributes = (wasi: WASI, fd: number | undefined, stats: any)
 
 interface Rights {
   base: bigint
-  inheriting?: any
+  inheriting: bigint
 }
 
 interface File {
@@ -260,7 +260,8 @@ class WASI {
           real: 0,
           filetype: undefined,
           rights: {
-            base: RIGHTS_REGULAR_FILE_BASE
+            base: RIGHTS_REGULAR_FILE_BASE,
+            inheriting: BigInt(0)
           },
           path: undefined
         }
@@ -271,7 +272,8 @@ class WASI {
           real: 1,
           filetype: undefined,
           rights: {
-            base: RIGHTS_REGULAR_FILE_BASE
+            base: RIGHTS_REGULAR_FILE_BASE,
+            inheriting: BigInt(0)
           },
           path: undefined
         }
@@ -282,7 +284,8 @@ class WASI {
           real: 2,
           filetype: undefined,
           rights: {
-            base: RIGHTS_REGULAR_FILE_BASE
+            base: RIGHTS_REGULAR_FILE_BASE,
+            inheriting: BigInt(0)
           },
           path: undefined
         }

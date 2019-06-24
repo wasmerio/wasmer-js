@@ -12,7 +12,9 @@ const instantiateWasi = async (
   env: { [key: string]: string } = {}
 ) => {
   let wasi = new WASI({
-    preopenDirectories: {},
+    preopenDirectories: {
+      '/sandbox': '/sandbox'
+    },
     env: env,
     args: args,
     bindings: {
@@ -47,7 +49,8 @@ describe('WASI interaction', () => {
     vol = Volume.fromJSON({
       '/dev/stdin': '',
       '/dev/stdout': '',
-      '/dev/stderr': ''
+      '/dev/stderr': '',
+      '/sandbox/file1': 'contents1'
     })
     vol.releasedFds = [0, 1, 2]
     memfs = createFsFromVolume(vol)
@@ -99,5 +102,12 @@ describe('WASI interaction', () => {
       WASM_UNEXISTING: NEW_VALUE
       "
     `)
+  })
+
+  it('WASI sandbox error', async () => {
+    let { instance, wasi } = await instantiateWasi('test/rs/sandbox_file_error.wasm', memfs, [], {})
+    // console.log("instantiated");
+    instance.exports._start()
+    expect(await getStdout(memfs)).toMatchInlineSnapshot()
   })
 })

@@ -12,6 +12,7 @@
     "emitDecoratorMetadata": true,
     "declarationDir": "dist/types",
     "outDir": "dist/lib",
+    "jsx": "react",
     "typeRoots": [
       "node_modules/@types"
     ]
