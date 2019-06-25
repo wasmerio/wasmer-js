@@ -1,6 +1,5 @@
 import * as fs from 'fs'
 import { WASI } from '../src'
-import '../src/webassembly.d'
 import { createFsFromVolume, IFs } from 'memfs'
 import { Volume } from 'memfs/lib/volume'
 import NodeBindings from '../src/bindings/node'
@@ -104,10 +103,10 @@ describe('WASI interaction', () => {
     `)
   })
 
-  it('WASI sandbox error', async () => {
-    let { instance, wasi } = await instantiateWasi('test/rs/sandbox_file_error.wasm', memfs, [], {})
-    // console.log("instantiated");
-    instance.exports._start()
-    expect(await getStdout(memfs)).toMatchInlineSnapshot()
-  })
+  // it('WASI sandbox error', async () => {
+  //   let { instance, wasi } = await instantiateWasi('test/rs/sandbox_file_error.wasm', memfs, [], {})
+  //   // console.log("instantiated");
+  //   instance.exports._start()
+  //   expect(await getStdout(memfs)).toMatchInlineSnapshot()
+  // })
 })
