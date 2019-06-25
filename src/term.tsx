@@ -1,7 +1,8 @@
-import React from 'react'
+import React, { Component, createElement } from 'react'
 import { Terminal, ITerminalOptions } from 'xterm'
 import parse_ from 'shell-parse'
-import { Volume, createFsFromVolume, IFs } from 'memfs'
+import { createFsFromVolume, IFs } from 'memfs'
+import { Volume } from 'memfs/lib/volume'
 
 import { Duplex } from 'stream'
 import { PassThrough } from 'stream'
@@ -25,9 +26,32 @@ const merge = (...streams: Duplex[]) => {
   return pass
 }
 
+const commandAstToCommandOptions = (ast: any): CommandOptions => {
+  let command = ast.command.value
+  let commandArgs = ast.args.map((arg: any) => arg.value)
+  let args = [command, ...commandArgs]
+  // let env = {}
+  let env = Object.fromEntries(
+    Object.entries(ast.env).map(([key, value]: [string, any]) => [key, value.value])
+  )
+  let redirect
+  if (ast.redirects) {
+    let astRedirect = ast.redirects[0]
+    if (astRedirect && astRedirect.type === 'pipe') {
+      redirect = commandAstToCommandOptions(astRedirect.command)
+    }
+  }
+  return {
+    args,
+    env,
+    redirect
+  }
+}
+
 export type CommandOptions = {
   args: string[]
   env: { [key: string]: string }
+  redirect?: CommandOptions
 }
 
 export class Command {
@@ -41,7 +65,10 @@ export class Command {
   run() {
     throw new Error('Not implemented')
   }
-  instantiate(): Promise<Duplex> | Duplex {
+  instantiate(stdin?: string): Promise<Duplex> | Duplex {
+    throw new Error('Not implemented')
+  }
+  getStdout(): string {
     throw new Error('Not implemented')
   }
   async kill() {}
@@ -57,11 +84,42 @@ const assert = (cond: boolean, message: string) => {
   }
 }
 
+const constructStdinRead = () => {
+  let readCounter = 0
+  return (
+    buf: Buffer | Uint8Array,
+    offset: number = 0,
+    length: number = buf.byteLength,
+    position?: number
+  ) => {
+    // console.log('read');
+    // console.log(buf, offset, length, position);
+    if (readCounter !== 0) {
+      readCounter = ++readCounter % 3
+      return 0
+    }
+    let input = prompt('Input: ')
+    if (input === null || input === '') {
+      readCounter++
+      return 0
+    }
+    let buffer = Buffer.from(input, 'utf-8')
+    for (let x = 0; x < buffer.length; ++x) {
+      buf[x] = buffer[x]
+    }
+    readCounter++
+    // We write as it was an enter
+    // memfs.writeSync(1, "\r\n");
+    return buffer.length + 1
+  }
+}
+
 export class WASICommand extends Command {
   wasi: WASI
   promisedInstance: Promise<WebAssembly.Instance>
   instance: WebAssembly.Instance | undefined
   memfs: IFs
+  volume: Volume
 
   constructor(options: WASMCommandOptions) {
     super(options)
@@ -81,34 +139,6 @@ export class WASICommand extends Command {
     const fd_err = memfs.openSync('/dev/stderr', 'w')
     const fd_out = memfs.openSync('/dev/stdout', 'w')
     const fd_in = memfs.openSync('/dev/stdin', 'r')
-    // @ts-ignore
-    let readCounter = 0
-    vol.fds[0].read = function(
-      buf: Buffer | Uint8Array,
-      offset: number = 0,
-      length: number = buf.byteLength,
-      position?: number
-    ) {
-      // console.log('read');
-      // console.log(buf, offset, length, position);
-      if (readCounter !== 0) {
-        readCounter = ++readCounter % 3
-        return 0
-      }
-      let input = prompt('Input: ')
-      if (input === null || input === '') {
-        readCounter++
-        return 0
-      }
-      let buffer = Buffer.from(input, 'utf-8')
-      for (let x = 0; x < buffer.length; ++x) {
-        buf[x] = buffer[x]
-      }
-      readCounter++
-      // We write as it was an enter
-      // memfs.writeSync(1, "\r\n");
-      return buffer.length + 1
-    }
     assert(fd_err === 2, `invalid handle for stderr: ${fd_err}`)
     assert(fd_out === 1, `invalid handle for stdout: ${fd_out}`)
     assert(fd_in === 0, `invalid handle for stdin: ${fd_in}`)
@@ -123,21 +153,34 @@ export class WASICommand extends Command {
       }
     })
     this.memfs = memfs
+    this.volume = vol
     this.promisedInstance = WebAssembly.instantiate(options.module, {
       wasi_unstable: this.wasi.exports
     })
   }
 
-  async instantiate(): Promise<Duplex> {
+  async instantiate(stdin?: string): Promise<Duplex> {
     let instance = await Promise.resolve(this.promisedInstance)
     this.instance = instance
     this.wasi.setMemory((instance as any).exports.memory)
     let stdoutRead = this.memfs.createReadStream('/dev/stdout')
     let stderrRead = this.memfs.createReadStream('/dev/stderr')
-    let stdinWrite = this.memfs.createReadStream('/dev/stdin')
+    // let stdinWrite = this.memfs.createReadStream('/dev/stdin')
+
+    // We overwrite the read function of /dev/stdin if there is no provided stdin
+    if (typeof stdin === 'undefined') {
+      this.volume.fds[0].read = constructStdinRead()
+    } else {
+      this.volume.writeFileSync('/dev/stdin', stdin)
+    }
+
     // We join the stdout and stderr together
     let stream = merge((stdoutRead as unknown) as Duplex, (stderrRead as unknown) as Duplex)
     return stream
+  }
+
+  getStdout(): string {
+    return this.volume.readFileSync('/dev/stdout').toString()
   }
 
   run() {
@@ -161,7 +204,7 @@ export interface XTermProps {
   }) => Command | Promise<Command>
 }
 
-export default class XTerm extends React.Component<XTermProps> {
+export default class XTerm extends Component<XTermProps> {
   xterm: Terminal
   container: HTMLElement | null
 
@@ -174,7 +217,7 @@ export default class XTerm extends React.Component<XTermProps> {
     if (!this.container) {
       return
     }
-    console.log(this.xterm)
+    // console.log(this.xterm)
     this.xterm.open(this.container)
     this.prompt()
     this.xterm.on('key', this.onKey.bind(this))
@@ -210,22 +253,18 @@ export default class XTerm extends React.Component<XTermProps> {
       }
       try {
         const bashAst = parse(bashCommand)
+        // console.log(bashCommand, bashAst)
         if (bashAst.length > 1) {
           throw new Error('Only one command permitted')
         }
         if (bashAst[0].type !== 'command') {
           throw new Error('Only commands allowed')
         }
-        let command = bashAst[0].command.value
-        let commandArgs = bashAst[0].args.map((arg: any) => arg.value)
-        let args = [command, ...commandArgs]
-        // let env = {}
-        let env = Object.fromEntries(
-          Object.entries(bashAst[0].env).map(([key, value]: [string, any]) => [key, value.value])
-        )
-        this.runCommand({ args, env })
+        let options = commandAstToCommandOptions(bashAst[0])
+        // console.log(options);
+        this.runCommand(options)
       } catch (c) {
-        console.log(c)
+        // console.log(c)
         this.xterm.write(`wapm shell: parse error (${c.toString()})\r\n$ `)
       }
       // term.prompt();
@@ -241,13 +280,21 @@ export default class XTerm extends React.Component<XTermProps> {
       this.xterm.write(key)
     }
   }
-  async runCommand(options: { args: string[]; env: { [key: string]: string } }) {
+  async runSingleCommand(options: CommandOptions, stdin?: string) {
     let command: Command
+    let maybePromiseCommand = this.props.getCommand(options)
+    command = await Promise.resolve(maybePromiseCommand)
+    let commandPipe = await command.instantiate(stdin)
+    return { command, pipe: commandPipe }
+  }
+  async runCommand(options: CommandOptions) {
+    let command: Command
+    let redirects = 0
     try {
-      let maybePromiseCommand = this.props.getCommand(options)
-      command = await Promise.resolve(maybePromiseCommand)
-      let commandPipe = await command.instantiate()
       let xterm = this.xterm
+      let vars = await this.runSingleCommand(options)
+      command = vars.command
+      let commandPipe = vars.pipe
       let termPipe = new Duplex({
         read() {},
         write(data: any, _: any, done: Function) {
@@ -256,7 +303,8 @@ export default class XTerm extends React.Component<XTermProps> {
           xterm.write(dataStr.replace(/\n/g, '\r\n'))
         }
       })
-      commandPipe.once('end', () => {
+      termPipe.once('end', () => {
+        // console.log("term end", command.getStdout());
         // console.log(xterm.buffer.cursorX);
         let haveNewLine = xterm.buffer.cursorX == 0
         // let haveNewLine = dataStr.endsWith("\n");
@@ -265,8 +313,36 @@ export default class XTerm extends React.Component<XTermProps> {
         }
         this.prompt()
       })
-      commandPipe.pipe(termPipe)
+
+      if (!options.redirect) {
+        commandPipe.once('end', () => {
+          termPipe.emit('end')
+          termPipe.end()
+          return
+          // console.log("command end");
+        })
+        commandPipe.pipe(termPipe)
+      }
+
       command.run()
+      // Very hacky way of getting things working
+      if (options.redirect) {
+        let stdin = command.getStdout()
+        redirects++
+        // console.log('stdin', stdin);
+        let { command: redirectCommand, pipe } = await this.runSingleCommand(
+          options.redirect,
+          stdin
+        )
+        pipe.once('end', () => {
+          termPipe.emit('end')
+          termPipe.end()
+          return
+          // console.log("command end");
+        })
+        pipe.pipe(termPipe)
+        redirectCommand.run()
+      }
     } catch (e) {
       let commandName = options.args.join(' ')
       if (e instanceof WASIExitError) {
