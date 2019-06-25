@@ -1,14 +1,18 @@
 import XTerm, { Command, WASICommand, CommandOptions, Terminal } from '../src/term'
 import React from 'react'
 import ReactDOM from 'react-dom'
-import * as fit from 'xterm/lib/addons/fit/fit';
+import * as fit from 'xterm/lib/addons/fit/fit'
 
-Terminal.applyAddon(fit);
+const stdinFile = import('./stdin.wasm')
+console.log(stdinFile)
+Terminal.applyAddon(fit)
 
 let compiledModules: { [key: string]: WebAssembly.Module } = {}
 
 let commands = {
   cowsay: 'https://registry-cdn.wapm.dev/contents/_/cowsay/0.1.2/cowsay.wasm',
+  a: 'http://localhost:1234/stdin.6f029b38.wasm',
+  matrix: 'https://registry-cdn.wapm.dev/contents/syrusakbary/wasm-matrix/0.0.4/optimized.wasm',
   // 'cowsay': 'https://wapm.dev/_/cowsay/0.1.2/cowsay.wasm',
   lolcat: 'https://registry-cdn.wapm.dev/contents/_/lolcat/0.1.1/lolcat.wasm'
 }
@@ -26,6 +30,7 @@ const compileFromUrl = async (url: string): Promise<WebAssembly.Module> => {
 }
 
 const getCommand = async (options: CommandOptions): Promise<WASICommand> => {
+  // await stdinFile;
   let [commandName, commandArgs] = options.args
   let commandUrl = commands[commandName]
   if (!commandUrl) {
@@ -43,6 +48,12 @@ const getCommand = async (options: CommandOptions): Promise<WASICommand> => {
   })
 }
 
-ReactDOM.render(<XTerm getCommand={getCommand} onSetup={(component) => {
-  (component.xterm as any).fit()
-}} />, document.getElementById('root'))
+ReactDOM.render(
+  <XTerm
+    getCommand={getCommand}
+    onSetup={component => {
+      ;(component.xterm as any).fit()
+    }}
+  />,
+  document.getElementById('root')
+)
