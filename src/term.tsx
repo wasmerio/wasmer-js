@@ -7,19 +7,22 @@ import { Duplex } from 'stream'
 import { PassThrough } from 'stream'
 import './polyfills'
 import WASI from './wasi'
-import BrowserBindings, {WASIExitError, WASIKillError} from './bindings/browser'
+import BrowserBindings, { WASIExitError, WASIKillError } from './bindings/browser'
 // declare function parse(moduleName: string): any;
 
 const parse = parse_
 
 const merge = (...streams: Duplex[]) => {
-    let pass = new PassThrough()
-    let waiting = streams.length
-    for (let stream of streams) {
-        pass = stream.pipe(pass, {end: false})
-        stream.once('end', () => --waiting === 0 && pass.emit('end'))
-    }
-    return pass
+  let pass = new PassThrough()
+  let waiting = streams.length
+  for (let stream of streams) {
+    pass = stream.pipe(
+      pass,
+      { end: false }
+    )
+    stream.once('end', () => --waiting === 0 && pass.emit('end'))
+  }
+  return pass
 }
 
 export type CommandOptions = {
@@ -63,18 +66,49 @@ export class WASICommand extends Command {
   constructor(options: WASMCommandOptions) {
     super(options)
     let vol = Volume.fromJSON({
-      '/dev/tty': '',
-      '/dev/tty1': ''
+      // '/dev/tty': '',
+      // '/dev/tty1': '',
+      '/dev/stderr': '',
+      '/dev/stdout': '',
+      '/dev/stdin': ''
     })
     vol.releasedFds = [0, 1, 2]
     let memfs = createFsFromVolume(vol)
-    memfs.symlinkSync('/dev/tty', '/dev/stdout')
-    memfs.symlinkSync('/dev/tty', '/dev/stdin')
-    memfs.symlinkSync('/dev/tty1', '/dev/stderr')
+    // memfs.symlinkSync('/dev/tty', '/dev/stdout')
+    // memfs.symlinkSync('/dev/tty', '/dev/stdin')
+    // memfs.symlinkSync('/dev/tty1', '/dev/stderr')
 
     const fd_err = memfs.openSync('/dev/stderr', 'w')
     const fd_out = memfs.openSync('/dev/stdout', 'w')
     const fd_in = memfs.openSync('/dev/stdin', 'r')
+    // @ts-ignore
+    let readCounter = 0
+    vol.fds[0].read = function(
+      buf: Buffer | Uint8Array,
+      offset: number = 0,
+      length: number = buf.byteLength,
+      position?: number
+    ) {
+      // console.log('read');
+      // console.log(buf, offset, length, position);
+      if (readCounter !== 0) {
+        readCounter = ++readCounter % 3
+        return 0
+      }
+      let input = prompt('Input: ')
+      if (input === null || input === '') {
+        readCounter++
+        return 0
+      }
+      let buffer = Buffer.from(input, 'utf-8')
+      for (let x = 0; x < buffer.length; ++x) {
+        buf[x] = buffer[x]
+      }
+      readCounter++
+      // We write as it was an enter
+      // memfs.writeSync(1, "\r\n");
+      return buffer.length + 1
+    }
     assert(fd_err === 2, `invalid handle for stderr: ${fd_err}`)
     assert(fd_out === 1, `invalid handle for stdout: ${fd_out}`)
     assert(fd_in === 0, `invalid handle for stdin: ${fd_in}`)
@@ -98,11 +132,12 @@ export class WASICommand extends Command {
     let instance = await Promise.resolve(this.promisedInstance)
     this.instance = instance
     this.wasi.setMemory((instance as any).exports.memory)
-    let stdoutRead = this.memfs.createReadStream('/dev/stdout');
-    let stderrRead = this.memfs.createReadStream('/dev/stderr');
+    let stdoutRead = this.memfs.createReadStream('/dev/stdout')
+    let stderrRead = this.memfs.createReadStream('/dev/stderr')
+    let stdinWrite = this.memfs.createReadStream('/dev/stdin')
     // We join the stdout and stderr together
-    let stream = merge(stdoutRead as unknown as Duplex, stderrRead as unknown as Duplex);
-    return stream;
+    let stream = merge((stdoutRead as unknown) as Duplex, (stderrRead as unknown) as Duplex)
+    return stream
   }
 
   run() {
@@ -146,7 +181,7 @@ export default class XTerm extends React.Component<XTermProps> {
     this.xterm.on('paste', this.onPaste.bind(this))
     this.xterm.focus()
     if (this.props.onSetup) {
-      this.props.onSetup(this);
+      this.props.onSetup(this)
     }
   }
   onPaste(data: string) {
@@ -216,9 +251,10 @@ export default class XTerm extends React.Component<XTermProps> {
       let termPipe = new Duplex({
         read() {},
         write(data: any, _: any, done: Function) {
+          // console.log('write pipe')
           let dataStr = data.toString('utf8')
           xterm.write(dataStr.replace(/\n/g, '\r\n'))
-        },
+        }
       })
       commandPipe.once('end', () => {
         // console.log(xterm.buffer.cursorX);
@@ -232,16 +268,15 @@ export default class XTerm extends React.Component<XTermProps> {
       commandPipe.pipe(termPipe)
       command.run()
     } catch (e) {
-      let commandName = options.args.join(' ');
+      let commandName = options.args.join(' ')
       if (e instanceof WASIExitError) {
-        console.log(`Program "${commandName}" exitted with code: ${e.code}`);
+        console.log(`Program "${commandName}" exitted with code: ${e.code}`)
         // this.prompt()
-        return;
-      }
-      else if (e instanceof WASIKillError) {
-        console.log(`Program "${commandName}" killed with signal: ${e.signal}`);
+        return
+      } else if (e instanceof WASIKillError) {
+        console.log(`Program "${commandName}" killed with signal: ${e.signal}`)
         // this.prompt()
-        return;
+        return
       }
       console.error(`Error while running "${commandName}"\n${e}`)
       this.xterm.writeln(`wapm shell error: ${e.toString()}`)
