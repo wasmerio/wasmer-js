@@ -4,6 +4,8 @@ import { createFsFromVolume, IFs } from 'memfs'
 import { Volume } from 'memfs/lib/volume'
 import NodeBindings from '../src/bindings/node'
 
+const TextEncoder = require('text-encoder-lite').TextEncoderLite
+
 const bytesConverter = (buffer: Buffer): Buffer => {
   // Help debugging: https://webassembly.github.io/wabt/demo/wat2wasm/index.html
   let wasi_unstable = new TextEncoder().encode('wasi_unstable')
