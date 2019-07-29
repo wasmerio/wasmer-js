@@ -4,6 +4,46 @@ import { createFsFromVolume, IFs } from 'memfs'
 import { Volume } from 'memfs/lib/volume'
 import NodeBindings from '../src/bindings/node'
 
+const bytesConverter = (buffer: Buffer): Buffer => {
+  // Help debugging: https://webassembly.github.io/wabt/demo/wat2wasm/index.html
+  let wasi_unstable = new TextEncoder().encode('wasi_unstable')
+  let path_open = new TextEncoder().encode('path_open')
+  var tmp = new Uint8Array(1 + wasi_unstable.byteLength + 1 + path_open.byteLength + 1)
+  tmp[0] = 0x0d
+  tmp.set(new Uint8Array(wasi_unstable), 1)
+  tmp[wasi_unstable.byteLength + 1] = 0x09
+  tmp.set(new Uint8Array(path_open), wasi_unstable.byteLength + 2)
+  tmp[1 + wasi_unstable.byteLength + 1 + path_open.byteLength + 1] = 0x00
+  let index = buffer.indexOf(tmp)
+  console.log(index)
+  // let signatureIndex = buffer[index+path_open.length+1];
+
+  // 0000043: 60                                        ; func
+  // 0000044: 09                                        ; num params
+  // 0000045: 7f                                        ; i32
+  // 0000046: 7f                                        ; i32
+  // 0000047: 7f                                        ; i32
+  // 0000048: 7f                                        ; i32
+  // 0000049: 7f                                        ; i32
+  // 000004a: 7e                                        ; i64
+  // 000004b: 7e                                        ; i64
+  // 000004c: 7f                                        ; i32
+  // 000004d: 7f                                        ; i32
+  // 000004e: 01                                        ; num results
+  // 000004f: 7f                                        ; i32
+
+  let functionTypeIndex = buffer.indexOf(
+    new Uint8Array([0x60, 0x09, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7e, 0x7e, 0x7f, 0x7f, 0x01, 0x7f])
+  )
+
+  console.log(functionTypeIndex)
+  // console.log(path_open, );
+
+  // Patch the signature
+
+  // Patch the calls to that signature
+  return buffer
+}
 const instantiateWasi = async (
   file: string,
   memfs: IFs,
@@ -103,6 +143,10 @@ describe('WASI interaction', () => {
     `)
   })
 
+  it('converts path_open', async () => {
+    let originalBuffer = fs.readFileSync('test/rs/sandbox_file_ok.wasm')
+    bytesConverter(originalBuffer)
+  })
   // it('WASI sandbox error', async () => {
   //   let { instance, wasi } = await instantiateWasi('test/rs/sandbox_file_error.wasm', memfs, [], {})
   //   // console.log("instantiated");
