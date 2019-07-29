@@ -4,7 +4,7 @@ const { isatty: isTTY } = require('tty')
 const path = require('path')
 
 import { WASIBindings } from '../wasi'
-import hrtime from '../polyfill/hrtime'
+import hrtime from '../polyfill/hrtime.bigint'
 
 const bindings: WASIBindings = {
   hrtime: hrtime,
