@@ -1,15 +1,13 @@
 import * as fs from "fs";
-import { WASI } from "../src";
+import { WASI } from "../lib";
 import { createFsFromVolume, IFs } from "memfs";
 import { Volume } from "memfs/lib/volume";
-import NodeBindings from "../src/bindings/node";
-import hrtime from "../src/polyfill/hrtime.bigint";
-
-const TextEncoder = require("text-encoder-lite").TextEncoderLite;
+import NodeBindings from "../lib/bindings/node";
+import hrtime from "../lib/polyfill/hrtime.bigint";
 
 const bytesConverter = (buffer: Buffer): Buffer => {
   // Help debugging: https://webassembly.github.io/wabt/demo/wat2wasm/index.html
-  let wasi_unstable = new TextEncoder().encode("wasi_unstable");
+  let wasi_unstable = Buffer.from("wasi_unstable", "utf8");
   let path_open = new TextEncoder().encode("path_open");
   var tmp = new Uint8Array(
     1 + wasi_unstable.byteLength + 1 + path_open.byteLength + 1

@@ -1,8 +1,10 @@
 // Simply polyfill for hrtime
 // https://nodejs.org/api/process.html#process_process_hrtime_time
 
+import { BigIntPolyfillType } from "./bigint";
+
 const NS_PER_SEC: number = 1e9;
-let hrtime: () => bigint;
+let hrtime: () => BigIntPolyfillType;
 
 if (process.hrtime && process.hrtime.bigint) {
   // Use bigint if we support it
@@ -13,7 +15,7 @@ if (process.hrtime && process.hrtime.bigint) {
     const diff = process.hrtime(baseTime);
 
     // Return the time
-    return ((diff[0] * NS_PER_SEC + diff[1]) as unknown) as bigint;
+    return ((diff[0] * NS_PER_SEC + diff[1]) as unknown) as BigIntPolyfillType;
   };
 }
 

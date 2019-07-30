@@ -14,5 +14,10 @@ module.exports = {
       statements: 95
     }
   },
-  collectCoverageFrom: ["src/*.{js,ts}"]
+  collectCoverageFrom: ["src/*.{js,ts}"],
+  globals: {
+    window: true,
+    global: true,
+    self: true
+  }
 };
