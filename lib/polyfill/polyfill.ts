@@ -1,7 +1,7 @@
 // @ts-ignore
 if (global && !global.BigInt) {
   // @ts-ignore
-  global.BigInt = Number
+  global.BigInt = Number;
 }
 
 if (!DataView.prototype.setBigUint64) {
@@ -11,12 +11,12 @@ if (!DataView.prototype.setBigUint64) {
     value: bigint,
     littleEndian: boolean | undefined
   ) {
-    let lowWord = value
-    let highWord = 0
+    let lowWord = value;
+    let highWord = 0;
     // if (value.length >= 2) {
     //     highWord = value[1];
     // }
-    this.setUint32(littleEndian ? 0 : 4, lowWord, littleEndian)
-    this.setUint32(littleEndian ? 4 : 0, highWord, littleEndian)
-  }
+    this.setUint32(littleEndian ? 0 : 4, lowWord, littleEndian);
+    this.setUint32(littleEndian ? 4 : 0, highWord, littleEndian);
+  };
 }

@@ -1,4 +1,4 @@
-import './polyfill';
-import WASI from './wasi';
+import "./polyfill/polyfill";
+import WASI from "./wasi";
 
 export { WASI };
