@@ -5,10 +5,10 @@ cache:
 notifications:
   email: false
 node_js:
+  - '8'
   - '10'
   - '11'
-  - '8'
-  - '6'
+  - 'node'
 script:
   - npm run test:prod && npm run build
 after_success:

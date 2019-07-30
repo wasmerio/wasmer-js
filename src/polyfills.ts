@@ -11,8 +11,8 @@ if (!DataView.prototype.setBigUint64) {
     value: bigint,
     littleEndian: boolean | undefined
   ) {
-    let lowWord = value,
-      highWord = 0
+    let lowWord = value
+    let highWord = 0
     // if (value.length >= 2) {
     //     highWord = value[1];
     // }

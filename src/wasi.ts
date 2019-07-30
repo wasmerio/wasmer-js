@@ -1060,7 +1060,7 @@ class WASI {
     //   isEmpty = true;
     // }
     // @ts-ignore
-    if (this.view === undefined || this.view.buffer.byteLength === 0) {
+    if (!this.view || this.view.buffer.byteLength === 0) {
       this.view = new DataView(this.memory.buffer)
     }
   }

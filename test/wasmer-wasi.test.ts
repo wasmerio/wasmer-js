@@ -3,6 +3,9 @@ import { WASI } from '../src'
 import { createFsFromVolume, IFs } from 'memfs'
 import { Volume } from 'memfs/lib/volume'
 import NodeBindings from '../src/bindings/node'
+import hrtime from '../src/polyfill/hrtime.bigint'
+
+const TextEncoder = require('text-encoder-lite').TextEncoderLite
 
 const bytesConverter = (buffer: Buffer): Buffer => {
   // Help debugging: https://webassembly.github.io/wabt/demo/wat2wasm/index.html
@@ -80,6 +83,29 @@ const getStdout = (memfs: IFs) => {
   })
   return promise
 }
+
+describe('hrtime Polyfill', () => {
+  const waitForTime = (milliseconds: number) => {
+    return new Promise(resolve => {
+      setTimeout(resolve, milliseconds)
+    })
+  }
+
+  it('Should return an expected hrtime bigint value', async () => {
+    const start: bigint = hrtime()
+    let diffTime: bigint = (0 as unknown) as bigint
+
+    // Wait for a second
+    await waitForTime(1000)
+    diffTime = hrtime() - start
+    expect(diffTime > 1.0e9 && diffTime < 1.1e9).toBeTruthy()
+
+    // Wait an additoonal half a second
+    await waitForTime(500)
+    diffTime = hrtime() - start
+    expect(diffTime > 1.5e9 && diffTime < 1.7e9).toBeTruthy()
+  })
+})
 
 describe('WASI interaction', () => {
   let memfs: IFs

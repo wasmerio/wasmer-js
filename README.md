@@ -62,11 +62,12 @@ npm install
 
 ### NPM scripts
 
- - `npm t`: Run test suite
- - `npm start`: Run `npm run build` in watch mode
+ - `npm start`: Run `npm run dev`
+ - `npm test`: Run test suite
+ - `npm run build`: Generate bundles and typings, create docs
+ - `npm run dev`: Run `npm run build` in watch mode
  - `npm run test:watch`: Run test suite in [interactive watch mode](http://facebook.github.io/jest/docs/cli.html#watch)
  - `npm run test:prod`: Run linting and generate coverage
- - `npm run build`: Generate bundles and typings, create docs
  - `npm run lint`: Lints code
  - `npm run precompile`: Precompile all the source files (requires Rust nightly) to the WebAssembly WASI binaries
  - `npm run commit`: Commit using conventional commit style ([husky](https://github.com/typicode/husky) will tell you to use it if you haven't :wink:)
