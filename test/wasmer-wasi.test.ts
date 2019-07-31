@@ -1,10 +1,13 @@
+// Import fs for reading our test wasm files on disk
 import * as fs from "fs";
-import * as WasiFileSystem from "../examples/file-system/file-system";
 
 // Since we are importing the lib directly, also we need to import our
 // Node bindings. For the normal library, default bindings are provided :)
+// Also, here we are using the "memfs" file system example that way we don't
+// create any actual files on our machine
 import { WASI } from "../lib";
 import WASINodeBindings from "../lib/bindings/node";
+import * as WasiFileSystem from "../examples/file-system/file-system";
 
 const bytesConverter = (buffer: Buffer): Buffer => {
   // Help debugging: https://webassembly.github.io/wabt/demo/wat2wasm/index.html
