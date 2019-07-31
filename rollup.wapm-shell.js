@@ -9,6 +9,7 @@ import postcssImport from "postcss-import";
 import compiler from "@ampproject/rollup-plugin-closure-compiler";
 import bundleSize from "rollup-plugin-bundle-size";
 import hash from "rollup-plugin-hash";
+import url from "rollup-plugin-url";
 import serve from "rollup-plugin-serve";
 
 const sourcemapOption = process.env.PROD ? undefined : "inline";
@@ -32,6 +33,11 @@ let plugins = [
   postcss({
     extensions: [".css"],
     plugins: [postcssImport()]
+  }),
+  url({
+    limit: 10 * 1024,
+    include: ["**/*.wasm"],
+    emitFiles: true
   }),
   typescript(typescriptPluginOptions),
   resolve(),
@@ -67,7 +73,7 @@ const wapmShellBundles = [
     input: "examples/wapm-shell/index.tsx",
     output: [
       {
-        file: "dist/examples/wapm-shell/index.js",
+        file: "dist/examples/wapm-shell/index.iife.js",
         format: "iife",
         sourcemap: sourcemapOption,
         name: "WasiWapmShellDemo"

@@ -1,11 +1,12 @@
-import XTerm, { Command, WASICommand, CommandOptions, Terminal } from "./term";
-import React from "react";
-import ReactDOM from "react-dom";
-import * as fit from "xterm/lib/addons/fit/fit";
+import { h, render, Component } from "preact";
 
-const stdinFile = import("./stdin.wasm");
-console.log(stdinFile);
-Terminal.applyAddon(fit);
+// import XTerm, { Command, WASICommand, CommandOptions, Terminal } from "./term";
+// import * as fit from "xterm/lib/addons/fit/fit";
+// Terminal.applyAddon(fit);
+
+import "./index.css";
+import stdinWasmUrl from "./assets/stdin.wasm";
+console.log(stdinWasmUrl);
 
 let compiledModules: { [key: string]: WebAssembly.Module } = {};
 
@@ -49,12 +50,20 @@ const getCommand = async (options: CommandOptions): Promise<WASICommand> => {
   });
 };
 
-ReactDOM.render(
-  <XTerm
-    getCommand={getCommand}
-    onSetup={component => {
-      (component.xterm as any).fit();
-    }}
-  />,
-  document.getElementById("root")
-);
+class App extends Component {
+  render() {
+    return (
+      <div>Yooo</div>
+      /*
+        <XTerm
+          getCommand={getCommand}
+          onSetup={component => {
+            (component.xterm as any).fit();
+          }}
+        />
+        */
+    );
+  }
+}
+
+render(<App />, document.getElementById("root"));
