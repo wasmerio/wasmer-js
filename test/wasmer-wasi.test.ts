@@ -5,6 +5,12 @@ import * as fs from "fs";
 // Node bindings. For the normal library, default bindings are provided :)
 // Also, here we are using the "memfs" file system example that way we don't
 // create any actual files on our machine
+jest.mock("../lib/polyfill/bigint");
+const bigIntPolyfill = require("../lib/polyfill/bigint");
+bigIntPolyfill.BigIntPolyfill = global.Number;
+if ((global as any).BigInt) {
+  bigIntPolyfill.BigIntPolyfill = (global as any).BigInt;
+}
 import { WASI } from "../lib";
 import WASINodeBindings from "../lib/bindings/node";
 import * as WasiFileSystem from "../examples/file-system/file-system";
