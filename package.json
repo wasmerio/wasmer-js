@@ -23,6 +23,7 @@
   "scripts": {
     "prebuild": "rimraf dist",
     "precompile": "cd test/rs && make all",
+    "postinstall": "npm run build",
     "start": "npm run dev",
     "dev": "npm run dev:wapm-shell",
     "build": "npx run-s build:lib",

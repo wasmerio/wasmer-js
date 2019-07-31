@@ -24,6 +24,7 @@ const writeIndexHtml = bundleName => {
     "<%BUNDLE%>",
     bundleName.replace("dist/examples/wapm-shell/", "")
   );
+  fs.mkdirSync("dist/examples/wapm-shell/", { recursive: true });
   fs.writeFileSync("dist/examples/wapm-shell/index.html", indexHtml, "utf8");
 };
 
@@ -59,7 +60,7 @@ if (process.env.PROD) {
   plugins = [
     ...plugins,
     hash({
-      dest: "dist/examples/wapm-shell//bundle.[hash].js",
+      dest: "dist/examples/wapm-shell/bundle.[hash].js",
       callback: bundleName => {
         writeIndexHtml(bundleName);
       }
