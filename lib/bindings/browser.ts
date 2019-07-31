@@ -21,7 +21,7 @@ export class WASIKillError extends Error {
 }
 
 const bindings: WASIBindings = {
-  hrtime: hrtime,
+  hrtime: (hrtime as unknown) as () => bigint,
   exit: (code: number | null) => {
     throw new WASIExitError(code);
   },

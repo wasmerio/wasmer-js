@@ -3,7 +3,9 @@
 
 // Add Big int depending on the environment
 let exportedBigInt = Number;
-let globalThis = {};
+let globalThis: any = {
+  BigInt: {}
+};
 /*ROLLUP_REPLACE_NODE
 globalThis = global;
 ROLLUP_REPLACE_NODE*/
