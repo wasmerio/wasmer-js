@@ -3,6 +3,8 @@
 import { createFsFromVolume, IFs } from "memfs";
 import { Volume } from "memfs/lib/volume";
 
+export { IFs } from "memfs";
+
 export const generateWasiFileSystem = () => {
   const volume: Volume = Volume.fromJSON({
     "/dev/stdin": "",

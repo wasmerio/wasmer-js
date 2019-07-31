@@ -29,7 +29,9 @@ const replaceBrowserOptions = {
 };
 
 let typescriptPluginOptions = {
-  tsconfig: "./tsconfig.json"
+  tsconfig: "./tsconfig.json",
+  clean: process.env.PROD ? true : false,
+  objectHashIgnoreUnknownHack: true
 };
 
 const plugins = [

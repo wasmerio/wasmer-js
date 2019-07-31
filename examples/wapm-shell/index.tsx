@@ -5,11 +5,12 @@ import * as fit from "xterm/lib/addons/fit/fit";
 Terminal.applyAddon(fit);
 
 import "./index.css";
-import stdinWasmUrl from "./assets/stdin.wasm";
+let stdinWasmUrl: string = "";
+// import stdinWasmUrl from "./assets/stdin.wasm";
 
 let compiledModules: { [key: string]: WebAssembly.Module } = {};
 
-let commands = {
+let commands: any = {
   cowsay: "https://registry-cdn.wapm.dev/contents/_/cowsay/0.1.2/cowsay.wasm",
   a: stdinWasmUrl,
   matrix:
@@ -62,4 +63,7 @@ class App extends Component {
   }
 }
 
-render(<App />, document.getElementById("root"));
+const rootElement = document.getElementById("root");
+if (rootElement) {
+  render(<App />, rootElement);
+}

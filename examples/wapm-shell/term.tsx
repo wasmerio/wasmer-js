@@ -4,6 +4,7 @@ import parse_ from "shell-parse";
 
 import { Duplex, PassThrough } from "stream";
 
+//@ts-ignore
 import { WASI } from "../../dist/index.esm";
 import { WASIExitError, WASIKillError } from "../../lib/bindings/browser";
 
@@ -32,7 +33,7 @@ const commandAstToCommandOptions = (ast: any): CommandOptions => {
   let command = ast.command.value;
   let commandArgs = ast.args.map((arg: any) => arg.value);
   let args = [command, ...commandArgs];
-  // let env = {}
+
   let env = Object.fromEntries(
     Object.entries(ast.env).map(([key, value]: [string, any]) => [
       key,
@@ -120,7 +121,6 @@ export class WASICommand extends Command {
   promisedInstance: Promise<WebAssembly.Instance>;
   instance: WebAssembly.Instance | undefined;
   wasiFs: IFs;
-  volume: Volume;
 
   constructor(options: WASMCommandOptions) {
     super(options);

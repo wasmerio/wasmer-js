@@ -28,7 +28,9 @@ const writeIndexHtml = bundleName => {
 };
 
 let typescriptPluginOptions = {
-  tsconfig: "./tsconfig.json"
+  tsconfig: "./tsconfig.json",
+  clean: process.env.PROD ? true : false,
+  objectHashIgnoreUnknownHack: true
 };
 
 let plugins = [
@@ -46,8 +48,8 @@ let plugins = [
     preferBuiltins: true
   }),
   commonjs(),
-  builtins(),
   globals(),
+  builtins(),
   json(),
   process.env.PROD ? compiler() : undefined,
   bundleSize()
