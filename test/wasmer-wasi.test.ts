@@ -1,9 +1,6 @@
 import * as fs from "fs";
+import * as WasiFileSystem from "../examples/file-system/file-system";
 import { WASI } from "../lib";
-import { createFsFromVolume, IFs } from "memfs";
-import { Volume } from "memfs/lib/volume";
-import NodeBindings from "../lib/bindings/node";
-import hrtime from "../lib/polyfill/hrtime.bigint";
 
 const bytesConverter = (buffer: Buffer): Buffer => {
   // Help debugging: https://webassembly.github.io/wabt/demo/wat2wasm/index.html
@@ -18,22 +15,6 @@ const bytesConverter = (buffer: Buffer): Buffer => {
   tmp.set(new Uint8Array(path_open), wasi_unstable.byteLength + 2);
   tmp[1 + wasi_unstable.byteLength + 1 + path_open.byteLength + 1] = 0x00;
   let index = buffer.indexOf(tmp);
-  console.log(index);
-  // let signatureIndex = buffer[index+path_open.length+1];
-
-  // 0000043: 60                                        ; func
-  // 0000044: 09                                        ; num params
-  // 0000045: 7f                                        ; i32
-  // 0000046: 7f                                        ; i32
-  // 0000047: 7f                                        ; i32
-  // 0000048: 7f                                        ; i32
-  // 0000049: 7f                                        ; i32
-  // 000004a: 7e                                        ; i64
-  // 000004b: 7e                                        ; i64
-  // 000004c: 7f                                        ; i32
-  // 000004d: 7f                                        ; i32
-  // 000004e: 01                                        ; num results
-  // 000004f: 7f                                        ; i32
 
   let functionTypeIndex = buffer.indexOf(
     new Uint8Array([
@@ -52,18 +33,12 @@ const bytesConverter = (buffer: Buffer): Buffer => {
       0x7f
     ])
   );
-
-  console.log(functionTypeIndex);
-  // console.log(path_open, );
-
-  // Patch the signature
-
-  // Patch the calls to that signature
   return buffer;
 };
+
 const instantiateWasi = async (
   file: string,
-  memfs: IFs,
+  wasiFs: any,
   args: string[] = [],
   env: { [key: string]: string } = {}
 ) => {
@@ -74,8 +49,8 @@ const instantiateWasi = async (
     env: env,
     args: args,
     bindings: {
-      ...NodeBindings,
-      fs: memfs
+      ...WASI.defaultBindings,
+      fs: wasiFs
     }
   });
   const buf = fs.readFileSync(file);
@@ -87,58 +62,16 @@ const instantiateWasi = async (
   return { wasi, instance };
 };
 
-const getStdout = (memfs: IFs) => {
-  // console.log(memfs.toJSON("/dev/stdout"))
-  let promise = new Promise((resolve, reject) => {
-    const rs_out = memfs.createReadStream("/dev/stdout", "utf8");
-    // let prevData = ''
-    rs_out.on("data", data => {
-      // prevData = prevData + data.toString('utf8')
-      resolve(data.toString("utf8"));
-    });
-  });
-  return promise;
-};
-
-describe("hrtime Polyfill", () => {
-  const waitForTime = (milliseconds: number) => {
-    return new Promise(resolve => {
-      setTimeout(resolve, milliseconds);
-    });
-  };
-
-  it("Should return an expected hrtime bigint value", async () => {
-    const start: bigint = hrtime();
-    let diffTime: bigint = (0 as unknown) as bigint;
-
-    // Wait for a second
-    await waitForTime(1000);
-    diffTime = hrtime() - start;
-    expect(diffTime > 1.0e9 && diffTime < 1.1e9).toBeTruthy();
-
-    // Wait an additoonal half a second
-    await waitForTime(500);
-    diffTime = hrtime() - start;
-    expect(diffTime > 1.5e9 && diffTime < 1.7e9).toBeTruthy();
-  });
-});
-
 describe("WASI interaction", () => {
-  let memfs: IFs;
-  let vol: Volume;
-  beforeEach(async () => {
-    vol = Volume.fromJSON({
-      "/dev/stdin": "",
-      "/dev/stdout": "",
-      "/dev/stderr": "",
-      "/sandbox/file1": "contents1"
-    });
-    vol.releasedFds = [0, 1, 2];
-    memfs = createFsFromVolume(vol);
+  let wasiFs: any;
 
-    const fd_err = vol.openSync("/dev/stderr", "w");
-    const fd_out = vol.openSync("/dev/stdout", "w");
-    const fd_in = vol.openSync("/dev/stdin", "w");
+  beforeEach(async () => {
+    const wasiFs = WasiFileSystem.generateWasiFileSystem();
+    wasiFs.writeFileSync("/sandbox/file1", "contents1");
+
+    const fd_err = wasiFs.openSync("/dev/stderr", "w");
+    const fd_out = wasiFs.openSync("/dev/stdout", "w");
+    const fd_in = wasiFs.openSync("/dev/stdin", "w");
     expect(fd_err).toBe(2);
     expect(fd_out).toBe(1);
     expect(fd_in).toBe(0);
@@ -147,25 +80,25 @@ describe("WASI interaction", () => {
   it("Helloworld can be run", async () => {
     let { instance, wasi } = await instantiateWasi(
       "test/rs/helloworld.wasm",
-      memfs
+      wasiFs
     );
     instance.exports._start();
-    expect(await getStdout(memfs)).toMatchInlineSnapshot(`
+    expect(await WasiFileSystem.getStdOutFromWasiFileSystem(wasiFs))
+      .toMatchInlineSnapshot(`
                               "Hello world!
                               "
                     `);
   });
 
   it("WASI args work", async () => {
-    let { instance, wasi } = await instantiateWasi("test/rs/args.wasm", memfs, [
-      "demo",
-      "-h",
-      "--help",
-      "--",
-      "other"
-    ]);
+    let { instance, wasi } = await instantiateWasi(
+      "test/rs/args.wasm",
+      wasiFs,
+      ["demo", "-h", "--help", "--", "other"]
+    );
     instance.exports._start();
-    expect(await getStdout(memfs)).toMatchInlineSnapshot(`
+    expect(await WasiFileSystem.getStdOutFromWasiFileSystem(wasiFs))
+      .toMatchInlineSnapshot(`
                               "[\\"demo\\", \\"-h\\", \\"--help\\", \\"--\\", \\"other\\"]
                               "
                     `);
@@ -174,14 +107,15 @@ describe("WASI interaction", () => {
   it("WASI env work", async () => {
     let { instance, wasi } = await instantiateWasi(
       "test/rs/env.wasm",
-      memfs,
+      wasiFs,
       [],
       {
         WASM_EXISTING: "VALUE"
       }
     );
     instance.exports._start();
-    expect(await getStdout(memfs)).toMatchInlineSnapshot(`
+    expect(await WasiFileSystem.getStdOutFromWasiFileSystem(wasiFs))
+      .toMatchInlineSnapshot(`
       "should be set (WASM_EXISTING): Some(\\"VALUE\\")
       shouldn't be set (WASM_UNEXISTING): None
       Set existing var (WASM_EXISTING): Some(\\"NEW_VALUE\\")
@@ -197,10 +131,4 @@ describe("WASI interaction", () => {
     let originalBuffer = fs.readFileSync("test/rs/sandbox_file_ok.wasm");
     bytesConverter(originalBuffer);
   });
-  // it('WASI sandbox error', async () => {
-  //   let { instance, wasi } = await instantiateWasi('test/rs/sandbox_file_error.wasm', memfs, [], {})
-  //   // console.log("instantiated");
-  //   instance.exports._start()
-  //   expect(await getStdout(memfs)).toMatchInlineSnapshot()
-  // })
 });

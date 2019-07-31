@@ -9,6 +9,14 @@ import {
   DataViewPolyfillType
 } from "./polyfill/dataview";
 
+// Import our default bindings depending on the environment
+/*ROLLUP_REPLACE_NODE
+import defaultBindings from "./bindings/node";
+ROLLUP_REPLACE_NODE*/
+/*ROLLUP_REPLACE_BROWSER
+import defaultBindings from "./bindings/browser";
+ROLLUP_REPLACE_BROWSER*/
+
 /// This project is based from the Node implementation made by Gus Caplan
 /// https://github.com/devsnek/node-wasi
 /// However, JavaScript WASI is focused on:
@@ -262,12 +270,13 @@ class WASI {
   FD_MAP: Map<number, File>;
   exports: Exports;
   bindings: WASIBindings;
+  static defaultBindings: WASIBindings = defaultBindings;
 
   constructor({
     preopenDirectories = {},
     env = {},
     args = [],
-    bindings
+    bindings = defaultBindings
   }: WASIConfig) {
     // @ts-ignore
     this.memory = undefined;

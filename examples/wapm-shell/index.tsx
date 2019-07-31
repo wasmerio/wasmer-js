@@ -1,4 +1,4 @@
-import XTerm, { Command, WASICommand, CommandOptions, Terminal } from ".Ω/term";
+import XTerm, { Command, WASICommand, CommandOptions, Terminal } from "./term";
 import React from "react";
 import ReactDOM from "react-dom";
 import * as fit from "xterm/lib/addons/fit/fit";
