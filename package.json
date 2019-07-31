@@ -37,7 +37,7 @@
     "test": "npx jest --config jest.config.js",
     "test:watch": "npx jest --config jest.config.js --watch",
     "test:prod": "npx run-s lint test",
-    "docs": "typedoc src/ --out docs --target es6 --theme minimal --mode file"
+    "docs": "npx typedoc lib/ --out docs --target es6 --theme minimal --mode file"
   },
   "husky": {
     "hooks": {
@@ -79,6 +79,7 @@
     "tslint": "^5.18.0",
     "tslint-config-prettier": "^1.18.0",
     "tslint-config-standard": "^8.0.1",
+    "typedoc": "^0.15.0",
     "typescript": "^3.5.3",
     "url": "^0.11.0",
     "xterm": "^3.14.5"
