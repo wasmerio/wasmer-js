@@ -1,25 +1,33 @@
-import * as fs from 'fs'
-import { WASI } from '../src'
-import { createFsFromVolume, IFs } from 'memfs'
-import { Volume } from 'memfs/lib/volume'
-import NodeBindings from '../src/bindings/node'
-import hrtime from '../src/polyfill/hrtime.bigint'
+// Import fs for reading our test wasm files on disk
+import * as fs from "fs";
 
-const TextEncoder = require('text-encoder-lite').TextEncoderLite
+// Since we are importing the lib directly, also we need to import our
+// Node bindings. For the normal library, default bindings are provided :)
+// Also, here we are using the "memfs" file system example that way we don't
+// create any actual files on our machine
+jest.mock("../lib/polyfill/bigint");
+const bigIntPolyfill = require("../lib/polyfill/bigint");
+bigIntPolyfill.BigIntPolyfill = global.Number;
+if ((global as any).BigInt) {
+  bigIntPolyfill.BigIntPolyfill = (global as any).BigInt;
+}
+import { WASI } from "../lib";
+import WASINodeBindings from "../lib/bindings/node";
+import * as WasiFileSystem from "../examples/file-system/file-system";
 
 const bytesConverter = (buffer: Buffer): Buffer => {
   // Help debugging: https://webassembly.github.io/wabt/demo/wat2wasm/index.html
-  let wasi_unstable = new TextEncoder().encode('wasi_unstable')
-  let path_open = new TextEncoder().encode('path_open')
-  var tmp = new Uint8Array(1 + wasi_unstable.byteLength + 1 + path_open.byteLength + 1)
-  tmp[0] = 0x0d
-  tmp.set(new Uint8Array(wasi_unstable), 1)
-  tmp[wasi_unstable.byteLength + 1] = 0x09
-  tmp.set(new Uint8Array(path_open), wasi_unstable.byteLength + 2)
-  tmp[1 + wasi_unstable.byteLength + 1 + path_open.byteLength + 1] = 0x00
-  let index = buffer.indexOf(tmp)
-  console.log(index)
-  // let signatureIndex = buffer[index+path_open.length+1];
+  let wasi_unstable = Buffer.from("wasi_unstable", "utf8");
+  let path_open = Buffer.from("path_open", "utf8");
+  var tmp = new Uint8Array(
+    1 + wasi_unstable.byteLength + 1 + path_open.byteLength + 1
+  );
+  tmp[0] = 0x0d;
+  tmp.set(new Uint8Array(wasi_unstable), 1);
+  tmp[wasi_unstable.byteLength + 1] = 0x09;
+  tmp.set(new Uint8Array(path_open), wasi_unstable.byteLength + 2);
+  tmp[1 + wasi_unstable.byteLength + 1 + path_open.byteLength + 1] = 0x00;
+  let index = buffer.indexOf(tmp);
 
   // 0000043: 60                                        ; func
   // 0000044: 09                                        ; num params
@@ -34,130 +42,107 @@ const bytesConverter = (buffer: Buffer): Buffer => {
   // 000004d: 7f                                        ; i32
   // 000004e: 01                                        ; num results
   // 000004f: 7f                                        ; i32
-
   let functionTypeIndex = buffer.indexOf(
-    new Uint8Array([0x60, 0x09, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7e, 0x7e, 0x7f, 0x7f, 0x01, 0x7f])
-  )
+    new Uint8Array([
+      0x60,
+      0x09,
+      0x7f,
+      0x7f,
+      0x7f,
+      0x7f,
+      0x7f,
+      0x7e,
+      0x7e,
+      0x7f,
+      0x7f,
+      0x01,
+      0x7f
+    ])
+  );
+  return buffer;
+};
 
-  console.log(functionTypeIndex)
-  // console.log(path_open, );
-
-  // Patch the signature
-
-  // Patch the calls to that signature
-  return buffer
-}
 const instantiateWasi = async (
   file: string,
-  memfs: IFs,
+  wasiFs: WasiFileSystem.IFs,
   args: string[] = [],
   env: { [key: string]: string } = {}
 ) => {
   let wasi = new WASI({
     preopenDirectories: {
-      '/sandbox': '/sandbox'
+      "/sandbox": "/sandbox"
     },
     env: env,
     args: args,
     bindings: {
-      ...NodeBindings,
-      fs: memfs
+      ...WASINodeBindings,
+      fs: wasiFs
     }
-  })
-  const buf = fs.readFileSync(file)
-  let bytes = new Uint8Array(buf as any).buffer
-  let { instance } = await WebAssembly.instantiate(bytes, { wasi_unstable: wasi.exports })
-  wasi.setMemory(instance.exports.memory)
-  return { wasi, instance }
-}
+  });
+  const buf = fs.readFileSync(file);
+  let bytes = new Uint8Array(buf as any).buffer;
+  let { instance } = await WebAssembly.instantiate(bytes, {
+    wasi_unstable: wasi.exports
+  });
+  wasi.setMemory(instance.exports.memory);
+  return { wasi, instance };
+};
 
-const getStdout = (memfs: IFs) => {
-  // console.log(memfs.toJSON("/dev/stdout"))
-  let promise = new Promise((resolve, reject) => {
-    const rs_out = memfs.createReadStream('/dev/stdout', 'utf8')
-    // let prevData = ''
-    rs_out.on('data', data => {
-      // prevData = prevData + data.toString('utf8')
-      resolve(data.toString('utf8'))
-    })
-  })
-  return promise
-}
+describe("WASI interaction", () => {
+  let wasiFs: any;
 
-describe('hrtime Polyfill', () => {
-  const waitForTime = (milliseconds: number) => {
-    return new Promise(resolve => {
-      setTimeout(resolve, milliseconds)
-    })
-  }
-
-  it('Should return an expected hrtime bigint value', async () => {
-    const start: bigint = hrtime()
-    let diffTime: bigint = (0 as unknown) as bigint
-
-    // Wait for a second
-    await waitForTime(1000)
-    diffTime = hrtime() - start
-    expect(diffTime > 1.0e9 && diffTime < 1.1e9).toBeTruthy()
-
-    // Wait an additoonal half a second
-    await waitForTime(500)
-    diffTime = hrtime() - start
-    expect(diffTime > 1.5e9 && diffTime < 1.7e9).toBeTruthy()
-  })
-})
-
-describe('WASI interaction', () => {
-  let memfs: IFs
-  let vol: Volume
   beforeEach(async () => {
-    vol = Volume.fromJSON({
-      '/dev/stdin': '',
-      '/dev/stdout': '',
-      '/dev/stderr': '',
-      '/sandbox/file1': 'contents1'
-    })
-    vol.releasedFds = [0, 1, 2]
-    memfs = createFsFromVolume(vol)
+    wasiFs = WasiFileSystem.generateWasiFileSystem();
+    wasiFs.mkdirSync("/sandbox");
+    wasiFs.writeFileSync("/sandbox/file1", "contents1");
 
-    const fd_err = vol.openSync('/dev/stderr', 'w')
-    const fd_out = vol.openSync('/dev/stdout', 'w')
-    const fd_in = vol.openSync('/dev/stdin', 'w')
-    expect(fd_err).toBe(2)
-    expect(fd_out).toBe(1)
-    expect(fd_in).toBe(0)
-  })
+    const fd_err = wasiFs.openSync("/dev/stderr", "w");
+    const fd_out = wasiFs.openSync("/dev/stdout", "w");
+    const fd_in = wasiFs.openSync("/dev/stdin", "w");
+    expect(fd_err).toBe(2);
+    expect(fd_out).toBe(1);
+    expect(fd_in).toBe(0);
+  });
 
-  it('Helloworld can be run', async () => {
-    let { instance, wasi } = await instantiateWasi('test/rs/helloworld.wasm', memfs)
-    instance.exports._start()
-    expect(await getStdout(memfs)).toMatchInlineSnapshot(`
+  it("Helloworld can be run", async () => {
+    let { instance, wasi } = await instantiateWasi(
+      "test/rs/helloworld.wasm",
+      wasiFs
+    );
+    instance.exports._start();
+    expect(await WasiFileSystem.getStdOutFromWasiFileSystem(wasiFs))
+      .toMatchInlineSnapshot(`
                               "Hello world!
                               "
-                    `)
-  })
+                    `);
+  });
 
-  it('WASI args work', async () => {
-    let { instance, wasi } = await instantiateWasi('test/rs/args.wasm', memfs, [
-      'demo',
-      '-h',
-      '--help',
-      '--',
-      'other'
-    ])
-    instance.exports._start()
-    expect(await getStdout(memfs)).toMatchInlineSnapshot(`
+  it("WASI args work", async () => {
+    let { instance, wasi } = await instantiateWasi(
+      "test/rs/args.wasm",
+      wasiFs,
+      ["demo", "-h", "--help", "--", "other"]
+    );
+    instance.exports._start();
+    expect(await WasiFileSystem.getStdOutFromWasiFileSystem(wasiFs))
+      .toMatchInlineSnapshot(`
                               "[\\"demo\\", \\"-h\\", \\"--help\\", \\"--\\", \\"other\\"]
                               "
-                    `)
-  })
+                    `);
+  });
 
-  it('WASI env work', async () => {
-    let { instance, wasi } = await instantiateWasi('test/rs/env.wasm', memfs, [], {
-      WASM_EXISTING: 'VALUE'
-    })
-    instance.exports._start()
-    expect(await getStdout(memfs)).toMatchInlineSnapshot(`
+  it("WASI env work", async () => {
+    let { instance, wasi } = await instantiateWasi(
+      "test/rs/env.wasm",
+      wasiFs,
+      [],
+      {
+        WASM_EXISTING: "VALUE"
+      }
+    );
+    instance.exports._start();
+    expect(await WasiFileSystem.getStdOutFromWasiFileSystem(wasiFs))
+      .toMatchInlineSnapshot(`
       "should be set (WASM_EXISTING): Some(\\"VALUE\\")
       shouldn't be set (WASM_UNEXISTING): None
       Set existing var (WASM_EXISTING): Some(\\"NEW_VALUE\\")
@@ -166,17 +151,11 @@ describe('WASI interaction', () => {
       WASM_EXISTING: NEW_VALUE
       WASM_UNEXISTING: NEW_VALUE
       "
-    `)
-  })
+    `);
+  });
 
-  it('converts path_open', async () => {
-    let originalBuffer = fs.readFileSync('test/rs/sandbox_file_ok.wasm')
-    bytesConverter(originalBuffer)
-  })
-  // it('WASI sandbox error', async () => {
-  //   let { instance, wasi } = await instantiateWasi('test/rs/sandbox_file_error.wasm', memfs, [], {})
-  //   // console.log("instantiated");
-  //   instance.exports._start()
-  //   expect(await getStdout(memfs)).toMatchInlineSnapshot()
-  // })
-})
+  it("converts path_open", async () => {
+    let originalBuffer = fs.readFileSync("test/rs/sandbox_file_ok.wasm");
+    bytesConverter(originalBuffer);
+  });
+});

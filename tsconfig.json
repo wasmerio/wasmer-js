@@ -1,23 +1,20 @@
 {
   "compilerOptions": {
     "moduleResolution": "node",
-    "target": "esnext",
-    "module":"es2015",
-    "lib": ["esnext"],
+    "target": "es5",
+    "lib": ["esnext", "dom"],
     "strict": true,
     "sourceMap": true,
     "declaration": true,
     "allowSyntheticDefaultImports": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
+    "downlevelIteration": true,
     "declarationDir": "dist/types",
-    "outDir": "dist/lib",
-    "jsx": "preserve",
-    "typeRoots": [
-      "node_modules/@types"
-    ]
+    "outDir": "dist/",
+    "jsx": "react",
+    "jsxFactory": "h",
+    "typeRoots": ["node_modules/@types"]
   },
-  "include": [
-    "src"
-  ]
+  "include": ["lib"]
 }

@@ -22,31 +22,36 @@ npm install --save @wasmer/wasi
 ```js
 import { WASI } from "@wasmer/wasi";
 
+// Bindings are options
+// The bindings (fs, path), useful for using WASI in diferent environments
+// such as Node.js, Browsers, ...
+const bindings = undefined;
+if (optionalAlternativeBindings) {
+  bindings = optionalAlternativeBindings;
+}
+
 // Instantiate a new WASI Instance
 let wasi = new WASI({
   // The pre-opened dirctories
   preopenDirectories: {},
   // The environment vars
-  env: {
-  },
+  env: {},
   // The arguments provided
   args: [],
-  // The bindings (fs, path), useful for using WASI in diferent environments
-  // such as Node.js, Browsers, ...
-  bindings: {
-    ...WASI.defaultConfig.bindings
-  }
-})
+  bindings: bindings
+});
 
 // Instantiating the WebAssembly file
-const wasm_bytes = new Uint8Array(fs.readFileSync(file)).buffer
-let { instance } = await WebAssembly.instantiate(bytes, { wasi_unstable: wasi.exports });
+const wasm_bytes = new Uint8Array(fs.readFileSync(file)).buffer;
+let { instance } = await WebAssembly.instantiate(bytes, {
+  wasi_unstable: wasi.exports
+});
 
 // Plug the Instance into WASI
-wasi.setMemory(instance.exports.memory)
+wasi.setMemory(instance.exports.memory);
 
 // Start the WebAssembly WASI instance!
-instance.exports._start()
+instance.exports._start();
 ```
 
 ### Develop
@@ -62,25 +67,25 @@ npm install
 
 ### NPM scripts
 
- - `npm start`: Run `npm run dev`
- - `npm test`: Run test suite
- - `npm run build`: Generate bundles and typings, create docs
- - `npm run dev`: Run `npm run build` in watch mode
- - `npm run test:watch`: Run test suite in [interactive watch mode](http://facebook.github.io/jest/docs/cli.html#watch)
- - `npm run test:prod`: Run linting and generate coverage
- - `npm run lint`: Lints code
- - `npm run precompile`: Precompile all the source files (requires Rust nightly) to the WebAssembly WASI binaries
- - `npm run commit`: Commit using conventional commit style ([husky](https://github.com/typicode/husky) will tell you to use it if you haven't :wink:)
-
+- `npm start`: Run `npm run dev`
+- `npm test`: Run test suite
+- `npm run build`: Generate bundles and typings, create docs
+- `npm run dev`: Run `npm run build` in watch mode
+- `npm run test:watch`: Run test suite in [interactive watch mode](http://facebook.github.io/jest/docs/cli.html#watch)
+- `npm run test:prod`: Run linting and generate coverage
+- `npm run lint`: Lints code
+- `npm run precompile`: Precompile all the source files (requires Rust nightly) to the WebAssembly WASI binaries
+- `npm run commit`: Commit using conventional commit style ([husky](https://github.com/typicode/husky) will tell you to use it if you haven't :wink:)
 
 ## Credits
 
 This project is based from the Node implementation made by Gus Caplan: https://github.com/devsnek/node-wasi
 
 However, `@wasmer/wasi` is focused on:
-* Bringing WASI to the Browsers (so it can be used in the [WAPM](https://wapm.io/) shell)
-* Make easy to plug different filesystems (via [memfs](https://github.com/streamich/memfs))
-* Make it type-safe using [Typescript](http://www.typescriptlang.org/)
 
-This project follows the [all-contributors](https://github.com/kentcdodds/all-contributors) specification. 
+- Bringing WASI to the Browsers (so it can be used in the [WAPM](https://wapm.io/) shell)
+- Make easy to plug different filesystems (via [memfs](https://github.com/streamich/memfs))
+- Make it type-safe using [Typescript](http://www.typescriptlang.org/)
+
+This project follows the [all-contributors](https://github.com/kentcdodds/all-contributors) specification.
 Contributions of any kind are welcome!

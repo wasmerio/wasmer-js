@@ -1,9 +1,4 @@
 {
-  "extends": [
-    "tslint-config-standard",
-    "tslint-config-prettier"
-  ],
-  "lib": [
-    "esnext.bigint"
-  ]
+  "extends": ["tslint-config-standard", "tslint-config-prettier"],
+  "lib": ["esnext.bigint"]
 }
