@@ -17,6 +17,7 @@ import serve from "rollup-plugin-serve";
 const sourcemapOption = process.env.PROD ? undefined : "inline";
 
 const fs = require("fs");
+const mkdirp = require("mkdirp");
 
 const writeIndexHtml = bundleName => {
   let indexHtml = fs.readFileSync("examples/wapm-shell/index.html", "utf8");
@@ -24,7 +25,7 @@ const writeIndexHtml = bundleName => {
     "<%BUNDLE%>",
     bundleName.replace("dist/examples/wapm-shell/", "")
   );
-  fs.mkdirSync("dist/examples/wapm-shell/", { recursive: true });
+  mkdirp.sync("dist/examples/wapm-shell/", { recursive: true });
   fs.writeFileSync("dist/examples/wapm-shell/index.html", indexHtml, "utf8");
 };
 

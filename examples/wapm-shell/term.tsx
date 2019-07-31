@@ -8,11 +8,7 @@ import { Duplex, PassThrough } from "stream";
 import { WASI } from "../../dist/index.esm";
 import { WASIExitError, WASIKillError } from "../../lib/bindings/browser";
 
-import {
-  IFs,
-  generateWasiFileSystem,
-  getStdOutFromWasiFileSystem
-} from "../file-system/file-system";
+import * as WasiFileSystem from "../file-system/file-system";
 
 const parse = parse_;
 
@@ -120,12 +116,12 @@ export class WASICommand extends Command {
   wasi: WASI;
   promisedInstance: Promise<WebAssembly.Instance>;
   instance: WebAssembly.Instance | undefined;
-  wasiFs: IFs;
+  wasiFs: WasiFileSystem.IFs;
 
   constructor(options: WASMCommandOptions) {
     super(options);
 
-    const wasiFs = generateWasiFileSystem();
+    const wasiFs = WasiFileSystem.generateWasiFileSystem();
 
     const fd_err = wasiFs.openSync("/dev/stderr", "w");
     const fd_out = wasiFs.openSync("/dev/stdout", "w");

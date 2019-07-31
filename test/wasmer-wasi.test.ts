@@ -29,6 +29,19 @@ const bytesConverter = (buffer: Buffer): Buffer => {
   tmp[1 + wasi_unstable.byteLength + 1 + path_open.byteLength + 1] = 0x00;
   let index = buffer.indexOf(tmp);
 
+  // 0000043: 60                                        ; func
+  // 0000044: 09                                        ; num params
+  // 0000045: 7f                                        ; i32
+  // 0000046: 7f                                        ; i32
+  // 0000047: 7f                                        ; i32
+  // 0000048: 7f                                        ; i32
+  // 0000049: 7f                                        ; i32
+  // 000004a: 7e                                        ; i64
+  // 000004b: 7e                                        ; i64
+  // 000004c: 7f                                        ; i32
+  // 000004d: 7f                                        ; i32
+  // 000004e: 01                                        ; num results
+  // 000004f: 7f                                        ; i32
   let functionTypeIndex = buffer.indexOf(
     new Uint8Array([
       0x60,
@@ -51,7 +64,7 @@ const bytesConverter = (buffer: Buffer): Buffer => {
 
 const instantiateWasi = async (
   file: string,
-  wasiFs: any,
+  wasiFs: WasiFileSystem.IFs,
   args: string[] = [],
   env: { [key: string]: string } = {}
 ) => {
