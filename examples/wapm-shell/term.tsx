@@ -158,7 +158,7 @@ export class WASICommand extends Command {
 
     // We overwrite the read function of /dev/stdin if there is no provided stdin
     if (typeof stdin === "undefined") {
-      console.log("Uh oh!", this.wasiFs);
+      // TODO: Handle stdin
       // this.volume.fds[0].read = constructStdinRead();
     } else {
       this.wasiFs.writeFileSync("/dev/stdin", stdin);
