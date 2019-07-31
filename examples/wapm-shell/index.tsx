@@ -5,8 +5,8 @@ import * as fit from "xterm/lib/addons/fit/fit";
 Terminal.applyAddon(fit);
 
 import "./index.css";
-let stdinWasmUrl: string = "";
-// import stdinWasmUrl from "./assets/stdin.wasm";
+// @ts-ignore
+import stdinWasmUrl from "./assets/stdin.wasm";
 
 let compiledModules: { [key: string]: WebAssembly.Module } = {};
 
