@@ -2,6 +2,7 @@
 
 import resolve from "rollup-plugin-node-resolve";
 import commonjs from "rollup-plugin-commonjs";
+import builtins from "rollup-plugin-node-builtins";
 import typescript from "rollup-plugin-typescript";
 import json from "rollup-plugin-json";
 import replace from "rollup-plugin-replace";
@@ -33,8 +34,9 @@ let typescriptPluginOptions = {
 
 const plugins = [
   typescript(typescriptPluginOptions),
-  resolve(),
+  resolve({ preferBuiltins: true }),
   commonjs(),
+  builtins(),
   json()
 ];
 
@@ -64,7 +66,7 @@ const libBundles = [
     plugins: [
       replace(replaceBrowserOptions),
       ...plugins,
-      compiler(),
+      process.env.PROD ? compiler() : undefined,
       bundleSize()
     ]
   },
@@ -82,7 +84,7 @@ const libBundles = [
     plugins: [
       replace(replaceBrowserOptions),
       ...plugins,
-      compiler(),
+      process.env.PROD ? compiler() : undefined,
       bundleSize()
     ]
   }

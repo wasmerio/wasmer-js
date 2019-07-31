@@ -1,16 +1,17 @@
 // A very simple workaround for Big int. Works in conjunction with our custom
 // Dataview workaround at ./dataview.ts
 
-let exportedBigInt = global.Number;
-if (global && (global as any).BigInt) {
-  // Node
-  exportedBigInt = (global as any).BigInt;
-} else if (window && (window as any).BigInt) {
-  // Browsers
-  exportedBigInt = (window as any).BigInt;
-} else if (self && !(self as any).BigInt) {
-  // Worker
-  exportedBigInt = (self as any).BigInt;
+// Add Big int depending on the environment
+let exportedBigInt = Number;
+let globalThis = {};
+/*ROLLUP_REPLACE_NODE
+globalThis = global;
+ROLLUP_REPLACE_NODE*/
+/*ROLLUP_REPLACE_BROWSER
+globalThis = self;
+ROLLUP_REPLACE_BROWSER*/
+if (globalThis.BigInt) {
+  exportedBigInt = globalThis.BigInt;
 }
 
 export const BigIntPolyfill: any = exportedBigInt;

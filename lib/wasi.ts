@@ -16,7 +16,7 @@ import nodeBindings from "./bindings/node";
 defaultBindings = nodeBindings;
 ROLLUP_REPLACE_NODE*/
 /*ROLLUP_REPLACE_BROWSER
-import defaultBindings from "./bindings/browser";
+import browserBindings from "./bindings/browser";
 defaultBindings = browserBindings;
 ROLLUP_REPLACE_BROWSER*/
 

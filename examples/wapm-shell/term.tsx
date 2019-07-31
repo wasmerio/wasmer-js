@@ -1,17 +1,17 @@
-import React, { Component, createElement } from "react";
+import { h, Component } from "preact";
 import { Terminal, ITerminalOptions } from "xterm";
 import parse_ from "shell-parse";
-import { createFsFromVolume, IFs } from "memfs";
-import { Volume } from "memfs/lib/volume";
 
-import { Duplex } from "stream";
-import { PassThrough } from "stream";
-import WASI from "../../dist/index.esm";
-import BrowserBindings, {
-  WASIExitError,
-  WASIKillError
-} from "./bindings/browser";
-// declare function parse(moduleName: string): any;
+import { Duplex, PassThrough } from "stream";
+
+import { WASI } from "../../dist/index.esm";
+import { WASIExitError, WASIKillError } from "../../lib/bindings/browser";
+
+import {
+  IFs,
+  generateWasiFileSystem,
+  getStdOutFromWasiFileSystem
+} from "../file-system/file-system";
 
 const parse = parse_;
 
@@ -97,8 +97,6 @@ const constructStdinRead = () => {
     length: number = buf.byteLength,
     position?: number
   ) => {
-    // console.log('read');
-    // console.log(buf, offset, length, position);
     if (readCounter !== 0) {
       readCounter = ++readCounter % 3;
       return 0;
@@ -113,8 +111,6 @@ const constructStdinRead = () => {
       buf[x] = buffer[x];
     }
     readCounter++;
-    // We write as it was an enter
-    // memfs.writeSync(1, "\r\n");
     return buffer.length + 1;
   };
 };
@@ -123,27 +119,17 @@ export class WASICommand extends Command {
   wasi: WASI;
   promisedInstance: Promise<WebAssembly.Instance>;
   instance: WebAssembly.Instance | undefined;
-  memfs: IFs;
+  wasiFs: IFs;
   volume: Volume;
 
   constructor(options: WASMCommandOptions) {
     super(options);
-    let vol = Volume.fromJSON({
-      // '/dev/tty': '',
-      // '/dev/tty1': '',
-      "/dev/stderr": "",
-      "/dev/stdout": "",
-      "/dev/stdin": ""
-    });
-    vol.releasedFds = [0, 1, 2];
-    let memfs = createFsFromVolume(vol);
-    // memfs.symlinkSync('/dev/tty', '/dev/stdout')
-    // memfs.symlinkSync('/dev/tty', '/dev/stdin')
-    // memfs.symlinkSync('/dev/tty1', '/dev/stderr')
 
-    const fd_err = memfs.openSync("/dev/stderr", "w");
-    const fd_out = memfs.openSync("/dev/stdout", "w");
-    const fd_in = memfs.openSync("/dev/stdin", "r");
+    const wasiFs = generateWasiFileSystem();
+
+    const fd_err = wasiFs.openSync("/dev/stderr", "w");
+    const fd_out = wasiFs.openSync("/dev/stdout", "w");
+    const fd_in = wasiFs.openSync("/dev/stdin", "r");
     assert(fd_err === 2, `invalid handle for stderr: ${fd_err}`);
     assert(fd_out === 1, `invalid handle for stdout: ${fd_out}`);
     assert(fd_in === 0, `invalid handle for stdin: ${fd_in}`);
@@ -153,12 +139,11 @@ export class WASICommand extends Command {
       env: options.env,
       args: options.args,
       bindings: {
-        ...BrowserBindings,
-        fs: memfs
+        ...WASI.defaultBindings,
+        fs: wasiFs
       }
     });
-    this.memfs = memfs;
-    this.volume = vol;
+    this.wasiFs = wasiFs;
     this.promisedInstance = WebAssembly.instantiate(options.module, {
       wasi_unstable: this.wasi.exports
     });
@@ -168,15 +153,15 @@ export class WASICommand extends Command {
     let instance = await Promise.resolve(this.promisedInstance);
     this.instance = instance;
     this.wasi.setMemory((instance as any).exports.memory);
-    let stdoutRead = this.memfs.createReadStream("/dev/stdout");
-    let stderrRead = this.memfs.createReadStream("/dev/stderr");
-    // let stdinWrite = this.memfs.createReadStream('/dev/stdin')
+    let stdoutRead = this.wasiFs.createReadStream("/dev/stdout");
+    let stderrRead = this.wasiFs.createReadStream("/dev/stderr");
 
     // We overwrite the read function of /dev/stdin if there is no provided stdin
     if (typeof stdin === "undefined") {
-      this.volume.fds[0].read = constructStdinRead();
+      console.log("Uh oh!", this.wasiFs);
+      // this.volume.fds[0].read = constructStdinRead();
     } else {
-      this.volume.writeFileSync("/dev/stdin", stdin);
+      this.wasiFs.writeFileSync("/dev/stdin", stdin);
     }
 
     // We join the stdout and stderr together
@@ -188,7 +173,7 @@ export class WASICommand extends Command {
   }
 
   getStdout(): string {
-    return this.volume.readFileSync("/dev/stdout").toString();
+    return this.wasiFs.readFileSync("/dev/stdout").toString();
   }
 
   run() {
@@ -196,8 +181,6 @@ export class WASICommand extends Command {
       throw new Error("You need to call instantiate first.");
     }
     this.instance.exports._start();
-    // this.pipe.write("abc");
-    // return returned;
   }
 }
 
@@ -269,10 +252,8 @@ export default class XTerm extends Component<XTermProps> {
           throw new Error("Only commands allowed");
         }
         let options = commandAstToCommandOptions(bashAst[0]);
-        // console.log(options);
         this.runCommand(options);
       } catch (c) {
-        // console.log(c)
         this.xterm.write(`wapm shell: parse error (${c.toString()})\r\n$ `);
       }
       // term.prompt();
@@ -306,16 +287,12 @@ export default class XTerm extends Component<XTermProps> {
       let termPipe = new Duplex({
         read() {},
         write(data: any, _: any, done: Function) {
-          // console.log('write pipe')
           let dataStr = data.toString("utf8");
           xterm.write(dataStr.replace(/\n/g, "\r\n"));
         }
       });
       termPipe.once("end", () => {
-        // console.log("term end", command.getStdout());
-        // console.log(xterm.buffer.cursorX);
         let haveNewLine = xterm.buffer.cursorX == 0;
-        // let haveNewLine = dataStr.endsWith("\n");
         if (!haveNewLine) {
           xterm.write("\u001b[1m\u001b[30;47m%\u001b[0m\r\n");
         }
@@ -327,7 +304,6 @@ export default class XTerm extends Component<XTermProps> {
           termPipe.emit("end");
           termPipe.end();
           return;
-          // console.log("command end");
         });
         commandPipe.pipe(termPipe);
       }
@@ -337,7 +313,6 @@ export default class XTerm extends Component<XTermProps> {
       if (options.redirect) {
         let stdin = command.getStdout();
         redirects++;
-        // console.log('stdin', stdin);
         let { command: redirectCommand, pipe } = await this.runSingleCommand(
           options.redirect,
           stdin
@@ -346,7 +321,6 @@ export default class XTerm extends Component<XTermProps> {
           termPipe.emit("end");
           termPipe.end();
           return;
-          // console.log("command end");
         });
         pipe.pipe(termPipe);
         redirectCommand.run();
@@ -355,19 +329,17 @@ export default class XTerm extends Component<XTermProps> {
       let commandName = options.args.join(" ");
       if (e instanceof WASIExitError) {
         console.log(`Program "${commandName}" exitted with code: ${e.code}`);
-        // this.prompt()
         return;
       } else if (e instanceof WASIKillError) {
         console.log(`Program "${commandName}" killed with signal: ${e.signal}`);
-        // this.prompt()
         return;
       }
+      console.error(e);
       console.error(`Error while running "${commandName}"\n${e}`);
       this.xterm.writeln(`wapm shell error: ${e.toString()}`);
       this.prompt();
       return;
     }
-    // command.run().pipe(this.terminalWriter)
   }
   prompt() {
     this.xterm.write(`$ `);

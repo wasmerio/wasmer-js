@@ -2,6 +2,8 @@
 
 import resolve from "rollup-plugin-node-resolve";
 import commonjs from "rollup-plugin-commonjs";
+import builtins from "rollup-plugin-node-builtins";
+import globals from "rollup-plugin-node-globals";
 import typescript from "rollup-plugin-typescript";
 import json from "rollup-plugin-json";
 import postcss from "rollup-plugin-postcss";
@@ -40,10 +42,14 @@ let plugins = [
     emitFiles: true
   }),
   typescript(typescriptPluginOptions),
-  resolve(),
+  resolve({
+    preferBuiltins: true
+  }),
   commonjs(),
+  builtins(),
+  globals(),
   json(),
-  compiler(),
+  process.env.PROD ? compiler() : undefined,
   bundleSize()
 ];
 

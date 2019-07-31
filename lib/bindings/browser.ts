@@ -1,6 +1,6 @@
-const randomfill = require("randomfill");
-const hrtime = require("browser-process-hrtime");
-const path = require("path-browserify");
+import * as randomfill from "randomfill";
+import hrtime from "browser-process-hrtime";
+import path from "path-browserify";
 
 import { WASIBindings } from "../wasi";
 

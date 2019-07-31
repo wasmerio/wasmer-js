@@ -1,21 +1,19 @@
 import { h, render, Component } from "preact";
 
-// import XTerm, { Command, WASICommand, CommandOptions, Terminal } from "./term";
-// import * as fit from "xterm/lib/addons/fit/fit";
-// Terminal.applyAddon(fit);
+import XTerm, { Command, WASICommand, CommandOptions, Terminal } from "./term";
+import * as fit from "xterm/lib/addons/fit/fit";
+Terminal.applyAddon(fit);
 
 import "./index.css";
 import stdinWasmUrl from "./assets/stdin.wasm";
-console.log(stdinWasmUrl);
 
 let compiledModules: { [key: string]: WebAssembly.Module } = {};
 
 let commands = {
   cowsay: "https://registry-cdn.wapm.dev/contents/_/cowsay/0.1.2/cowsay.wasm",
-  a: "http://localhost:1234/stdin.6f029b38.wasm",
+  a: stdinWasmUrl,
   matrix:
     "https://registry-cdn.wapm.dev/contents/syrusakbary/wasm-matrix/0.0.4/optimized.wasm",
-  // 'cowsay': 'https://wapm.dev/_/cowsay/0.1.2/cowsay.wasm',
   lolcat: "https://registry-cdn.wapm.dev/contents/_/lolcat/0.1.1/lolcat.wasm"
 };
 
@@ -32,7 +30,6 @@ const compileFromUrl = async (url: string): Promise<WebAssembly.Module> => {
 };
 
 const getCommand = async (options: CommandOptions): Promise<WASICommand> => {
-  // await stdinFile;
   let [commandName, commandArgs] = options.args;
   let commandUrl = commands[commandName];
   if (!commandUrl) {
@@ -53,15 +50,14 @@ const getCommand = async (options: CommandOptions): Promise<WASICommand> => {
 class App extends Component {
   render() {
     return (
-      <div>Yooo</div>
-      /*
+      <div>
         <XTerm
           getCommand={getCommand}
           onSetup={component => {
             (component.xterm as any).fit();
           }}
         />
-        */
+      </div>
     );
   }
 }
