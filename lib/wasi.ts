@@ -10,11 +10,14 @@ import {
 } from "./polyfill/dataview";
 
 // Import our default bindings depending on the environment
+let defaultBindings: WASIBindings;
 /*ROLLUP_REPLACE_NODE
-import defaultBindings from "./bindings/node";
+import nodeBindings from "./bindings/node";
+defaultBindings = nodeBindings;
 ROLLUP_REPLACE_NODE*/
 /*ROLLUP_REPLACE_BROWSER
 import defaultBindings from "./bindings/browser";
+defaultBindings = browserBindings;
 ROLLUP_REPLACE_BROWSER*/
 
 /// This project is based from the Node implementation made by Gus Caplan

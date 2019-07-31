@@ -4,16 +4,18 @@ import { createFsFromVolume, IFs } from "memfs";
 import { Volume } from "memfs/lib/volume";
 
 export const generateWasiFileSystem = () => {
-  const wasiFs: Volume = Volume.fromJSON({
+  const volume: Volume = Volume.fromJSON({
     "/dev/stdin": "",
     "/dev/stdout": "",
     "/dev/stderr": ""
   });
-  wasiFs.releasedFds = [0, 1, 2];
+  volume.releasedFds = [0, 1, 2];
+
+  const wasiFs: IFs = createFsFromVolume(volume);
   return wasiFs;
 };
 
-export const getStdOutFromWasiFileSystem = async (wasiFs: Volume) => {
+export const getStdOutFromWasiFileSystem = async (wasiFs: IFs) => {
   // console.log(memfs.toJSON("/dev/stdout"))
   let promise = new Promise((resolve, reject) => {
     const rs_out = wasiFs.createReadStream("/dev/stdout", "utf8");

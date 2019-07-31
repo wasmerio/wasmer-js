@@ -1,6 +1,10 @@
 import * as fs from "fs";
 import * as WasiFileSystem from "../examples/file-system/file-system";
+
+// Since we are importing the lib directly, also we need to import our
+// Node bindings. For the normal library, default bindings are provided :)
 import { WASI } from "../lib";
+import WASINodeBindings from "../lib/bindings/node";
 
 const bytesConverter = (buffer: Buffer): Buffer => {
   // Help debugging: https://webassembly.github.io/wabt/demo/wat2wasm/index.html
@@ -49,7 +53,7 @@ const instantiateWasi = async (
     env: env,
     args: args,
     bindings: {
-      ...WASI.defaultBindings,
+      ...WASINodeBindings,
       fs: wasiFs
     }
   });
@@ -66,7 +70,8 @@ describe("WASI interaction", () => {
   let wasiFs: any;
 
   beforeEach(async () => {
-    const wasiFs = WasiFileSystem.generateWasiFileSystem();
+    wasiFs = WasiFileSystem.generateWasiFileSystem();
+    wasiFs.mkdirSync("/sandbox");
     wasiFs.writeFileSync("/sandbox/file1", "contents1");
 
     const fd_err = wasiFs.openSync("/dev/stderr", "w");
