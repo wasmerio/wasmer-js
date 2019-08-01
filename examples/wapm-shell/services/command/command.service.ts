@@ -17,7 +17,10 @@ import CommandCache from "./command-cache";
 const getCommandOptionsFromAST = (
   ast: any,
   commandCache: CommandCache
-): Promise<CommandOptions> => {
+): Promise<Array<CommandOptions>> => {
+  // The array of command options we are returning
+  let commandOptions: Array<CommandOptions> = [];
+
   let command = ast.command.value;
   let commandArgs = ast.args.map((arg: any) => arg.value);
   let args = [command, ...commandArgs];
@@ -29,43 +32,61 @@ const getCommandOptionsFromAST = (
     ])
   );
 
-  // TODO:
-  /*
-  let redirect;
-  if (ast.redirects) {
-    let astRedirect = ast.redirects[0];
-    if (astRedirect && astRedirect.type === "pipe") {
-      redirect = commandAstToCommandOptions(astRedirect.command);
+  // Get other commands from the redirects
+  const redirectTask = async () => {
+    if (ast.redirects) {
+      let astRedirect = ast.redirects[0];
+      if (astRedirect && astRedirect.type === "pipe") {
+        const redirectedCommandOptions = await getCommandOptionsFromAST(
+          astRedirect.command,
+          commandCache
+        );
+        // Add the child options to our command options
+        commandOptions = commandOptions.concat(redirectedCommandOptions);
+      }
     }
-  }
-   */
+  };
 
   const getWasmModuleTask = async () => {
     // Get our Wasm Module
     return await commandCache.getWasmModuleForCommandName(command);
   };
 
-  return getWasmModuleTask().then(wasmModule => {
-    return {
-      args,
-      env,
-      // TODO:
-      // redirect,
-      module: wasmModule
-    };
-  });
+  return redirectTask()
+    .then(() => getWasmModuleTask())
+    .then(wasmModule => {
+      commandOptions.unshift({
+        args,
+        env,
+        module: wasmModule
+      });
+      return commandOptions;
+    });
 };
 
+// TODO: Rename this to command runner service
+// And not make it a singleton
 class CommandServiceImpl {
   commandCache: CommandCache;
-  processes: Array<any>;
+  commandOptionsForProcessesToRun: Array<any>;
+  index: number;
 
   constructor() {
     this.commandCache = new CommandCache();
-    this.processes = [];
+    this.commandOptionsForProcessesToRun = [];
+    this.index = 0;
   }
 
-  async runCommand(xterm: Terminal, commandString: string) {
+  reset() {
+    this.commandOptionsForProcessesToRun = [];
+    this.index = 0;
+  }
+
+  async runCommand(
+    xterm: Terminal,
+    commandString: string,
+    endCallback: Function
+  ) {
     // First, let's parse the string into a bash AST
     const commandAst = parse(commandString);
     try {
@@ -81,9 +102,7 @@ class CommandServiceImpl {
     }
 
     // Translate our AST into Command Options
-    // TODO: Add the Wasm Module to the options
-    console.log("ast", commandAst);
-    const options = await getCommandOptionsFromAST(
+    const options: Array<CommandOptions> = await getCommandOptionsFromAST(
       commandAst[0],
       this.commandCache
     );
@@ -95,15 +114,16 @@ class CommandServiceImpl {
 
     // @ts-ignore
     const process: any = await new processComlink(
-      options,
+      options[0],
       Comlink.proxy((data: any) => {
-        console.log("got data", data);
-        console.log("what is my context?", commandAst);
+        let dataString = new TextDecoder("utf-8").decode(data);
+        xterm.write(dataString.replace(/\n/g, "\r\n"));
       }),
-      "hello"
+      Comlink.proxy(() => {
+        endCallback();
+      })
     );
     await process.start();
-    console.log("process object", process);
   }
 }
 

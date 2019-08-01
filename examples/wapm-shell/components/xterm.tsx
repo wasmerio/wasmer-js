@@ -41,7 +41,9 @@ const onXtermKey = (xterm: Terminal, key: string, ev: KeyboardEvent) => {
       return;
     }
 
-    CommandService.runCommand(xterm, bashCommand);
+    CommandService.runCommand(xterm, bashCommand, () => {
+      xtermPrompt(xterm);
+    });
   } else if (ev.keyCode === 8) {
     // DELETE
     // Do not delete the prompt

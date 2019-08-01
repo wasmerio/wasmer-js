@@ -6,7 +6,6 @@ export type CommandOptions = {
   args: string[];
   env: { [key: string]: string };
   module: WebAssembly.Module;
-  redirect?: CommandOptions;
 };
 
 export class Command {

@@ -80,10 +80,6 @@ export default class WASICommand extends Command {
     return stream;
   }
 
-  getStdout(): string {
-    return this.wasiFs.readFileSync("/dev/stdout").toString();
-  }
-
   run() {
     if (!this.instance) {
       throw new Error("You need to call instantiate first.");

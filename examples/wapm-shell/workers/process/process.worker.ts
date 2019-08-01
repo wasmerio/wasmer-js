@@ -49,27 +49,32 @@ class Process {
   wasiCommand: WASICommand;
   commandStreamPromise: Promise<Duplex>;
   dataCallback: Function;
+  endCallback: Function;
 
   constructor(
     commandOptions: CommandOptions,
     dataCallback: Function,
+    endCallback: Function,
     stdin?: string
   ) {
     this.wasiCommand = new WASICommand(commandOptions);
     this.dataCallback = dataCallback;
+    this.endCallback = endCallback;
     this.commandStreamPromise = this.wasiCommand.instantiate(stdin);
-
-    console.log("We in da worker!");
-    console.log("wasi command", this.wasiCommand);
-    console.log("command options", commandOptions);
   }
 
   async start() {
     const commandStream = await this.commandStreamPromise;
 
-    this.dataCallback("yooo");
+    commandStream.on("data", (data: any) => {
+      this.dataCallback(data);
+    });
 
-    console.log("started");
+    commandStream.once("end", () => {
+      this.endCallback();
+    });
+
+    this.wasiCommand.run();
   }
 }
 
