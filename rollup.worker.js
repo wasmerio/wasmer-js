@@ -2,6 +2,8 @@
 
 import resolve from "rollup-plugin-node-resolve";
 import commonjs from "rollup-plugin-commonjs";
+import builtins from "rollup-plugin-node-builtins";
+import globals from "rollup-plugin-node-globals";
 import typescript from "rollup-plugin-typescript2";
 import json from "rollup-plugin-json";
 import compiler from "@ampproject/rollup-plugin-closure-compiler";
@@ -18,8 +20,12 @@ let typescriptPluginOptions = {
 
 const plugins = [
   typescript(typescriptPluginOptions),
-  resolve(),
+  resolve({
+    preferBuiltins: true
+  }),
   commonjs(),
+  globals(),
+  builtins(),
   json(),
   process.env.PROD ? compiler() : undefined,
   bundleSize()
@@ -27,10 +33,10 @@ const plugins = [
 
 const workerBundles = [
   {
-    input: "examples/wapm-shell/workers/process.worker.ts",
+    input: "examples/wapm-shell/workers/process/process.worker.ts",
     output: [
       {
-        file: "dist/examples/wapm-shell/workers/process.worker.js",
+        file: "dist/examples/wapm-shell/workers/process/process.worker.js",
         format: "iife",
         sourcemap: sourcemapOption,
         name: "WasiWapmShellDemo"

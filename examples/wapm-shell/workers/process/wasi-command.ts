@@ -1,11 +1,15 @@
-import { h, Component } from "preact";
-
-import { Duplex, PassThrough } from "stream";
+// The class for Wasi Commands
 
 //@ts-ignore
-import { WASI } from "../../../dist/index.esm";
+import { WASI } from "../../../../dist/index.esm";
 
-import * as WasiFileSystem from "../../file-system/file-system";
+import * as WasiFileSystem from "../../../file-system/file-system";
+
+import { Command, CommandOptions } from "../../services/command/command";
+
+import { assert } from "../../services/util";
+
+import { Duplex, PassThrough } from "stream";
 
 const merge = (...streams: Duplex[]) => {
   let pass = new PassThrough();
@@ -20,100 +24,13 @@ const merge = (...streams: Duplex[]) => {
   return pass;
 };
 
-export const commandAstToCommandOptions = (ast: any): CommandOptions => {
-  let command = ast.command.value;
-  let commandArgs = ast.args.map((arg: any) => arg.value);
-  let args = [command, ...commandArgs];
-
-  let env = Object.fromEntries(
-    Object.entries(ast.env).map(([key, value]: [string, any]) => [
-      key,
-      value.value
-    ])
-  );
-  let redirect;
-  if (ast.redirects) {
-    let astRedirect = ast.redirects[0];
-    if (astRedirect && astRedirect.type === "pipe") {
-      redirect = commandAstToCommandOptions(astRedirect.command);
-    }
-  }
-  return {
-    args,
-    env,
-    redirect
-  };
-};
-
-export type CommandOptions = {
-  args: string[];
-  env: { [key: string]: string };
-  redirect?: CommandOptions;
-};
-
-export class Command {
-  args: string[];
-  env: { [key: string]: string };
-
-  constructor({ args, env }: CommandOptions) {
-    this.args = args;
-    this.env = env;
-  }
-  run() {
-    throw new Error("Not implemented");
-  }
-  instantiate(stdin?: string): Promise<Duplex> | Duplex {
-    throw new Error("Not implemented");
-  }
-  getStdout(): string {
-    throw new Error("Not implemented");
-  }
-  async kill() {}
-}
-
-export type WASMCommandOptions = CommandOptions & {
-  module: WebAssembly.Module;
-};
-
-const assert = (cond: boolean, message: string) => {
-  if (!cond) {
-    throw new Error(message);
-  }
-};
-
-const constructStdinRead = () => {
-  let readCounter = 0;
-  return (
-    buf: Buffer | Uint8Array,
-    offset: number = 0,
-    length: number = buf.byteLength,
-    position?: number
-  ) => {
-    if (readCounter !== 0) {
-      readCounter = ++readCounter % 3;
-      return 0;
-    }
-    let input = prompt("Input: ");
-    if (input === null || input === "") {
-      readCounter++;
-      return 0;
-    }
-    let buffer = Buffer.from(input, "utf-8");
-    for (let x = 0; x < buffer.length; ++x) {
-      buf[x] = buffer[x];
-    }
-    readCounter++;
-    return buffer.length + 1;
-  };
-};
-
-export class WASICommand extends Command {
+export default class WASICommand extends Command {
   wasi: WASI;
   promisedInstance: Promise<WebAssembly.Instance>;
   instance: WebAssembly.Instance | undefined;
   wasiFs: WasiFileSystem.IFs;
 
-  constructor(options: WASMCommandOptions) {
+  constructor(options: CommandOptions) {
     super(options);
 
     const wasiFs = WasiFileSystem.generateWasiFileSystem();
@@ -174,5 +91,3 @@ export class WASICommand extends Command {
     this.instance.exports._start();
   }
 }
-
-export class EmscriptenCommand extends Command {}

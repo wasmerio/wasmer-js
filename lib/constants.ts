@@ -1,4 +1,4 @@
-import { BigIntPolyfill as BigInt } from "./polyfill/bigint";
+import { BigIntPolyfill as BigInt } from "./polyfills/bigint";
 
 export const WASI_ESUCCESS = 0;
 export const WASI_E2BIG = 1;
