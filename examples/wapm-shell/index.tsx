@@ -1,8 +1,7 @@
 import { h, render, Component } from "preact";
 
-import XTerm, { Command, WASICommand, CommandOptions, Terminal } from "./term";
-import * as fit from "xterm/lib/addons/fit/fit";
-Terminal.applyAddon(fit);
+import XTerm from "./components/xterm";
+import { Command, WASICommand, CommandOptions } from "./services/command";
 
 import "./index.css";
 // @ts-ignore
@@ -52,12 +51,7 @@ class App extends Component {
   render() {
     return (
       <div>
-        <XTerm
-          getCommand={getCommand}
-          onSetup={component => {
-            (component.xterm as any).fit();
-          }}
-        />
+        <XTerm getCommand={getCommand} />
       </div>
     );
   }
