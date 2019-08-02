@@ -5,7 +5,8 @@ import { Terminal, ITerminalOptions } from "xterm";
 import * as fit from "xterm/lib/addons/fit/fit";
 Terminal.applyAddon(fit);
 
-import CommandService from "../services/command/command.service";
+import CommandRunner from "../services/command-runner/command-runner";
+let currentCommandRunner: any = undefined;
 
 import parse_ from "shell-parse";
 const parse = parse_;
@@ -41,9 +42,14 @@ const onXtermKey = (xterm: Terminal, key: string, ev: KeyboardEvent) => {
       return;
     }
 
-    CommandService.runCommand(xterm, bashCommand, () => {
+    if (currentCommandRunner) {
+      currentCommandRunner.kill();
+    }
+
+    currentCommandRunner = new CommandRunner(xterm, bashCommand, () => {
       xtermPrompt(xterm);
     });
+    currentCommandRunner.runCommand();
   } else if (ev.keyCode === 8) {
     // DELETE
     // Do not delete the prompt

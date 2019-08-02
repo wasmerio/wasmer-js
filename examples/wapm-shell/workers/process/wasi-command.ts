@@ -5,7 +5,7 @@ import { WASI } from "../../../../dist/index.esm";
 
 import * as WasiFileSystem from "../../../file-system/file-system";
 
-import { Command, CommandOptions } from "../../services/command/command";
+import { Command, CommandOptions } from "../../services/command-runner/command";
 
 import { assert } from "../../services/util";
 

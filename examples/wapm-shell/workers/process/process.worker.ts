@@ -2,7 +2,7 @@ import * as Comlink from "comlink";
 
 import { Duplex, PassThrough } from "stream";
 
-import { CommandOptions } from "../../services/command/command";
+import { CommandOptions } from "../../services/command-runner/command";
 
 import WASICommand from "./wasi-command";
 
