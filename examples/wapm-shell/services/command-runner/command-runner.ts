@@ -65,7 +65,8 @@ const getCommandOptionsFromAST = (
 export default class CommandRunner {
   commandCache: CommandCache;
   commandOptionsForProcessesToRun: Array<any>;
-  spawnedProcesses: Array<any>;
+  spawnedProcessToWorker: Array<any>;
+  isRunning: boolean;
 
   xterm: Terminal;
   commandString: string;
@@ -74,7 +75,8 @@ export default class CommandRunner {
   constructor(xterm: Terminal, commandString: string, endCallback: Function) {
     this.commandCache = new CommandCache();
     this.commandOptionsForProcessesToRun = [];
-    this.spawnedProcesses = [];
+    this.spawnedProcessToWorker = [];
+    this.isRunning = false;
     this.xterm = xterm;
     this.commandString = commandString;
     this.endCallback = endCallback;
@@ -102,13 +104,15 @@ export default class CommandRunner {
       return;
     }
 
+    this.isRunning = true;
+
     // Spawn the first process
     await this.tryToSpawnProcess(0);
   }
 
   async tryToSpawnProcess(commandOptionIndex: number) {
     if (
-      this.spawnedProcesses.length < 2 &&
+      this.spawnedProcessToWorker.length < 2 &&
       commandOptionIndex < this.commandOptionsForProcessesToRun.length
     ) {
       await this.spawnProcess(commandOptionIndex);
@@ -130,7 +134,7 @@ export default class CommandRunner {
           this.commandOptionsForProcessesToRun.length - 1
         ) {
           // Pass along to the next spawned process
-          this.spawnedProcesses[1].sendStdInChunk(data);
+          this.spawnedProcessToWorker[1].sendStdInChunk(data);
         } else {
           // Write the output to our terminal
           let dataString = new TextDecoder("utf-8").decode(data);
@@ -143,7 +147,7 @@ export default class CommandRunner {
         processWorker.terminate();
 
         // Remove ourself from the spawned workers
-        this.spawnedProcesses.shift();
+        this.spawnedProcessToWorker.shift();
 
         if (
           commandOptionIndex <
@@ -154,6 +158,7 @@ export default class CommandRunner {
         } else {
           // We are now done!
           // Call the passed end callback
+          this.isRunning = false;
           this.endCallback();
         }
       }),
@@ -169,7 +174,10 @@ export default class CommandRunner {
     );
 
     // Record this process as spawned
-    this.spawnedProcesses.push(process);
+    this.spawnedProcessToWorker.push({
+      process,
+      worker: processWorker
+    });
 
     // Try to spawn the next process, if we haven't already
     this.tryToSpawnProcess(commandOptionIndex + 1);
@@ -179,7 +187,18 @@ export default class CommandRunner {
   }
 
   kill() {
-    // TODO:
-    console.error("I am immortal!");
+    if (!this.isRunning) {
+      return;
+    }
+
+    this.spawnedProcessToWorker.forEach(processToWorker => {
+      processToWorker.terminate();
+    });
+
+    this.commandOptionsForProcessesToRun = [];
+    this.spawnedProcessToWorker = [];
+    this.isRunning = false;
+
+    this.endCallback();
   }
 }

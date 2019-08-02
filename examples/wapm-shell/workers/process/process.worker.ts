@@ -49,7 +49,7 @@ class Process {
       this.dataCallback(data);
     });
 
-    commandStream.once("end", () => {
+    commandStream.on("end", () => {
       this.endCallback();
     });
 
