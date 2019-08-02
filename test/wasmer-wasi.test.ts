@@ -5,15 +5,15 @@ import * as fs from "fs";
 // Node bindings. For the normal library, default bindings are provided :)
 // Also, here we are using the "memfs" file system example that way we don't
 // create any actual files on our machine
-jest.mock("../lib/polyfill/bigint");
-const bigIntPolyfill = require("../lib/polyfill/bigint");
+jest.mock("../lib/polyfills/bigint");
+const bigIntPolyfill = require("../lib/polyfills/bigint");
 bigIntPolyfill.BigIntPolyfill = global.Number;
 if ((global as any).BigInt) {
   bigIntPolyfill.BigIntPolyfill = (global as any).BigInt;
 }
 import { WASI } from "../lib";
 import WASINodeBindings from "../lib/bindings/node";
-import * as WasiFileSystem from "../examples/file-system/file-system";
+import WasiCLIFileSystem from "../examples/file-system/file-system";
 
 const bytesConverter = (buffer: Buffer): Buffer => {
   // Help debugging: https://webassembly.github.io/wabt/demo/wat2wasm/index.html
@@ -64,7 +64,7 @@ const bytesConverter = (buffer: Buffer): Buffer => {
 
 const instantiateWasi = async (
   file: string,
-  wasiFs: WasiFileSystem.IFs,
+  wasiCliFileSystem: WasiCLIFileSystem,
   args: string[] = [],
   env: { [key: string]: string } = {}
 ) => {
@@ -76,7 +76,7 @@ const instantiateWasi = async (
     args: args,
     bindings: {
       ...WASINodeBindings,
-      fs: wasiFs
+      fs: wasiCliFileSystem.fs
     }
   });
   const buf = fs.readFileSync(file);
@@ -89,29 +89,21 @@ const instantiateWasi = async (
 };
 
 describe("WASI interaction", () => {
-  let wasiFs: any;
+  let wasiCliFileSystem: WasiCLIFileSystem;
 
   beforeEach(async () => {
-    wasiFs = WasiFileSystem.generateWasiFileSystem();
-    wasiFs.mkdirSync("/sandbox");
-    wasiFs.writeFileSync("/sandbox/file1", "contents1");
-
-    const fd_err = wasiFs.openSync("/dev/stderr", "w");
-    const fd_out = wasiFs.openSync("/dev/stdout", "w");
-    const fd_in = wasiFs.openSync("/dev/stdin", "w");
-    expect(fd_err).toBe(2);
-    expect(fd_out).toBe(1);
-    expect(fd_in).toBe(0);
+    wasiCliFileSystem = new WasiCLIFileSystem();
+    wasiCliFileSystem.fs.mkdirSync("/sandbox");
+    wasiCliFileSystem.fs.writeFileSync("/sandbox/file1", "contents1");
   });
 
   it("Helloworld can be run", async () => {
     let { instance, wasi } = await instantiateWasi(
       "test/rs/helloworld.wasm",
-      wasiFs
+      wasiCliFileSystem
     );
     instance.exports._start();
-    expect(await WasiFileSystem.getStdOutFromWasiFileSystem(wasiFs))
-      .toMatchInlineSnapshot(`
+    expect(await wasiCliFileSystem.getStdOut()).toMatchInlineSnapshot(`
                               "Hello world!
                               "
                     `);
@@ -120,12 +112,11 @@ describe("WASI interaction", () => {
   it("WASI args work", async () => {
     let { instance, wasi } = await instantiateWasi(
       "test/rs/args.wasm",
-      wasiFs,
+      wasiCliFileSystem,
       ["demo", "-h", "--help", "--", "other"]
     );
     instance.exports._start();
-    expect(await WasiFileSystem.getStdOutFromWasiFileSystem(wasiFs))
-      .toMatchInlineSnapshot(`
+    expect(await wasiCliFileSystem.getStdOut()).toMatchInlineSnapshot(`
                               "[\\"demo\\", \\"-h\\", \\"--help\\", \\"--\\", \\"other\\"]
                               "
                     `);
@@ -134,15 +125,14 @@ describe("WASI interaction", () => {
   it("WASI env work", async () => {
     let { instance, wasi } = await instantiateWasi(
       "test/rs/env.wasm",
-      wasiFs,
+      wasiCliFileSystem,
       [],
       {
         WASM_EXISTING: "VALUE"
       }
     );
     instance.exports._start();
-    expect(await WasiFileSystem.getStdOutFromWasiFileSystem(wasiFs))
-      .toMatchInlineSnapshot(`
+    expect(await wasiCliFileSystem.getStdOut()).toMatchInlineSnapshot(`
       "should be set (WASM_EXISTING): Some(\\"VALUE\\")
       shouldn't be set (WASM_UNEXISTING): None
       Set existing var (WASM_EXISTING): Some(\\"NEW_VALUE\\")

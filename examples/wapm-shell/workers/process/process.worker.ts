@@ -51,11 +51,12 @@ class Process {
     // TODO: Remove this blocking loop once we figure out how to make wasi not immediately exit
     // TODO: Tommorrow, for some reason theres a rouge worker out there... find out why! :)
     if (!this.initialStdin && this.commandOptions.args.length < 2) {
-      setTimeout(this.start, 100);
-      return;
+      // setTimeout(this.start, 100);
+      // return;
     }
 
-    const commandStream = await this.wasiCommand.instantiate(this.initialStdin);
+    // const commandStream = await this.wasiCommand.instantiate(this.initialStdin);
+    const commandStream = await this.wasiCommand.instantiate();
 
     commandStream.on("data", (data: any) => {
       this.dataCallback(data);
@@ -68,6 +69,7 @@ class Process {
     try {
       this.wasiCommand.run();
     } catch (e) {
+      console.log("ERRORRRRR", e);
       let error = "Uknown Error";
 
       if (e instanceof WASIExitError) {

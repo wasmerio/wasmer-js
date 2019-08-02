@@ -1,4 +1,4 @@
-import hrtime from "../lib/polyfill/hrtime.bigint";
+import hrtime from "../lib/polyfills/hrtime.bigint";
 
 const waitForTime = (milliseconds: number) => {
   return new Promise(resolve => {
