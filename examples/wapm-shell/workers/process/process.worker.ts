@@ -2,6 +2,8 @@ import * as Comlink from "comlink";
 
 import { Duplex, PassThrough } from "stream";
 
+import { WASIExitError, WASIKillError } from "../../../../lib/bindings/browser";
+
 import { CommandOptions } from "../../services/command-runner/command";
 
 import WASICommand from "./wasi-command";
@@ -19,47 +21,24 @@ const merge = (...streams: Duplex[]) => {
   return pass;
 };
 
-const constructStdinRead = () => {
-  let readCounter = 0;
-  return (
-    buf: Buffer | Uint8Array,
-    offset: number = 0,
-    length: number = buf.byteLength,
-    position?: number
-  ) => {
-    if (readCounter !== 0) {
-      readCounter = ++readCounter % 3;
-      return 0;
-    }
-    let input = prompt("Input: ");
-    if (input === null || input === "") {
-      readCounter++;
-      return 0;
-    }
-    let buffer = Buffer.from(input, "utf-8");
-    for (let x = 0; x < buffer.length; ++x) {
-      buf[x] = buffer[x];
-    }
-    readCounter++;
-    return buffer.length + 1;
-  };
-};
-
 class Process {
   wasiCommand: WASICommand;
   commandStreamPromise: Promise<Duplex>;
   dataCallback: Function;
   endCallback: Function;
+  errorCallback: Function;
 
   constructor(
     commandOptions: CommandOptions,
     dataCallback: Function,
     endCallback: Function,
+    errorCallback: Function,
     stdin?: string
   ) {
     this.wasiCommand = new WASICommand(commandOptions);
     this.dataCallback = dataCallback;
     this.endCallback = endCallback;
+    this.errorCallback = errorCallback;
     this.commandStreamPromise = this.wasiCommand.instantiate(stdin);
   }
 
@@ -74,7 +53,19 @@ class Process {
       this.endCallback();
     });
 
-    this.wasiCommand.run();
+    try {
+      this.wasiCommand.run();
+    } catch (e) {
+      let error = "Uknown Error";
+
+      if (e instanceof WASIExitError) {
+        error = `exited with code: ${e.code}`;
+      } else if (e instanceof WASIKillError) {
+        error = `killed with signal: ${e.signal}`;
+      }
+
+      this.errorCallback(error);
+    }
   }
 }
 

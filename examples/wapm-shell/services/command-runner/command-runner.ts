@@ -8,8 +8,6 @@ const parse = parse_;
 
 import { Terminal } from "xterm";
 
-import { WASIExitError, WASIKillError } from "../../../../lib/bindings/browser";
-
 import { CommandOptions, Command } from "./command";
 
 import CommandCache from "./command-cache";
@@ -92,16 +90,17 @@ export default class CommandRunner {
       if (commandAst[0].type !== "command") {
         throw new Error("Only commands allowed");
       }
+
+      // Translate our AST into Command Options
+      this.commandOptionsForProcessesToRun = await getCommandOptionsFromAST(
+        commandAst[0],
+        this.commandCache
+      );
     } catch (c) {
-      this.xterm.write(`wapm shell: parse error (${c.toString()})\r\n$ `);
+      this.xterm.write(`wapm shell: parse error (${c.toString()})\r\n`);
+      this.endCallback();
       return;
     }
-
-    // Translate our AST into Command Options
-    this.commandOptionsForProcessesToRun = await getCommandOptionsFromAST(
-      commandAst[0],
-      this.commandCache
-    );
 
     // Spawn the first process
     await this.tryToSpawnProcess(0);
@@ -157,6 +156,14 @@ export default class CommandRunner {
           // Call the passed end callback
           this.endCallback();
         }
+      }),
+      // Error Callback
+      Comlink.proxy((error: string) => {
+        this.xterm.write(
+          `Program ${this.commandOptionsForProcessesToRun[commandOptionIndex].args[0]}: ${error}\r\n`
+        );
+        this.kill();
+        this.endCallback();
       })
       // Stdin
     );
