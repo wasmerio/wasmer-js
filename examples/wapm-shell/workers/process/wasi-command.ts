@@ -42,6 +42,7 @@ export default class WASICommand extends Command {
         fs: this.wasiCliFileSystem.fs
       }
     });
+
     this.promisedInstance = WebAssembly.instantiate(options.module, {
       wasi_unstable: this.wasi.exports
     });

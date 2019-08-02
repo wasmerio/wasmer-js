@@ -6,6 +6,7 @@ import builtins from "rollup-plugin-node-builtins";
 import globals from "rollup-plugin-node-globals";
 import typescript from "rollup-plugin-typescript2";
 import json from "rollup-plugin-json";
+import replace from "rollup-plugin-replace";
 import compiler from "@ampproject/rollup-plugin-closure-compiler";
 import bundleSize from "rollup-plugin-bundle-size";
 import pkg from "./package.json";
@@ -18,7 +19,16 @@ let typescriptPluginOptions = {
   objectHashIgnoreUnknownHack: true
 };
 
+const replaceBrowserOptions = {
+  delimiters: ["", ""],
+  values: {
+    "/*ROLLUP_REPLACE_BROWSER": "",
+    "ROLLUP_REPLACE_BROWSER*/": ""
+  }
+};
+
 const plugins = [
+  replace(replaceBrowserOptions),
   typescript(typescriptPluginOptions),
   resolve({
     preferBuiltins: true

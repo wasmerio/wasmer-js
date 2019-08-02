@@ -3,6 +3,8 @@
 import { createFsFromVolume, IFs } from "memfs";
 import { Volume } from "memfs/lib/volume";
 
+import * as WASI_CONSTANTS from "../../lib/constants";
+
 const assert = (cond: boolean, message: string) => {
   if (!cond) {
     throw new Error(message);
@@ -11,27 +13,28 @@ const assert = (cond: boolean, message: string) => {
 
 export default class WasiCLIFileSystem {
   stdin: Uint8Array;
+  volume: Volume;
   fs: IFs;
 
   constructor() {
-    const volume: Volume = Volume.fromJSON({
+    this.volume = Volume.fromJSON({
       "/dev/stdin": "",
       "/dev/stdout": "",
       "/dev/stderr": ""
     });
-    volume.releasedFds = [0, 1, 2];
+    this.volume.releasedFds = [0, 1, 2];
 
-    const fd_err = volume.openSync("/dev/stderr", "w");
-    const fd_out = volume.openSync("/dev/stdout", "w");
-    const fd_in = volume.openSync("/dev/stdin", "r");
+    const fd_err = this.volume.openSync("/dev/stderr", "w");
+    const fd_out = this.volume.openSync("/dev/stdout", "w");
+    const fd_in = this.volume.openSync("/dev/stdin", "r");
     assert(fd_err === 2, `invalid handle for stderr: ${fd_err}`);
     assert(fd_out === 1, `invalid handle for stdout: ${fd_out}`);
     assert(fd_in === 0, `invalid handle for stdin: ${fd_in}`);
 
-    volume.fds[0].read = this.stdinRead;
+    this.volume.fds[0].read = this.stdinRead.bind(this);
 
-    this.fs = createFsFromVolume(volume);
-    this.stdin = new Uint8Array();
+    this.fs = createFsFromVolume(this.volume);
+    this.stdin = new Uint8Array(0);
   }
 
   sendStdinChunk(chunk: Uint8Array) {
@@ -41,25 +44,51 @@ export default class WasiCLIFileSystem {
     this.stdin = newStdin;
   }
 
+  // Handle read of stdin, similar to C read
+  // https://linux.die.net/man/2/read
+  // This is the bottom of the "layers stack". This is the outer binding.
+  // This is the the thing that returns -1 because it is the actual file system,
+  // but it is up to WASI lib  (wasi.ts) to find out why this error'd
   stdinRead(
     buf: Buffer | Uint8Array,
     offset: number = 0,
     length: number = buf.byteLength,
     position?: number
   ) {
-    // TODO: Simply throw an error here, that follows the correct WASI code for
-    // the wrap function in the lib
+    // First check for errors
+    if (this.stdin.length === 0) {
+      // We don't have stdin
+      // Need handle the error to keep waiting / reading
 
-    console.log("I am being read!");
+      const isNonBlocking =
+        (this.volume.fds[0].flags & WASI_CONSTANTS.WASI_FDFLAG_NONBLOCK) > 0;
+      if (isNonBlocking) {
+        // We are in non-blocking mode
 
-    // This is the bottom of the "layers stack". This is the outer binding.
-    // This is the the thing that returns -1 because it is the actual file system,
-    // but it is up to WASI lib  (wasi.ts) to find out why this error'd
+        // We need to read still, throw EAGAIN
+        throw {
+          errno: true,
+          code: "EAGAIN"
+        };
+        return 0;
+      } else {
+        // We are in blocking mode
+        // We can't spinloop here because we are in the browser, and Shared array buffers
+        // are disabled because of meltdown and spectre.
+        // Thus, can not currently be implemented without a ton of work.
+        // Thus, we will treat the read as it if was non blocking
 
-    // https://linux.die.net/man/2/read
-    // Return -1, which means error,
-    // But the error can be, hey try again in a little bit.
-    return Math.random() > 0.5 ? -1 : 0;
+        throw {
+          errno: true,
+          code: "EAGAIN"
+        };
+        return 0;
+      }
+    }
+
+    // Return the current stdin
+    // TODO:
+    return 0;
   }
 
   async getStdOut() {
