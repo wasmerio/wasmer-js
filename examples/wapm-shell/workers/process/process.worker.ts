@@ -49,6 +49,7 @@ class Process {
 
   async start() {
     // TODO: Remove this blocking loop once we figure out how to make wasi not immediately exit
+    // TODO: Tommorrow, for some reason theres a rouge worker out there... find out why! :)
     if (!this.initialStdin && this.commandOptions.args.length < 2) {
       setTimeout(this.start, 100);
       return;
