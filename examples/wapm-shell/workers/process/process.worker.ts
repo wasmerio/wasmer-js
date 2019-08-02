@@ -22,28 +22,39 @@ const merge = (...streams: Duplex[]) => {
 };
 
 class Process {
+  commandOptions: CommandOptions;
   wasiCommand: WASICommand;
-  commandStreamPromise: Promise<Duplex>;
   dataCallback: Function;
   endCallback: Function;
   errorCallback: Function;
+  initialStdin: string;
 
   constructor(
     commandOptions: CommandOptions,
     dataCallback: Function,
     endCallback: Function,
     errorCallback: Function,
-    stdin?: string
+    stdin?: Uint8Array
   ) {
+    this.commandOptions = commandOptions;
     this.wasiCommand = new WASICommand(commandOptions);
     this.dataCallback = dataCallback;
     this.endCallback = endCallback;
     this.errorCallback = errorCallback;
-    this.commandStreamPromise = this.wasiCommand.instantiate(stdin);
+    this.initialStdin = "";
+    if (stdin) {
+      this.initialStdin = new TextDecoder("utf-8").decode(stdin);
+    }
   }
 
   async start() {
-    const commandStream = await this.commandStreamPromise;
+    // TODO: Remove this blocking loop once we figure out how to make wasi not immediately exit
+    if (!this.initialStdin && this.commandOptions.args.length < 2) {
+      setTimeout(this.start, 100);
+      return;
+    }
+
+    const commandStream = await this.wasiCommand.instantiate(this.initialStdin);
 
     commandStream.on("data", (data: any) => {
       this.dataCallback(data);
@@ -66,6 +77,11 @@ class Process {
 
       this.errorCallback(error);
     }
+  }
+
+  receiveStdinChunk(data: any) {
+    let dataString = new TextDecoder("utf-8").decode(data);
+    this.initialStdin += dataString;
   }
 }
 

@@ -66,6 +66,7 @@ export default class CommandRunner {
   commandCache: CommandCache;
   commandOptionsForProcessesToRun: Array<any>;
   spawnedProcessToWorker: Array<any>;
+  initialStdinDataForNextProcess: Uint8Array;
   isRunning: boolean;
 
   xterm: Terminal;
@@ -76,6 +77,7 @@ export default class CommandRunner {
     this.commandCache = new CommandCache();
     this.commandOptionsForProcessesToRun = [];
     this.spawnedProcessToWorker = [];
+    this.initialStdinDataForNextProcess = new Uint8Array();
     this.isRunning = false;
     this.xterm = xterm;
     this.commandString = commandString;
@@ -128,13 +130,25 @@ export default class CommandRunner {
     const process: any = await new processComlink(
       this.commandOptionsForProcessesToRun[commandOptionIndex],
       // Data Callback
-      Comlink.proxy((data: any) => {
+      Comlink.proxy((data: Uint8Array) => {
         if (
           commandOptionIndex <
           this.commandOptionsForProcessesToRun.length - 1
         ) {
           // Pass along to the next spawned process
-          this.spawnedProcessToWorker[1].sendStdInChunk(data);
+          if (this.spawnedProcessToWorker.length > 1) {
+            this.spawnedProcessToWorker[1].process.receiveStdinChunk(data);
+          } else {
+            const newInitialStdinData = new Uint8Array(
+              data.length + this.initialStdinDataForNextProcess.length
+            );
+            newInitialStdinData.set(this.initialStdinDataForNextProcess);
+            newInitialStdinData.set(
+              data,
+              this.initialStdinDataForNextProcess.length
+            );
+            this.initialStdinDataForNextProcess = newInitialStdinData;
+          }
         } else {
           // Write the output to our terminal
           let dataString = new TextDecoder("utf-8").decode(data);
@@ -169,9 +183,17 @@ export default class CommandRunner {
         );
         this.kill();
         this.endCallback();
-      })
+      }),
       // Stdin
+      this.initialStdinDataForNextProcess.length > 0
+        ? this.initialStdinDataForNextProcess
+        : undefined
     );
+
+    // Remove the initial stdin if we added it
+    if (this.initialStdinDataForNextProcess.length > 0) {
+      this.initialStdinDataForNextProcess = new Uint8Array();
+    }
 
     // Record this process as spawned
     this.spawnedProcessToWorker.push({
