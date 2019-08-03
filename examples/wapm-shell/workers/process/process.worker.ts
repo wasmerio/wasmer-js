@@ -28,13 +28,15 @@ class Process {
   endCallback: Function;
   errorCallback: Function;
   initialStdin: string;
+  binaryen?: any;
 
   constructor(
     commandOptions: CommandOptions,
     dataCallback: Function,
     endCallback: Function,
     errorCallback: Function,
-    stdin?: Uint8Array
+    stdin?: Uint8Array,
+    binaryenScript?: string
   ) {
     this.commandOptions = commandOptions;
     this.wasiCommand = new WASICommand(commandOptions);
@@ -44,6 +46,12 @@ class Process {
     this.initialStdin = "";
     if (stdin) {
       this.initialStdin = new TextDecoder("utf-8").decode(stdin);
+    }
+
+    // Check if we support shared array buffer
+    if (binaryenScript) {
+      this.binaryen = new Function(binaryenScript + "; return Binaryen")();
+      console.log("Binaryen", this.binaryen);
     }
   }
 

@@ -6,6 +6,7 @@ import builtins from "rollup-plugin-node-builtins";
 import globals from "rollup-plugin-node-globals";
 import typescript from "rollup-plugin-typescript2";
 import json from "rollup-plugin-json";
+import copy from "rollup-plugin-copy";
 import postcss from "rollup-plugin-postcss";
 import postcssImport from "postcss-import";
 import compiler from "@ampproject/rollup-plugin-closure-compiler";
@@ -53,6 +54,14 @@ let plugins = [
   globals(),
   builtins(),
   json(),
+  copy({
+    targets: [
+      {
+        src: "examples/wapm-shell/assets/binaryen-88.0.0.js",
+        dest: "dist/examples/wapm-shell/assets/"
+      }
+    ]
+  }),
   process.env.PROD ? compiler() : undefined,
   bundleSize()
 ];
