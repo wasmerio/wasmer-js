@@ -31,8 +31,6 @@ export default class WasiCLIFileSystem {
     assert(fd_out === 1, `invalid handle for stdout: ${fd_out}`);
     assert(fd_in === 0, `invalid handle for stdin: ${fd_in}`);
 
-    this.volume.fds[0].read = this.stdinRead.bind(this);
-
     this.fs = createFsFromVolume(this.volume);
     this.stdin = new Uint8Array(0);
   }

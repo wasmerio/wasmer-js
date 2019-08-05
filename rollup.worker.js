@@ -43,10 +43,10 @@ const plugins = [
 
 const workerBundles = [
   {
-    input: "examples/wapm-shell/workers/process/process.worker.ts",
+    input: "examples/wapm-shell/workers/process.worker.ts",
     output: [
       {
-        file: "dist/examples/wapm-shell/workers/process/process.worker.js",
+        file: "dist/examples/wapm-shell/workers/process.worker.js",
         format: "iife",
         sourcemap: sourcemapOption,
         name: "WasiWapmShellDemo"

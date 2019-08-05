@@ -27,11 +27,19 @@ export default class WASICommand extends Command {
   promisedInstance: Promise<WebAssembly.Instance>;
   instance: WebAssembly.Instance | undefined;
   wasiCliFileSystem: WasiCLIFileSystem;
+  initialStdin: string;
+  stdinReadCounter: number;
 
-  constructor(options: CommandOptions) {
+  constructor(options: CommandOptions, initialStdin?: string) {
     super(options);
 
     this.wasiCliFileSystem = new WasiCLIFileSystem();
+
+    // Bind our stdinRead
+    this.wasiCliFileSystem.volume.fds[0].read = this.stdinRead.bind(this);
+
+    this.initialStdin = initialStdin || "";
+    this.stdinReadCounter = 0;
 
     this.wasi = new WASI({
       preopenDirectories: {},
@@ -44,12 +52,7 @@ export default class WASICommand extends Command {
     });
 
     this.promisedInstance = WebAssembly.instantiate(options.module, {
-      wasi_unstable: this.wasi.exports,
-      env: {
-        asyncify_fd_read: () => {
-          console.log("Asyncified!");
-        }
-      }
+      wasi_unstable: this.wasi.exports
     });
   }
 
@@ -78,5 +81,46 @@ export default class WASICommand extends Command {
       throw new Error("You need to call instantiate first.");
     }
     this.instance.exports._start();
+  }
+
+  // Handle read of stdin, similar to C read
+  // https://linux.die.net/man/2/read
+  // This is the bottom of the "layers stack". This is the outer binding.
+  // This is the the thing that returns -1 because it is the actual file system,
+  // but it is up to WASI lib  (wasi.ts) to find out why this error'd
+  stdinRead(
+    responseBuffer: Buffer | Uint8Array,
+    offset: number = 0,
+    length: number = responseBuffer.byteLength,
+    position?: number
+  ) {
+    // For some reason, read is called 3 times per actual read
+    // Thus we have a counter to handle this.
+    if (this.stdinReadCounter !== 0) {
+      if (this.stdinReadCounter < 3) {
+        this.stdinReadCounter++;
+      } else {
+        this.stdinReadCounter = 0;
+      }
+      return 0;
+    }
+
+    // Since reading will keep requesting data, we need to give end of file
+    this.stdinReadCounter++;
+
+    let stdin = this.initialStdin || prompt();
+
+    // First check for errors
+    if (!stdin) {
+      return 0;
+    }
+
+    const buffer = new TextEncoder().encode(stdin);
+    for (let x = 0; x < buffer.length; ++x) {
+      responseBuffer[x] = buffer[x];
+    }
+
+    // Return the current stdin
+    return buffer.length;
   }
 }

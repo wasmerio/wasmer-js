@@ -19,14 +19,15 @@ let commands: any = {
 const getWasmModuleFromUrl = async (
   url: string
 ): Promise<WebAssembly.Module> => {
-  let fetched = await fetch(url);
-  const buffer = await fetched.arrayBuffer();
-  let binaryModuleArray = new Uint8Array(buffer);
-
-  // Asyncify the module to handle reads
-  binaryModuleArray = await asyncify(binaryModuleArray);
-
-  return await WebAssembly.compile(binaryModuleArray.buffer);
+  // @ts-ignore
+  if (WebAssembly.compileStreaming && false) {
+    // @ts-ignore
+    return await WebAssembly.compileStreaming(fetch(url));
+  } else {
+    let fetched = await fetch(url);
+    let buffer = await fetched.arrayBuffer();
+    return await WebAssembly.compile(buffer);
+  }
 };
 
 export default class CommandCache {

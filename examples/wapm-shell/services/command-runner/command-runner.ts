@@ -8,6 +8,8 @@ const parse = parse_;
 
 import { Terminal } from "xterm";
 
+import Process from "../process/process";
+
 import { CommandOptions, Command } from "./command";
 
 import CommandCache from "./command-cache";
@@ -65,23 +67,27 @@ const getCommandOptionsFromAST = (
 export default class CommandRunner {
   commandCache: CommandCache;
   commandOptionsForProcessesToRun: Array<any>;
-  spawnedProcessToWorker: Array<any>;
+  spawnedProcessObjects: Array<any>;
   initialStdinDataForNextProcess: Uint8Array;
   isRunning: boolean;
 
   xterm: Terminal;
   commandString: string;
-  endCallback: Function;
+  commandEndCallback: Function;
 
-  constructor(xterm: Terminal, commandString: string, endCallback: Function) {
+  constructor(
+    xterm: Terminal,
+    commandString: string,
+    commandEndCallback: Function
+  ) {
     this.commandCache = new CommandCache();
     this.commandOptionsForProcessesToRun = [];
-    this.spawnedProcessToWorker = [];
+    this.spawnedProcessObjects = [];
     this.initialStdinDataForNextProcess = new Uint8Array();
     this.isRunning = false;
     this.xterm = xterm;
     this.commandString = commandString;
-    this.endCallback = endCallback;
+    this.commandEndCallback = commandEndCallback;
   }
 
   async runCommand() {
@@ -102,7 +108,7 @@ export default class CommandRunner {
       );
     } catch (c) {
       this.xterm.write(`wapm shell: parse error (${c.toString()})\r\n`);
-      this.endCallback();
+      this.commandEndCallback();
       return;
     }
 
@@ -114,7 +120,7 @@ export default class CommandRunner {
 
   async tryToSpawnProcess(commandOptionIndex: number) {
     if (
-      this.spawnedProcessToWorker.length < 2 &&
+      this.spawnedProcessObjects.length < 2 &&
       commandOptionIndex < this.commandOptionsForProcessesToRun.length
     ) {
       await this.spawnProcess(commandOptionIndex);
@@ -122,73 +128,17 @@ export default class CommandRunner {
   }
 
   async spawnProcess(commandOptionIndex: number) {
-    // Generate our process
-    const processWorker = new Worker("./workers/process/process.worker.js");
-    const processComlink = Comlink.wrap(processWorker);
-
-    // @ts-ignore
-    const process: any = await new processComlink(
-      this.commandOptionsForProcessesToRun[commandOptionIndex],
-      // Data Callback
-      Comlink.proxy((data: Uint8Array) => {
-        if (
-          commandOptionIndex <
-          this.commandOptionsForProcessesToRun.length - 1
-        ) {
-          // Pass along to the next spawned process
-          if (this.spawnedProcessToWorker.length > 1) {
-            this.spawnedProcessToWorker[1].process.receiveStdinChunk(data);
-          } else {
-            const newInitialStdinData = new Uint8Array(
-              data.length + this.initialStdinDataForNextProcess.length
-            );
-            newInitialStdinData.set(this.initialStdinDataForNextProcess);
-            newInitialStdinData.set(
-              data,
-              this.initialStdinDataForNextProcess.length
-            );
-            this.initialStdinDataForNextProcess = newInitialStdinData;
-          }
-        } else {
-          // Write the output to our terminal
-          let dataString = new TextDecoder("utf-8").decode(data);
-          this.xterm.write(dataString.replace(/\n/g, "\r\n"));
-        }
-      }),
-      // End Callback
-      Comlink.proxy(() => {
-        // Terminate our worker
-        processWorker.terminate();
-
-        // Remove ourself from the spawned workers
-        this.spawnedProcessToWorker.shift();
-
-        if (
-          commandOptionIndex <
-          this.commandOptionsForProcessesToRun.length - 1
-        ) {
-          // Try to spawn the next process, if we haven't already
-          this.tryToSpawnProcess(commandOptionIndex + 1);
-        } else {
-          // We are now done!
-          // Call the passed end callback
-          this.isRunning = false;
-          this.endCallback();
-        }
-      }),
-      // Error Callback
-      Comlink.proxy((error: string) => {
-        this.xterm.write(
-          `Program ${this.commandOptionsForProcessesToRun[commandOptionIndex].args[0]}: ${error}\r\n`
-        );
-        this.kill();
-        this.endCallback();
-      }),
-      // Stdin
-      this.initialStdinDataForNextProcess.length > 0
-        ? this.initialStdinDataForNextProcess
-        : undefined
-    );
+    let spawnedProcessObject = undefined;
+    // TODO: remove && false once the fallback works
+    if ((window as any).SharedArrayBuffer && (window as any).Atomics && false) {
+      spawnedProcessObject = await this.spawnProcessAsWorker(
+        commandOptionIndex
+      );
+    } else {
+      spawnedProcessObject = await this.spawnProcessAsService(
+        commandOptionIndex
+      );
+    }
 
     // Remove the initial stdin if we added it
     if (this.initialStdinDataForNextProcess.length > 0) {
@@ -196,16 +146,113 @@ export default class CommandRunner {
     }
 
     // Record this process as spawned
-    this.spawnedProcessToWorker.push({
-      process,
-      worker: processWorker
-    });
+    this.spawnedProcessObjects.push(spawnedProcessObject);
 
+    // TODO: Spawn the next process to be ready to receive stdin by streaming
     // Try to spawn the next process, if we haven't already
-    this.tryToSpawnProcess(commandOptionIndex + 1);
+    // this.tryToSpawnProcess(commandOptionIndex + 1);
 
     // Start the process
-    process.start();
+    spawnedProcessObject.process.start();
+  }
+
+  async spawnProcessAsWorker(commandOptionIndex: number) {
+    // Generate our process
+    const processWorker = new Worker("./workers/process.worker.js");
+    const processComlink = Comlink.wrap(processWorker);
+
+    // @ts-ignore
+    const process: any = await new processComlink(
+      this.commandOptionsForProcessesToRun[commandOptionIndex],
+      // Data Callback
+      Comlink.proxy(this.processDataCallback.bind(this, commandOptionIndex)),
+      // End Callback
+      Comlink.proxy(
+        this.processEndCallback.bind(this, commandOptionIndex, processWorker)
+      ),
+      // Error Callback
+      Comlink.proxy(this.processErrorCallback.bind(this, commandOptionIndex)),
+      // Stdin
+      this.initialStdinDataForNextProcess.length > 0
+        ? this.initialStdinDataForNextProcess
+        : undefined
+    );
+
+    return {
+      process,
+      worker: processWorker
+    };
+  }
+
+  async spawnProcessAsService(commandOptionIndex: number) {
+    const process = new Process(
+      this.commandOptionsForProcessesToRun[commandOptionIndex],
+      // Data Callback
+      this.processDataCallback.bind(this, commandOptionIndex),
+      // End Callback
+      this.processEndCallback.bind(this, commandOptionIndex),
+      // Error Callback
+      this.processErrorCallback.bind(this, commandOptionIndex),
+      // Stdin
+      this.initialStdinDataForNextProcess.length > 0
+        ? this.initialStdinDataForNextProcess
+        : undefined
+    );
+
+    return {
+      process
+    };
+  }
+
+  processDataCallback(commandOptionIndex: number, data: Uint8Array) {
+    if (commandOptionIndex < this.commandOptionsForProcessesToRun.length - 1) {
+      // Pass along to the next spawned process
+      if (this.spawnedProcessObjects.length > 1) {
+        this.spawnedProcessObjects[1].process.receiveStdinChunk(data);
+      } else {
+        const newInitialStdinData = new Uint8Array(
+          data.length + this.initialStdinDataForNextProcess.length
+        );
+        newInitialStdinData.set(this.initialStdinDataForNextProcess);
+        newInitialStdinData.set(
+          data,
+          this.initialStdinDataForNextProcess.length
+        );
+        this.initialStdinDataForNextProcess = newInitialStdinData;
+      }
+    } else {
+      // Write the output to our terminal
+      let dataString = new TextDecoder("utf-8").decode(data);
+      this.xterm.write(dataString.replace(/\n/g, "\r\n"));
+    }
+  }
+
+  processEndCallback(commandOptionIndex: number, processWorker?: Worker) {
+    if (processWorker) {
+      // Terminate our worker
+      processWorker.terminate();
+    }
+
+    // Remove ourself from the spawned workers
+    this.spawnedProcessObjects.shift();
+
+    if (commandOptionIndex < this.commandOptionsForProcessesToRun.length - 1) {
+      // Try to spawn the next process, if we haven't already
+      this.tryToSpawnProcess(commandOptionIndex + 1);
+    } else {
+      // We are now done!
+      // Call the passed end callback
+      this.isRunning = false;
+      this.commandEndCallback();
+    }
+  }
+
+  processErrorCallback(commandOptionIndex: number, error: string) {
+    this.xterm.write(
+      `Program ${this.commandOptionsForProcessesToRun[commandOptionIndex].args[0]}: ${error}\r\n`
+    );
+    this.kill();
+    this.commandEndCallback();
   }
 
   kill() {
@@ -213,14 +260,16 @@ export default class CommandRunner {
       return;
     }
 
-    this.spawnedProcessToWorker.forEach(processToWorker => {
-      processToWorker.terminate();
+    this.spawnedProcessObjects.forEach(processObject => {
+      if (processObject.worker) {
+        processObject.worker.terminate();
+      }
     });
 
     this.commandOptionsForProcessesToRun = [];
-    this.spawnedProcessToWorker = [];
+    this.spawnedProcessObjects = [];
     this.isRunning = false;
 
-    this.endCallback();
+    this.commandEndCallback();
   }
 }

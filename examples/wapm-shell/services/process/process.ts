@@ -1,5 +1,3 @@
-import * as Comlink from "comlink";
-
 import { Duplex, PassThrough } from "stream";
 
 import { WASIExitError, WASIKillError } from "../../../../lib/bindings/browser";
@@ -21,7 +19,7 @@ const merge = (...streams: Duplex[]) => {
   return pass;
 };
 
-class Process {
+export default class Process {
   commandOptions: CommandOptions;
   wasiCommand: WASICommand;
   dataCallback: Function;
@@ -45,6 +43,8 @@ class Process {
     if (stdin) {
       this.initialStdin = new TextDecoder("utf-8").decode(stdin);
     }
+
+    this.wasiCommand = new WASICommand(commandOptions, this.initialStdin);
   }
 
   async start() {
@@ -80,5 +80,3 @@ class Process {
     this.initialStdin += dataString;
   }
 }
-
-Comlink.expose(Process);
