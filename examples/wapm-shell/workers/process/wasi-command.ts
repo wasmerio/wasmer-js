@@ -44,7 +44,12 @@ export default class WASICommand extends Command {
     });
 
     this.promisedInstance = WebAssembly.instantiate(options.module, {
-      wasi_unstable: this.wasi.exports
+      wasi_unstable: this.wasi.exports,
+      env: {
+        asyncify_fd_read: () => {
+          console.log("Asyncified!");
+        }
+      }
     });
   }
 

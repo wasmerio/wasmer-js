@@ -68,8 +68,6 @@ export default class CommandRunner {
   spawnedProcessToWorker: Array<any>;
   initialStdinDataForNextProcess: Uint8Array;
   isRunning: boolean;
-  isUsingFallback: boolean;
-  binaryenScriptPromise?: Promise<string>;
 
   xterm: Terminal;
   commandString: string;
@@ -84,19 +82,6 @@ export default class CommandRunner {
     this.xterm = xterm;
     this.commandString = commandString;
     this.endCallback = endCallback;
-
-    // Check if we have shared array buffer
-    if (!(self as any).SharedArrayBuffer || !(self as any).Atomics || true) {
-      this.isUsingFallback = true;
-
-      this.binaryenScriptPromise = fetch("assets/binaryen-88.0.0.js").then(
-        response => {
-          return response.text();
-        }
-      );
-    } else {
-      this.isUsingFallback = false;
-    }
   }
 
   async runCommand() {
@@ -137,12 +122,6 @@ export default class CommandRunner {
   }
 
   async spawnProcess(commandOptionIndex: number) {
-    // First set up our fallback if we need to
-    let binaryenScript = "";
-    if (this.isUsingFallback && this.binaryenScriptPromise) {
-      binaryenScript = await this.binaryenScriptPromise;
-    }
-
     // Generate our process
     const processWorker = new Worker("./workers/process/process.worker.js");
     const processComlink = Comlink.wrap(processWorker);
@@ -208,9 +187,7 @@ export default class CommandRunner {
       // Stdin
       this.initialStdinDataForNextProcess.length > 0
         ? this.initialStdinDataForNextProcess
-        : undefined,
-      // Binary Script (Fallback case)
-      this.isUsingFallback ? binaryenScript : undefined
+        : undefined
     );
 
     // Remove the initial stdin if we added it

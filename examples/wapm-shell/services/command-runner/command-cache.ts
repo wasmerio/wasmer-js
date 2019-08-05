@@ -1,6 +1,8 @@
 // Service to fetch and instantiate modules
 // And cache them to run again
 
+import asyncify from "./asyncify";
+
 // @ts-ignore
 import stdinWasmUrl from "../../assets/stdin.wasm";
 
@@ -14,16 +16,17 @@ let commands: any = {
   lolcat: "https://registry-cdn.wapm.dev/contents/_/lolcat/0.1.1/lolcat.wasm"
 };
 
-const compileFromUrl = async (url: string): Promise<WebAssembly.Module> => {
-  // @ts-ignore
-  if (WebAssembly.compileStreaming && false) {
-    // @ts-ignore
-    return await WebAssembly.compileStreaming(fetch(url));
-  } else {
-    let fetched = await fetch(url);
-    let buffer = await fetched.arrayBuffer();
-    return await WebAssembly.compile(buffer);
-  }
+const getWasmModuleFromUrl = async (
+  url: string
+): Promise<WebAssembly.Module> => {
+  let fetched = await fetch(url);
+  const buffer = await fetched.arrayBuffer();
+  let binaryModuleArray = new Uint8Array(buffer);
+
+  // Asyncify the module to handle reads
+  binaryModuleArray = await asyncify(binaryModuleArray);
+
+  return await WebAssembly.compile(binaryModuleArray.buffer);
 };
 
 export default class CommandCache {
@@ -35,7 +38,7 @@ export default class CommandCache {
 
     let cachedData = compiledModules[commandUrl];
     if (!cachedData) {
-      cachedData = compiledModules[commandUrl] = await compileFromUrl(
+      cachedData = compiledModules[commandUrl] = await getWasmModuleFromUrl(
         commandUrl
       );
     }
