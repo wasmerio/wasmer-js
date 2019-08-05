@@ -26,6 +26,24 @@ const onXtermKey = (xterm: Terminal, key: string, ev: KeyboardEvent) => {
 
     let line = xterm.buffer.baseY + xterm.buffer.cursorY;
     let bufferLine = xterm.buffer.getLine(line);
+
+    if (
+      currentCommandRunner &&
+      currentCommandRunner.isRunning &&
+      currentCommandRunner.supportsSharedArrayBuffer
+    ) {
+      if (!bufferLine) {
+        currentCommandRunner.sendStdinLine("");
+        return;
+      }
+
+      // Pass stdin
+      const stdinLine = bufferLine.translateToString().trim();
+      currentCommandRunner.sendStdinLine(stdinLine);
+      xterm.write("\r\n");
+      return;
+    }
+
     if (!bufferLine) {
       return;
     }

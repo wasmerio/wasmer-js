@@ -68,6 +68,7 @@ export default class CommandRunner {
   commandCache: CommandCache;
   commandOptionsForProcessesToRun: Array<any>;
   spawnedProcessObjects: Array<any>;
+  spawnedProcesses: number;
   pipedStdinDataForNextProcess: Uint8Array;
   isRunning: boolean;
   supportsSharedArrayBuffer: boolean;
@@ -84,6 +85,7 @@ export default class CommandRunner {
     this.commandCache = new CommandCache();
     this.commandOptionsForProcessesToRun = [];
     this.spawnedProcessObjects = [];
+    this.spawnedProcesses = 0;
     this.pipedStdinDataForNextProcess = new Uint8Array();
     this.isRunning = false;
     this.supportsSharedArrayBuffer =
@@ -122,11 +124,37 @@ export default class CommandRunner {
     await this.tryToSpawnProcess(0);
   }
 
+  sendStdinLine(stdin: string) {
+    const data = new TextEncoder().encode(stdin);
+    this.addStdinToSharedStdin(data, 0);
+  }
+
+  addStdinToSharedStdin(data: Uint8Array, processObjectIndex: number) {
+    // Pass along the stdin to the shared object
+
+    const sharedStdin = this.spawnedProcessObjects[processObjectIndex]
+      .sharedStdin;
+    let startingIndex = 1;
+    if (sharedStdin[0] > 0) {
+      startingIndex = sharedStdin[0];
+    }
+
+    data.forEach((value, index) => {
+      sharedStdin[startingIndex + index] = value;
+    });
+
+    sharedStdin[0] = startingIndex + data.length;
+
+    Atomics.notify(sharedStdin, 0, 1);
+  }
+
   async tryToSpawnProcess(commandOptionIndex: number) {
     if (
+      commandOptionIndex + 1 > this.spawnedProcesses &&
       this.spawnedProcessObjects.length < 2 &&
       commandOptionIndex < this.commandOptionsForProcessesToRun.length
     ) {
+      this.spawnedProcesses++;
       await this.spawnProcess(commandOptionIndex);
     }
   }
@@ -169,6 +197,9 @@ export default class CommandRunner {
     const processWorker = new Worker("./workers/process.worker.js");
     const processComlink = Comlink.wrap(processWorker);
 
+    // Genrate our shared buffer
+    const sharedStdinBuffer = new SharedArrayBuffer(8192);
+
     // @ts-ignore
     const process: any = await new processComlink(
       this.commandOptionsForProcessesToRun[commandOptionIndex],
@@ -179,12 +210,22 @@ export default class CommandRunner {
         this.processEndCallback.bind(this, commandOptionIndex, processWorker)
       ),
       // Error Callback
-      Comlink.proxy(this.processErrorCallback.bind(this, commandOptionIndex))
+      Comlink.proxy(this.processErrorCallback.bind(this, commandOptionIndex)),
+      // Shared Array Bufer
+      sharedStdinBuffer,
+      // Stdin read callback
+      Comlink.proxy(this.processStdinReadCallback.bind(this))
     );
+
+    // Initialize the shared Stdin.
+    // Index 0 will be number of elements in buffer
+    const sharedStdin = new Int32Array(sharedStdinBuffer);
+    sharedStdin[0] = -1;
 
     return {
       process,
-      worker: processWorker
+      worker: processWorker,
+      sharedStdin: sharedStdin
     };
   }
 
@@ -207,8 +248,12 @@ export default class CommandRunner {
   processDataCallback(commandOptionIndex: number, data: Uint8Array) {
     if (commandOptionIndex < this.commandOptionsForProcessesToRun.length - 1) {
       // Pass along to the next spawned process
-      if (this.spawnedProcessObjects.length > 1) {
-        this.spawnedProcessObjects[1].process.receiveStdinChunk(data);
+      if (
+        this.supportsSharedArrayBuffer &&
+        this.spawnedProcessObjects.length > 1
+      ) {
+        // Send the output to stdin since we are being piped
+        this.addStdinToSharedStdin(data, 1);
       } else {
         const newPipedStdinData = new Uint8Array(
           data.length + this.pipedStdinDataForNextProcess.length
@@ -230,9 +275,6 @@ export default class CommandRunner {
       processWorker.terminate();
     }
 
-    // Remove ourself from the spawned workers
-    this.spawnedProcessObjects.shift();
-
     if (commandOptionIndex < this.commandOptionsForProcessesToRun.length - 1) {
       // Try to spawn the next process, if we haven't already
       this.tryToSpawnProcess(commandOptionIndex + 1);
@@ -242,6 +284,9 @@ export default class CommandRunner {
       this.isRunning = false;
       this.commandEndCallback();
     }
+
+    // Remove ourself from the spawned workers
+    this.spawnedProcessObjects.shift();
   }
 
   processErrorCallback(commandOptionIndex: number, error: string) {
@@ -250,6 +295,10 @@ export default class CommandRunner {
     );
     this.kill();
     this.commandEndCallback();
+  }
+
+  processStdinReadCallback() {
+    // TODO: I think I might need this? Wait for cleanup to remove
   }
 
   kill() {

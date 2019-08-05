@@ -27,10 +27,16 @@ export default class WASICommand extends Command {
   promisedInstance: Promise<WebAssembly.Instance>;
   instance: WebAssembly.Instance | undefined;
   wasiCliFileSystem: WasiCLIFileSystem;
+  sharedStdin?: Int32Array;
+  stdinReadCallback?: Function;
   stdinReadCounter: number;
   pipedStdin: string;
 
-  constructor(options: CommandOptions) {
+  constructor(
+    options: CommandOptions,
+    sharedStdin?: Int32Array,
+    stdinReadCallback?: Function
+  ) {
     super(options);
 
     this.wasiCliFileSystem = new WasiCLIFileSystem();
@@ -38,6 +44,12 @@ export default class WASICommand extends Command {
     // Bind our stdinRead
     this.wasiCliFileSystem.volume.fds[0].read = this.stdinRead.bind(this);
 
+    if (sharedStdin) {
+      this.sharedStdin = sharedStdin;
+    }
+    if (stdinReadCallback) {
+      this.stdinReadCallback = stdinReadCallback;
+    }
     this.stdinReadCounter = 0;
     this.pipedStdin = "";
 
@@ -107,9 +119,26 @@ export default class WASICommand extends Command {
     // Since reading will keep requesting data, we need to give end of file
     this.stdinReadCounter++;
 
-    // TODO: Add a better prompt
-    let responseStdin = this.pipedStdin || prompt("Stdin");
-    this.pipedStdin = "";
+    let responseStdin: string | null = null;
+    if (this.pipedStdin) {
+      responseStdin = this.pipedStdin;
+      this.pipedStdin = "";
+    } else if (this.sharedStdin && this.stdinReadCallback) {
+      this.stdinReadCallback();
+      Atomics.wait(this.sharedStdin, 0, -1);
+
+      // Grab the of elements
+      const numberOfElements = this.sharedStdin[0];
+      this.sharedStdin[0] = -1;
+      const newStdinData = new Uint8Array(numberOfElements);
+      for (let i = 0; i < numberOfElements; i++) {
+        newStdinData[i] = this.sharedStdin[1 + i];
+      }
+
+      responseStdin = new TextDecoder("utf-8").decode(newStdinData);
+    } else {
+      responseStdin = prompt("Stdin");
+    }
 
     // First check for errors
     if (!responseStdin) {

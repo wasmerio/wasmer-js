@@ -25,22 +25,32 @@ export default class Process {
   dataCallback: Function;
   endCallback: Function;
   errorCallback: Function;
-  receivedStdinData: Uint8Array;
+  sharedStdin?: Int32Array;
+  stdinReadCallback?: Function;
 
   constructor(
     commandOptions: CommandOptions,
     dataCallback: Function,
     endCallback: Function,
-    errorCallback: Function
+    errorCallback: Function,
+    sharedStdinBuffer?: SharedArrayBuffer,
+    stdinReadCallback?: Function
   ) {
     this.commandOptions = commandOptions;
-    this.wasiCommand = new WASICommand(commandOptions);
     this.dataCallback = dataCallback;
     this.endCallback = endCallback;
     this.errorCallback = errorCallback;
-    this.receivedStdinData = new Uint8Array(0);
 
-    this.wasiCommand = new WASICommand(commandOptions);
+    let sharedStdin: Int32Array | undefined = undefined;
+    if (sharedStdinBuffer) {
+      sharedStdin = new Int32Array(sharedStdinBuffer);
+    }
+
+    this.wasiCommand = new WASICommand(
+      commandOptions,
+      sharedStdin,
+      stdinReadCallback
+    );
   }
 
   async start(pipedStdinData?: Uint8Array) {
@@ -68,14 +78,5 @@ export default class Process {
 
       this.errorCallback(error);
     }
-  }
-
-  receiveStdinChunk(data: Uint8Array) {
-    const newReceivedStdinData = new Uint8Array(
-      data.length + this.receivedStdinData.length
-    );
-    newReceivedStdinData.set(this.receivedStdinData);
-    newReceivedStdinData.set(data, this.receivedStdinData.length);
-    this.receivedStdinData = newReceivedStdinData;
   }
 }
