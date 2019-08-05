@@ -1,8 +1,6 @@
 // Service to fetch and instantiate modules
 // And cache them to run again
 
-import asyncify from "./asyncify";
-
 // @ts-ignore
 import stdinWasmUrl from "../../assets/stdin.wasm";
 
