@@ -68,8 +68,9 @@ export default class CommandRunner {
   commandCache: CommandCache;
   commandOptionsForProcessesToRun: Array<any>;
   spawnedProcessObjects: Array<any>;
-  initialStdinDataForNextProcess: Uint8Array;
+  pipedStdinDataForNextProcess: Uint8Array;
   isRunning: boolean;
+  supportsSharedArrayBuffer: boolean;
 
   xterm: Terminal;
   commandString: string;
@@ -83,8 +84,11 @@ export default class CommandRunner {
     this.commandCache = new CommandCache();
     this.commandOptionsForProcessesToRun = [];
     this.spawnedProcessObjects = [];
-    this.initialStdinDataForNextProcess = new Uint8Array();
+    this.pipedStdinDataForNextProcess = new Uint8Array();
     this.isRunning = false;
+    this.supportsSharedArrayBuffer =
+      (window as any).SharedArrayBuffer && (window as any).Atomics;
+
     this.xterm = xterm;
     this.commandString = commandString;
     this.commandEndCallback = commandEndCallback;
@@ -129,8 +133,7 @@ export default class CommandRunner {
 
   async spawnProcess(commandOptionIndex: number) {
     let spawnedProcessObject = undefined;
-    // TODO: remove && false once the fallback works
-    if ((window as any).SharedArrayBuffer && (window as any).Atomics && false) {
+    if (this.supportsSharedArrayBuffer) {
       spawnedProcessObject = await this.spawnProcessAsWorker(
         commandOptionIndex
       );
@@ -140,20 +143,25 @@ export default class CommandRunner {
       );
     }
 
-    // Remove the initial stdin if we added it
-    if (this.initialStdinDataForNextProcess.length > 0) {
-      this.initialStdinDataForNextProcess = new Uint8Array();
-    }
-
     // Record this process as spawned
     this.spawnedProcessObjects.push(spawnedProcessObject);
 
-    // TODO: Spawn the next process to be ready to receive stdin by streaming
-    // Try to spawn the next process, if we haven't already
-    // this.tryToSpawnProcess(commandOptionIndex + 1);
-
     // Start the process
-    spawnedProcessObject.process.start();
+    spawnedProcessObject.process.start(
+      this.pipedStdinDataForNextProcess.length > 0
+        ? this.pipedStdinDataForNextProcess
+        : undefined
+    );
+
+    // Remove the piped stdin if we passed it
+    if (this.pipedStdinDataForNextProcess.length > 0) {
+      this.pipedStdinDataForNextProcess = new Uint8Array();
+    }
+
+    // Try to spawn the next process, if we haven't already
+    if (this.supportsSharedArrayBuffer) {
+      this.tryToSpawnProcess(commandOptionIndex + 1);
+    }
   }
 
   async spawnProcessAsWorker(commandOptionIndex: number) {
@@ -171,11 +179,7 @@ export default class CommandRunner {
         this.processEndCallback.bind(this, commandOptionIndex, processWorker)
       ),
       // Error Callback
-      Comlink.proxy(this.processErrorCallback.bind(this, commandOptionIndex)),
-      // Stdin
-      this.initialStdinDataForNextProcess.length > 0
-        ? this.initialStdinDataForNextProcess
-        : undefined
+      Comlink.proxy(this.processErrorCallback.bind(this, commandOptionIndex))
     );
 
     return {
@@ -192,11 +196,7 @@ export default class CommandRunner {
       // End Callback
       this.processEndCallback.bind(this, commandOptionIndex),
       // Error Callback
-      this.processErrorCallback.bind(this, commandOptionIndex),
-      // Stdin
-      this.initialStdinDataForNextProcess.length > 0
-        ? this.initialStdinDataForNextProcess
-        : undefined
+      this.processErrorCallback.bind(this, commandOptionIndex)
     );
 
     return {
@@ -210,15 +210,12 @@ export default class CommandRunner {
       if (this.spawnedProcessObjects.length > 1) {
         this.spawnedProcessObjects[1].process.receiveStdinChunk(data);
       } else {
-        const newInitialStdinData = new Uint8Array(
-          data.length + this.initialStdinDataForNextProcess.length
+        const newPipedStdinData = new Uint8Array(
+          data.length + this.pipedStdinDataForNextProcess.length
         );
-        newInitialStdinData.set(this.initialStdinDataForNextProcess);
-        newInitialStdinData.set(
-          data,
-          this.initialStdinDataForNextProcess.length
-        );
-        this.initialStdinDataForNextProcess = newInitialStdinData;
+        newPipedStdinData.set(this.pipedStdinDataForNextProcess);
+        newPipedStdinData.set(data, this.pipedStdinDataForNextProcess.length);
+        this.pipedStdinDataForNextProcess = newPipedStdinData;
       }
     } else {
       // Write the output to our terminal

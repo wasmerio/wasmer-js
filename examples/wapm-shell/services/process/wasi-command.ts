@@ -27,10 +27,10 @@ export default class WASICommand extends Command {
   promisedInstance: Promise<WebAssembly.Instance>;
   instance: WebAssembly.Instance | undefined;
   wasiCliFileSystem: WasiCLIFileSystem;
-  initialStdin: string;
   stdinReadCounter: number;
+  pipedStdin: string;
 
-  constructor(options: CommandOptions, initialStdin?: string) {
+  constructor(options: CommandOptions) {
     super(options);
 
     this.wasiCliFileSystem = new WasiCLIFileSystem();
@@ -38,8 +38,8 @@ export default class WASICommand extends Command {
     // Bind our stdinRead
     this.wasiCliFileSystem.volume.fds[0].read = this.stdinRead.bind(this);
 
-    this.initialStdin = initialStdin || "";
     this.stdinReadCounter = 0;
+    this.pipedStdin = "";
 
     this.wasi = new WASI({
       preopenDirectories: {},
@@ -56,16 +56,15 @@ export default class WASICommand extends Command {
     });
   }
 
-  async instantiate(stdin?: string): Promise<Duplex> {
+  async instantiate(pipedStdinData?: Uint8Array): Promise<Duplex> {
     let instance = await Promise.resolve(this.promisedInstance);
     this.instance = instance;
     this.wasi.setMemory((instance as any).exports.memory);
     let stdoutRead = this.wasiCliFileSystem.fs.createReadStream("/dev/stdout");
     let stderrRead = this.wasiCliFileSystem.fs.createReadStream("/dev/stderr");
 
-    if (stdin) {
-      const stdinAsUint8Array = new TextEncoder().encode(stdin);
-      this.wasiCliFileSystem.sendStdinChunk(stdinAsUint8Array);
+    if (pipedStdinData) {
+      this.pipedStdin = new TextDecoder("utf-8").decode(pipedStdinData);
     }
 
     // We join the stdout and stderr together
@@ -108,14 +107,16 @@ export default class WASICommand extends Command {
     // Since reading will keep requesting data, we need to give end of file
     this.stdinReadCounter++;
 
-    let stdin = this.initialStdin || prompt();
+    // TODO: Add a better prompt
+    let responseStdin = this.pipedStdin || prompt("Stdin");
+    this.pipedStdin = "";
 
     // First check for errors
-    if (!stdin) {
+    if (!responseStdin) {
       return 0;
     }
 
-    const buffer = new TextEncoder().encode(stdin);
+    const buffer = new TextEncoder().encode(responseStdin);
     for (let x = 0; x < buffer.length; ++x) {
       responseBuffer[x] = buffer[x];
     }

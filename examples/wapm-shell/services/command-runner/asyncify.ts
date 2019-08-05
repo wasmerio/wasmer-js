@@ -1,4 +1,5 @@
 // https://kripken.github.io/blog/wasm/2019/07/16/asyncify.html
+// Way to slow to run on the client, however, leaving here for a possible server side implementation
 
 const binaryenPromise: Promise<any> = fetch("assets/binaryen-88.0.0.js")
   .then(response => {
@@ -38,11 +39,10 @@ const asyncify = async (binaryArray: Uint8Array) => {
     asyncifySignature
   );
 
-  // Place the asyncify call in fron of all fd_reads
+  // TODO: Place the asyncify call in fron of all fd_reads
 
   // console.log('module', binaryenModule);
   // console.log('test', binaryenModule.emitText());
-  console.log("yoo");
 
   return binaryenModule.emitBinary();
 };

@@ -25,31 +25,26 @@ export default class Process {
   dataCallback: Function;
   endCallback: Function;
   errorCallback: Function;
-  initialStdin: string;
+  receivedStdinData: Uint8Array;
 
   constructor(
     commandOptions: CommandOptions,
     dataCallback: Function,
     endCallback: Function,
-    errorCallback: Function,
-    stdin?: Uint8Array
+    errorCallback: Function
   ) {
     this.commandOptions = commandOptions;
     this.wasiCommand = new WASICommand(commandOptions);
     this.dataCallback = dataCallback;
     this.endCallback = endCallback;
     this.errorCallback = errorCallback;
-    this.initialStdin = "";
-    if (stdin) {
-      this.initialStdin = new TextDecoder("utf-8").decode(stdin);
-    }
+    this.receivedStdinData = new Uint8Array(0);
 
-    this.wasiCommand = new WASICommand(commandOptions, this.initialStdin);
+    this.wasiCommand = new WASICommand(commandOptions);
   }
 
-  async start() {
-    // const commandStream = await this.wasiCommand.instantiate(this.initialStdin);
-    const commandStream = await this.wasiCommand.instantiate();
+  async start(pipedStdinData?: Uint8Array) {
+    const commandStream = await this.wasiCommand.instantiate(pipedStdinData);
 
     commandStream.on("data", (data: any) => {
       this.dataCallback(data);
@@ -75,8 +70,12 @@ export default class Process {
     }
   }
 
-  receiveStdinChunk(data: any) {
-    let dataString = new TextDecoder("utf-8").decode(data);
-    this.initialStdin += dataString;
+  receiveStdinChunk(data: Uint8Array) {
+    const newReceivedStdinData = new Uint8Array(
+      data.length + this.receivedStdinData.length
+    );
+    newReceivedStdinData.set(this.receivedStdinData);
+    newReceivedStdinData.set(data, this.receivedStdinData.length);
+    this.receivedStdinData = newReceivedStdinData;
   }
 }

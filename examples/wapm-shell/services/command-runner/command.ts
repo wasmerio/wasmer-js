@@ -19,7 +19,7 @@ export class Command {
   run() {
     throw new Error("Not implemented");
   }
-  instantiate(stdin?: string): Promise<Duplex> | Duplex {
+  instantiate(pipedStdinData?: Uint8Array): Promise<Duplex> | Duplex {
     throw new Error("Not implemented");
   }
   getStdout(): string {
