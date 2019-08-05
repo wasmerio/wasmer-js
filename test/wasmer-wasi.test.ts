@@ -17,16 +17,16 @@ import WasiCLIFileSystem from "../examples/file-system/file-system";
 
 const bytesConverter = (buffer: Buffer): Buffer => {
   // Help debugging: https://webassembly.github.io/wabt/demo/wat2wasm/index.html
-  let wasi_unstable = Buffer.from("wasi_unstable", "utf8");
-  let path_open = Buffer.from("path_open", "utf8");
-  var tmp = new Uint8Array(
-    1 + wasi_unstable.byteLength + 1 + path_open.byteLength + 1
+  let wasiUnstable = Buffer.from("wasi_unstable", "utf8");
+  let pathOpen = Buffer.from("path_open", "utf8");
+  let tmp = new Uint8Array(
+    1 + wasiUnstable.byteLength + 1 + pathOpen.byteLength + 1
   );
   tmp[0] = 0x0d;
-  tmp.set(new Uint8Array(wasi_unstable), 1);
-  tmp[wasi_unstable.byteLength + 1] = 0x09;
-  tmp.set(new Uint8Array(path_open), wasi_unstable.byteLength + 2);
-  tmp[1 + wasi_unstable.byteLength + 1 + path_open.byteLength + 1] = 0x00;
+  tmp.set(new Uint8Array(wasiUnstable), 1);
+  tmp[wasiUnstable.byteLength + 1] = 0x09;
+  tmp.set(new Uint8Array(pathOpen), wasiUnstable.byteLength + 2);
+  tmp[1 + wasiUnstable.byteLength + 1 + pathOpen.byteLength + 1] = 0x00;
   let index = buffer.indexOf(tmp);
 
   // 0000043: 60                                        ; func
