@@ -87,7 +87,9 @@ const xtermRemoveCharacterOnLine = (
     promptCallback();
     cursorX += 2;
   }
-  cursorX -= 1;
+  if (charactersX < 0) {
+    cursorX -= 1;
+  }
   xterm.write(newLine);
 
   // Move the cursor back to the correct position
