@@ -54,11 +54,10 @@ export default class Process {
   }
 
   async start(pipedStdinData?: Uint8Array) {
-    const commandStream = await this.wasiCommand.instantiate(pipedStdinData);
-
-    commandStream.on("data", (data: any) => {
-      this.dataCallback(data);
-    });
+    const commandStream = await this.wasiCommand.instantiate(
+      this.dataCallback,
+      pipedStdinData
+    );
 
     commandStream.on("end", () => {
       this.endCallback();
