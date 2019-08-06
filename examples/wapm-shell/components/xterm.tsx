@@ -86,17 +86,15 @@ const xtermRemoveCharacterOnLine = (
   if (isPrompting) {
     promptCallback();
     cursorX += 2;
-
-    if (charactersX < 0) {
-      // + 1 instead of two because we removed a character
-      cursorX -= 1;
-    }
   }
+  cursorX -= 1;
   xterm.write(newLine);
 
   // Move the cursor back to the correct position
   xterm.write("\u001b[1000D");
-  xterm.write(`\u001b[${cursorX}C`);
+  if (cursorX > 0) {
+    xterm.write(`\u001b[${cursorX}C`);
+  }
 };
 
 export default class XTerm extends Component {
