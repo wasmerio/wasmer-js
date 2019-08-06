@@ -1,5 +1,6 @@
 # Project ignore
 .cache
+report.*
 
 # Node
 node_modules

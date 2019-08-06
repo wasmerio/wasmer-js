@@ -3,11 +3,11 @@
 import {
   BigIntPolyfill as BigInt,
   BigIntPolyfillType
-} from "./polyfill/bigint";
+} from "./polyfills/bigint";
 import {
   DataViewPolyfill as DataView,
   DataViewPolyfillType
-} from "./polyfill/dataview";
+} from "./polyfills/dataview";
 
 // Import our default bindings depending on the environment
 let defaultBindings: WASIBindings;

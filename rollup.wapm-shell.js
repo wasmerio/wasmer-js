@@ -6,6 +6,8 @@ import builtins from "rollup-plugin-node-builtins";
 import globals from "rollup-plugin-node-globals";
 import typescript from "rollup-plugin-typescript2";
 import json from "rollup-plugin-json";
+import replace from "rollup-plugin-replace";
+import copy from "rollup-plugin-copy";
 import postcss from "rollup-plugin-postcss";
 import postcssImport from "postcss-import";
 import compiler from "@ampproject/rollup-plugin-closure-compiler";
@@ -35,6 +37,14 @@ let typescriptPluginOptions = {
   objectHashIgnoreUnknownHack: true
 };
 
+const replaceBrowserOptions = {
+  delimiters: ["", ""],
+  values: {
+    "/*ROLLUP_REPLACE_BROWSER": "",
+    "ROLLUP_REPLACE_BROWSER*/": ""
+  }
+};
+
 let plugins = [
   postcss({
     extensions: [".css"],
@@ -45,6 +55,7 @@ let plugins = [
     include: ["**/*.wasm"],
     emitFiles: true
   }),
+  replace(replaceBrowserOptions),
   typescript(typescriptPluginOptions),
   resolve({
     preferBuiltins: true
@@ -53,6 +64,14 @@ let plugins = [
   globals(),
   builtins(),
   json(),
+  copy({
+    targets: [
+      {
+        src: "examples/wapm-shell/assets/binaryen-88.0.0.js",
+        dest: "dist/examples/wapm-shell/assets/"
+      }
+    ]
+  }),
   process.env.PROD ? compiler() : undefined,
   bundleSize()
 ];
