@@ -75,7 +75,7 @@ const xtermRemoveCharacterOnLine = (
   if (charactersX > 0) {
     newLine = line.slice(0, cursorX) + line.slice(cursorX + charactersX);
   } else if (charactersX < 0) {
-    newLine = line.slice(0, cursorX) + line.slice(cursorX);
+    newLine = line.slice(0, cursorX + charactersX) + line.slice(cursorX);
   }
 
   // Clear the line
@@ -103,6 +103,8 @@ export default class XTerm extends Component {
   xterm: Terminal;
   container: HTMLElement | null;
   isPrompting: boolean;
+  commandHistory: Array<string>;
+  commandHistoryIndex: number;
   commandRunner?: CommandRunner;
 
   constructor() {
@@ -110,6 +112,8 @@ export default class XTerm extends Component {
     this.container = null;
     this.xterm = new Terminal();
     this.isPrompting = false;
+    this.commandHistory = [];
+    this.commandHistoryIndex = -1;
   }
 
   componentDidMount() {
@@ -144,14 +148,14 @@ export default class XTerm extends Component {
 
     let line = this.xterm.buffer.baseY + this.xterm.buffer.cursorY;
     let bufferLine = this.xterm.buffer.getLine(line);
-    let bufferLineAsString = "";
+    let bufferLineAsStringWithoutTrim = "";
     if (bufferLine) {
-      bufferLineAsString = bufferLine.translateToString();
+      bufferLineAsStringWithoutTrim = bufferLine.translateToString();
       if (this.isPrompting) {
-        bufferLineAsString = bufferLineAsString.substr(2);
+        bufferLineAsStringWithoutTrim = bufferLineAsStringWithoutTrim.substr(2);
       }
-      bufferLineAsString = bufferLineAsString.trim();
     }
+    const bufferLineAsString = bufferLineAsStringWithoutTrim.trim();
 
     if (ev.code === "Enter") {
       if (
@@ -185,6 +189,8 @@ export default class XTerm extends Component {
           this.prompt();
         }
       );
+      this.commandHistory.unshift(bufferLineAsString);
+      this.commandHistoryIndex = -1;
       this.commandRunner.runCommand();
     } else if (ev.code === "Backspace") {
       // Backspace (Delete on Mac)
@@ -209,12 +215,83 @@ export default class XTerm extends Component {
         },
         1
       );
+    } else if (ev.code === "ArrowUp") {
+      if (!this.isPrompting) {
+        return;
+      }
+
+      this.commandHistoryIndex++;
+      if (this.commandHistoryIndex > this.commandHistory.length - 1) {
+        this.commandHistoryIndex = this.commandHistory.length - 1;
+      }
+
+      // We are doing a stack, thus we grab from the top
+      const command = this.commandHistory[this.commandHistoryIndex];
+
+      // Clear the line
+      this.xterm.write("\u001b[1000D");
+      this.xterm.write("\u001b[0K");
+
+      // Write the command
+      this.prompt();
+      this.xterm.write(command);
+    } else if (ev.code === "ArrowDown") {
+      if (!this.isPrompting) {
+        return;
+      }
+
+      this.commandHistoryIndex--;
+      if (this.commandHistoryIndex < -1) {
+        this.commandHistoryIndex = -1;
+      }
+
+      let command = "";
+      if (this.commandHistoryIndex >= 0) {
+        command = this.commandHistory[this.commandHistoryIndex];
+      }
+
+      // Clear the line
+      this.xterm.write("\u001b[1000D");
+      this.xterm.write("\u001b[0K");
+
+      // Write the command
+      this.prompt();
+      this.xterm.write(command);
     } else if (ev.code === "ArrowLeft") {
       xtermMoveCursorX(this.xterm, bufferLineAsString, this.isPrompting, -1);
     } else if (ev.code === "ArrowRight") {
       xtermMoveCursorX(this.xterm, bufferLineAsString, this.isPrompting, 1);
     } else if (printable && !ev.key.startsWith("Arrow")) {
-      this.xterm.write(key);
+      // Typing characters
+
+      let cursorX = this.xterm.buffer.cursorX;
+      if (this.isPrompting) {
+        cursorX -= 2;
+      }
+
+      // Create our new line with the change
+      let newLine =
+        bufferLineAsStringWithoutTrim.slice(0, cursorX) +
+        key +
+        bufferLineAsStringWithoutTrim.slice(cursorX);
+      newLine = newLine.trim();
+
+      // Clear the line
+      this.xterm.write("\u001b[1000D");
+      this.xterm.write("\u001b[0K");
+
+      // Write the new line
+      if (this.isPrompting) {
+        this.prompt();
+        cursorX += 2;
+      }
+      this.xterm.write(newLine);
+
+      // Move the cursor back to the correct position
+      // +1 because we added a character
+      cursorX += 1;
+      this.xterm.write("\u001b[1000D");
+      this.xterm.write(`\u001b[${cursorX}C`);
     }
   }
 
