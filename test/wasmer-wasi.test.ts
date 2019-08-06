@@ -13,7 +13,7 @@ if ((global as any).BigInt) {
 }
 import { WASI } from "../lib";
 import WASINodeBindings from "../lib/bindings/node";
-import WasiCLIFileSystem from "../examples/file-system/file-system";
+import WasmerFileSystem from "../examples/file-system/file-system";
 
 const bytesConverter = (buffer: Buffer): Buffer => {
   // Help debugging: https://webassembly.github.io/wabt/demo/wat2wasm/index.html
@@ -64,7 +64,7 @@ const bytesConverter = (buffer: Buffer): Buffer => {
 
 const instantiateWasi = async (
   file: string,
-  wasiCliFileSystem: WasiCLIFileSystem,
+  wasmerFileSystem: WasmerFileSystem,
   args: string[] = [],
   env: { [key: string]: string } = {}
 ) => {
@@ -76,7 +76,7 @@ const instantiateWasi = async (
     args: args,
     bindings: {
       ...WASINodeBindings,
-      fs: wasiCliFileSystem.fs
+      fs: wasmerFileSystem.fs
     }
   });
   const buf = fs.readFileSync(file);
@@ -89,21 +89,21 @@ const instantiateWasi = async (
 };
 
 describe("WASI interaction", () => {
-  let wasiCliFileSystem: WasiCLIFileSystem;
+  let wasmerFileSystem: WasmerFileSystem;
 
   beforeEach(async () => {
-    wasiCliFileSystem = new WasiCLIFileSystem();
-    wasiCliFileSystem.fs.mkdirSync("/sandbox");
-    wasiCliFileSystem.fs.writeFileSync("/sandbox/file1", "contents1");
+    wasmerFileSystem = new WasmerFileSystem();
+    wasmerFileSystem.fs.mkdirSync("/sandbox");
+    wasmerFileSystem.fs.writeFileSync("/sandbox/file1", "contents1");
   });
 
   it("Helloworld can be run", async () => {
     let { instance, wasi } = await instantiateWasi(
       "test/rs/helloworld.wasm",
-      wasiCliFileSystem
+      wasmerFileSystem
     );
     instance.exports._start();
-    expect(await wasiCliFileSystem.getStdOut()).toMatchInlineSnapshot(`
+    expect(await wasmerFileSystem.getStdOut()).toMatchInlineSnapshot(`
                               "Hello world!
                               "
                     `);
@@ -112,11 +112,11 @@ describe("WASI interaction", () => {
   it("WASI args work", async () => {
     let { instance, wasi } = await instantiateWasi(
       "test/rs/args.wasm",
-      wasiCliFileSystem,
+      wasmerFileSystem,
       ["demo", "-h", "--help", "--", "other"]
     );
     instance.exports._start();
-    expect(await wasiCliFileSystem.getStdOut()).toMatchInlineSnapshot(`
+    expect(await wasmerFileSystem.getStdOut()).toMatchInlineSnapshot(`
                               "[\\"demo\\", \\"-h\\", \\"--help\\", \\"--\\", \\"other\\"]
                               "
                     `);
@@ -125,14 +125,14 @@ describe("WASI interaction", () => {
   it("WASI env work", async () => {
     let { instance, wasi } = await instantiateWasi(
       "test/rs/env.wasm",
-      wasiCliFileSystem,
+      wasmerFileSystem,
       [],
       {
         WASM_EXISTING: "VALUE"
       }
     );
     instance.exports._start();
-    expect(await wasiCliFileSystem.getStdOut()).toMatchInlineSnapshot(`
+    expect(await wasmerFileSystem.getStdOut()).toMatchInlineSnapshot(`
       "should be set (WASM_EXISTING): Some(\\"VALUE\\")
       shouldn't be set (WASM_UNEXISTING): None
       Set existing var (WASM_EXISTING): Some(\\"NEW_VALUE\\")

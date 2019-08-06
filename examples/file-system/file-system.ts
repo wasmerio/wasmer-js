@@ -11,7 +11,7 @@ const assert = (cond: boolean, message: string) => {
   }
 };
 
-export default class WasiCLIFileSystem {
+export default class WasmerFileSystem {
   volume: Volume;
   fs: IFs;
 

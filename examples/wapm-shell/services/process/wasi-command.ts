@@ -3,7 +3,7 @@
 //@ts-ignore
 import { WASI } from "../../../../dist/index.esm";
 
-import WasiCLIFileSystem from "../../../file-system/file-system";
+import WasmerFileSystem from "../../../file-system/file-system";
 
 import { Command, CommandOptions } from "../../services/command-runner/command";
 
@@ -26,7 +26,7 @@ export default class WASICommand extends Command {
   wasi: WASI;
   promisedInstance: Promise<WebAssembly.Instance>;
   instance: WebAssembly.Instance | undefined;
-  wasiCliFileSystem: WasiCLIFileSystem;
+  wasmerFileSystem: WasmerFileSystem;
   sharedStdin?: Int32Array;
   stdinReadCallback?: Function;
   stdinReadCounter: number;
@@ -39,10 +39,10 @@ export default class WASICommand extends Command {
   ) {
     super(options);
 
-    this.wasiCliFileSystem = new WasiCLIFileSystem();
+    this.wasmerFileSystem = new WasmerFileSystem();
 
     // Bind our stdinRead
-    this.wasiCliFileSystem.volume.fds[0].read = this.stdinRead.bind(this);
+    this.wasmerFileSystem.volume.fds[0].read = this.stdinRead.bind(this);
 
     if (sharedStdin) {
       this.sharedStdin = sharedStdin;
@@ -59,7 +59,7 @@ export default class WASICommand extends Command {
       args: options.args,
       bindings: {
         ...WASI.defaultBindings,
-        fs: this.wasiCliFileSystem.fs
+        fs: this.wasmerFileSystem.fs
       }
     });
 
@@ -69,11 +69,11 @@ export default class WASICommand extends Command {
   }
 
   async instantiate(pipedStdinData?: Uint8Array): Promise<Duplex> {
-    let instance = await Promise.resolve(this.promisedInstance);
+    let instance = await this.promisedInstance;
     this.instance = instance;
     this.wasi.setMemory((instance as any).exports.memory);
-    let stdoutRead = this.wasiCliFileSystem.fs.createReadStream("/dev/stdout");
-    let stderrRead = this.wasiCliFileSystem.fs.createReadStream("/dev/stderr");
+    let stdoutRead = this.wasmerFileSystem.fs.createReadStream("/dev/stdout");
+    let stderrRead = this.wasmerFileSystem.fs.createReadStream("/dev/stderr");
 
     if (pipedStdinData) {
       this.pipedStdin = new TextDecoder("utf-8").decode(pipedStdinData);
@@ -107,6 +107,7 @@ export default class WASICommand extends Command {
   ) {
     // For some reason, read is called 3 times per actual read
     // Thus we have a counter to handle this.
+    // TODO: This should only be needed if we are prompting, and not needed for piping.
     if (this.stdinReadCounter !== 0) {
       if (this.stdinReadCounter < 3) {
         this.stdinReadCounter++;
