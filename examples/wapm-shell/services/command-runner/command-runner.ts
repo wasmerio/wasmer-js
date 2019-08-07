@@ -14,10 +14,45 @@ import { CommandOptions, Command } from "./command";
 
 import CommandCache from "./command-cache";
 
+let processWorkerBlobUrl: string | undefined = undefined;
+const getBlobUrlForProcessWorker = async (xterm: Terminal) => {
+  if (processWorkerBlobUrl) {
+    return processWorkerBlobUrl;
+  }
+
+  // Write that we are fetching the worker
+
+  // Save the cursor position
+  xterm.write("\u001b[s");
+
+  xterm.write(
+    "[INFO] Downloading the process Web Worker (This happens once)..."
+  );
+
+  // Fetch the worker, but at least show the message for a short while
+  const workerString = await Promise.all([
+    fetch("workers/process.worker.js").then(response => response.text()),
+    new Promise(resolve => setTimeout(resolve, 500))
+  ]).then(responses => responses[0]);
+
+  // Restore the cursor position
+  xterm.write("\u001b[u");
+
+  // Clear from cursor to end of screen
+  xterm.write("\u001b[1000D");
+  xterm.write("\u001b[0J");
+
+  // Create the worker blob and URL
+  const workerBlob = new Blob([workerString]);
+  processWorkerBlobUrl = window.URL.createObjectURL(workerBlob);
+  return processWorkerBlobUrl;
+};
+
 const getCommandOptionsFromAST = (
   ast: any,
   commandCache: CommandCache,
-  commandCacheCallback: Function
+  commandCacheCallback: Function,
+  xterm?: Terminal
 ): Promise<Array<CommandOptions>> => {
   // The array of command options we are returning
   let commandOptions: Array<CommandOptions> = [];
@@ -41,7 +76,8 @@ const getCommandOptionsFromAST = (
         const redirectedCommandOptions = await getCommandOptionsFromAST(
           astRedirect.command,
           commandCache,
-          commandCacheCallback
+          commandCacheCallback,
+          xterm
         );
         // Add the child options to our command options
         commandOptions = commandOptions.concat(redirectedCommandOptions);
@@ -50,7 +86,7 @@ const getCommandOptionsFromAST = (
   };
 
   const getWasmModuleTask = async () => {
-    return await commandCache.getWasmModuleForCommandName(command);
+    return await commandCache.getWasmModuleForCommandName(command, xterm);
   };
 
   return redirectTask()
@@ -118,7 +154,8 @@ export default class CommandRunner {
       this.commandOptionsForProcessesToRun = await getCommandOptionsFromAST(
         commandAst[0],
         this.commandCache,
-        this.commandCacheCallback
+        this.commandCacheCallback,
+        this.xterm
       );
     } catch (c) {
       this.xterm.write(`wapm shell: parse error (${c.toString()})\r\n`);
@@ -151,7 +188,7 @@ export default class CommandRunner {
       sharedStdin[startingIndex + index] = value;
     });
 
-    sharedStdin[0] = startingIndex + data.length;
+    sharedStdin[0] = startingIndex + data.length - 1;
 
     Atomics.notify(sharedStdin, 0, 1);
   }
@@ -202,7 +239,8 @@ export default class CommandRunner {
 
   async spawnProcessAsWorker(commandOptionIndex: number) {
     // Generate our process
-    const processWorker = new Worker("./workers/process.worker.js");
+    const workerBlobUrl = await getBlobUrlForProcessWorker(this.xterm);
+    const processWorker = new Worker(workerBlobUrl);
     const processComlink = Comlink.wrap(processWorker);
 
     // Genrate our shared buffer
