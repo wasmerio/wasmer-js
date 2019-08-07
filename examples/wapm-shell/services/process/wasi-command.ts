@@ -27,10 +27,13 @@ export default class WASICommand extends Command {
   promisedInstance: Promise<WebAssembly.Instance>;
   instance: WebAssembly.Instance | undefined;
   wasmerFileSystem: WasmerFileSystem;
+
   sharedStdin?: Int32Array;
   stdinReadCallback?: Function;
   stdinReadCounter: number;
   pipedStdin: string;
+
+  stdoutCallback?: Function;
 
   constructor(
     options: CommandOptions,
@@ -43,6 +46,8 @@ export default class WASICommand extends Command {
 
     // Bind our stdinRead
     this.wasmerFileSystem.volume.fds[0].read = this.stdinRead.bind(this);
+    this.wasmerFileSystem.volume.fds[1].write = this.stdoutWrite.bind(this);
+    this.wasmerFileSystem.volume.fds[2].write = this.stdoutWrite.bind(this);
 
     if (sharedStdin) {
       this.sharedStdin = sharedStdin;
@@ -68,12 +73,17 @@ export default class WASICommand extends Command {
     });
   }
 
-  async instantiate(pipedStdinData?: Uint8Array): Promise<Duplex> {
+  async instantiate(
+    stdoutCallback?: Function,
+    pipedStdinData?: Uint8Array
+  ): Promise<Duplex> {
     let instance = await this.promisedInstance;
     this.instance = instance;
     this.wasi.setMemory((instance as any).exports.memory);
     let stdoutRead = this.wasmerFileSystem.fs.createReadStream("/dev/stdout");
     let stderrRead = this.wasmerFileSystem.fs.createReadStream("/dev/stderr");
+
+    this.stdoutCallback = stdoutCallback;
 
     if (pipedStdinData) {
       this.pipedStdin = new TextDecoder("utf-8").decode(pipedStdinData);
@@ -94,22 +104,35 @@ export default class WASICommand extends Command {
     this.instance.exports._start();
   }
 
+  stdoutWrite(
+    stdoutBuffer: Buffer | Uint8Array,
+    offset: number = 0,
+    length: number = stdoutBuffer.byteLength,
+    position?: number
+  ) {
+    if (this.stdoutCallback) {
+      this.stdoutCallback(stdoutBuffer);
+    }
+
+    return stdoutBuffer.length;
+  }
+
   // Handle read of stdin, similar to C read
   // https://linux.die.net/man/2/read
   // This is the bottom of the "layers stack". This is the outer binding.
   // This is the the thing that returns -1 because it is the actual file system,
   // but it is up to WASI lib  (wasi.ts) to find out why this error'd
   stdinRead(
-    responseBuffer: Buffer | Uint8Array,
+    stdinBuffer: Buffer | Uint8Array,
     offset: number = 0,
-    length: number = responseBuffer.byteLength,
+    length: number = stdinBuffer.byteLength,
     position?: number
   ) {
     // For some reason, read is called 3 times per actual read
     // Thus we have a counter to handle this.
     // TODO: This should only be needed if we are prompting, and not needed for piping.
     if (this.stdinReadCounter !== 0) {
-      if (this.stdinReadCounter < 3) {
+      if (this.stdinReadCounter < 2) {
         this.stdinReadCounter++;
       } else {
         this.stdinReadCounter = 0;
@@ -148,7 +171,7 @@ export default class WASICommand extends Command {
 
     const buffer = new TextEncoder().encode(responseStdin);
     for (let x = 0; x < buffer.length; ++x) {
-      responseBuffer[x] = buffer[x];
+      stdinBuffer[x] = buffer[x];
     }
 
     // Return the current stdin
