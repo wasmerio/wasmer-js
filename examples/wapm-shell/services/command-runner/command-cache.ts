@@ -27,6 +27,11 @@ const WAPM_GRAPHQL_QUERY = `query shellGetCommandQuery($command: String!) {
 const getWapmUrlForCommandName = async (commandName: String) => {
   return await fetch("https://registry.wapm.io/graphql", {
     method: "POST",
+    mode: "cors",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json"
+    },
     body: JSON.stringify({
       operationName: "shellGetCommandQuery",
       query: WAPM_GRAPHQL_QUERY,
@@ -37,9 +42,32 @@ const getWapmUrlForCommandName = async (commandName: String) => {
   })
     .then(response => response.json())
     .then(response => {
-      console.log(response);
+      const optionalChaining = (baseObject: any, chain: Array<string>): any => {
+        const newObject = baseObject[chain[0]];
+        chain.shift();
+        if (newObject) {
+          if (chain.length > 1) {
+            return optionalChaining(newObject, chain);
+          }
 
-      throw new Error(`command not found ${commandName}`);
+          return true;
+        }
+        return false;
+      };
+
+      if (optionalChaining(response, ["data", "command", "module"])) {
+        const wapmModule = response.data.command.module;
+
+        if (wapmModule.abi !== "wasi") {
+          throw new Error(
+            `${commandName} does not use the wasi abi. Currently, only the wasi abi is supported on the wapm shell.`
+          );
+        }
+
+        return wapmModule.publicUrl;
+      } else {
+        throw new Error(`command not found ${commandName}`);
+      }
     });
 };
 
@@ -61,7 +89,7 @@ export default class CommandCache {
   async getWasmModuleForCommandName(commandName: string, xterm?: Terminal) {
     let commandUrl = commandToUrlCache[commandName];
     if (!commandUrl) {
-      const commandUrl = await getWapmUrlForCommandName(commandName);
+      commandUrl = await getWapmUrlForCommandName(commandName);
       commandToUrlCache[commandName] = commandUrl;
     }
 
