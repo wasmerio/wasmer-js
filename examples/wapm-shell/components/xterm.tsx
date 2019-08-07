@@ -27,16 +27,8 @@ const xtermMoveCursorX = (
     cursorX -= 2;
   }
   let newCursorX = cursorX + movementX;
+  newCursorX = Math.min(line.length, Math.max(newCursorX, 0));
 
-  // minX takes precedence over maxX
-  if (newCursorX > maxX) {
-    newCursorX = maxX;
-  }
-  if (newCursorX < minX) {
-    newCursorX = minX;
-  }
-
-  // Amount to move
   const amountToMoveCursorX = newCursorX - cursorX;
 
   // http://www.lihaoyi.com/post/BuildyourownCommandLinewithANSIescapecodes.html#cursor-navigation
@@ -62,15 +54,20 @@ const xtermRemoveCharacterOnLine = (
     cursorX -= 2;
   }
 
+  // Handle all the cases where we don't do anything
   if (charactersX === 0) {
+    // No characters to be removes
     return;
   } else if (charactersX < 0 && cursorX <= 0) {
+    // Wanted to remove a character behind me,
+    // but I can't go any farther back
     return;
   } else if (charactersX > 0 && line.length === 0) {
+    // Wanted to delete some characters, but there are no characters to delete
     return;
   }
 
-  // Create our new line with the change
+  // Create our new line with the changes
   let newLine = "";
   if (charactersX > 0) {
     newLine = line.slice(0, cursorX) + line.slice(cursorX + charactersX);
@@ -151,6 +148,7 @@ export default class XTerm extends Component {
   onKey(key: string, ev: KeyboardEvent) {
     const printable = !ev.altKey && !ev.ctrlKey && !ev.metaKey;
 
+    // Get the current line, as well as variations of the line
     let line = this.xterm.buffer.baseY + this.xterm.buffer.cursorY;
     let bufferLine = this.xterm.buffer.getLine(line);
     let bufferLineAsStringWithoutTrim = "";
@@ -174,6 +172,7 @@ export default class XTerm extends Component {
         return;
       }
 
+      // Place a newline on the terminal
       this.xterm.write("\r\n");
 
       if (bufferLineAsString.length === 0) {
@@ -234,12 +233,12 @@ export default class XTerm extends Component {
         return;
       }
 
+      // Increase the command history, andcheck if we traversed too high
       this.commandHistoryIndex++;
       if (this.commandHistoryIndex > this.commandHistory.length - 1) {
         this.commandHistoryIndex = this.commandHistory.length - 1;
       }
 
-      // We are doing a stack, thus we grab from the top
       const command = this.commandHistory[this.commandHistoryIndex];
 
       // Clear the line
@@ -254,11 +253,13 @@ export default class XTerm extends Component {
         return;
       }
 
+      // Decrease the command history, and check if we went too low
       this.commandHistoryIndex--;
       if (this.commandHistoryIndex < -1) {
         this.commandHistoryIndex = -1;
       }
 
+      // Default to an empty command, otherwise, the command the index points to.
       let command = "";
       if (this.commandHistoryIndex >= 0) {
         command = this.commandHistory[this.commandHistoryIndex];
@@ -297,6 +298,7 @@ export default class XTerm extends Component {
       }
       const commandToMatch = pipeSplit[commandToMatchIndex].split(" ")[0];
 
+      // Find which downloaded wapm commands match the command we are trying to complete
       const matchedCommands: Array<string> = [];
       this.wapmHistory.forEach(commandName => {
         if (commandName.startsWith(commandToMatch)) {
@@ -304,10 +306,12 @@ export default class XTerm extends Component {
         }
       });
 
+      // If we found no commands, return;
       if (matchedCommands.length === 0) {
         return;
       }
 
+      // If we found more than one command, list them
       if (matchedCommands.length > 1) {
         this.xterm.write("\r\n");
         this.xterm.write(matchedCommands.join(" "));
