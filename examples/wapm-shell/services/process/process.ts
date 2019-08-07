@@ -21,12 +21,13 @@ const merge = (...streams: Duplex[]) => {
 
 export default class Process {
   commandOptions: CommandOptions;
-  wasiCommand: WASICommand;
   dataCallback: Function;
   endCallback: Function;
   errorCallback: Function;
   sharedStdin?: Int32Array;
   stdinReadCallback?: Function;
+
+  wasiCommand: WASICommand;
 
   constructor(
     commandOptions: CommandOptions,

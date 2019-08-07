@@ -11,7 +11,7 @@ fn main() {
         s.pop();
     }
     println!("You typed: {}",s);
-    println!("Second try!");
+    println!("Let's do it again!");
     let mut s=String::new();
     print!("Please enter some text: ");
     let _=stdout().flush();
