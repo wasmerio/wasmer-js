@@ -20,8 +20,6 @@ const getBlobUrlForProcessWorker = async (xterm: Terminal) => {
     return processWorkerBlobUrl;
   }
 
-  // Write that we are fetching the worker
-
   // Save the cursor position
   xterm.write("\u001b[s");
 

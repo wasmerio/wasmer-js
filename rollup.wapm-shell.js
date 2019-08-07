@@ -91,7 +91,7 @@ if (process.env.PROD) {
     ...plugins,
     serve({
       contentBase: ["dist/"],
-      port: 8080
+      port: 8000
     })
   ];
   writeIndexHtml("index.iife.js");
