@@ -45,7 +45,7 @@ export default class CommandCache {
         // Save the cursor position
         xterm.write("\u001b[s");
 
-        xterm.write(`Downloading "${commandName}" from "${commandUrl}"`);
+        xterm.write(`[INFO] Downloading "${commandName}" from "${commandUrl}"`);
       }
 
       // Fetch the wasm modules, but at least show the message for a short while

@@ -25,7 +25,9 @@ const getBlobUrlForProcessWorker = async (xterm: Terminal) => {
   // Save the cursor position
   xterm.write("\u001b[s");
 
-  xterm.write("Downloading the process Web Worker (This happens once)...");
+  xterm.write(
+    "[INFO] Downloading the process Web Worker (This happens once)..."
+  );
 
   // Fetch the worker, but at least show the message for a short while
   const workerString = await Promise.all([
