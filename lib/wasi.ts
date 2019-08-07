@@ -441,6 +441,7 @@ class WASI {
         if (n === null) {
           return WASI_EINVAL;
         }
+        console.log("asdasd", time, n);
         this.view.setBigUint64(time, n, true);
         return WASI_ESUCCESS;
       },

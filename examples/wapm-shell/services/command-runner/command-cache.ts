@@ -5,9 +5,16 @@ import { Terminal } from "xterm";
 
 // @ts-ignore
 import stdinWasmUrl from "../../assets/stdin.wasm";
+// @ts-ignore
+import matrixLoweredUrl from "../../assets/matrix-loweredi64.wasm";
+
+console.log(stdinWasmUrl, matrixLoweredUrl);
 
 let compiledModules: { [key: string]: WebAssembly.Module } = {};
-let commandToUrlCache: { [key: string]: string } = {};
+let commandToUrlCache: { [key: string]: string } = {
+  matrixtest: matrixLoweredUrl,
+  a: stdinWasmUrl
+};
 
 const WAPM_GRAPHQL_QUERY = `query shellGetCommandQuery($command: String!) {
   command: getCommand(name: $command) {

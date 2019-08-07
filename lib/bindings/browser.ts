@@ -3,6 +3,7 @@ import hrtime from "browser-process-hrtime";
 import path from "path-browserify";
 
 import { WASIBindings } from "../wasi";
+import getBigIntHrtime from "../polyfills/hrtime.bigint";
 
 export class WASIExitError extends Error {
   code: number | null;
@@ -21,7 +22,7 @@ export class WASIKillError extends Error {
 }
 
 const bindings: WASIBindings = {
-  hrtime: (hrtime as unknown) as () => bigint,
+  hrtime: getBigIntHrtime(hrtime),
   exit: (code: number | null) => {
     throw new WASIExitError(code);
   },

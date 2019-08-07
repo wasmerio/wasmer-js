@@ -51,7 +51,7 @@ let plugins = [
     plugins: [postcssImport()]
   }),
   url({
-    limit: 10 * 1024,
+    limit: 1 * 1024,
     include: ["**/*.wasm"],
     emitFiles: true
   }),
