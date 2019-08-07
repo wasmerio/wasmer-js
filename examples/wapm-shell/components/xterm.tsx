@@ -103,8 +103,12 @@ export default class XTerm extends Component {
   xterm: Terminal;
   container: HTMLElement | null;
   isPrompting: boolean;
+
   commandHistory: Array<string>;
   commandHistoryIndex: number;
+
+  wapmHistory: Array<string>;
+
   commandRunner?: CommandRunner;
 
   constructor() {
@@ -114,6 +118,7 @@ export default class XTerm extends Component {
     this.isPrompting = false;
     this.commandHistory = [];
     this.commandHistoryIndex = -1;
+    this.wapmHistory = [];
   }
 
   componentDidMount() {
@@ -185,8 +190,17 @@ export default class XTerm extends Component {
       this.commandRunner = new CommandRunner(
         this.xterm,
         bufferLineAsString,
+        // Command End Callback
         () => {
           this.prompt();
+        },
+        // Wasm Module Cache Callback
+        (wapmModuleName: string) => {
+          if (this.wapmHistory.includes(wapmModuleName)) {
+            return;
+          }
+
+          this.wapmHistory.push(wapmModuleName);
         }
       );
       this.commandHistory.unshift(bufferLineAsString);
@@ -261,6 +275,80 @@ export default class XTerm extends Component {
       xtermMoveCursorX(this.xterm, bufferLineAsString, this.isPrompting, -1);
     } else if (ev.code === "ArrowRight") {
       xtermMoveCursorX(this.xterm, bufferLineAsString, this.isPrompting, 1);
+    } else if (ev.code === "Tab") {
+      let cursorX = this.xterm.buffer.cursorX;
+      if (this.isPrompting) {
+        cursorX -= 2;
+      }
+
+      // Split the current line by pipe
+      const pipeSplit = bufferLineAsString.split(" | ");
+
+      // Find which command we are trying to autocomplete
+      let commandToMatchIndex =
+        cursorX > bufferLineAsString.length - 1 ? pipeSplit.length - 1 : 0;
+      for (let i = 0; i < pipeSplit.length - 1; i++) {
+        if (
+          cursorX >= pipeSplit[i].length &&
+          cursorX < pipeSplit[i + 1].length
+        ) {
+          commandToMatchIndex = i;
+        }
+      }
+      const commandToMatch = pipeSplit[commandToMatchIndex].split(" ")[0];
+
+      const matchedCommands: Array<string> = [];
+      this.wapmHistory.forEach(commandName => {
+        if (commandName.startsWith(commandToMatch)) {
+          matchedCommands.push(commandName);
+        }
+      });
+
+      if (matchedCommands.length === 0) {
+        return;
+      }
+
+      if (matchedCommands.length > 1) {
+        this.xterm.write("\r\n");
+        this.xterm.write(matchedCommands.join(" "));
+        this.xterm.write("\r\n");
+        this.prompt();
+        this.xterm.write(bufferLineAsString);
+
+        // Restore cursor position
+        if (this.isPrompting) {
+          cursorX += 2;
+        }
+        this.xterm.write("\u001b[1000D");
+        this.xterm.write(`\u001b[${cursorX}C`);
+
+        return;
+      }
+
+      // Auto fill the command
+      let newCommand = matchedCommands[0];
+      let newCommandArgs = pipeSplit[commandToMatchIndex].split(" ");
+      newCommandArgs.shift();
+      newCommand += " " + newCommandArgs.join(" ");
+      pipeSplit[commandToMatchIndex] = newCommand;
+      const movementX = newCommand.length - commandToMatch.length;
+
+      // Clear the line
+      this.xterm.write("\u001b[1000D");
+      this.xterm.write("\u001b[0K");
+
+      // Write the new line
+      if (this.isPrompting) {
+        this.prompt();
+        cursorX += 2;
+      }
+      this.xterm.write(pipeSplit.join(" | "));
+
+      // Move the cursor back to the correct position
+      // +movementX because we added new characters
+      cursorX += movementX;
+      this.xterm.write("\u001b[1000D");
+      this.xterm.write(`\u001b[${cursorX}C`);
     } else if (printable && !ev.key.startsWith("Arrow")) {
       // Typing characters
 
