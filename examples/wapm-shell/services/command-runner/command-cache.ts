@@ -55,7 +55,9 @@ const getWapmUrlForCommandName = async (commandName: String) => {
         return false;
       };
 
-      if (optionalChaining(response, ["data", "command", "module"])) {
+      if (
+        optionalChaining(response, ["data", "command", "module", "publicUrl"])
+      ) {
         const wapmModule = response.data.command.module;
 
         if (wapmModule.abi !== "wasi") {
