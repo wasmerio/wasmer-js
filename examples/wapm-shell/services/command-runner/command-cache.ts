@@ -1,6 +1,8 @@
 // Service to fetch and instantiate modules
 // And cache them to run again
 
+import { Terminal } from "xterm";
+
 // @ts-ignore
 import stdinWasmUrl from "../../assets/stdin.wasm";
 
@@ -31,7 +33,7 @@ const getWasmModuleFromUrl = async (
 };
 
 export default class CommandCache {
-  async getWasmModuleForCommandName(commandName: string) {
+  async getWasmModuleForCommandName(commandName: string, xterm?: Terminal) {
     let commandUrl = commands[commandName];
     if (!commandUrl) {
       throw new Error(`command not found ${commandName}`);
@@ -39,6 +41,11 @@ export default class CommandCache {
 
     let cachedData = compiledModules[commandUrl];
     if (!cachedData) {
+      if (xterm) {
+        xterm.write(`Downloading "${commandName}" from "${commandUrl}"`);
+        xterm.write("\r\n");
+      }
+
       cachedData = compiledModules[commandUrl] = await getWasmModuleFromUrl(
         commandUrl
       );
