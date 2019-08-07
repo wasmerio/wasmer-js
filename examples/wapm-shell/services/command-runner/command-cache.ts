@@ -98,13 +98,26 @@ export default class CommandCache {
     let cachedData = compiledModules[commandUrl];
     if (!cachedData) {
       if (xterm) {
+        // Save the cursor position
+        xterm.write("\u001b[s");
+
         xterm.write(`[INFO] Downloading "${commandName}" from "${commandUrl}"`);
-        xterm.write("\r\n");
       }
 
-      cachedData = compiledModules[commandUrl] = await getWasmModuleFromUrl(
-        commandUrl
-      );
+      // Fetch the wasm modules, but at least show the message for a short while
+      cachedData = compiledModules[commandUrl] = await Promise.all([
+        getWasmModuleFromUrl(commandUrl),
+        new Promise(resolve => setTimeout(resolve, 500))
+      ]).then(responses => responses[0]);
+
+      if (xterm) {
+        // Restore the cursor position
+        xterm.write("\u001b[u");
+
+        // Clear from cursor to end of screen
+        xterm.write("\u001b[1000D");
+        xterm.write("\u001b[0J");
+      }
     }
 
     return cachedData;

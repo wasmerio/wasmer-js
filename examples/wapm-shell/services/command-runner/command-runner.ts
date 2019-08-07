@@ -20,16 +20,27 @@ const getBlobUrlForProcessWorker = async (xterm: Terminal) => {
     return processWorkerBlobUrl;
   }
 
-  // Write that we are fetching the worker
+  // Save the cursor position
+  xterm.write("\u001b[s");
+
   xterm.write(
     "[INFO] Downloading the process Web Worker (This happens once)..."
   );
-  xterm.write("\r\n");
 
-  // Fetch the worker, and return the blob url
-  const workerString = await fetch("workers/process.worker.js").then(response =>
-    response.text()
-  );
+  // Fetch the worker, but at least show the message for a short while
+  const workerString = await Promise.all([
+    fetch("workers/process.worker.js").then(response => response.text()),
+    new Promise(resolve => setTimeout(resolve, 500))
+  ]).then(responses => responses[0]);
+
+  // Restore the cursor position
+  xterm.write("\u001b[u");
+
+  // Clear from cursor to end of screen
+  xterm.write("\u001b[1000D");
+  xterm.write("\u001b[0J");
+
+  // Create the worker blob and URL
   const workerBlob = new Blob([workerString]);
   processWorkerBlobUrl = window.URL.createObjectURL(workerBlob);
   return processWorkerBlobUrl;
@@ -63,7 +74,8 @@ const getCommandOptionsFromAST = (
         const redirectedCommandOptions = await getCommandOptionsFromAST(
           astRedirect.command,
           commandCache,
-          commandCacheCallback
+          commandCacheCallback,
+          xterm
         );
         // Add the child options to our command options
         commandOptions = commandOptions.concat(redirectedCommandOptions);
