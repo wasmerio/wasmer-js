@@ -7,15 +7,40 @@ import { Terminal } from "xterm";
 import stdinWasmUrl from "../../assets/stdin.wasm";
 
 let compiledModules: { [key: string]: WebAssembly.Module } = {};
+let commandToUrlCache: { [key: string]: string } = {};
 
-let commands: any = {
-  cowsay: "https://registry-cdn.wapm.dev/contents/_/cowsay/0.1.2/cowsay.wasm",
-  cowsaytest:
-    "https://registry-cdn.wapm.dev/contents/_/cowsay/0.1.2/cowsay.wasm",
-  a: stdinWasmUrl,
-  matrix:
-    "https://registry-cdn.wapm.dev/contents/syrusakbary/wasm-matrix/0.0.4/optimized.wasm",
-  lolcat: "https://registry-cdn.wapm.dev/contents/_/lolcat/0.1.1/lolcat.wasm"
+const WAPM_GRAPHQL_QUERY = `query shellGetCommandQuery($command: String!) {
+  command: getCommand(name: $command) {
+    command
+    module {
+      abi
+      publicUrl
+    }
+    packageVersion {
+      package {
+        displayName
+      }
+    }
+  }
+}`;
+
+const getWapmUrlForCommandName = async (commandName: String) => {
+  return await fetch("https://registry.wapm.io/graphql", {
+    method: "POST",
+    body: JSON.stringify({
+      operationName: "shellGetCommandQuery",
+      query: WAPM_GRAPHQL_QUERY,
+      variables: {
+        command: commandName
+      }
+    })
+  })
+    .then(response => response.json())
+    .then(response => {
+      console.log(response);
+
+      throw new Error(`command not found ${commandName}`);
+    });
 };
 
 const getWasmModuleFromUrl = async (
@@ -34,15 +59,16 @@ const getWasmModuleFromUrl = async (
 
 export default class CommandCache {
   async getWasmModuleForCommandName(commandName: string, xterm?: Terminal) {
-    let commandUrl = commands[commandName];
+    let commandUrl = commandToUrlCache[commandName];
     if (!commandUrl) {
-      throw new Error(`command not found ${commandName}`);
+      const commandUrl = await getWapmUrlForCommandName(commandName);
+      commandToUrlCache[commandName] = commandUrl;
     }
 
     let cachedData = compiledModules[commandUrl];
     if (!cachedData) {
       if (xterm) {
-        xterm.write(`Downloading "${commandName}" from "${commandUrl}"`);
+        xterm.write(`[INFO] Downloading "${commandName}" from "${commandUrl}"`);
         xterm.write("\r\n");
       }
 

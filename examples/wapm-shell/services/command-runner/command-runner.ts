@@ -21,7 +21,9 @@ const getBlobUrlForProcessWorker = async (xterm: Terminal) => {
   }
 
   // Write that we are fetching the worker
-  xterm.write("Downloading the process Web Worker (This happens once)...");
+  xterm.write(
+    "[INFO] Downloading the process Web Worker (This happens once)..."
+  );
   xterm.write("\r\n");
 
   // Fetch the worker, and return the blob url
