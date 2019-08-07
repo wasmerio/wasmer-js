@@ -16,7 +16,8 @@ import CommandCache from "./command-cache";
 
 const getCommandOptionsFromAST = (
   ast: any,
-  commandCache: CommandCache
+  commandCache: CommandCache,
+  commandCacheCallback: Function
 ): Promise<Array<CommandOptions>> => {
   // The array of command options we are returning
   let commandOptions: Array<CommandOptions> = [];
@@ -39,7 +40,8 @@ const getCommandOptionsFromAST = (
       if (astRedirect && astRedirect.type === "pipe") {
         const redirectedCommandOptions = await getCommandOptionsFromAST(
           astRedirect.command,
-          commandCache
+          commandCache,
+          commandCacheCallback
         );
         // Add the child options to our command options
         commandOptions = commandOptions.concat(redirectedCommandOptions);
@@ -48,7 +50,6 @@ const getCommandOptionsFromAST = (
   };
 
   const getWasmModuleTask = async () => {
-    // Get our Wasm Module
     return await commandCache.getWasmModuleForCommandName(command);
   };
 
@@ -60,6 +61,7 @@ const getCommandOptionsFromAST = (
         env,
         module: wasmModule
       });
+      commandCacheCallback(command);
       return commandOptions;
     });
 };
@@ -75,12 +77,15 @@ export default class CommandRunner {
 
   xterm: Terminal;
   commandString: string;
+
   commandEndCallback: Function;
+  commandCacheCallback: Function;
 
   constructor(
     xterm: Terminal,
     commandString: string,
-    commandEndCallback: Function
+    commandEndCallback: Function,
+    commandCacheCallback: Function
   ) {
     this.commandCache = new CommandCache();
     this.commandOptionsForProcessesToRun = [];
@@ -93,7 +98,9 @@ export default class CommandRunner {
 
     this.xterm = xterm;
     this.commandString = commandString;
+
     this.commandEndCallback = commandEndCallback;
+    this.commandCacheCallback = commandCacheCallback;
   }
 
   async runCommand() {
@@ -110,7 +117,8 @@ export default class CommandRunner {
       // Translate our AST into Command Options
       this.commandOptionsForProcessesToRun = await getCommandOptionsFromAST(
         commandAst[0],
-        this.commandCache
+        this.commandCache,
+        this.commandCacheCallback
       );
     } catch (c) {
       this.xterm.write(`wapm shell: parse error (${c.toString()})\r\n`);

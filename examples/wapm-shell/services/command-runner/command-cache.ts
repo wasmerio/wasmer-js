@@ -8,6 +8,8 @@ let compiledModules: { [key: string]: WebAssembly.Module } = {};
 
 let commands: any = {
   cowsay: "https://registry-cdn.wapm.dev/contents/_/cowsay/0.1.2/cowsay.wasm",
+  cowsaytest:
+    "https://registry-cdn.wapm.dev/contents/_/cowsay/0.1.2/cowsay.wasm",
   a: stdinWasmUrl,
   matrix:
     "https://registry-cdn.wapm.dev/contents/syrusakbary/wasm-matrix/0.0.4/optimized.wasm",
