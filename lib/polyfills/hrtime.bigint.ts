@@ -1,4 +1,4 @@
-// Simply polyfill for Node hrtime
+// Simply polyfill for hrtime
 // https://nodejs.org/api/process.html#process_process_hrtime_time
 
 import { BigIntPolyfillType } from "./bigint";
