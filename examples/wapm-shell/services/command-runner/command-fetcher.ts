@@ -8,11 +8,11 @@ import stdinWasmUrl from "../../assets/stdin.wasm";
 // @ts-ignore
 import matrixLoweredUrl from "../../assets/matrix-loweredi64.wasm";
 
-let compiledModules: { [key: string]: WebAssembly.Module } = {};
 let commandToUrlCache: { [key: string]: string } = {
   matrixtest: matrixLoweredUrl,
   a: stdinWasmUrl
 };
+let compiledModulesCache: { [key: string]: WebAssembly.Module } = {};
 
 const WAPM_GRAPHQL_QUERY = `query shellGetCommandQuery($command: String!) {
   command: getCommand(name: $command) {
@@ -92,7 +92,7 @@ const getWasmModuleFromUrl = async (
   }
 };
 
-export default class CommandCache {
+export default class CommandFetcher {
   async getWasmModuleForCommandName(commandName: string, xterm?: Terminal) {
     let commandUrl = commandToUrlCache[commandName];
     if (!commandUrl) {
@@ -100,7 +100,7 @@ export default class CommandCache {
       commandToUrlCache[commandName] = commandUrl;
     }
 
-    let cachedData = compiledModules[commandUrl];
+    let cachedData = compiledModulesCache[commandUrl];
     if (!cachedData) {
       if (xterm) {
         // Save the cursor position
@@ -110,7 +110,7 @@ export default class CommandCache {
       }
 
       // Fetch the wasm modules, but at least show the message for a short while
-      cachedData = compiledModules[commandUrl] = await Promise.all([
+      cachedData = compiledModulesCache[commandUrl] = await Promise.all([
         getWasmModuleFromUrl(commandUrl),
         new Promise(resolve => setTimeout(resolve, 500))
       ]).then(responses => responses[0]);
