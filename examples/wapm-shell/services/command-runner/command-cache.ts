@@ -8,8 +8,6 @@ import stdinWasmUrl from "../../assets/stdin.wasm";
 // @ts-ignore
 import matrixLoweredUrl from "../../assets/matrix-loweredi64.wasm";
 
-console.log(stdinWasmUrl, matrixLoweredUrl);
-
 let compiledModules: { [key: string]: WebAssembly.Module } = {};
 let commandToUrlCache: { [key: string]: string } = {
   matrixtest: matrixLoweredUrl,
