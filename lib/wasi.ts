@@ -441,6 +441,9 @@ class WASI {
         if (n === null) {
           return WASI_EINVAL;
         }
+        if (!this.view) {
+          this.refreshMemory();
+        }
         this.view.setBigUint64(time, BigInt(n), true);
         return WASI_ESUCCESS;
       },

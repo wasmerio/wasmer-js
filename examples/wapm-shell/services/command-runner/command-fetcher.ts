@@ -7,10 +7,13 @@ import { Terminal } from "xterm";
 import stdinWasmUrl from "../../assets/stdin.wasm";
 // @ts-ignore
 import matrixLoweredUrl from "../../assets/matrix-loweredi64.wasm";
+// @ts-ignore
+import clockTimeGetUrl from "../../assets/clock_time_get.wasm";
 
 let commandToUrlCache: { [key: string]: string } = {
-  matrixtest: matrixLoweredUrl,
-  a: stdinWasmUrl
+  matrixlowered: matrixLoweredUrl,
+  a: stdinWasmUrl,
+  c: clockTimeGetUrl
 };
 let compiledModulesCache: { [key: string]: WebAssembly.Module } = {};
 
