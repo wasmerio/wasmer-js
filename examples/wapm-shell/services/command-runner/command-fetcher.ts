@@ -9,11 +9,17 @@ import stdinWasmUrl from "../../assets/stdin.wasm";
 import matrixLoweredUrl from "../../assets/matrix-loweredi64.wasm";
 // @ts-ignore
 import clockTimeGetUrl from "../../assets/clock_time_get.wasm";
+// @ts-ignore
+import quickJsUrl from "../../assets/qjs.wasm";
+// @ts-ignore
+import dukTapeUrl from "../../assets/duk.wasm";
 
 let commandToUrlCache: { [key: string]: string } = {
   matrixlowered: matrixLoweredUrl,
   a: stdinWasmUrl,
-  c: clockTimeGetUrl
+  c: clockTimeGetUrl,
+  qjs: quickJsUrl,
+  duk: dukTapeUrl
 };
 let compiledModulesCache: { [key: string]: WebAssembly.Module } = {};
 
@@ -91,6 +97,11 @@ const getWasmModuleFromUrl = async (
   } else {
     let fetched = await fetch(url);
     let buffer = await fetched.arrayBuffer();
+    const binary = new Uint8Array(buffer);
+
+    // Modify the binary
+
+    // Compile the buffer
     return await WebAssembly.compile(buffer);
   }
 };
