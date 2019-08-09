@@ -3,6 +3,12 @@
 
 import { Terminal } from "xterm";
 
+import wasmInit, {
+  traverse_wasm_binary
+} from "../../assets/wasi-js-transformer/wasi_js_transformer";
+// @ts-ignore
+import wasmJsTransformerWasmUrl from "../../assets/wasi-js-transformer/wasi_js_transformer_bg.wasm";
+
 // @ts-ignore
 import stdinWasmUrl from "../../assets/stdin.wasm";
 // @ts-ignore
@@ -100,6 +106,10 @@ const getWasmModuleFromUrl = async (
     const binary = new Uint8Array(buffer);
 
     // Modify the binary
+    const start = performance.now();
+    await wasmInit(wasmJsTransformerWasmUrl);
+    traverse_wasm_binary(binary);
+    console.log(performance.now() - start);
 
     // Compile the buffer
     return await WebAssembly.compile(buffer);
