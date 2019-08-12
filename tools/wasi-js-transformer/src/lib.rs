@@ -42,7 +42,7 @@ pub fn traverse_wasm_binary(passed_wasm_binary: &JsValue) {
 
     console_log!("yooo, {}", &mut wasm_binary_vec[0]);
 
-    convert(&wasm_binary_vec);
+    convert(&mut wasm_binary_vec);
 }
 
 
@@ -59,7 +59,7 @@ pub fn traverse_wasm_binary(passed_wasm_binary: &JsValue) {
 // ===Mutating the Binary===
 // 1. Find if an imported function has i64. If it does, continue...
 // 2. Make a copy of its function signature
-// 3. Modify the copy to only use i32
+// 3. Modify the function signature copy to only use i32
 // 4. Create a tampoline function that points to the old function signature, and wraps i64
 // 5. Edit the original function to point at the new function signature
 // 6. Edit calls to the original function, to now point at the trampoline function
@@ -96,7 +96,7 @@ struct WasmCall {
     function_index: usize
 }
 
-pub fn convert(wasm_binary_vec: &Vec<u8>) -> &Vec<u8> {
+pub fn convert(wasm_binary_vec: &mut Vec<u8>) -> &mut Vec<u8> {
 
 
     let mut wasm_type_signatures: Vec<WasmTypeSignature> = Vec::new();
@@ -105,7 +105,7 @@ pub fn convert(wasm_binary_vec: &Vec<u8>) -> &Vec<u8> {
     let mut wasm_calls: Vec<WasmCall> = Vec::new();
     let mut current_function_index: usize = 0;
 
-    let mut parser = Parser::new(&wasm_binary_vec);
+    let mut parser = Parser::new(wasm_binary_vec);
     loop {
 
     let position = parser.current_position();
@@ -219,41 +219,48 @@ pub fn convert(wasm_binary_vec: &Vec<u8>) -> &Vec<u8> {
     console_log!("wasm sections {:?}", wasm_sections);
     console_log!("wasm calls {:?}", wasm_calls);
 
+    console_log!(" ");
+    console_log!("==========");
     console_log!("Doing actual transformations");
+    console_log!("==========");
+    console_log!(" ");
 
     // Iterate through the imported functions, and grab data we need to insert
     let mut signatures_to_add = Vec::new();
     let mut trampoline_functions = Vec::new();
+
+    // 1. Find if an imported function has i64. If it does, continue...
     for imported_i64_wasm_function in wasm_functions.iter().filter(|&x| x.is_import && (x.has_i64_param || x.has_i64_returns)) {
-        console_log!("{:?}", imported_i64_wasm_function);
         
+        // 2. Make a copy of its function signature
+
         // Get it's signature position and length
         let wasm_type_signature = wasm_type_signatures.get(imported_i64_wasm_function.signature_index as usize).unwrap();
         let wasm_signature_position = wasm_type_signature.position;
         let wasm_signature_num_params = *wasm_binary_vec.get(wasm_signature_position + 1).unwrap() as usize;
         let wasm_signature_num_returns = *wasm_binary_vec.get(wasm_signature_position + wasm_signature_num_params + 2).unwrap() as usize;
         let wasm_signature_end = wasm_signature_position + 3 + wasm_signature_num_params + wasm_signature_num_returns;
-
-        console_log!("Got signature, {} {} {} {}", wasm_signature_position, wasm_signature_end, wasm_signature_num_params, wasm_signature_num_returns);
         
         // Create a copy of of this memory
         let mut new_type_signature_data = vec![0; wasm_signature_end - wasm_signature_position];
         new_type_signature_data.copy_from_slice(wasm_binary_vec.get(wasm_signature_position..wasm_signature_end).unwrap());
 
+        // 3. Modify the function signature copy to only use i32
 
         // Edit the signature to only use i32
         let mut index = 0;
         for byte in new_type_signature_data.iter_mut() {
             // If the param or return byte at the index is i64, set to i32
             if index > 2 && index != wasm_signature_num_params + 2 && *byte == 0x7e {
-                console_log!("changing byte");
                 *byte = 0x7f;
             }    
             index += 1;
         }
 
-        console_log!("new signature {:?}", new_type_signature_data);
+        // Add the signature
         signatures_to_add.push(new_type_signature_data);
+
+        // 4. Create a tampoline function that points to the old function signature, and wraps i64
 
         // Construct our trampoline function
         let mut trampoline_function = Vec::new();
@@ -285,22 +292,58 @@ pub fn convert(wasm_binary_vec: &Vec<u8>) -> &Vec<u8> {
         trampoline_function.insert(0, trampoline_function.len());
 
         // Add the trampoline function
-        console_log!("new trampoline {:?}", trampoline_function);
         trampoline_functions.push(trampoline_function);
 
-        // Edit the original function to point at the new signature index
-        let import_module_name_length = *wasm_binary_vec.get(imported_i64_wasm_function.position).unwrap() as usize;
-        let import_field_name_length = *wasm_binary_vec.get(imported_i64_wasm_function.position + import_module_name_length).unwrap() as usize;
-        let import_signature_position =  imported_i64_wasm_function.position +
-            import_module_name_length + import_field_name_length;
-        
-        console_log!("import signature index {:?} {:?} {:?}", imported_i64_wasm_function, import_module_name_length, wasm_binary_vec.get(import_signature_position).unwrap());
-        // wasm_binary_vec.insert(imported_i64_wasm_function)
-        // imported_i64_wasm_function
-        
-        
+        // 5. Edit the original function to point at the new function signature
 
+        // Edit the original function to point at the new signature index
+        // NOTE: For some reason, the first imported function points at the beginning of the import section,
+        // NOT the beginning of the function
+        let mut function_position = imported_i64_wasm_function.position;
+        if imported_i64_wasm_function.is_import && imported_i64_wasm_function.function_index == 0 {
+            function_position += 3;
+        }
+        let import_module_name_length = *wasm_binary_vec.get(function_position).unwrap() as usize;
+        let import_field_name_length = *wasm_binary_vec.get(
+            function_position + import_module_name_length + 1
+            ).unwrap() as usize;
+        // +3 for leftover offset and signature kind byte
+        let import_signature_position = function_position +
+            import_module_name_length + import_field_name_length + 3;
+
+        // Change the signature index to our newly created import index
+        let new_signature_index = (wasm_type_signatures.len() + signatures_to_add.len()) as u8;
+        wasm_binary_vec.insert(import_signature_position, new_signature_index);
+        wasm_binary_vec.remove(import_signature_position + 1);
+
+        // 6. Edit calls to the original function, to now point at the trampoline function
+        let trampoline_function_index = wasm_functions.len() + trampoline_functions.len() as u8;
+        for wasm_call_to_old_function in wasm_calls.iter().filter(|&x| x.function_index == imported_i64_wasm_function.function_index) {
+            // Call the trampoline function instead
+            wasm_binary_vec.insert(wasm_call_to_old_function.position + 1, trampoline_function_index);
+            wasm_binary_vec.remove(wasm_call_to_old_function.position + 2);
+        }
+
+        console_log!(" ");
+        console_log!("Transformation Logs:");
+        console_log!(" ");
+
+        console_log!("Wasm Function: {:?}", imported_i64_wasm_function);
+        console_log!("function_position: {:?}", function_position);
+        console_log!("import_module_name_length: {:?}", import_module_name_length);
+        console_log!("import_field_name_length: {:?}", import_field_name_length);
+        console_log!("import_signature_position: {:?}", import_signature_position);
+        console_log!("new_signature_index: {:?}", new_signature_index);
     }
+
+    // 7. Add the copied function signature. Update Types section
+
+
+    // 8. Add the function body. Update Code section
+
+
+    // 9. Update the name section (May not be needed)?
+
 
   return wasm_binary_vec;
 }
@@ -329,7 +372,7 @@ fn converts() {
   (export "_start" (func $_start))
 )
 "#;
-    let wasm = wabt::wat2wasm(s).expect("parsed properly");
-    let converted = convert(&wasm);
+    let mut wasm = wabt::wat2wasm(s).expect("parsed properly");
+    let converted = convert(&mut wasm);
     assert!(wasmparser::validate(&converted, None), "wasm is not valid");
 }
