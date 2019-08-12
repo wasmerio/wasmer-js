@@ -1,8 +1,9 @@
 /* tslint:disable */
 /**
  * @param {any} passed_wasm_binary
+ * @returns {any}
  */
-export function traverse_wasm_binary(passed_wasm_binary: any): void;
+export function traverse_wasm_binary(passed_wasm_binary: any): any;
 
 /**
  * If `module_or_path` is {RequestInfo}, makes a request and

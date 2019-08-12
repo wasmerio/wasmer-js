@@ -13,12 +13,34 @@ function addBorrowedObject(obj) {
   heap[--stack_pointer] = obj;
   return stack_pointer;
 }
+
+function getObject(idx) {
+  return heap[idx];
+}
+
+let heap_next = heap.length;
+
+function dropObject(idx) {
+  if (idx < 36) return;
+  heap[idx] = heap_next;
+  heap_next = idx;
+}
+
+function takeObject(idx) {
+  const ret = getObject(idx);
+  dropObject(idx);
+  return ret;
+}
 /**
  * @param {any} passed_wasm_binary
+ * @returns {any}
  */
 export function traverse_wasm_binary(passed_wasm_binary) {
   try {
-    wasm.traverse_wasm_binary(addBorrowedObject(passed_wasm_binary));
+    const ret = wasm.traverse_wasm_binary(
+      addBorrowedObject(passed_wasm_binary)
+    );
+    return takeObject(ret);
   } finally {
     heap[stack_pointer++] = undefined;
   }
@@ -39,24 +61,6 @@ function getUint8Memory() {
 
 function getStringFromWasm(ptr, len) {
   return cachedTextDecoder.decode(getUint8Memory().subarray(ptr, ptr + len));
-}
-
-function getObject(idx) {
-  return heap[idx];
-}
-
-let heap_next = heap.length;
-
-function dropObject(idx) {
-  if (idx < 36) return;
-  heap[idx] = heap_next;
-  heap_next = idx;
-}
-
-function takeObject(idx) {
-  const ret = getObject(idx);
-  dropObject(idx);
-  return ret;
 }
 
 function addHeapObject(obj) {
@@ -83,6 +87,14 @@ function init(module) {
   };
   imports.wbg.__wbg_buffer_aa8ebea80955a01a = function(arg0) {
     const ret = getObject(arg0).buffer;
+    return addHeapObject(ret);
+  };
+  imports.wbg.__wbg_newwithbyteoffsetandlength_3e607c21646a8aef = function(
+    arg0,
+    arg1,
+    arg2
+  ) {
+    const ret = new Uint8Array(getObject(arg0), arg1 >>> 0, arg2 >>> 0);
     return addHeapObject(ret);
   };
   imports.wbg.__wbg_length_e9352df84d100be9 = function(arg0) {
