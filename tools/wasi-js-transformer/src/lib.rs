@@ -269,7 +269,6 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
         }
 
         // Add the signature
-        console_log!("signature data {:?}", new_type_signature_data);
         signatures_to_add.push(new_type_signature_data);
 
         // 4. Create a tampoline function that points to the old function signature, and wraps i64
@@ -324,7 +323,8 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
             import_module_name_length + import_field_name_length + 3;
 
         // Change the signature index to our newly created import index
-        let new_signature_index = (wasm_type_signatures.len() + signatures_to_add.len()) as u8;
+        // -1 since it is an index
+        let new_signature_index = (wasm_type_signatures.len() + signatures_to_add.len() - 1) as u8;
         wasm_binary_vec.insert(import_signature_position, new_signature_index);
         wasm_binary_vec.remove(import_signature_position + 1);
 
@@ -380,7 +380,6 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
         );
     wasm_binary_vec.insert(types_section.start_position + 1, original_types_section_length + bytes_added_to_types_section);
     wasm_binary_vec.remove(types_section.start_position + 2);
-    console_log!("value at test: {:?}", wasm_binary_vec.get(0x1c + 13).unwrap());
 
     // Number of Types
     let original_types_number_of_types = wasm_binary_vec.get(types_section.start_position + 2).unwrap();
