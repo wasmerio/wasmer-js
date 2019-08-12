@@ -269,6 +269,7 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
         }
 
         // Add the signature
+        console_log!("signature data {:?}", new_type_signature_data);
         signatures_to_add.push(new_type_signature_data);
 
         // 4. Create a tampoline function that points to the old function signature, and wraps i64
@@ -354,34 +355,69 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
     let mut position_offset = 0;
 
     // 7. Add the copied function signatures to the Types Section. Update Types section
-    let types_section = wasm_sections.iter().find(|&x| x.code == wasmparser::SectionCode::Type).unwrap();
+    let old_types_section = wasm_sections.iter().find(|&x| x.code == wasmparser::SectionCode::Type).unwrap();
+    let types_section = WasmSection {
+        code: old_types_section.code,
+        start_position: old_types_section.start_position + position_offset,
+        end_position: old_types_section.end_position + position_offset,
+    };
     let mut bytes_added_to_types_section = 0;
     for signature_to_add in signatures_to_add.iter() {
         for i in 0..signature_to_add.len() {
-            wasm_binary_vec.insert(types_section.end_position + position_offset, *signature_to_add.get(i).unwrap());
-            position_offset += 1;
+            wasm_binary_vec.insert(types_section.end_position + i, *signature_to_add.get(i).unwrap());
             bytes_added_to_types_section += 1;
+            position_offset += 1;
         }
     }
+    // Types section size
     let original_types_section_length = wasm_binary_vec.get(types_section.start_position + 1).unwrap();
+    console_log!(
+        "types section length: start position: {:?}, original {:?}, bytes added {:?}, new {:?}", 
+        types_section.start_position,
+        original_types_section_length, 
+        bytes_added_to_types_section,
+        original_types_section_length + bytes_added_to_types_section
+        );
     wasm_binary_vec.insert(types_section.start_position + 1, original_types_section_length + bytes_added_to_types_section);
     wasm_binary_vec.remove(types_section.start_position + 2);
-    
+    console_log!("value at test: {:?}", wasm_binary_vec.get(0x1c + 13).unwrap());
+
+    // Number of Types
+    let original_types_number_of_types = wasm_binary_vec.get(types_section.start_position + 2).unwrap();
+    wasm_binary_vec.insert(types_section.start_position + 2, original_types_number_of_types + signatures_to_add.len() as u8);
+    wasm_binary_vec.remove(types_section.start_position + 3);
 
     // 8. Add the function bodies to the Code. Update Code section
-    let code_section = wasm_sections.iter().find(|&x| x.code == wasmparser::SectionCode::Code).unwrap();
+    let old_code_section = wasm_sections.iter().find(|&x| x.code == wasmparser::SectionCode::Code).unwrap();
+    let code_section = WasmSection {
+        code: old_code_section.code,
+        start_position: old_code_section.start_position + position_offset,
+        end_position: old_code_section.end_position + position_offset,
+    };
     let mut bytes_added_to_code_section = 0;
     for trampoline_function in trampoline_functions.iter() {
         for i in 0..trampoline_function.len() {
-            wasm_binary_vec.insert(code_section.end_position + position_offset, *trampoline_function.get(i).unwrap() as u8);
-            position_offset += 1;
+            wasm_binary_vec.insert(code_section.end_position + i, *trampoline_function.get(i).unwrap() as u8);
             bytes_added_to_code_section += 1;
+            position_offset += 1;
         }
     }
+    // Function section size
     let original_code_section_length = wasm_binary_vec.get(code_section.start_position + 1).unwrap();
+    console_log!(
+        "code section length: start position: {:?}, original {:?}, bytes added {:?}, new {:?}", 
+        code_section.start_position,
+        original_code_section_length, 
+        bytes_added_to_code_section,
+        original_code_section_length + bytes_added_to_code_section
+        );
     wasm_binary_vec.insert(code_section.start_position + 1, original_code_section_length + bytes_added_to_code_section);
     wasm_binary_vec.remove(code_section.start_position + 2);
 
+    // Number of Functions
+    let original_code_number_of_functions = wasm_binary_vec.get(code_section.start_position + 2).unwrap();
+    wasm_binary_vec.insert(code_section.start_position + 2, original_code_number_of_functions + trampoline_functions.len() as u8);
+    wasm_binary_vec.remove(code_section.start_position + 3);
 
 
     // 9. Update the name section (May not be needed)?
@@ -421,6 +457,8 @@ fn converts() {
     console_log!("Convert Back to Wat for descriptive errors (if there is one)");
     console_log!("==========");
     console_log!(" ");
+
+    console_log!("{:?}", converted);
 
     let wat = wabt::wasm2wat(converted.to_vec());
     console_log!("{:?}", wat);
