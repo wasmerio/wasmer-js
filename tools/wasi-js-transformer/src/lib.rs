@@ -336,8 +336,11 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
         }
 
         console_log!(" ");
-        console_log!("Transformation Logs:");
+        console_log!("==========");
+        console_log!("Transformation Logs");
+        console_log!("==========");
         console_log!(" ");
+
 
         console_log!("Wasm Function: {:?}", imported_i64_wasm_function);
         console_log!("function_position: {:?}", function_position);
@@ -412,6 +415,15 @@ fn converts() {
 "#;
     let mut wasm = wabt::wat2wasm(s).expect("parsed properly");
     let converted = convert(&mut wasm);
-    // TODO: Run this to find out why it is not valid
-    // assert!(wasmparser::validate(&converted, None), "wasm is not valid");
+
+    console_log!(" ");
+    console_log!("==========");
+    console_log!("Convert Back to Wat for descriptive errors (if there is one)");
+    console_log!("==========");
+    console_log!(" ");
+
+    let wat = wabt::wasm2wat(converted.to_vec());
+    console_log!("{:?}", wat);
+
+    assert!(wasmparser::validate(&converted, None), "wasm is not valid");
 }
