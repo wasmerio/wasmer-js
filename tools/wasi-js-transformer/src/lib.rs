@@ -393,7 +393,6 @@ fn converts() {
   (type $t0 (func (result i32)))
   (type $t1 (func (param i32 i32 i32 i32 i32 i64 i64 i32 i32) (result i32)))
   (import "wasi_unstable" "path_open" (func $path_open (type $t1)))
-  (import "wasi_unstable" "path_open" (func $testing (type $t1)))
   (func $_start (type $t0)
     i32.const 12
     i32.const 12
@@ -413,5 +412,6 @@ fn converts() {
 "#;
     let mut wasm = wabt::wat2wasm(s).expect("parsed properly");
     let converted = convert(&mut wasm);
+    // TODO: Run this to find out why it is not valid
     // assert!(wasmparser::validate(&converted, None), "wasm is not valid");
 }
