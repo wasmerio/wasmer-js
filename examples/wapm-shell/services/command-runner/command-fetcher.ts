@@ -111,10 +111,13 @@ const getWasmModuleFromUrl = async (
     let transformedBinary = traverse_wasm_binary(binary);
     console.log(performance.now() - start);
 
-    console.log(transformedBinary);
+    console.log("transformedBinary", transformedBinary);
+    console.log("transformedBinary.buffer", transformedBinary.buffer);
+
+    // WebAssembly.validate(transformedBinary);
 
     // Compile the buffer
-    return await WebAssembly.compile(transformedBinary.buffer);
+    return await WebAssembly.compile(transformedBinary);
   }
 };
 
