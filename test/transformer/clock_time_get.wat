@@ -1,17 +1,17 @@
 (module
 
-  ;; Setup some output
-  ;; Import the required fd_write WASI function which will write the given io vectors to stdout
-  ;; The function signature for fd_write is:
-  ;; (File Descriptor, *iovs, iovs_len, nwritten) -> Returns number of bytes written
-  (import "wasi_unstable" "fd_write" (func $fd_write (param i32 i32 i32 i32) (result i32)))
-
   ;; Create the sinature for the trampoline function
   (type $clock_time_get_trampoline_SIG (func (param i32 i64 i32) (result i32)))
 
   ;; Import an i64, clock_time_get, wasi fucntion
   ;; But change the i64s to i32s. 
   (import "wasi_unstable" "clock_time_get" (func $~lib/bindings/wasi_unstable/clock_time_get (param i32 i32 i32) (result i32)))
+
+  ;; Setup some output
+  ;; Import the required fd_write WASI function which will write the given io vectors to stdout
+  ;; The function signature for fd_write is:
+  ;; (File Descriptor, *iovs, iovs_len, nwritten) -> Returns number of bytes written
+  (import "wasi_unstable" "fd_write" (func $fd_write (param i32 i32 i32 i32) (result i32)))
 
   ;; Write a string to memory at an offset (pointer) of 8 bytes
   ;; Note the trailing newline which is required for the text to appear

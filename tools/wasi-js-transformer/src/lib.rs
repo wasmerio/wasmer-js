@@ -66,8 +66,9 @@ pub fn traverse_wasm_binary(passed_wasm_binary: &JsValue) -> js_sys::Uint8Array 
 // 5. Edit the original function to point at the new function signature
 // 6. Edit calls to the original function, to now point at the trampoline function
 // 7. Add the copied function signature. Update Types section
-// 8. Add the function body. Update Code section
-// 9. Update the name section (May not be needed)?
+// 8. Add the new functions to function section (Where the signature is defined, which the body is later in the code section)
+// 9. Add the function body. Update Code section
+// 10. Update the name section (May not be needed)?
 
 #[derive(Debug, Copy, Clone)]
 struct WasmSection<'a> {
@@ -283,7 +284,7 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
             // local get
             trampoline_function.push(0x20);
             // local index
-            trampoline_function.push(0x0);
+            trampoline_function.push(i);
             if *wasm_binary_vec.get(wasm_signature_position + 2 + i).unwrap() == 0x7e {
                 // i32.wrap_i64
                 trampoline_function.push(0xa7);
@@ -329,7 +330,7 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
         wasm_binary_vec.remove(import_signature_position + 1);
 
         // 6. Edit calls to the original function, to now point at the trampoline function
-        let trampoline_function_index = wasm_functions.len() + trampoline_functions.len();
+        let trampoline_function_index = wasm_functions.len() + trampoline_functions.len() - 1;
         for wasm_call_to_old_function in wasm_calls.iter().filter(|&x| x.function_index == imported_i64_wasm_function.function_index) {
             // Call the trampoline function instead
             wasm_binary_vec.insert(wasm_call_to_old_function.position + 1, trampoline_function_index as u8);
@@ -386,7 +387,36 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
     wasm_binary_vec.insert(types_section.start_position + 2, original_types_number_of_types + signatures_to_add.len() as u8);
     wasm_binary_vec.remove(types_section.start_position + 3);
 
-    // 8. Add the function bodies to the Code. Update Code section
+
+    // 8. Add the new functions to function section (Where the signature is defined, which the body is later in the code section)
+    let old_function_section = wasm_sections.iter().find(|&x| x.code == wasmparser::SectionCode::Function).unwrap();
+    let function_section = WasmSection {
+        code: old_function_section.code,
+        start_position: old_function_section.start_position + position_offset,
+        end_position: old_function_section.end_position + position_offset,
+    };
+    let mut bytes_added_to_function_section = 0;
+    for i in 0..trampoline_functions.len() {
+        wasm_binary_vec.insert(function_section.end_position + i, (wasm_type_signatures.len() + i) as u8);
+        position_offset += 1;
+        bytes_added_to_function_section += 1;
+    }
+    // Functions section size
+    let original_function_section_length = wasm_binary_vec.get(function_section.start_position + 1).unwrap();
+    console_log!(
+        "function section length: start position: {:?}, original {:?}, new {:?}", 
+        function_section.start_position,
+        original_function_section_length, 
+        original_function_section_length + trampoline_functions.len() as u8
+        );
+    wasm_binary_vec.insert(function_section.start_position + 1, original_function_section_length + bytes_added_to_function_section);
+    wasm_binary_vec.remove(function_section.start_position + 2);
+    // Number of Functions
+    let original_function_section_number_of_functions = wasm_binary_vec.get(function_section.start_position + 2).unwrap();
+    wasm_binary_vec.insert(function_section.start_position + 2, original_function_section_number_of_functions + bytes_added_to_function_section);
+    wasm_binary_vec.remove(function_section.start_position + 3);
+
+    // 9. Add the function bodies to the Code. Update Code section
     let old_code_section = wasm_sections.iter().find(|&x| x.code == wasmparser::SectionCode::Code).unwrap();
     let code_section = WasmSection {
         code: old_code_section.code,
@@ -419,7 +449,7 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
     wasm_binary_vec.remove(code_section.start_position + 3);
 
 
-    // 9. Update the name section (May not be needed)?
+    // 10. Update the name section (May not be needed)?
 
 
   return wasm_binary_vec;
@@ -460,7 +490,8 @@ fn converts() {
     console_log!("{:?}", converted);
 
     let wat = wabt::wasm2wat(converted.to_vec());
-    console_log!("{:?}", wat);
+
+    console_log!("{:#?}", wat);
 
     assert!(wasmparser::validate(&converted, None), "wasm is not valid");
 }
