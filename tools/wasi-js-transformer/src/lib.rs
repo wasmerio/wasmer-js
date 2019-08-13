@@ -397,7 +397,7 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
     };
     let mut bytes_added_to_function_section = 0;
     for i in 0..trampoline_functions.len() {
-        wasm_binary_vec.insert(function_section.end_position + i, (wasm_type_signatures.len() + i) as u8);
+        wasm_binary_vec.insert(function_section.end_position + i, (wasm_type_signatures.len() - 1 + i) as u8);
         position_offset += 1;
         bytes_added_to_function_section += 1;
     }
@@ -478,6 +478,7 @@ fn converts() {
   (export "_start" (func $_start))
 )
 "#;
+
     let mut wasm = wabt::wat2wasm(s).expect("parsed properly");
     let converted = convert(&mut wasm);
 
@@ -490,6 +491,20 @@ fn converts() {
     console_log!("{:?}", converted);
 
     let wat = wabt::wasm2wat(converted.to_vec());
+
+    console_log!(" ");
+    console_log!("==========");
+    console_log!("Original Wat");
+    console_log!("==========");
+    console_log!(" ");
+
+    console_log!("{:#?}", s);
+
+    console_log!(" ");
+    console_log!("==========");
+    console_log!("Converted Wat");
+    console_log!("==========");
+    console_log!(" ");
 
     console_log!("{:#?}", wat);
 
