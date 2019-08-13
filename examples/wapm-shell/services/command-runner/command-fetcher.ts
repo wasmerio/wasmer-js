@@ -114,7 +114,7 @@ const getWasmModuleFromUrl = async (
     console.log("transformedBinary", transformedBinary);
     console.log("transformedBinary.buffer", transformedBinary.buffer);
 
-    // WebAssembly.validate(transformedBinary);
+    console.log("is valid?", WebAssembly.validate(transformedBinary));
 
     // Compile the buffer
     return await WebAssembly.compile(transformedBinary);

@@ -156,7 +156,9 @@ export default class CommandRunner {
         this.xterm
       );
     } catch (c) {
+      this.xterm.write("\r\n");
       this.xterm.write(`wapm shell: parse error (${c.toString()})\r\n`);
+      console.error(c);
       this.commandEndCallback();
       return;
     }

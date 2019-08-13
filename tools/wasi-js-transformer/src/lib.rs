@@ -397,6 +397,7 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
     };
     let mut bytes_added_to_function_section = 0;
     for i in 0..trampoline_functions.len() {
+        // TODO: This may not be the correct index if more than one function
         wasm_binary_vec.insert(function_section.end_position + i, (wasm_type_signatures.len() - 1 + i) as u8);
         position_offset += 1;
         bytes_added_to_function_section += 1;
@@ -449,8 +450,7 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
     wasm_binary_vec.remove(code_section.start_position + 3);
 
 
-    // 10. Update the name section (May not be needed)?
-
+    // 10. Update the name section TODO
 
   return wasm_binary_vec;
 }
