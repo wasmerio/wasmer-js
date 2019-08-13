@@ -68,7 +68,6 @@ pub fn traverse_wasm_binary(passed_wasm_binary: &JsValue) -> js_sys::Uint8Array 
 // 7. Add the copied function signature. Update Types section
 // 8. Add the new functions to function section (Where the signature is defined, which the body is later in the code section)
 // 9. Add the function body. Update Code section
-// 10. Update the name section (May not be needed)?
 
 #[derive(Debug, Copy, Clone)]
 struct WasmSection<'a> {
@@ -80,6 +79,8 @@ struct WasmSection<'a> {
 #[derive(Debug)]
 struct WasmTypeSignature {
     position: usize,
+    num_params: usize,
+    num_returns: usize,
     has_i64_param: bool,
     has_i64_returns: bool
 }
@@ -114,6 +115,7 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
     loop {
 
     let position = parser.current_position();
+    console_log!("position: {:?}", position);
     let state = parser.read();
 
     match *state {
@@ -154,6 +156,8 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
 
             let wasm_type_signature = WasmTypeSignature {
                 position: position,
+                num_params: state.params.len(),
+                num_returns: state.returns.len(),
                 has_i64_param: has_i64_param,
                 has_i64_returns: has_i64_returns
             };
@@ -226,10 +230,40 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
     }
   }  
 
-    console_log!("wasm type signatures {:?}", wasm_type_signatures);
-    console_log!("wasm fucntions {:?}", wasm_functions);
-    console_log!("wasm sections {:?}", wasm_sections);
-    console_log!("wasm calls {:?}", wasm_calls);
+    // Sort our items by position
+    wasm_type_signatures.sort_by(|a, b| a.position.cmp(&b.position));
+    wasm_functions.sort_by(|a, b| a.position.cmp(&b.position));
+    wasm_sections.sort_by(|a, b| a.start_position.cmp(&b.start_position));
+    wasm_calls.sort_by(|a, b| a.position.cmp(&b.position));
+
+    // Type signatures are buggy, and can return the wrong positions
+    let types_section_start_position = wasm_sections.iter().find(|&x| x.code == wasmparser::SectionCode::Type).unwrap().start_position;
+    console_log!("lmao {:?} {:?}", types_section_start_position, wasm_type_signatures);
+    if wasm_type_signatures.get(0).unwrap().position != types_section_start_position + 3 {
+        // The positions are incorrect, and set to the end of the type, not the beginning
+        for i in 0..wasm_type_signatures.len() {
+            console_log!("yoooo {:?}", i);
+            if i == 0 {
+                console_log!("lmasdasdasdo {:?}", types_section_start_position);
+                wasm_type_signatures.get_mut(0).unwrap().position = types_section_start_position + 3;
+            } else {
+                let previous_type_signature = wasm_type_signatures.get(i - 1).unwrap();
+                let new_position = previous_type_signature.position + 3 + previous_type_signature.num_params + previous_type_signature.num_returns;
+                console_log!("new pos {:?}", new_position);
+                wasm_type_signatures.get_mut(i).unwrap().position = new_position;
+            }
+        }
+    }
+
+
+    console_log!(" ");
+    console_log!("wasm sections {:#?}", wasm_sections);
+    console_log!(" ");
+    console_log!("wasm type signatures {:#?}", wasm_type_signatures);
+    console_log!(" ");
+    console_log!("wasm fucntions {:#?}", wasm_functions);
+    console_log!(" ");
+    console_log!("wasm calls {:#?}", wasm_calls);
 
     console_log!(" ");
     console_log!("==========");
@@ -242,16 +276,27 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
     let mut trampoline_functions = Vec::new();
 
     // 1. Find if an imported function has i64. If it does, continue...
+    let imported_i64_wasm_function_filter = wasm_functions.iter().filter(|&x| x.is_import && (x.has_i64_param || x.has_i64_returns));
+
+
+    if wasm_functions.iter().filter(|&x| x.is_import && (x.has_i64_param || x.has_i64_returns)).count() == 0 {
+        return wasm_binary_vec;
+    } 
+
     for imported_i64_wasm_function in wasm_functions.iter().filter(|&x| x.is_import && (x.has_i64_param || x.has_i64_returns)) {
         
         // 2. Make a copy of its function signature
 
         // Get it's signature position and length
         let wasm_type_signature = wasm_type_signatures.get(imported_i64_wasm_function.signature_index as usize).unwrap();
-        let wasm_signature_position = wasm_type_signature.position;
+        let mut wasm_signature_position = wasm_type_signature.position;
+
+        // Get the properties of the signature, and it's end position
         let wasm_signature_num_params = *wasm_binary_vec.get(wasm_signature_position + 1).unwrap() as usize;
         let wasm_signature_num_returns = *wasm_binary_vec.get(wasm_signature_position + wasm_signature_num_params + 2).unwrap() as usize;
         let wasm_signature_end = wasm_signature_position + 3 + wasm_signature_num_params + wasm_signature_num_returns;
+
+        console_log!("yooo {:?} zsdad {:?}", wasm_type_signature, wasm_signature_num_params);
         
         // Create a copy of of this memory
         let mut new_type_signature_data = vec![0; wasm_signature_end - wasm_signature_position];
@@ -337,6 +382,10 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
             wasm_binary_vec.remove(wasm_call_to_old_function.position + 2);
         }
 
+        console_log!("Signatures to add: {:?}", signatures_to_add);
+        console_log!(" ");
+        console_log!("Trampoline Functions: {:?}", trampoline_functions);
+
         console_log!(" ");
         console_log!("==========");
         console_log!("Transformation Logs");
@@ -344,12 +393,12 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
         console_log!(" ");
 
 
-        console_log!("Wasm Function: {:?}", imported_i64_wasm_function);
-        console_log!("function_position: {:?}", function_position);
-        console_log!("import_module_name_length: {:?}", import_module_name_length);
-        console_log!("import_field_name_length: {:?}", import_field_name_length);
-        console_log!("import_signature_position: {:?}", import_signature_position);
-        console_log!("new_signature_index: {:?}", new_signature_index);
+        console_log!("Wasm Function: {:#?}", imported_i64_wasm_function);
+        console_log!("function_position: {:#?}", function_position);
+        console_log!("import_module_name_length: {:#?}", import_module_name_length);
+        console_log!("import_field_name_length: {:#?}", import_field_name_length);
+        console_log!("import_signature_position: {:#?}", import_signature_position);
+        console_log!("new_signature_index: {:#?}", new_signature_index);
     }
 
     // Insert our bytes into the wasm_binary
@@ -398,7 +447,8 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
     let mut bytes_added_to_function_section = 0;
     for i in 0..trampoline_functions.len() {
         // TODO: This may not be the correct index if more than one function
-        wasm_binary_vec.insert(function_section.end_position + i, (wasm_type_signatures.len() - 1 + i) as u8);
+        // NOTE: This is the signature that our trampoline function points to?
+        wasm_binary_vec.insert(function_section.end_position + i, (wasm_type_signatures.len() - 3 + i) as u8);
         position_offset += 1;
         bytes_added_to_function_section += 1;
     }
@@ -449,37 +499,15 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
     wasm_binary_vec.insert(code_section.start_position + 2, original_code_number_of_functions + trampoline_functions.len() as u8);
     wasm_binary_vec.remove(code_section.start_position + 3);
 
-
-    // 10. Update the name section TODO
-
   return wasm_binary_vec;
 }
 
 #[test]
 fn converts() {
-    let s = r#"(module
-  (type $t0 (func (result i32)))
-  (type $t1 (func (param i32 i32 i32 i32 i32 i64 i64 i32 i32) (result i32)))
-  (import "wasi_unstable" "path_open" (func $path_open (type $t1)))
-  (func $_start (type $t0)
-    i32.const 12
-    i32.const 12
-    i32.const 12
-    i32.const 12
-    i32.const 12
-    i64.const 12
-    i64.const 12
-    i32.const 12
-    i32.const 12
-    call $path_open
-  )
-  (memory $memory 17)
-  (export "memory" (memory 0))
-  (export "_start" (func $_start))
-)
-"#;
-
-    let mut wasm = wabt::wat2wasm(s).expect("parsed properly");
+    let wat_string = fs::read_to_string("./wasm-module-examples/clock_time_get.wat")
+        .expect("Something went wrong reading the file");
+    
+    let mut wasm = wabt::wat2wasm(&wat_string).expect("parsed properly");
     let converted = convert(&mut wasm);
 
     console_log!(" ");
@@ -498,7 +526,7 @@ fn converts() {
     console_log!("==========");
     console_log!(" ");
 
-    console_log!("{:#?}", s);
+    console_log!("{:#?}", wat_string);
 
     console_log!(" ");
     console_log!("==========");

@@ -16,6 +16,8 @@ import matrixLoweredUrl from "../../assets/matrix-loweredi64.wasm";
 // @ts-ignore
 import clockTimeGetUrl from "../../assets/clock_time_get.wasm";
 // @ts-ignore
+import pathOpenGetUrl from "../../assets/path_open.wasm";
+// @ts-ignore
 import quickJsUrl from "../../assets/qjs.wasm";
 // @ts-ignore
 import dukTapeUrl from "../../assets/duk.wasm";
@@ -24,6 +26,7 @@ let commandToUrlCache: { [key: string]: string } = {
   matrixlowered: matrixLoweredUrl,
   a: stdinWasmUrl,
   c: clockTimeGetUrl,
+  p: pathOpenGetUrl,
   qjs: quickJsUrl,
   duk: dukTapeUrl
 };
@@ -103,21 +106,23 @@ const getWasmModuleFromUrl = async (
   } else {
     let fetched = await fetch(url);
     let buffer = await fetched.arrayBuffer();
-    const binary = new Uint8Array(buffer);
+    let binary = new Uint8Array(buffer);
 
     // Modify the binary
-    const start = performance.now();
-    await wasmInit(wasmJsTransformerWasmUrl);
-    let transformedBinary = traverse_wasm_binary(binary);
-    console.log(performance.now() - start);
+    if (true) {
+      const start = performance.now();
+      await wasmInit(wasmJsTransformerWasmUrl);
+      binary = traverse_wasm_binary(binary);
+      console.log("time to transform", performance.now() - start);
+    }
 
-    console.log("transformedBinary", transformedBinary);
-    console.log("transformedBinary.buffer", transformedBinary.buffer);
+    console.log("binary", binary);
+    console.log("binary.buffer", binary.buffer);
 
-    console.log("is valid?", WebAssembly.validate(transformedBinary));
+    console.log("is valid?", WebAssembly.validate(binary));
 
     // Compile the buffer
-    return await WebAssembly.compile(transformedBinary);
+    return await WebAssembly.compile(binary);
   }
 };
 
