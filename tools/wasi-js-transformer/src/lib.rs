@@ -74,18 +74,19 @@ pub fn traverse_wasm_binary(passed_wasm_binary: &JsValue) -> js_sys::Uint8Array 
 // https://github.com/WebAssembly/design/blob/master/BinaryEncoding.md#high-level-structure
 #[derive(Debug, Copy, Clone)]
 struct WasmSection<'a> {
+    start_position: usize,
+    end_position: usize,
     code: wasmparser::SectionCode<'a>,
     size: u32,
     size_byte_length: usize,
     count: u32,
-    count_byte_length: usize,
-    start_position: usize,
-    end_position: usize
+    count_byte_length: usize
 }
 
 #[derive(Debug)]
 struct WasmTypeSignature {
-    position: usize,
+    start_position: usize,
+    end_position: usize,
     num_params: usize,
     num_params_byte_length: usize,
     num_returns: usize,
@@ -155,6 +156,24 @@ fn read_bytes_as_varunit32_and_byte_length(bytes: &[u8]) -> (Result<u32, &'stati
     }
 
     return (Ok(response), Ok(byte_length));
+}
+
+fn get_u32_as_bytes_for_varunit32(value: u32) -> Vec<u8> {
+    let mut response = Vec::new();
+
+    // Split our u32 into bytes
+    for i in (0..4).rev() {
+        let byte = ((value >> (8 * i)) & 0xFF) as u8;
+        response.insert(0, byte);
+    }
+
+    // Get the byte length of the u32
+    let (_, byte_length_result) = read_bytes_as_varunit32_and_byte_length(response.as_slice());
+    let byte_length = byte_length_result.unwrap();
+
+    // Remove the extra bytes
+    response.split_off(byte_length);
+    return response;
 }
 
 pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
@@ -245,7 +264,8 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
             let num_returns = state.returns.len();
 
             let wasm_type_signature = WasmTypeSignature {
-                position: position,
+                start_position: position,
+                end_position: 0,
                 num_params: num_params,
                 num_params_byte_length: 0,
                 num_returns: num_returns,
@@ -323,38 +343,34 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
   }  
 
     // Type signature positions are buggy, and can return the wrong positions 
-    // Thus we need to do a second pass to correct some of our required values
+    // Thus we need to do a second pass to correct some of our required values and add end positions
     // (The order of signatures will be correct, but position will be completely wrong)
     let types_section_workaround = wasm_sections.iter().find(|&x| x.code == wasmparser::SectionCode::Type).unwrap();
     let types_section_entries_position = types_section_workaround.start_position + types_section_workaround.size_byte_length + types_section_workaround.count_byte_length;
-    if wasm_type_signatures.get(0).unwrap().position != types_section_entries_position {
-        // The positions are incorrect, and set to the end of the type, not the beginning
-        for i in 0..wasm_type_signatures.len() {
-            if i == 0 {
-                wasm_type_signatures.get_mut(0).unwrap().position = types_section_entries_position;
-            } else {
-                let previous_type_signature = wasm_type_signatures.get(i - 1).unwrap();
+    for i in 0..wasm_type_signatures.len() {
+        if i == 0 {
+            wasm_type_signatures.get_mut(0).unwrap().start_position = types_section_entries_position;
+        } else {
+            let previous_type_signature = wasm_type_signatures.get_mut(i - 1).unwrap();
 
-                // Get the byte length of our values to determine the correcrt posisition
-                let num_params_position = previous_type_signature.position + 1;
-                let (_, num_params_byte_length_result) = read_bytes_as_varunit32_and_byte_length(wasm_binary_vec.get(num_params_position..(num_params_position + 4)).unwrap());
-                let num_params_byte_length = num_params_byte_length_result.unwrap();
+            // Get the byte length of our values to determine the correct posisition
+            let num_params_position = previous_type_signature.start_position + 1;
+            let (_, num_params_byte_length_result) = read_bytes_as_varunit32_and_byte_length(wasm_binary_vec.get(num_params_position..(num_params_position + 4)).unwrap());
+            let num_params_byte_length = num_params_byte_length_result.unwrap();
+            previous_type_signature.num_params_byte_length = num_params_byte_length;
 
-                // Number of returns is always 1 byte
-                let num_returns_byte_length = 1;
-
-                let new_position = previous_type_signature.position + 
-                    num_params_byte_length + 
-                    previous_type_signature.num_params + 
-                    num_returns_byte_length +
-                    previous_type_signature.num_returns;
-                wasm_type_signatures.get_mut(i).unwrap().position = new_position;
-            }
+            let new_position = previous_type_signature.start_position + 
+                previous_type_signature.num_params_byte_length + 
+                previous_type_signature.num_params + 
+                previous_type_signature.num_returns_byte_length +
+                previous_type_signature.num_returns;
+            previous_type_signature.end_position = new_position;
+            wasm_type_signatures.get_mut(i).unwrap().start_position = new_position;
         }
-    }
     }
 
     console_log!("Wasm Sections: {:#?}", wasm_sections);
+    console_log!("Wasm Type Signatures: {:#?}", wasm_type_signatures);
 
     console_log!(" ");
     console_log!("!!!!!!!!!!!!!!!!");
@@ -392,30 +408,32 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
         // Get it's signature position and length
 
         let wasm_type_signature = wasm_type_signatures.get(imported_i64_wasm_function.signature_index as usize).unwrap();
-        let mut wasm_signature_position = wasm_type_signature.position;
-
-        // Get the properties of the signature, and it's end position
-        let wasm_signature_num_params = wasm_type_signature.num_params;
-        let wasm_signature_num_returns = wasm_type_signature.num_returns;
-        let wasm_signature_end = wasm_signature_position + 3 + wasm_signature_num_params + wasm_signature_num_returns;
         
         // Create a copy of of this memory
         let mut new_type_signature_data = LoweredSignature {
-            bytes: vec![0; wasm_signature_end - wasm_signature_position]
+            bytes: vec![0; wasm_type_signature.end_position - wasm_type_signature.start_position]
         };
-        let original_signature_slice = wasm_binary_vec.get(wasm_signature_position..wasm_signature_end).unwrap();
+        let original_signature_slice = wasm_binary_vec.get(wasm_type_signature.start_position..wasm_type_signature.end_position).unwrap();
         new_type_signature_data.bytes.copy_from_slice(original_signature_slice);
 
         // 3. Modify the function signature copy to only use i32
 
         // Edit the signature to only use i32
-        let mut index = 0;
-        for byte in new_type_signature_data.bytes.iter_mut() {
+        // Params
+        for i in (1 + wasm_type_signature.num_params_byte_length)..(1 + wasm_type_signature.num_params_byte_length + wasm_type_signature.num_params) {
             // If the param or return byte at the index is i64, set to i32
-            if index > 2 && index != wasm_signature_num_params + 2 && *byte == 0x7e {
+            let mut byte = new_type_signature_data.bytes.get_mut(i).unwrap();
+            if *byte == 0x7e {
                 *byte = 0x7f;
             }    
-            index += 1;
+        }
+        // Returns
+        if wasm_type_signature.num_returns == 1 {
+            let bytes_len = new_type_signature_data.bytes.len();
+            let mut byte = new_type_signature_data.bytes.get_mut(bytes_len - 1).unwrap();
+            if *byte == 0x7e {
+                *byte = 0x7f;
+            }  
         }
 
         // Add the signature
@@ -432,15 +450,23 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
         // local decl count
         trampoline_function.bytes.push(0x0);
         // Local get of our params
-        for i in 0..wasm_signature_num_params {
+        for i in 0..wasm_type_signature.num_params {
             // local get
             trampoline_function.bytes.push(0x20);
             // local index
             trampoline_function.bytes.push(i as u8);
-            if *wasm_binary_vec.get(wasm_signature_position + 2 + i).unwrap() == 0x7e {
+            if *wasm_binary_vec.get(wasm_type_signature.start_position + 1 + wasm_type_signature.num_params_byte_length + i).unwrap() == 0x7e {
                 // i32.wrap_i64
                 trampoline_function.bytes.push(0xa7);
             }
+        }
+        // Returns
+        if wasm_type_signature.num_returns == 1 {
+            let byte = *wasm_binary_vec.get(wasm_type_signature.end_position - 1).unwrap();
+            if byte == 0x7e {
+                // i32.wrap_i64
+                trampoline_function.bytes.push(0xa7);
+            }  
         }
 
         // Finally call the original function
@@ -464,29 +490,43 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
         // NOTE: For some reason, the first imported function points at the beginning of the import section,
         // NOT the beginning of the function
         let mut function_position = imported_i64_wasm_function.position;
+        let import_section_workaround = wasm_sections.iter().find(|&x| x.code == wasmparser::SectionCode::Import).unwrap();
         if imported_i64_wasm_function.is_import && imported_i64_wasm_function.function_index == 0 {
-            function_position += 3;
+            function_position += 1 + import_section_workaround.size_byte_length + import_section_workaround.count_byte_length;
         }
-        let import_module_name_length = *wasm_binary_vec.get(function_position).unwrap() as usize;
-        let import_field_name_length = *wasm_binary_vec.get(
-            function_position + import_module_name_length + 1
-            ).unwrap() as usize;
-        // +3 for leftover offset and signature kind byte
-        let import_signature_position = function_position +
-            import_module_name_length + import_field_name_length + 3;
+        let (import_module_name_length_result, import_module_name_length_byte_length_result) = read_bytes_as_varunit32_and_byte_length(wasm_binary_vec.get(function_position..(function_position + 4)).unwrap());
+        let import_module_name_length = import_module_name_length_result.unwrap();
+        let import_module_name_length_byte_length = import_module_name_length_byte_length_result.unwrap();
+        let (import_field_name_length_result, import_field_name_length_byte_length_result) = read_bytes_as_varunit32_and_byte_length(
+            wasm_binary_vec.get((function_position + (import_module_name_length as usize) + 1)..(function_position + (import_module_name_length as usize) + 5)
+                                ).unwrap());
+        let import_field_name_length = import_field_name_length_result.unwrap();
+        let import_field_name_length_byte_length = import_field_name_length_byte_length_result.unwrap();
+        // Get the position of the actual signature
+        let import_signature_position = function_position + 
+            import_module_name_length_byte_length +
+            (import_module_name_length as usize) + 
+            import_field_name_length_byte_length +
+            (import_field_name_length as usize) + 1;
 
         // Change the signature index to our newly created import index
         // -1 since it is an index
-        let new_signature_index = (wasm_type_signatures.len() + signatures_to_add.len() - 1) as u8;
-        wasm_binary_vec.insert(import_signature_position, new_signature_index);
-        wasm_binary_vec.remove(import_signature_position + 1);
+        let new_signature_index = (wasm_type_signatures.len() + signatures_to_add.len() - 1) as u32;
+        let new_signature_bytes = get_u32_as_bytes_for_varunit32(new_signature_index);
+        for i in 0..new_signature_bytes.len() {
+            wasm_binary_vec.insert(import_signature_position + i, *new_signature_bytes.get(i).unwrap());
+            wasm_binary_vec.remove(import_signature_position + i + 1);
+        }
 
         // 6. Edit calls to the original function, to now point at the trampoline function
         let trampoline_function_index = wasm_functions.len() + trampoline_functions.len() - 1;
+        let trampoline_function_bytes = get_u32_as_bytes_for_varunit32(trampoline_function_index as u32);
         for wasm_call_to_old_function in wasm_calls.iter().filter(|&x| x.function_index == imported_i64_wasm_function.function_index) {
             // Call the trampoline function instead
-            wasm_binary_vec.insert(wasm_call_to_old_function.position + 1, trampoline_function_index as u8);
-            wasm_binary_vec.remove(wasm_call_to_old_function.position + 2);
+            for i in 0..trampoline_function_bytes.len() {
+                wasm_binary_vec.insert(wasm_call_to_old_function.position + 1 + i, *trampoline_function_bytes.get(i).unwrap());
+                wasm_binary_vec.remove(wasm_call_to_old_function.position + 1 + i + 1);
+            }
         }
 
         console_log!(" ");
