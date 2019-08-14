@@ -69,6 +69,9 @@ pub fn traverse_wasm_binary(passed_wasm_binary: &JsValue) -> js_sys::Uint8Array 
 // 8. Add the new functions to function section (Where the signature is defined, which the body is later in the code section)
 // 9. Add the function body. Update Code section
 
+// TODO: Tommorrow, need to add payload_length to the section info,
+// Which is a variable uint32
+// https://github.com/WebAssembly/design/blob/master/BinaryEncoding.md#high-level-structure
 #[derive(Debug, Copy, Clone)]
 struct WasmSection<'a> {
     code: wasmparser::SectionCode<'a>,
@@ -485,6 +488,7 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
     wasm_binary_vec.remove(function_section.start_position + 3);
 
     console_log!(" ");
+    console_log!("Function Section bytes, starting -> starting + 5 {:?}", wasm_binary_vec.get(function_section.start_position..(function_section.start_position + 5)).unwrap());
     console_log!("==========");
     console_log!("Function Section Update");
     console_log!("==========");
@@ -518,13 +522,14 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
     wasm_binary_vec.remove(code_section.start_position + 2);
 
     // Number of Functions
-    // TODO: Why is this +3? It should be +2?
-    let original_code_number_of_functions = *wasm_binary_vec.get(code_section.start_position + 3).unwrap();
+    // TODO: For matrix Why is this +3? It should be +2?
+    let original_code_number_of_functions = *wasm_binary_vec.get(code_section.start_position + 2).unwrap();
     let new_code_number_of_functions = original_code_number_of_functions + trampoline_functions.len() as u8;
-    wasm_binary_vec.insert(code_section.start_position + 3, new_code_number_of_functions);
-    wasm_binary_vec.remove(code_section.start_position + 4);
+    wasm_binary_vec.insert(code_section.start_position + 2, new_code_number_of_functions);
+    wasm_binary_vec.remove(code_section.start_position + 3);
 
     console_log!(" ");
+    console_log!("Code Section bytes, starting -> starting + 5 {:?}", wasm_binary_vec.get(code_section.start_position..(code_section.start_position + 5)).unwrap());
     console_log!("==========");
     console_log!("Code Section Update");
     console_log!("==========");
@@ -541,34 +546,51 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
 
 #[test]
 fn converts() {
-    let wat_string = fs::read_to_string("./wasm-module-examples/matrix.wat")
-        .expect("Something went wrong reading the file");
-    
-    let mut wasm = wabt::wat2wasm(&wat_string).expect("parsed properly");
-    
-    assert!(wasmparser::validate(&wasm, None), "original wasm is not valid");
 
-    let converted = convert(&mut wasm);
+    // Run tests for the following strings
+    let mut test_file_paths = Vec::new();
+    // test_file_paths.push("./wasm-module-examples/path_open.wat");
+    // test_file_paths.push("./wasm-module-examples/clock_time_get.wat");
+    test_file_paths.push("./wasm-module-examples/matrix.wat");
+    test_file_paths.push("./wasm-module-examples/qjs.wat");
+    test_file_paths.push("./wasm-module-examples/duk.wat");
 
-    let converted_wat = wabt::wasm2wat(converted.to_vec());
+    for test_file_path in test_file_paths.iter() {
 
-    console_log!(" ");
-    console_log!("==========");
-    console_log!("Convert Back to Wat for descriptive errors (if there is one)");
-    console_log!("==========");
-    console_log!(" ");
+        console_log!(" ");
+        console_log!("==========");
+        console_log!("Testing: {:?}", test_file_path);
+        console_log!("==========");
+        console_log!(" ");
 
-    match converted_wat {
-        Err(e) => {
-            console_log!("{:?}", e);
-            console_log!(" ");
-        },
-        _ => ()
+        let wat_string = fs::read_to_string(test_file_path)
+            .expect("Something went wrong reading the file");
+
+        let mut wasm = wabt::wat2wasm(&wat_string).expect("parsed properly");
+
+        assert!(wasmparser::validate(&wasm, None), "original wasm is not valid");
+
+        let converted = convert(&mut wasm);
+
+        let converted_wat = wabt::wasm2wat(converted.to_vec());
+
+        console_log!(" ");
+        console_log!("==========");
+        console_log!("Convert Back to Wat for descriptive errors (if there is one)");
+        console_log!("==========");
+        console_log!(" ");
+
+        match converted_wat {
+            Err(e) => {
+                console_log!(" ");
+                console_log!("Test File Path: {:?}", test_file_path);
+                console_log!(" ");
+                console_log!("{:?}", e);
+                console_log!(" ");
+            },
+            _ => ()
+        }
+
+        assert!(wasmparser::validate(&converted, None), "converted wasm is not valid");
     }
-
-    console_log!(" ");
-    console_log!("Final Testing Log: {:?}", wasm[409 + 3]);
-    console_log!(" ");
-
-    assert!(wasmparser::validate(&converted, None), "converted wasm is not valid");
 }
