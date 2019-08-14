@@ -75,6 +75,10 @@ pub fn traverse_wasm_binary(passed_wasm_binary: &JsValue) -> js_sys::Uint8Array 
 #[derive(Debug, Copy, Clone)]
 struct WasmSection<'a> {
     code: wasmparser::SectionCode<'a>,
+    size: u32,
+    size_byte_length: usize,
+    count: u32,
+    count_byte_length: usize,
     start_position: usize,
     end_position: usize
 }
@@ -83,7 +87,9 @@ struct WasmSection<'a> {
 struct WasmTypeSignature {
     position: usize,
     num_params: usize,
+    num_params_byte_length: usize,
     num_returns: usize,
+    num_returns_byte_length: usize,
     has_i64_param: bool,
     has_i64_returns: bool
 }
@@ -115,6 +121,42 @@ struct TrampolineFunction {
     bytes: Vec<u8>
 }
 
+fn read_bytes_as_varunit32_and_byte_length(bytes: &[u8]) -> (Result<u32, &'static str>, Result<usize, &'static str>) {
+    if (bytes.len() < 4) {
+        let err_message = "Did not pass enough bytes";
+        return (Err(err_message), Err(err_message));
+    }
+
+    // Check if it is only a single byte
+    if (bytes[0] & 0x80) == 0 {
+        return (Ok(bytes[0] as u32), Ok(1));
+    }
+
+    let mut response: u32 = (bytes[0] & 0x7F) as u32;
+    let mut byte_length = 1;
+    for i in 1..4 {
+        let current_byte = bytes[i];
+        let shift_amount = (7 * (i + 1));
+        let shifted_byte = ((current_byte & 0x7F) as u32) << shift_amount;
+        response |= shifted_byte;
+        
+        // Check if we are the last value and the continuation bit is incorrectly set
+        if i == 3 && (current_byte & 0xF0) != 0 {
+            let err_message = "Error decoding the varuint32, the last nibble was incorrectly set";
+            return (Err(err_message), Err(err_message));
+        }
+
+        // Update the length in bytes of our number
+        byte_length += 1;
+
+        if (current_byte & 0x80) == 0 {
+            break;
+        }
+    }
+
+    return (Ok(response), Ok(byte_length));
+}
+
 pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
 
     let mut wasm_type_signatures: Vec<WasmTypeSignature> = Vec::new();
@@ -144,8 +186,33 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
         }
         ParserState::BeginSection { code, .. } => {
             console_log!(" BeginSection {:?}", code);
+            
+            // Get the size and count of the section
+            // Starts the byte after the section code (current position is section code)
+            let size_position = position + 1;
+            let (size_result, size_byte_length_result) = read_bytes_as_varunit32_and_byte_length(wasm_binary_vec.get(size_position..(size_position + 4)).unwrap());
+            let size = size_result.unwrap();
+            let size_byte_length = size_byte_length_result.unwrap();
+
+            let mut count = 0;
+            let mut count_byte_length = 0;
+            match code {
+                // Only the start section does not have a count
+                wasmparser::SectionCode::Start => (),
+                _ => {
+                    let count_position = position + size_byte_length;
+                    let (count_result, count_byte_length_result) = read_bytes_as_varunit32_and_byte_length(wasm_binary_vec.get(count_position..(count_position + 4)).unwrap());
+                    count = count_result.unwrap();
+                    count_byte_length = count_byte_length_result.unwrap();
+                }
+            }
+
             let wasm_section = WasmSection {
                 code: code,
+                size: size,
+                size_byte_length: size_byte_length,
+                count: count,
+                count_byte_length: count_byte_length,
                 start_position: position,
                 end_position: 0
             };
@@ -174,10 +241,15 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
                 }
             });
 
+            let num_params = state.params.len();
+            let num_returns = state.returns.len();
+
             let wasm_type_signature = WasmTypeSignature {
                 position: position,
-                num_params: state.params.len(),
-                num_returns: state.returns.len(),
+                num_params: num_params,
+                num_params_byte_length: 0,
+                num_returns: num_returns,
+                num_returns_byte_length: 1,
                 has_i64_param: has_i64_param,
                 has_i64_returns: has_i64_returns
             };
@@ -251,19 +323,35 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
   }  
 
     // Type signature positions are buggy, and can return the wrong positions 
+    // Thus we need to do a second pass to correct some of our required values
     // (The order of signatures will be correct, but position will be completely wrong)
-    let types_section_start_position = wasm_sections.iter().find(|&x| x.code == wasmparser::SectionCode::Type).unwrap().start_position;
-    if wasm_type_signatures.get(0).unwrap().position != types_section_start_position + 3 {
+    let types_section_workaround = wasm_sections.iter().find(|&x| x.code == wasmparser::SectionCode::Type).unwrap();
+    let types_section_entries_position = types_section_workaround.start_position + types_section_workaround.size_byte_length + types_section_workaround.count_byte_length;
+    if wasm_type_signatures.get(0).unwrap().position != types_section_entries_position {
         // The positions are incorrect, and set to the end of the type, not the beginning
         for i in 0..wasm_type_signatures.len() {
             if i == 0 {
-                wasm_type_signatures.get_mut(0).unwrap().position = types_section_start_position + 3;
+                wasm_type_signatures.get_mut(0).unwrap().position = types_section_entries_position;
             } else {
                 let previous_type_signature = wasm_type_signatures.get(i - 1).unwrap();
-                let new_position = previous_type_signature.position + 3 + previous_type_signature.num_params + previous_type_signature.num_returns;
+
+                // Get the byte length of our values to determine the correcrt posisition
+                let num_params_position = previous_type_signature.position + 1;
+                let (_, num_params_byte_length_result) = read_bytes_as_varunit32_and_byte_length(wasm_binary_vec.get(num_params_position..(num_params_position + 4)).unwrap());
+                let num_params_byte_length = num_params_byte_length_result.unwrap();
+
+                // Number of returns is always 1 byte
+                let num_returns_byte_length = 1;
+
+                let new_position = previous_type_signature.position + 
+                    num_params_byte_length + 
+                    previous_type_signature.num_params + 
+                    num_returns_byte_length +
+                    previous_type_signature.num_returns;
                 wasm_type_signatures.get_mut(i).unwrap().position = new_position;
             }
         }
+    }
     }
 
     console_log!("Wasm Sections: {:#?}", wasm_sections);
@@ -427,6 +515,10 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
     let old_types_section = wasm_sections.iter().find(|&x| x.code == wasmparser::SectionCode::Type).unwrap();
     let types_section = WasmSection {
         code: old_types_section.code,
+        size: old_types_section.size,
+        size_byte_length: old_types_section.size_byte_length,
+        count: old_types_section.count,
+        count_byte_length: old_types_section.count_byte_length,
         start_position: old_types_section.start_position + position_offset,
         end_position: old_types_section.end_position + position_offset,
     };
@@ -466,6 +558,10 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
     let old_function_section = wasm_sections.iter().find(|&x| x.code == wasmparser::SectionCode::Function).unwrap();
     let function_section = WasmSection {
         code: old_function_section.code,
+        size: old_types_section.size,
+        size_byte_length: old_types_section.size_byte_length,
+        count: old_types_section.count,
+        count_byte_length: old_types_section.count_byte_length,
         start_position: old_function_section.start_position + position_offset,
         end_position: old_function_section.end_position + position_offset,
     };
@@ -504,6 +600,10 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
     let old_code_section = wasm_sections.iter().find(|&x| x.code == wasmparser::SectionCode::Code).unwrap();
     let code_section = WasmSection {
         code: old_code_section.code,
+        size: old_types_section.size,
+        size_byte_length: old_types_section.size_byte_length,
+        count: old_types_section.count,
+        count_byte_length: old_types_section.count_byte_length,
         start_position: old_code_section.start_position + position_offset,
         end_position: old_code_section.end_position + position_offset,
     };
