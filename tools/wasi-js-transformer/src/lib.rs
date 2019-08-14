@@ -347,7 +347,7 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
     // (The order of signatures will be correct, but position will be completely wrong)
     let types_section_workaround = wasm_sections.iter().find(|&x| x.code == wasmparser::SectionCode::Type).unwrap();
     let types_section_entries_position = types_section_workaround.start_position + types_section_workaround.size_byte_length + types_section_workaround.count_byte_length;
-    for i in 0..wasm_type_signatures.len() {
+    for i in 0..wasm_type_signatures.len() + 1 {
         if i == 0 {
             wasm_type_signatures.get_mut(0).unwrap().start_position = types_section_entries_position;
         } else {
@@ -365,7 +365,10 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
                 previous_type_signature.num_returns_byte_length +
                 previous_type_signature.num_returns;
             previous_type_signature.end_position = new_position;
-            wasm_type_signatures.get_mut(i).unwrap().start_position = new_position;
+
+            if i < wasm_type_signatures.len() {
+                wasm_type_signatures.get_mut(i).unwrap().start_position = new_position;
+            }
         }
     }
 
@@ -548,6 +551,8 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
     console_log!(" ");
     console_log!("Trampoline Functions: {:?}", trampoline_functions);
 
+    // TODO: I am here in u32 conversions
+
     // Insert our bytes into the wasm_binary
     let mut position_offset = 0;
 
@@ -689,11 +694,11 @@ fn converts() {
 
     // Run tests for the following strings
     let mut test_file_paths = Vec::new();
-    // test_file_paths.push("./wasm-module-examples/path_open.wat");
-    // test_file_paths.push("./wasm-module-examples/clock_time_get.wat");
+    test_file_paths.push("./wasm-module-examples/path_open.wat");
+    test_file_paths.push("./wasm-module-examples/clock_time_get.wat");
     test_file_paths.push("./wasm-module-examples/matrix.wat");
-    test_file_paths.push("./wasm-module-examples/qjs.wat");
-    test_file_paths.push("./wasm-module-examples/duk.wat");
+    // test_file_paths.push("./wasm-module-examples/qjs.wat");
+    // test_file_paths.push("./wasm-module-examples/duk.wat");
 
     for test_file_path in test_file_paths.iter() {
 
