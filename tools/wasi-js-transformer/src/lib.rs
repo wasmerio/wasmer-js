@@ -346,7 +346,7 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
     // Thus we need to do a second pass to correct some of our required values and add end positions
     // (The order of signatures will be correct, but position will be completely wrong)
     let types_section_workaround = wasm_sections.iter().find(|&x| x.code == wasmparser::SectionCode::Type).unwrap();
-    let types_section_entries_position = types_section_workaround.start_position + types_section_workaround.size_byte_length + types_section_workaround.count_byte_length;
+    let types_section_entries_position = types_section_workaround.start_position + types_section_workaround.size_byte_length + types_section_workaround.count_byte_length + 1;
     for i in 0..wasm_type_signatures.len() + 1 {
         if i == 0 {
             wasm_type_signatures.get_mut(0).unwrap().start_position = types_section_entries_position;
@@ -363,7 +363,7 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
                 previous_type_signature.num_params_byte_length + 
                 previous_type_signature.num_params + 
                 previous_type_signature.num_returns_byte_length +
-                previous_type_signature.num_returns;
+                previous_type_signature.num_returns + 1;
             previous_type_signature.end_position = new_position;
 
             if i < wasm_type_signatures.len() {
@@ -666,12 +666,38 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
     wasm_binary_vec.insert(code_section.start_position + 1, new_code_section_length);
     wasm_binary_vec.remove(code_section.start_position + 2);
 
+    // Code section size
+    // TODO: For matrix Why is this +3? It should be +2?
+    // read_bytes_as_varunit32_and_byte_length(wasm_binary_vec.get(function_position..(function_position + 4)).unwrap());
+    // get_u32_as_bytes_for_varunit32
+    let original_code_section_length_position = code_section.start_position + 1;
+    let (original_code_section_length_result, _) = read_bytes_as_varunit32_and_byte_length(
+        wasm_binary_vec.get(original_code_section_length_position..(original_code_section_length_position + 4)).unwrap()
+        );
+    let original_code_section_length = original_code_section_length_result.unwrap();
+    let new_code_section_length = original_code_section_length + trampoline_functions.len() as u32;
+    let new_code_section_length_bytes = get_u32_as_bytes_for_varunit32(new_code_section_length);
+    for i in 0..new_code_section_length_bytes.len() {
+        wasm_binary_vec.insert(original_code_section_length_position + i, *new_code_section_length_bytes.get(i).unwrap());
+        wasm_binary_vec.remove(original_code_section_length_position + i + 1);
+    }
+
+
     // Number of Functions
     // TODO: For matrix Why is this +3? It should be +2?
-    let original_code_number_of_functions = *wasm_binary_vec.get(code_section.start_position + 2).unwrap();
-    let new_code_number_of_functions = original_code_number_of_functions + trampoline_functions.len() as u8;
-    wasm_binary_vec.insert(code_section.start_position + 2, new_code_number_of_functions);
-    wasm_binary_vec.remove(code_section.start_position + 3);
+    // read_bytes_as_varunit32_and_byte_length(wasm_binary_vec.get(function_position..(function_position + 4)).unwrap());
+    // get_u32_as_bytes_for_varunit32
+    let original_code_number_of_functions_position = code_section.start_position + code_section.size_byte_length + 1;
+    let (original_code_number_of_functions_result, _) = read_bytes_as_varunit32_and_byte_length(
+        wasm_binary_vec.get(original_code_number_of_functions_position..(original_code_number_of_functions_position + 4)).unwrap()
+        );
+    let original_code_number_of_functions = original_code_number_of_functions_result.unwrap();
+    let new_code_number_of_functions = original_code_number_of_functions + trampoline_functions.len() as u32;
+    let new_code_number_of_functions_bytes = get_u32_as_bytes_for_varunit32(new_code_number_of_functions);
+    for i in 0..new_code_number_of_functions_bytes.len() {
+        wasm_binary_vec.insert(original_code_number_of_functions_position + i, *new_code_number_of_functions_bytes.get(i).unwrap());
+        wasm_binary_vec.remove(original_code_number_of_functions_position + i + 1);
+    }
 
     console_log!(" ");
     console_log!("Code Section bytes, starting -> starting + 5 {:?}", wasm_binary_vec.get(code_section.start_position..(code_section.start_position + 5)).unwrap());
