@@ -436,14 +436,14 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
         }
     }
     // Types section size
-    let mut original_types_section_length = *wasm_binary_vec.get(types_section.start_position + 1).unwrap();
-    let mut new_types_section_length = original_types_section_length + bytes_added_to_types_section;
+    let original_types_section_length = *wasm_binary_vec.get(types_section.start_position + 1).unwrap();
+    let new_types_section_length = original_types_section_length + bytes_added_to_types_section;
     wasm_binary_vec.insert(types_section.start_position + 1, new_types_section_length);
     wasm_binary_vec.remove(types_section.start_position + 2);
 
     // Number of Types
-    let mut original_types_number_of_types = *wasm_binary_vec.get(types_section.start_position + 2).unwrap();
-    let mut new_types_number_of_types = original_types_number_of_types + signatures_to_add.len() as u8;
+    let original_types_number_of_types = *wasm_binary_vec.get(types_section.start_position + 2).unwrap();
+    let new_types_number_of_types = original_types_number_of_types + signatures_to_add.len() as u8;
     wasm_binary_vec.insert(types_section.start_position + 2, new_types_number_of_types);
     wasm_binary_vec.remove(types_section.start_position + 3);
 
@@ -473,14 +473,14 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
         bytes_added_to_function_section += 1;
     }
     // Functions section size
-    let mut original_function_section_length = *wasm_binary_vec.get(function_section.start_position + 1).unwrap();
-    let mut new_function_section_length = original_function_section_length + bytes_added_to_function_section;
+    let original_function_section_length = *wasm_binary_vec.get(function_section.start_position + 1).unwrap();
+    let new_function_section_length = original_function_section_length + bytes_added_to_function_section;
     wasm_binary_vec.insert(function_section.start_position + 1, new_function_section_length);
     wasm_binary_vec.remove(function_section.start_position + 2);
 
     // Number of Functions
-    let mut original_function_section_number_of_functions = *wasm_binary_vec.get(function_section.start_position + 2).unwrap();
-    let mut new_function_section_number_of_functions = original_function_section_number_of_functions + trampoline_functions.len() as u8;
+    let original_function_section_number_of_functions = *wasm_binary_vec.get(function_section.start_position + 2).unwrap();
+    let new_function_section_number_of_functions = original_function_section_number_of_functions + trampoline_functions.len() as u8;
     wasm_binary_vec.insert(function_section.start_position + 2, new_function_section_number_of_functions);
     wasm_binary_vec.remove(function_section.start_position + 3);
 
@@ -512,16 +512,17 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
         }
     }
     // Code section size
-    let mut original_code_section_length = *wasm_binary_vec.get(code_section.start_position + 1).unwrap();
-    let mut new_code_section_length = original_code_section_length + bytes_added_to_code_section;
+    let original_code_section_length = *wasm_binary_vec.get(code_section.start_position + 1).unwrap();
+    let new_code_section_length = original_code_section_length + bytes_added_to_code_section;
     wasm_binary_vec.insert(code_section.start_position + 1, new_code_section_length);
     wasm_binary_vec.remove(code_section.start_position + 2);
 
     // Number of Functions
-    let mut original_code_number_of_functions = *wasm_binary_vec.get(code_section.start_position + 2).unwrap();
-    let mut new_code_number_of_functions = original_code_number_of_functions + trampoline_functions.len() as u8;
-    wasm_binary_vec.insert(code_section.start_position + 2, new_code_number_of_functions);
-    wasm_binary_vec.remove(code_section.start_position + 3);
+    // TODO: Why is this +3? It should be +2?
+    let original_code_number_of_functions = *wasm_binary_vec.get(code_section.start_position + 3).unwrap();
+    let new_code_number_of_functions = original_code_number_of_functions + trampoline_functions.len() as u8;
+    wasm_binary_vec.insert(code_section.start_position + 3, new_code_number_of_functions);
+    wasm_binary_vec.remove(code_section.start_position + 4);
 
     console_log!(" ");
     console_log!("==========");
@@ -535,7 +536,6 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
     console_log!("Code Section original number of functions: {:?}", original_code_number_of_functions);
     console_log!("Code Section new number of functions: {:?}", new_code_number_of_functions);
 
-
   return wasm_binary_vec;
 }
 
@@ -545,7 +545,12 @@ fn converts() {
         .expect("Something went wrong reading the file");
     
     let mut wasm = wabt::wat2wasm(&wat_string).expect("parsed properly");
+    
+    assert!(wasmparser::validate(&wasm, None), "original wasm is not valid");
+
     let converted = convert(&mut wasm);
+
+    let converted_wat = wabt::wasm2wat(converted.to_vec());
 
     console_log!(" ");
     console_log!("==========");
@@ -553,7 +558,17 @@ fn converts() {
     console_log!("==========");
     console_log!(" ");
 
-    let wat = wabt::wasm2wat(converted.to_vec());
+    match converted_wat {
+        Err(e) => {
+            console_log!("{:?}", e);
+            console_log!(" ");
+        },
+        _ => ()
+    }
 
-    assert!(wasmparser::validate(&converted, None), "wasm is not valid");
+    console_log!(" ");
+    console_log!("Final Testing Log: {:?}", wasm[409 + 3]);
+    console_log!(" ");
+
+    assert!(wasmparser::validate(&converted, None), "converted wasm is not valid");
 }
