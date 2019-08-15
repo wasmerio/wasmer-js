@@ -1,10 +1,76 @@
-pub fn set_panic_hook() {
-    // When the `console_error_panic_hook` feature is enabled, we can call the
-    // `set_panic_hook` function at least once during initialization, and then
-    // we will get better error messages if our code ever panics.
-    //
-    // For more details see
-    // https://github.com/rustwasm/console_error_panic_hook#readme
-    #[cfg(feature = "console_error_panic_hook")]
-    console_error_panic_hook::set_once();
+// Utility functions
+
+#[cfg(target_arch = "wasm32")]
+macro_rules! console_log {
+    ($($t:tt)*) => {
+        log(&format_args!($($t)*).to_string());
+    }
 }
+
+#[cfg(not(target_arch = "wasm32"))]
+macro_rules! console_log {
+    ($($t:tt)*) => {
+        println!($($t)*);
+    }
+}
+
+pub fn read_bytes_as_varunit_and_byte_length(bytes: &[u8]) -> (u32, usize) {
+    if (bytes.len() < 1) {
+        panic!("Did not pass enough bytes")
+    }
+
+    // Check if it is only a single byte
+    if (bytes[0] & 0x80) == 0 {
+        return (bytes[0] as u32, 1);
+    } else if bytes.len() < 2 {
+        panic!("Error decoding the varuint32, the high bit was incorrectly set");
+    }
+
+    let mut response: u32 = 0;
+    let mut byte_length: usize = 0;
+    let mut shift = 0;
+    for i in 0..bytes.len() {
+        let byte: u8 = bytes[i];
+        let low_order_byte: u32 = (byte & 0x7F) as u32;
+        response |= (low_order_byte << shift) as u32;
+        byte_length += 1;
+        if byte & 0x80 == 0 {
+            break;
+        }
+        shift += 7;
+    }
+
+    return (response, byte_length);
+}
+
+fn get_u32_as_bytes_for_varunit(value: u32) -> Vec<u8> {
+    let mut response = Vec::new();
+    let mut currentValue: u32 = value;
+
+    while currentValue > 0 {
+        let mut byte = (currentValue & 0x7F) as u8;
+        currentValue = currentValue >> 7;
+        if currentValue > 0 {
+            // Set the top (7th) bit
+            byte = byte | 0x80
+        }
+        response.push(byte);
+    }
+
+    return response;
+}
+
+fn insert_bytes_into_vec_at_position(vec: &mut Vec<u8>, position: usize, bytes: Vec<u8>) {
+    for i in 0..bytes.len() {
+        vec.insert(position + i, bytes[i]);
+    }
+}
+
+fn remove_number_of_bytes_in_vec_at_position(vec: &mut Vec<u8>, position: usize, number_of_bytes: usize) {
+    for i in 0..number_of_bytes {
+        vec.remove(position);
+    }
+}
+
+
+

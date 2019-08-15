@@ -1,4 +1,4 @@
-mod utils;
+// Library to be consumed on the browser
 
 use std::*;
 use js_sys::*;
@@ -33,6 +33,16 @@ macro_rules! console_log {
     }
 }
 
+pub fn set_panic_hook() {
+    // When the `console_error_panic_hook` feature is enabled, we can call the
+    // `set_panic_hook` function at least once during initialization, and then
+    // we will get better error messages if our code ever panics.
+    //
+    // For more details see
+    // https://github.com/rustwasm/console_error_panic_hook#readme
+    #[cfg(feature = "console_error_panic_hook")]
+    console_error_panic_hook::set_once();
+}
 
 #[wasm_bindgen]
 pub fn traverse_wasm_binary(passed_wasm_binary: &JsValue) -> js_sys::Uint8Array {
@@ -45,141 +55,6 @@ pub fn traverse_wasm_binary(passed_wasm_binary: &JsValue) -> js_sys::Uint8Array 
         response = js_sys::Uint8Array::view(converted_wasm_binary.as_slice());
     }
     return response;
-}
-
-
-
-// Steps to convert:
-// https://webassembly.github.io/wabt/demo/wat2wasm/
-// ===Building a relevant AST===
-// 1. Find all wasm sections
-// 2. Find all wasm type signatures
-// 3. Find all wasm imported functions
-// 4. Find all wasm functions (for the function index)
-// NOTE: Function index space is not recorded in the binary (https://github.com/WebAssembly/design/blob/master/Modules.md#function-index-space)
-// 5. Find all calls to functions
-// ===Mutating the Binary===
-// 1. Find if an imported function has i64. If it does, continue...
-// 2. Make a copy of its function signature
-// 3. Modify the function signature copy to only use i32
-// 4. Create a tampoline function that points to the old function signature, and wraps i64
-// 5. Edit the original function to point at the new function signature
-// 6. Edit calls to the original function, to now point at the trampoline function
-// 7. Add the copied function signature. Update Types section
-// 8. Add the new functions to function section (Where the signature is defined, which the body is later in the code section)
-// 9. Add the function body. Update Code section
-
-// TODO: Tommorrow, need to add payload_length to the section info,
-// Which is a variable uint32
-// https://github.com/WebAssembly/design/blob/master/BinaryEncoding.md#high-level-structure
-#[derive(Debug, Copy, Clone)]
-struct WasmSection<'a> {
-    start_position: usize,
-    end_position: usize,
-    code: wasmparser::SectionCode<'a>,
-    size: u32,
-    size_byte_length: usize,
-    count: u32,
-    count_byte_length: usize
-}
-
-#[derive(Debug)]
-struct WasmTypeSignature {
-    start_position: usize,
-    end_position: usize,
-    num_params: usize,
-    num_params_byte_length: usize,
-    num_returns: usize,
-    num_returns_byte_length: usize,
-    has_i64_param: bool,
-    has_i64_returns: bool
-}
-
-#[derive(Debug)]
-struct WasmFunction {
-    is_import: bool,
-    position: usize,
-    function_index: usize,
-    signature_index: usize,
-    has_i64_param: bool,
-    has_i64_returns: bool
-}
-
-#[derive(Debug)]
-struct WasmCall {
-    position: usize,
-    function_index: usize
-}
-
-#[derive(Debug)]
-struct LoweredSignature {
-    bytes: Vec<u8>
-}
-
-#[derive(Debug)]
-struct TrampolineFunction {
-    signature_index: usize,
-    bytes: Vec<u8>
-}
-
-fn read_bytes_as_varunit32_and_byte_length(bytes: &[u8]) -> (u32, usize) {
-    if (bytes.len() < 1) {
-        panic!("Did not pass enough bytes")
-    }
-
-    // Check if it is only a single byte
-    if (bytes[0] & 0x80) == 0 {
-        return (bytes[0] as u32, 1);
-    } else if bytes.len() < 2 {
-        panic!("Error decoding the varuint32, the high bit was incorrectly set");
-    }
-
-    let mut response: u32 = 0;
-    let mut byte_length: usize = 0;
-    let mut shift = 0;
-    for i in 0..bytes.len() {
-        let byte: u8 = bytes[i];
-        let low_order_byte: u32 = (byte & 0x7F) as u32;
-        response |= (low_order_byte << shift) as u32;
-        byte_length += 1;
-        if byte & 0x80 == 0 {
-            break;
-        }
-        shift += 7;
-    }
-
-    return (response, byte_length);
-}
-
-fn get_u32_as_bytes_for_varunit32(value: u32) -> Vec<u8> {
-    let mut response = Vec::new();
-    let mut currentValue: u32 = value;
-
-    while currentValue > 0 {
-        let mut byte = (currentValue & 0x7F) as u8;
-        currentValue = currentValue >> 7;
-        if currentValue > 0 {
-            // Set the top (7th) bit
-            byte = byte | 0x80
-        }
-        response.push(byte);
-    }
-
-    return response;
-}
-
-fn insert_bytes_at_position(wasm_binary_vec: &mut Vec<u8>, position: usize, bytes: Vec<u8>) {
-    for i in 0..bytes.len() {
-        wasm_binary_vec.insert(position + i, bytes[i]);
-    }
-    console_log!("insert {:?}, {:?}", position, bytes);
-}
-
-fn remove_number_of_bytes_at_position(wasm_binary_vec: &mut Vec<u8>, position: usize, number_of_bytes: usize) {
-    for i in 0..number_of_bytes {
-        wasm_binary_vec.remove(position);
-    }
-    console_log!("remove {:?}, {:?}", position, number_of_bytes);
 }
 
 pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
@@ -714,7 +589,7 @@ fn converts() {
     test_file_paths.push("./wasm-module-examples/path_open.wat");
     test_file_paths.push("./wasm-module-examples/clock_time_get.wat");
     test_file_paths.push("./wasm-module-examples/matrix.wat");
-    test_file_paths.push("./wasm-module-examples/qjs.wat");
+    // test_file_paths.push("./wasm-module-examples/qjs.wat");
     // test_file_paths.push("./wasm-module-examples/duk.wat");
 
     for test_file_path in test_file_paths.iter() {
