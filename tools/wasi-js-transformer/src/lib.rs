@@ -714,7 +714,7 @@ fn converts() {
     test_file_paths.push("./wasm-module-examples/path_open.wat");
     test_file_paths.push("./wasm-module-examples/clock_time_get.wat");
     test_file_paths.push("./wasm-module-examples/matrix.wat");
-    // test_file_paths.push("./wasm-module-examples/qjs.wat");
+    test_file_paths.push("./wasm-module-examples/qjs.wat");
     // test_file_paths.push("./wasm-module-examples/duk.wat");
 
     for test_file_path in test_file_paths.iter() {
