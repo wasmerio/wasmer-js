@@ -134,12 +134,15 @@ fn read_bytes_as_varunit32_and_byte_length(bytes: &[u8]) -> (Result<u32, &'stati
     }
 
     let mut response: u32 = (bytes[0] & 0x7F) as u32;
+    console_log!("Reading response {:034b}, og bytes {:?}, byte {:08b}", response, bytes, bytes[0]);
     let mut byte_length = 1;
     for i in 1..4 {
         let current_byte = bytes[i];
         let shift_amount = (7 * (i + 1));
         let shifted_byte = ((current_byte & 0x7F) as u32) << shift_amount;
         response |= shifted_byte;
+
+        console_log!("Reading response {:034b}, byte {:08b}", response, current_byte);
         
         // Check if we are the last value and the continuation bit is incorrectly set
         if i == 3 && (current_byte & 0xF0) != 0 {
@@ -160,15 +163,57 @@ fn read_bytes_as_varunit32_and_byte_length(bytes: &[u8]) -> (Result<u32, &'stati
 
 fn get_u32_as_bytes_for_varunit32(value: u32) -> Vec<u8> {
     let mut response = Vec::new();
+    let mut responseVaruint32: u32 = 0;
+
+    // First, encode the whole value as 7 bits per byte, lowest value first
+    for i in 0..28 {
+        let bit_mask: u32 = (0x01 << i);
+        if (value & bit_mask) > 0 {
+            // Need to or the bit mask, but make sure to shift extra times
+            // for the continuation bits
+            // TODO: Something wrong here, writing containues at the wrong place
+            let mut bit_mask_with_continuation = bit_mask;
+            if i > 6 {
+                bit_mask_with_continuation = bit_mask_with_continuation << 1;
+            }
+            if i > 14 {
+                bit_mask_with_continuation = bit_mask_with_continuation << 1;
+            }
+            if i > 22 {
+                bit_mask_with_continuation = bit_mask_with_continuation << 1;
+            }
+
+            console_log!("Current i: {:?}", i);
+            console_log!("Original bit mask: {:034b}", bit_mask);
+            console_log!("Continue bit mask: {:034b}", bit_mask_with_continuation);
+
+            responseVaruint32 |= bit_mask_with_continuation;
+            console_log!("         response: {:034b}", responseVaruint32);
+        }
+    }
+
+    console_log!("No continue, value: {:?} response binary: {:034b}, response decimal: {:?}", value, responseVaruint32, responseVaruint32);
+
+    // Add the continuation bits
+    for i in 1..3 {
+        let check_shift_amount = (8 * i) - 1;
+        if responseVaruint32 >> check_shift_amount > 0 {
+            let bit_mask = (0x01 << (check_shift_amount));
+            responseVaruint32 |= bit_mask;
+        }
+    }
+
+    console_log!("Wi continue, value: {:?} response binary: {:034b}, response decimal: {:?}", value, responseVaruint32, responseVaruint32);
 
     // Split our u32 into bytes
-    for i in (0..4).rev() {
-        let byte = ((value >> (8 * i)) & 0xFF) as u8;
-        response.insert(0, byte);
+    for i in 0..4 {
+        let byte = ((responseVaruint32 >> (8 * i)) & 0xFF) as u8;
+        response.push(byte);
     }
 
     // Get the byte length of the u32
-    let (_, byte_length_result) = read_bytes_as_varunit32_and_byte_length(response.as_slice());
+    let (response_result, byte_length_result) = read_bytes_as_varunit32_and_byte_length(response.as_slice());
+    console_log!("Final Response: bytes: {:?}, decimal: {:?}", response, response_result.unwrap());
     let byte_length = byte_length_result.unwrap();
 
     // Remove the extra bytes
@@ -603,10 +648,10 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
     let old_function_section = wasm_sections.iter().find(|&x| x.code == wasmparser::SectionCode::Function).unwrap();
     let function_section = WasmSection {
         code: old_function_section.code,
-        size: old_types_section.size,
-        size_byte_length: old_types_section.size_byte_length,
-        count: old_types_section.count,
-        count_byte_length: old_types_section.count_byte_length,
+        size: old_function_section.size,
+        size_byte_length: old_function_section.size_byte_length,
+        count: old_function_section.count,
+        count_byte_length: old_function_section.count_byte_length,
         start_position: old_function_section.start_position + position_offset,
         end_position: old_function_section.end_position + position_offset,
     };
@@ -645,10 +690,10 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
     let old_code_section = wasm_sections.iter().find(|&x| x.code == wasmparser::SectionCode::Code).unwrap();
     let code_section = WasmSection {
         code: old_code_section.code,
-        size: old_types_section.size,
-        size_byte_length: old_types_section.size_byte_length,
-        count: old_types_section.count,
-        count_byte_length: old_types_section.count_byte_length,
+        size: old_code_section.size,
+        size_byte_length: old_code_section.size_byte_length,
+        count: old_code_section.count,
+        count_byte_length: old_code_section.count_byte_length,
         start_position: old_code_section.start_position + position_offset,
         end_position: old_code_section.end_position + position_offset,
     };
@@ -660,22 +705,14 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
             position_offset += 1;
         }
     }
-    // Code section size
-    let original_code_section_length = *wasm_binary_vec.get(code_section.start_position + 1).unwrap();
-    let new_code_section_length = original_code_section_length + bytes_added_to_code_section;
-    wasm_binary_vec.insert(code_section.start_position + 1, new_code_section_length);
-    wasm_binary_vec.remove(code_section.start_position + 2);
 
     // Code section size
-    // TODO: For matrix Why is this +3? It should be +2?
-    // read_bytes_as_varunit32_and_byte_length(wasm_binary_vec.get(function_position..(function_position + 4)).unwrap());
-    // get_u32_as_bytes_for_varunit32
     let original_code_section_length_position = code_section.start_position + 1;
     let (original_code_section_length_result, _) = read_bytes_as_varunit32_and_byte_length(
         wasm_binary_vec.get(original_code_section_length_position..(original_code_section_length_position + 4)).unwrap()
         );
     let original_code_section_length = original_code_section_length_result.unwrap();
-    let new_code_section_length = original_code_section_length + trampoline_functions.len() as u32;
+    let new_code_section_length = original_code_section_length + bytes_added_to_code_section as u32;
     let new_code_section_length_bytes = get_u32_as_bytes_for_varunit32(new_code_section_length);
     for i in 0..new_code_section_length_bytes.len() {
         wasm_binary_vec.insert(original_code_section_length_position + i, *new_code_section_length_bytes.get(i).unwrap());
@@ -684,9 +721,6 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
 
 
     // Number of Functions
-    // TODO: For matrix Why is this +3? It should be +2?
-    // read_bytes_as_varunit32_and_byte_length(wasm_binary_vec.get(function_position..(function_position + 4)).unwrap());
-    // get_u32_as_bytes_for_varunit32
     let original_code_number_of_functions_position = code_section.start_position + code_section.size_byte_length + 1;
     let (original_code_number_of_functions_result, _) = read_bytes_as_varunit32_and_byte_length(
         wasm_binary_vec.get(original_code_number_of_functions_position..(original_code_number_of_functions_position + 4)).unwrap()
@@ -705,10 +739,12 @@ pub fn convert(original_wasm_binary_vec: &mut Vec<u8>) -> Vec<u8> {
     console_log!("Code Section Update");
     console_log!("==========");
     console_log!(" ");
+    console_log!("Original Code Section: {:?}", code_section);
     console_log!("Code Section start position: {:?}", code_section.start_position);
     console_log!("Code Section original byte length: {:?}", original_code_section_length);
     console_log!("Code Section bytes added to byte length: {:?}", bytes_added_to_code_section);
     console_log!("Code Section new byte length: {:?}", new_code_section_length);
+    console_log!("Code Section new byte length bytes: {:?}", new_code_section_length_bytes);
     console_log!("Code Section original number of functions: {:?}", original_code_number_of_functions);
     console_log!("Code Section new number of functions: {:?}", new_code_number_of_functions);
 
