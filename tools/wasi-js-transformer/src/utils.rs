@@ -1,21 +1,31 @@
 // Utility functions
 
-#[cfg(target_arch = "wasm32")]
-macro_rules! console_log {
-    ($($t:tt)*) => {
-        log(&format_args!($($t)*).to_string());
-    }
+use wasm_bindgen::prelude::*;
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_namespace = console)]
+    fn log(a: &str);
 }
+
+#[cfg(target_arch = "wasm32")]
+#[macro_export]
+macro_rules! console_log {
+        ($($t:tt)*) => {
+            log(&format_args!($($t)*).to_string());
+        }
+    }
 
 #[cfg(not(target_arch = "wasm32"))]
+#[macro_export]
 macro_rules! console_log {
-    ($($t:tt)*) => {
-        println!($($t)*);
+        ($($t:tt)*) => {
+            println!($($t)*);
+        }
     }
-}
 
-pub fn read_bytes_as_varunit_and_byte_length(bytes: &[u8]) -> (u32, usize) {
-    if (bytes.len() < 1) {
+pub fn read_bytes_as_varunit(bytes: &[u8]) -> (u32, usize) {
+    if bytes.len() < 1 {
         panic!("Did not pass enough bytes")
     }
 
@@ -43,7 +53,7 @@ pub fn read_bytes_as_varunit_and_byte_length(bytes: &[u8]) -> (u32, usize) {
     return (response, byte_length);
 }
 
-fn get_u32_as_bytes_for_varunit(value: u32) -> Vec<u8> {
+pub fn get_u32_as_bytes_for_varunit(value: u32) -> Vec<u8> {
     let mut response = Vec::new();
     let mut currentValue: u32 = value;
 
@@ -60,17 +70,18 @@ fn get_u32_as_bytes_for_varunit(value: u32) -> Vec<u8> {
     return response;
 }
 
-fn insert_bytes_into_vec_at_position(vec: &mut Vec<u8>, position: usize, bytes: Vec<u8>) {
+pub fn insert_bytes_into_vec_at_position(vec: &mut Vec<u8>, position: usize, bytes: Vec<u8>) {
     for i in 0..bytes.len() {
         vec.insert(position + i, bytes[i]);
     }
 }
 
-fn remove_number_of_bytes_in_vec_at_position(vec: &mut Vec<u8>, position: usize, number_of_bytes: usize) {
-    for i in 0..number_of_bytes {
+pub fn remove_number_of_bytes_in_vec_at_position(
+    vec: &mut Vec<u8>,
+    position: usize,
+    number_of_bytes: usize,
+) {
+    for _i in 0..number_of_bytes {
         vec.remove(position);
     }
 }
-
-
-
