@@ -80,12 +80,6 @@ pub struct ParsedWasmInfo {
 // NOTE: Function index space is not recorded in the binary (https://github.com/WebAssembly/design/blob/master/Modules.md#function-index-space)
 // 5. Find all calls to functions
 pub fn parse_wasm_vec(wasm_binary_vec: &Vec<u8>) -> ParsedWasmInfo {
-    console_log!(" ");
-    console_log!("!!!!!!!!!!!!!!!!");
-    console_log!("Parsing...");
-    console_log!("!!!!!!!!!!!!!!!!");
-    console_log!(" ");
-
     let mut wasm_type_signatures: Vec<WasmTypeSignature> = Vec::new();
     let mut wasm_sections: Vec<WasmSection> = Vec::new();
     let mut wasm_functions: Vec<WasmFunction> = Vec::new();
@@ -261,16 +255,30 @@ pub fn parse_wasm_vec(wasm_binary_vec: &Vec<u8>) -> ParsedWasmInfo {
         }
     }
 
-    // Type signature positions are buggy, and can return the wrong positions
+    // NOTE: For some reason, the first imported function points at the beginning of the import section,
+    // NOT the beginning of the function
+    let import_section = wasm_sections
+        .iter()
+        .find(|&x| x.code == WasmSectionCode::Import)
+        .unwrap();
+    for i in 0..wasm_functions.len() {
+        let function = wasm_functions.get_mut(i).unwrap();
+        if function.is_import && function.function_index == 0 {
+            function.position +=
+                1 + import_section.size_byte_length + import_section.count_byte_length;
+        }
+    }
+
+    // NOTE: Type signature positions are buggy, and can return the wrong positions
     // Thus we need to do a second pass to correct some of our required values and add end positions
     // (The order of signatures will be correct, but position will be completely wrong)
-    let types_section_workaround = wasm_sections
+    let types_section = wasm_sections
         .iter()
         .find(|&x| x.code == WasmSectionCode::Type)
         .unwrap();
-    let types_section_entries_position = types_section_workaround.start_position
-        + types_section_workaround.size_byte_length
-        + types_section_workaround.count_byte_length
+    let types_section_entries_position = types_section.start_position
+        + types_section.size_byte_length
+        + types_section.count_byte_length
         + 1;
     for i in 0..wasm_type_signatures.len() + 1 {
         if i == 0 {
