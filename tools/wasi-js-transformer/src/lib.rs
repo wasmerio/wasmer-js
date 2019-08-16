@@ -18,7 +18,7 @@ mod parser;
 // 7. Add the copied function signature. Update Types section
 // 8. Add the new functions to function section (Where the signature is defined, which the body is later in the code section)
 // 9. Add the function body. Update Code section
-pub fn lower_i64_wasm_for_wasi_js(wasm_binary_vec: Vec<u8>) -> Vec<u8> {
+pub fn lower_i64_wasm_for_wasi_js(mut wasm_binary_vec: &mut Vec<u8>) {
     console_log!(" ");
     console_log!("!!!!!!!!!!!!!!!!");
     console_log!("Parsing...");
@@ -26,7 +26,7 @@ pub fn lower_i64_wasm_for_wasi_js(wasm_binary_vec: Vec<u8>) -> Vec<u8> {
     console_log!(" ");
 
     // First parse the wasm vec
-    let parsed_info = parser::parse_wasm_vec(&wasm_binary_vec);
+    let parsed_info = parser::parse_wasm_vec(&mut wasm_binary_vec);
 
     // Get our imported wasm_functions
     let imported_i64_function_filter = parsed_info
@@ -36,7 +36,7 @@ pub fn lower_i64_wasm_for_wasi_js(wasm_binary_vec: Vec<u8>) -> Vec<u8> {
 
     if imported_i64_function_filter.clone().count() < 1 {
         // We have no imports to lower.
-        return wasm_binary_vec;
+        return;
     }
 
     console_log!(" ");
@@ -50,9 +50,9 @@ pub fn lower_i64_wasm_for_wasi_js(wasm_binary_vec: Vec<u8>) -> Vec<u8> {
 
     // Generate our trampolines and signatures
     let (trampoline_functions, lowered_signatures) = generator::generate_trampolines_and_signatures(
-        &wasm_binary_vec,
-        imported_i64_functions,
-        parsed_info.wasm_type_signatures,
+        &mut wasm_binary_vec,
+        &imported_i64_functions,
+        &parsed_info.wasm_type_signatures,
     );
 
     console_log!(" ");
@@ -64,8 +64,16 @@ pub fn lower_i64_wasm_for_wasi_js(wasm_binary_vec: Vec<u8>) -> Vec<u8> {
     // Update the binary to point at the trampoline and signatures
     // This should be done in order, in order to not have to do continuous passes of the position.
     // https://github.com/WebAssembly/design/blob/master/BinaryEncoding.md#high-level-structure
-
-    return wasm_binary_vec;
+    applier::apply_transformations_to_wasm_binary_vec(
+        &mut wasm_binary_vec,
+        &imported_i64_functions,
+        trampoline_functions,
+        lowered_signatures,
+        &parsed_info.wasm_sections,
+        &parsed_info.wasm_type_signatures,
+        &parsed_info.wasm_functions,
+        &parsed_info.wasm_calls,
+    );
 }
 
 #[test]
@@ -88,16 +96,16 @@ fn converts() {
         let wat_string =
             fs::read_to_string(test_file_path).expect("Something went wrong reading the file");
 
-        let wasm = wabt::wat2wasm(&wat_string).expect("parsed properly");
+        let mut wasm = wabt::wat2wasm(&wat_string).expect("parsed properly");
 
         assert!(
             wasmparser::validate(&wasm, None),
             "original wasm is not valid"
         );
 
-        let transformed = lower_i64_wasm_for_wasi_js(wasm);
+        lower_i64_wasm_for_wasi_js(&mut wasm);
 
-        let transformed_wat = wabt::wasm2wat(transformed.to_vec());
+        let transformed_wat = wabt::wasm2wat(wasm.to_vec());
 
         console_log!(" ");
         console_log!("==========");
@@ -117,7 +125,7 @@ fn converts() {
         }
 
         assert!(
-            wasmparser::validate(&transformed, None),
+            wasmparser::validate(&wasm, None),
             "converted wasm is not valid"
         );
     }

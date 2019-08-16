@@ -8,7 +8,6 @@ use crate::parser::*;
 
 #[derive(Debug)]
 pub struct LoweredSignature {
-    pub import_index: usize,
     pub bytes: Vec<u8>,
 }
 
@@ -19,9 +18,9 @@ pub struct TrampolineFunction {
 }
 
 pub fn generate_trampolines_and_signatures(
-    wasm_binary_vec: &Vec<u8>,
-    imported_i64_functions: Vec<&WasmFunction>,
-    type_signatures: Vec<WasmTypeSignature>,
+    wasm_binary_vec: &mut Vec<u8>,
+    imported_i64_functions: &Vec<&WasmFunction>,
+    type_signatures: &Vec<WasmTypeSignature>,
 ) -> (Vec<TrampolineFunction>, Vec<LoweredSignature>) {
     // Iterate through the imported functions, and grab data we need to insert
     let mut lowered_signatures = Vec::new();
@@ -77,7 +76,7 @@ fn get_lowered_signature(
     // TODO: Support multiple return values once formalized in the spec
     if type_signature.num_returns == 1 {
         let bytes_len = lowered_type_signature.bytes.len();
-        let mut byte = lowered_type_signature.bytes.get_mut(bytes_len - 1).unwrap();
+        let byte = lowered_type_signature.bytes.get_mut(bytes_len - 1).unwrap();
         if *byte == 0x7e {
             *byte = 0x7f;
         }

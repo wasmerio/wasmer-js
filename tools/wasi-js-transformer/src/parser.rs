@@ -79,7 +79,7 @@ pub struct ParsedWasmInfo {
 // 4. Find all wasm functions (for the function index)
 // NOTE: Function index space is not recorded in the binary (https://github.com/WebAssembly/design/blob/master/Modules.md#function-index-space)
 // 5. Find all calls to functions
-pub fn parse_wasm_vec(wasm_binary_vec: &Vec<u8>) -> ParsedWasmInfo {
+pub fn parse_wasm_vec(wasm_binary_vec: &mut Vec<u8>) -> ParsedWasmInfo {
     let mut wasm_type_signatures: Vec<WasmTypeSignature> = Vec::new();
     let mut wasm_sections: Vec<WasmSection> = Vec::new();
     let mut wasm_functions: Vec<WasmFunction> = Vec::new();
