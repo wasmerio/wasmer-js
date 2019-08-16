@@ -1,29 +1,5 @@
 // Utility functions
 
-use wasm_bindgen::prelude::*;
-
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(js_namespace = console)]
-    fn log(a: &str);
-}
-
-#[cfg(target_arch = "wasm32")]
-#[macro_export]
-macro_rules! console_log {
-        ($($t:tt)*) => {
-            log(&format_args!($($t)*).to_string());
-        }
-    }
-
-#[cfg(not(target_arch = "wasm32"))]
-#[macro_export]
-macro_rules! console_log {
-        ($($t:tt)*) => {
-            println!($($t)*);
-        }
-    }
-
 pub fn read_bytes_as_varunit(bytes: &[u8]) -> (u32, usize) {
     if bytes.len() < 1 {
         panic!("Did not pass enough bytes")

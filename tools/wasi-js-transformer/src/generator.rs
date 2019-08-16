@@ -1,10 +1,9 @@
 // Module that will generate trampoline functions, and type signatures.
 // As well as modify the binary to point at the generated trampolines.
 
-use std::*;
-#[macro_use]
-use crate::utils::*;
 use crate::parser::*;
+use crate::utils::*;
+use std::*;
 
 #[derive(Debug)]
 pub struct LoweredSignature {

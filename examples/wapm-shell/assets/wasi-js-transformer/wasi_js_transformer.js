@@ -46,6 +46,15 @@ export function traverse_wasm_binary(passed_wasm_binary) {
   }
 }
 
+function addHeapObject(obj) {
+  if (heap_next === heap.length) heap.push(heap.length + 1);
+  const idx = heap_next;
+  heap_next = heap[idx];
+
+  heap[idx] = obj;
+  return idx;
+}
+
 let cachedTextDecoder = new TextDecoder("utf-8");
 
 let cachegetUint8Memory = null;
@@ -63,15 +72,6 @@ function getStringFromWasm(ptr, len) {
   return cachedTextDecoder.decode(getUint8Memory().subarray(ptr, ptr + len));
 }
 
-function addHeapObject(obj) {
-  if (heap_next === heap.length) heap.push(heap.length + 1);
-  const idx = heap_next;
-  heap_next = heap[idx];
-
-  heap[idx] = obj;
-  return idx;
-}
-
 function init(module) {
   if (typeof module === "undefined") {
     module = import.meta.url.replace(/\.js$/, "_bg.wasm");
@@ -79,9 +79,6 @@ function init(module) {
   let result;
   const imports = {};
   imports.wbg = {};
-  imports.wbg.__wbg_log_23d677b45c925a45 = function(arg0, arg1) {
-    console.log(getStringFromWasm(arg0, arg1));
-  };
   imports.wbg.__wbindgen_object_drop_ref = function(arg0) {
     takeObject(arg0);
   };

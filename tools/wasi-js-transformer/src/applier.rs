@@ -1,10 +1,9 @@
 // Module to update and insert bytes into the wasm binary
 
-use std::*;
-#[macro_use]
-use crate::utils::*;
 use crate::generator::*;
 use crate::parser::*;
+use crate::utils::*;
+use std::*;
 
 pub fn apply_transformations_to_wasm_binary_vec(
     mut wasm_binary_vec: &mut Vec<u8>,
@@ -87,8 +86,9 @@ pub fn apply_transformations_to_wasm_binary_vec(
             new_signature_bytes.clone(),
         );
 
-        position_offset +=
+        let byte_length_difference =
             (import_function_signature_byte_length - new_signature_bytes.len()) as usize;
+        position_offset += byte_length_difference;
     }
 
     // Add the signatures for the trampoline functions in the Functions section
@@ -141,7 +141,9 @@ pub fn apply_transformations_to_wasm_binary_vec(
                 trampoline_function_bytes.to_vec(),
             );
 
-            position_offset += (call_index_byte_length - trampoline_function_bytes.len()) as usize;
+            let byte_length_difference =
+                (call_index_byte_length - trampoline_function_bytes.len()) as usize;
+            position_offset += byte_length_difference;
         }
     }
 
@@ -160,6 +162,10 @@ pub fn apply_transformations_to_wasm_binary_vec(
         trampoline_function_bytes,
         *code_section,
     );
+
+    //Done!
+    console_log!(" ");
+    console_log!("Wasm binary {:?}", wasm_binary_vec);
 }
 
 fn add_entries_to_section(
@@ -180,7 +186,7 @@ fn add_entries_to_section(
 
     position_offset += bytes_added;
 
-    // Code section size
+    // Section size
     let section_length_position = starting_offset + section.start_position + 1;
     let (section_length, section_length_byte_length) = read_bytes_as_varunit(
         wasm_binary_vec
@@ -201,8 +207,9 @@ fn add_entries_to_section(
         new_section_length_bytes,
     );
 
-    let section_length_difference = (new_section_length - section_length) as usize;
-    position_offset += section_length_difference;
+    let section_length_byte_length_difference =
+        (new_section_length_bytes_length - section_length_byte_length) as usize;
+    position_offset += section_length_byte_length_difference;
 
     // Number of Entries (AKA Count)
     let number_of_entries_position =
@@ -222,11 +229,32 @@ fn add_entries_to_section(
     insert_bytes_into_vec_at_position(
         &mut wasm_binary_vec,
         number_of_entries_position,
-        number_of_entries_bytes,
+        number_of_entries_bytes.clone(),
     );
 
-    let section_count_difference = (new_section_length - section_length) as usize;
-    position_offset += section_count_difference;
+    let section_count_byte_length_difference =
+        (number_of_entries_byte_length - number_of_entries_bytes.len()) as usize;
+    position_offset += section_count_byte_length_difference;
+
+    console_log!(" ");
+    console_log!("!!!!!!!!!!!!!!!!");
+    console_log!("Added Entries to section...");
+    console_log!("!!!!!!!!!!!!!!!!");
+    console_log!(" ");
+    console_log!("Section: {:?}", section);
+    console_log!("Entries: {:?}", entries);
+    console_log!("Starting offset: {:?}", starting_offset);
+    console_log!("Starting length: {:?}", section_length);
+    console_log!("New length: {:?}", new_section_length);
+    console_log!("Starting count: {:?}", number_of_entries);
+    console_log!("New count: {:?}", new_number_of_entries);
+    console_log!(
+        "offset: {:?}, bytes added: {:?}, len byte len diff: {:?}, count byte len diff: {:?}",
+        position_offset,
+        bytes_added,
+        section_length_byte_length_difference,
+        section_count_byte_length_difference
+    );
 
     return position_offset;
 }

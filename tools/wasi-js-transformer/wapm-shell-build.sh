@@ -24,9 +24,6 @@ echo "Compiling wasm"
 echo "============================================="
 echo " "
 
-echo "TODO After cleanup!"
-exit;
-
 wasm-pack build --target web
 
 echo " "
