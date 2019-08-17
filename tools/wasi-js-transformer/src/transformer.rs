@@ -27,6 +27,12 @@ pub fn lower_i64_wasm_for_wasi_js(mut wasm_binary_vec: &mut Vec<u8>) {
     // First parse the wasm vec
     let parsed_info = parse_wasm_vec(&mut wasm_binary_vec);
 
+    console_log!(
+        "Number Of Signatures {:?}",
+        parsed_info.wasm_type_signatures.len()
+    );
+    console_log!("Number Of Functions {:?}", parsed_info.wasm_functions.len());
+
     // Get our imported wasm_functions
     let imported_i64_function_filter = parsed_info
         .wasm_functions
@@ -79,10 +85,10 @@ pub fn lower_i64_wasm_for_wasi_js(mut wasm_binary_vec: &mut Vec<u8>) {
 fn converts() {
     // Run tests for the following strings
     let mut test_file_paths = Vec::new();
-    test_file_paths.push("./wasm-module-examples/path_open.wat");
+    // test_file_paths.push("./wasm-module-examples/path_open.wat");
     // test_file_paths.push("./wasm-module-examples/clock_time_get.wat");
     // test_file_paths.push("./wasm-module-examples/matrix.wat");
-    // test_file_paths.push("./wasm-module-examples/qjs.wat");
+    test_file_paths.push("./wasm-module-examples/qjs.wat");
     // test_file_paths.push("./wasm-module-examples/duk.wat");
 
     for test_file_path in test_file_paths.iter() {
@@ -103,8 +109,6 @@ fn converts() {
         );
 
         lower_i64_wasm_for_wasi_js(&mut wasm);
-
-        /*
 
         let transformed_wat = wabt::wasm2wat(wasm.to_vec());
 
@@ -129,6 +133,5 @@ fn converts() {
             wasmparser::validate(&wasm, None),
             "converted wasm is not valid"
         );
-        */
     }
 }

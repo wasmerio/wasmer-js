@@ -62,6 +62,7 @@ pub struct WasmFunction {
 pub struct WasmCall {
     pub position: usize,
     pub function_index: usize,
+    pub function_body_position: usize,
 }
 
 #[derive(Debug)]
@@ -84,7 +85,9 @@ pub fn parse_wasm_vec(wasm_binary_vec: &mut Vec<u8>) -> ParsedWasmInfo {
     let mut wasm_sections: Vec<WasmSection> = Vec::new();
     let mut wasm_functions: Vec<WasmFunction> = Vec::new();
     let mut wasm_calls: Vec<WasmCall> = Vec::new();
+
     let mut current_function_index: usize = 0;
+    let mut current_function_body_start_position: usize = 0;
 
     let mut parser = Parser::new(wasm_binary_vec);
     loop {
@@ -240,11 +243,15 @@ pub fn parse_wasm_vec(wasm_binary_vec: &mut Vec<u8>) -> ParsedWasmInfo {
                 current_function_index += 1;
                 wasm_functions.push(wasm_function);
             }
+            ParserState::BeginFunctionBody { .. } => {
+                current_function_body_start_position = position;
+            }
             ParserState::CodeOperator(ref state) => match *state {
                 wasmparser::Operator::Call { function_index } => {
                     let wasm_call = WasmCall {
                         position: position,
                         function_index: function_index as usize,
+                        function_body_position: current_function_body_start_position,
                     };
                     wasm_calls.push(wasm_call);
                 }

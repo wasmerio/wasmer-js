@@ -31,6 +31,12 @@ pub fn read_bytes_as_varunit(bytes: &[u8]) -> (u32, usize) {
 
 pub fn get_u32_as_bytes_for_varunit(value: u32) -> Vec<u8> {
     let mut response = Vec::new();
+
+    if value == 0 {
+        response.push(0);
+        return response;
+    }
+
     let mut currentValue: u32 = value;
 
     while currentValue > 0 {
