@@ -136,11 +136,9 @@ fn converts() {
             }
         }
 
-        /*
         assert!(
             wasmparser::validate(&wasm, None),
             "converted wasm is not valid"
         );
-        */
     }
 }
