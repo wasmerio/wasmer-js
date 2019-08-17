@@ -7,6 +7,7 @@ use std::*;
 
 #[derive(Debug)]
 pub struct LoweredSignature {
+    pub original_signature_index: usize,
     pub bytes: Vec<u8>,
 }
 
@@ -31,7 +32,11 @@ pub fn generate_trampolines_and_signatures(
             .unwrap();
 
         // Get its signature
-        let lowered_type_signature = get_lowered_signature(wasm_binary_vec, type_signature);
+        let lowered_type_signature = get_lowered_signature(
+            wasm_binary_vec,
+            type_signature,
+            imported_i64_function.signature_index as usize,
+        );
         lowered_signatures.push(lowered_type_signature);
 
         // Get its trampoline function
@@ -46,9 +51,11 @@ pub fn generate_trampolines_and_signatures(
 fn get_lowered_signature(
     wasm_binary_vec: &Vec<u8>,
     type_signature: &WasmTypeSignature,
+    signature_index: usize,
 ) -> LoweredSignature {
     // Create a new lowered signature
     let mut lowered_type_signature = LoweredSignature {
+        original_signature_index: signature_index,
         bytes: vec![0; type_signature.end_position - type_signature.start_position],
     };
 

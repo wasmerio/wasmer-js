@@ -41,6 +41,12 @@ pub fn apply_transformations_to_wasm_binary_vec(
         *types_section,
     );
 
+    console_log!(" ");
+    console_log!("!!!!!!!!!!!!!!!!");
+    console_log!("Updating Import signatures...");
+    console_log!("!!!!!!!!!!!!!!!!");
+    console_log!(" ");
+
     // Update the imports to point at the new lowered_signatures
     for i in 0..imported_i64_functions.len() {
         let imported_i64_function = imported_i64_functions.get(i).unwrap();
@@ -84,7 +90,11 @@ pub fn apply_transformations_to_wasm_binary_vec(
             );
 
         // Change the signature index to our newly created import index
-        let new_signature_index = (type_signatures.len() + i) as u32;
+        let lowered_signature_vec_index = lowered_signatures
+            .iter()
+            .position(|x| x.original_signature_index == import_function_signature as usize)
+            .unwrap();
+        let new_signature_index = (type_signatures.len() + lowered_signature_vec_index) as u32;
         let new_signature_bytes = get_u32_as_bytes_for_varunit(new_signature_index);
         remove_number_of_bytes_in_vec_at_position(
             &mut wasm_binary_vec,
@@ -100,6 +110,13 @@ pub fn apply_transformations_to_wasm_binary_vec(
         let byte_length_difference =
             (new_signature_bytes.len() - import_function_signature_byte_length) as usize;
         position_offset += byte_length_difference;
+
+        console_log!(" ");
+        console_log!(
+            "Original sig index: {:?}, new sig index: {:?}",
+            import_function_signature,
+            new_signature_index
+        );
     }
 
     // Add the signatures for the trampoline functions in the Functions section
@@ -136,6 +153,7 @@ pub fn apply_transformations_to_wasm_binary_vec(
         let imported_i64_function = imported_i64_functions.get(i).unwrap();
 
         console_log!(" ");
+        console_log!("===========================");
         console_log!("Imported: {:?}", imported_i64_function);
 
         for wasm_call_to_old_function in wasm_calls
@@ -172,7 +190,11 @@ pub fn apply_transformations_to_wasm_binary_vec(
                 call_index_byte_length,
             );
 
-            let trampoline_function_index = wasm_functions.len() + i;
+            let trampoline_function_vec_index = trampoline_functions
+                .iter()
+                .position(|x| x.signature_index == imported_i64_function.signature_index)
+                .unwrap();
+            let trampoline_function_index = wasm_functions.len() + trampoline_function_vec_index;
             let trampoline_function_bytes =
                 get_u32_as_bytes_for_varunit(trampoline_function_index as u32);
             insert_bytes_into_vec_at_position(
@@ -185,9 +207,8 @@ pub fn apply_transformations_to_wasm_binary_vec(
                 (trampoline_function_bytes.len() - call_index_byte_length) as usize;
             calls_byte_offset += byte_length_difference;
 
-            console_log!(" ");
             console_log!(
-                "Original index: {:?}, new index: {:?}",
+                "Original function index: {:?}, new function index: {:?}",
                 call_index,
                 trampoline_function_index
             );
@@ -229,7 +250,6 @@ pub fn apply_transformations_to_wasm_binary_vec(
                     (new_function_size_bytes.len() - function_size_byte_length) as usize;
                 calls_byte_offset += function_size_byte_length_difference;
 
-                console_log!(" ");
                 console_log!(
                     "Original function body size: {:?}, new function body size: {:?}",
                     function_size,

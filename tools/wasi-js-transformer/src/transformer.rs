@@ -126,12 +126,21 @@ fn converts() {
                 console_log!("{:?}", e);
                 console_log!(" ");
             }
-            _ => (),
+            Ok(wat) => {
+                fs::write("./wasm-module-examples/test_result.wat", wat)
+                    .expect("Unable to write file");
+
+                console_log!(" ");
+                console_log!("Wrote resulting Wat to: ./wasm-module-examples/test_result.wat");
+                console_log!(" ");
+            }
         }
 
+        /*
         assert!(
             wasmparser::validate(&wasm, None),
             "converted wasm is not valid"
         );
+        */
     }
 }
