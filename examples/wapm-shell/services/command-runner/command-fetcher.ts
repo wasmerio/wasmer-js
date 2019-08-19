@@ -25,12 +25,15 @@ import quickJsUrl from "../../assets/qjs.wasm";
 import dukTapeUrl from "../../assets/duk.wasm";
 // @ts-ignore
 import argtestUrl from "../../assets/argtest.wasm";
+// @ts-ignore
+import gettimeofdayUrl from "../../assets/gettimeofday.wasm";
 
 let commandToUrlCache: { [key: string]: string } = {
   matrixlowered: matrixLoweredUrl,
   a: stdinWasmUrl,
   c: clockTimeGetUrl,
   p: pathOpenGetUrl,
+  g: gettimeofdayUrl,
   qjs: quickJsUrl,
   duk: dukTapeUrl,
   two: twoImportsUrl,
