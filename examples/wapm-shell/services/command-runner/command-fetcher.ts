@@ -23,6 +23,8 @@ import twoImportsUrl from "../../assets/two-imports.wasm";
 import quickJsUrl from "../../assets/qjs.wasm";
 // @ts-ignore
 import dukTapeUrl from "../../assets/duk.wasm";
+// @ts-ignore
+import argtestUrl from "../../assets/argtest.wasm";
 
 let commandToUrlCache: { [key: string]: string } = {
   matrixlowered: matrixLoweredUrl,
@@ -31,7 +33,8 @@ let commandToUrlCache: { [key: string]: string } = {
   p: pathOpenGetUrl,
   qjs: quickJsUrl,
   duk: dukTapeUrl,
-  two: twoImportsUrl
+  two: twoImportsUrl,
+  arg: argtestUrl
 };
 let compiledModulesCache: { [key: string]: WebAssembly.Module } = {};
 
