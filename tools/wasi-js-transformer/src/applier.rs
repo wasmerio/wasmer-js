@@ -20,7 +20,7 @@ pub fn apply_transformations_to_wasm_binary_vec(
 
     let mut position_offset: usize = 0;
 
-    let test_vec = vec![0x52, 0x01];
+    let test_vec = vec![0xe2, 0x06];
     let (test, _) = read_bytes_as_varunit(test_vec.as_slice());
     console_log!("Testing a conversion from bytes to varuint: {:?}", test);
 
@@ -208,8 +208,16 @@ pub fn apply_transformations_to_wasm_binary_vec(
             calls_byte_offset += byte_length_difference;
 
             console_log!(
-                "Original function index: {:?}, new function index: {:?}",
+                "Original function: {:?}, new function: {:?}",
+                imported_i64_function,
+                trampoline_functions
+                    .get(trampoline_function_vec_index)
+                    .unwrap()
+            );
+            console_log!(
+                "Original function index: {:?}, new function vec index {:?}, new function index: {:?}",
                 call_index,
+                trampoline_function_vec_index,
                 trampoline_function_index
             );
             console_log!(

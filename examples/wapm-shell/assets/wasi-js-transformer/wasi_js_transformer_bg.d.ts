@@ -1,3 +1,3 @@
 /* tslint:disable */
 export const memory: WebAssembly.Memory;
-export function traverse_wasm_binary(a: number): number;
+export function lower_i64_imports(a: number): number;

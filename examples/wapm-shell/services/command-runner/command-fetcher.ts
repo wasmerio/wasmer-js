@@ -4,7 +4,7 @@
 import { Terminal } from "xterm";
 
 import wasmInit, {
-  traverse_wasm_binary
+  lower_i64_imports
 } from "../../assets/wasi-js-transformer/wasi_js_transformer";
 // @ts-ignore
 import wasmJsTransformerWasmUrl from "../../assets/wasi-js-transformer/wasi_js_transformer_bg.wasm";
@@ -112,7 +112,7 @@ const getWasmModuleFromUrl = async (
     if (true) {
       const start = performance.now();
       await wasmInit(wasmJsTransformerWasmUrl);
-      binary = traverse_wasm_binary(binary);
+      binary = lower_i64_imports(binary);
       console.log("time to transform", performance.now() - start);
     }
 

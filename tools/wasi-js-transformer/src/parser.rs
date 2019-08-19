@@ -54,6 +54,8 @@ pub struct WasmFunction {
     pub position: usize,
     pub function_index: usize,
     pub signature_index: usize,
+    pub num_params: usize,
+    pub num_returns: usize,
     pub has_i64_param: bool,
     pub has_i64_returns: bool,
 }
@@ -63,6 +65,7 @@ pub struct WasmCall {
     pub position: usize,
     pub function_index: usize,
     pub function_body_position: usize,
+    pub function_body_index: usize,
 }
 
 #[derive(Debug)]
@@ -88,6 +91,7 @@ pub fn parse_wasm_vec(wasm_binary_vec: &mut Vec<u8>) -> ParsedWasmInfo {
 
     let mut current_function_index: usize = 0;
     let mut current_function_body_start_position: usize = 0;
+    let mut current_function_body_index: usize = 0;
 
     let mut parser = Parser::new(wasm_binary_vec);
     loop {
@@ -201,21 +205,17 @@ pub fn parse_wasm_vec(wasm_binary_vec: &mut Vec<u8>) -> ParsedWasmInfo {
             } => {
                 match ty {
                     wasmparser::ImportSectionEntryType::Function(index) => {
-                        let wasm_type_signature_option = wasm_type_signatures.get(index as usize);
+                        let wasm_type_signature = wasm_type_signatures.get(index as usize).unwrap();
 
                         let wasm_function: WasmFunction = WasmFunction {
                             is_import: true,
                             position: position,
                             function_index: current_function_index as usize,
                             signature_index: index as usize,
-                            has_i64_param: match wasm_type_signature_option {
-                                Some(wasm_type_signature) => wasm_type_signature.has_i64_param,
-                                None => false,
-                            },
-                            has_i64_returns: match wasm_type_signature_option {
-                                Some(wasm_type_signature) => wasm_type_signature.has_i64_returns,
-                                None => false,
-                            },
+                            num_params: wasm_type_signature.num_params,
+                            num_returns: wasm_type_signature.num_returns,
+                            has_i64_param: wasm_type_signature.has_i64_param,
+                            has_i64_returns: wasm_type_signature.has_i64_returns,
                         };
                         current_function_index += 1;
                         wasm_functions.push(wasm_function);
@@ -224,21 +224,17 @@ pub fn parse_wasm_vec(wasm_binary_vec: &mut Vec<u8>) -> ParsedWasmInfo {
                 };
             }
             ParserState::FunctionSectionEntry(index) => {
-                let wasm_type_signature_option = wasm_type_signatures.get(index as usize);
+                let wasm_type_signature = wasm_type_signatures.get(index as usize).unwrap();
 
                 let wasm_function: WasmFunction = WasmFunction {
                     is_import: false,
                     position: position,
                     function_index: current_function_index as usize,
                     signature_index: index as usize,
-                    has_i64_param: match wasm_type_signature_option {
-                        Some(wasm_type_signature) => wasm_type_signature.has_i64_param,
-                        None => false,
-                    },
-                    has_i64_returns: match wasm_type_signature_option {
-                        Some(wasm_type_signature) => wasm_type_signature.has_i64_returns,
-                        None => false,
-                    },
+                    num_params: wasm_type_signature.num_params,
+                    num_returns: wasm_type_signature.num_returns,
+                    has_i64_param: wasm_type_signature.has_i64_param,
+                    has_i64_returns: wasm_type_signature.has_i64_returns,
                 };
                 current_function_index += 1;
                 wasm_functions.push(wasm_function);
@@ -252,11 +248,15 @@ pub fn parse_wasm_vec(wasm_binary_vec: &mut Vec<u8>) -> ParsedWasmInfo {
                         position: position,
                         function_index: function_index as usize,
                         function_body_position: current_function_body_start_position,
+                        function_body_index: current_function_body_index,
                     };
                     wasm_calls.push(wasm_call);
                 }
                 _ => (),
             },
+            ParserState::EndFunctionBody { .. } => {
+                current_function_body_index += 1;
+            }
             ParserState::EndWasm => break,
             _ => (),
         }

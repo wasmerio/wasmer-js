@@ -51,7 +51,7 @@ mod transformer;
 mod utils;
 
 #[wasm_bindgen]
-pub fn traverse_wasm_binary(passed_wasm_binary: &JsValue) -> js_sys::Uint8Array {
+pub fn lower_i64_imports(passed_wasm_binary: &JsValue) -> js_sys::Uint8Array {
     let wasm_binary = js_sys::Uint8Array::new(passed_wasm_binary);
     let mut wasm_binary_vec = vec![0; wasm_binary.length() as usize];
     wasm_binary.copy_to(&mut wasm_binary_vec);

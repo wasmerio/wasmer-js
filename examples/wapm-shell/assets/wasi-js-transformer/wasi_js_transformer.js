@@ -35,11 +35,9 @@ function takeObject(idx) {
  * @param {any} passed_wasm_binary
  * @returns {any}
  */
-export function traverse_wasm_binary(passed_wasm_binary) {
+export function lower_i64_imports(passed_wasm_binary) {
   try {
-    const ret = wasm.traverse_wasm_binary(
-      addBorrowedObject(passed_wasm_binary)
-    );
+    const ret = wasm.lower_i64_imports(addBorrowedObject(passed_wasm_binary));
     return takeObject(ret);
   } finally {
     heap[stack_pointer++] = undefined;

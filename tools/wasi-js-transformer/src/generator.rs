@@ -15,6 +15,8 @@ pub struct LoweredSignature {
 pub struct TrampolineFunction {
     pub signature_index: usize,
     pub bytes: Vec<u8>,
+    pub num_params: usize,
+    pub num_returns: usize,
 }
 
 pub fn generate_trampolines_and_signatures(
@@ -101,6 +103,8 @@ fn get_trampoline_function(
     let mut trampoline_function = TrampolineFunction {
         bytes: Vec::new(),
         signature_index: imported_i64_function.signature_index,
+        num_params: imported_i64_function.num_params,
+        num_returns: imported_i64_function.num_returns,
     };
 
     // We'll add the body size at the end
