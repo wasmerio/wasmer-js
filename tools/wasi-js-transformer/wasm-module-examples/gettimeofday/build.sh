@@ -4,7 +4,6 @@
 
 set -e
 
-clang --target=wasm32-unknown-wasi --sysroot /tmp/wasi-libc \
-  -Os -s -g -o gettimeofday.wasm gettimeofday.c
+clang --target=wasm32-unknown-wasi --sysroot /tmp/wasi-libc -Os -s -o gettimeofday.wasm gettimeofday.c
 
 wasm2wat gettimeofday.wasm -o gettimeofday.wat
