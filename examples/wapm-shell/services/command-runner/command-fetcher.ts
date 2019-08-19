@@ -125,7 +125,9 @@ const getWasmModuleFromUrl = async (
     console.log("is valid?", WebAssembly.validate(binary));
 
     // Compile the buffer
-    return await WebAssembly.compile(binary);
+    const wasmModule = await WebAssembly.compile(binary);
+    console.log("Modulke", wasmModule);
+    return wasmModule;
   }
 };
 
