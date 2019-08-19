@@ -9,6 +9,8 @@ use std::*;
 pub struct LoweredSignature {
     pub original_signature_index: usize,
     pub bytes: Vec<u8>,
+    pub num_params: usize,
+    pub num_returns: usize,
 }
 
 #[derive(Debug)]
@@ -59,6 +61,8 @@ fn get_lowered_signature(
     let mut lowered_type_signature = LoweredSignature {
         original_signature_index: signature_index,
         bytes: vec![0; type_signature.end_position - type_signature.start_position],
+        num_params: type_signature.num_params,
+        num_returns: type_signature.num_returns,
     };
 
     // Extract the bytes of the type signature

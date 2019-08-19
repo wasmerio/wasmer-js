@@ -15,14 +15,24 @@ pub fn apply_transformations_to_wasm_binary_vec(
     wasm_functions: &Vec<WasmFunction>,
     wasm_calls: &Vec<WasmCall>,
 ) {
+    // TODO: Remove this:
+    let test_vec = vec![0xe2, 0x06];
+    let (test, _) = read_bytes_as_varunit(test_vec.as_slice());
+    console_log!(" ");
+    console_log!("Testing a conversion from bytes to varuint: {:?}", test);
+    console_log!(" ");
+
     // Must apply updates in order acording to the binary spec to preserve the position offset,
     // https://github.com/WebAssembly/design/blob/master/BinaryEncoding.md#high-level-structure
 
     let mut position_offset: usize = 0;
 
-    let test_vec = vec![0xe2, 0x06];
-    let (test, _) = read_bytes_as_varunit(test_vec.as_slice());
-    console_log!("Testing a conversion from bytes to varuint: {:?}", test);
+    console_log!(" ");
+    console_log!("!!!!!!!!!!!!!!!!");
+    console_log!("Adding Lowered signatures...");
+    console_log!("!!!!!!!!!!!!!!!!");
+    console_log!(" ");
+    console_log!("Lowered Signatures: {:?}", lowered_signatures);
 
     // Add the new lowered signatures to the Types Section
     let types_section = wasm_sections
@@ -113,11 +123,24 @@ pub fn apply_transformations_to_wasm_binary_vec(
 
         console_log!(" ");
         console_log!(
+            "Original Import: {:?}, lowered sig: {:?}",
+            imported_i64_function,
+            new_signature_index
+        );
+
+        console_log!(" ");
+        console_log!(
             "Original sig index: {:?}, new sig index: {:?}",
             import_function_signature,
             new_signature_index
         );
     }
+
+    console_log!(" ");
+    console_log!("!!!!!!!!!!!!!!!!");
+    console_log!("Adding Trampoline signatures...");
+    console_log!("!!!!!!!!!!!!!!!!");
+    console_log!(" ");
 
     // Add the signatures for the trampoline functions in the Functions section
     let functions_section = wasm_sections
@@ -130,6 +153,7 @@ pub fn apply_transformations_to_wasm_binary_vec(
             get_u32_as_bytes_for_varunit(trampoline_function.signature_index as u32);
         trampoline_signatures.push(trampoline_signature_bytes.clone());
     }
+    console_log!("Trampoline Signatures: {:?}", trampoline_signatures);
     position_offset += add_entries_to_section(
         wasm_binary_vec,
         position_offset,
@@ -273,6 +297,13 @@ pub fn apply_transformations_to_wasm_binary_vec(
         }
     }
 
+    console_log!(" ");
+    console_log!("!!!!!!!!!!!!!!!!");
+    console_log!("Adding Trampoline functions...");
+    console_log!("!!!!!!!!!!!!!!!!");
+    console_log!(" ");
+    console_log!("Trampoline Functions: {:?}", trampoline_functions);
+
     // Add the trampoline functions to the code section
     let code_section = wasm_sections
         .iter()
@@ -381,6 +412,7 @@ fn add_entries_to_section(
     position_offset += section_count_byte_length_difference;
 
     // Lastly, add the entries
+    let mut previous_entry_offset = 0;
     for entry in entries.iter() {
         for i in 0..entry.len() {
             wasm_binary_vec.insert(
@@ -389,10 +421,12 @@ fn add_entries_to_section(
                     + section_count_byte_length_difference
                     + insertion_offset
                     + section.end_position
+                    + previous_entry_offset
                     + i,
                 *entry.get(i).unwrap(),
             );
         }
+        previous_entry_offset += entry.len();
     }
 
     console_log!("Starting length: {:?}", section_length);

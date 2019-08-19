@@ -18,6 +18,8 @@ import clockTimeGetUrl from "../../assets/clock_time_get.wasm";
 // @ts-ignore
 import pathOpenGetUrl from "../../assets/path_open.wasm";
 // @ts-ignore
+import twoImportsUrl from "../../assets/two-imports.wasm";
+// @ts-ignore
 import quickJsUrl from "../../assets/qjs.wasm";
 // @ts-ignore
 import dukTapeUrl from "../../assets/duk.wasm";
@@ -28,7 +30,8 @@ let commandToUrlCache: { [key: string]: string } = {
   c: clockTimeGetUrl,
   p: pathOpenGetUrl,
   qjs: quickJsUrl,
-  duk: dukTapeUrl
+  duk: dukTapeUrl,
+  two: twoImportsUrl
 };
 let compiledModulesCache: { [key: string]: WebAssembly.Module } = {};
 
