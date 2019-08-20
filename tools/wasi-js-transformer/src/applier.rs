@@ -5,7 +5,7 @@ use crate::parser::*;
 use crate::utils::*;
 use std::*;
 
-// Function to add/edit bytes in the binary
+/// Function to add/edit bytes in the binary
 pub fn apply_transformations_to_wasm_binary_vec(
     mut wasm_binary_vec: &mut Vec<u8>,
     imported_i64_functions: &Vec<&WasmFunction>,
@@ -28,10 +28,11 @@ pub fn apply_transformations_to_wasm_binary_vec(
         .iter()
         .find(|&x| x.code == WasmSectionCode::Type)
         .unwrap();
-    let mut lowered_signature_bytes = Vec::new();
-    for lowered_signature in lowered_signatures.iter() {
-        lowered_signature_bytes.push(lowered_signature.bytes.clone());
-    }
+    let lowered_signature_bytes = lowered_signatures
+        .iter()
+        .cloned()
+        .map(|ls| ls.bytes)
+        .collect::<Vec<_>>();
     position_offset += add_entries_to_section(
         wasm_binary_vec,
         position_offset,
@@ -41,9 +42,7 @@ pub fn apply_transformations_to_wasm_binary_vec(
     );
 
     // Update the imports to point at the new lowered_signatures
-    for i in 0..imported_i64_functions.len() {
-        let imported_i64_function = imported_i64_functions.get(i).unwrap();
-
+    for imported_i64_function in imported_i64_functions.iter() {
         // Get the name length (module_len)
         let name_length_start_position = position_offset + imported_i64_function.position;
         let (import_module_name_length, import_module_name_length_byte_length) =
@@ -74,12 +73,8 @@ pub fn apply_transformations_to_wasm_binary_vec(
         // Get the signature byte length (to remove later)
         let (import_function_signature, import_function_signature_byte_length) =
             read_bytes_as_varunit(
-                wasm_binary_vec
-                    .get(
-                        import_function_signature_position
-                            ..(import_function_signature_position + 4),
-                    )
-                    .unwrap(),
+                &wasm_binary_vec
+                    [import_function_signature_position..(import_function_signature_position + 4)],
             );
 
         // Change the signature index to our newly created import index
@@ -110,12 +105,11 @@ pub fn apply_transformations_to_wasm_binary_vec(
         .iter()
         .find(|&x| x.code == WasmSectionCode::Function)
         .unwrap();
-    let mut trampoline_signatures = Vec::new();
-    for trampoline_function in trampoline_functions.iter() {
-        let trampoline_signature_bytes =
-            get_u32_as_bytes_for_varunit(trampoline_function.signature_index as u32);
-        trampoline_signatures.push(trampoline_signature_bytes.clone());
-    }
+    let trampoline_signatures = trampoline_functions
+        .iter()
+        .cloned()
+        .map(|tf| get_u32_as_bytes_for_varunit(tf.signature_index as u32))
+        .collect::<Vec<_>>();
     position_offset += add_entries_to_section(
         wasm_binary_vec,
         position_offset,
@@ -129,9 +123,7 @@ pub fn apply_transformations_to_wasm_binary_vec(
     // from modifying the calls, before adding the trampoline functions. Thus, we get an,
     // insertion_offset.
     let mut calls_byte_offset: usize = 0;
-    for i in 0..imported_i64_functions.len() {
-        let imported_i64_function = imported_i64_functions.get(i).unwrap();
-
+    for imported_i64_function in imported_i64_functions.iter() {
         for wasm_call_to_old_function in wasm_calls
             .iter()
             .filter(|&x| x.function_index == imported_i64_function.function_index)
@@ -139,10 +131,8 @@ pub fn apply_transformations_to_wasm_binary_vec(
             // Get the old call
             let call_index_start_position =
                 position_offset + calls_byte_offset + wasm_call_to_old_function.position + 1;
-            let mut call_index_end_position = call_index_start_position + 4;
-            if call_index_end_position > wasm_binary_vec.len() {
-                call_index_end_position = wasm_binary_vec.len();
-            }
+            let call_index_end_position =
+                std::cmp::min(call_index_start_position + 4, wasm_binary_vec.len());
 
             let wasm_call_function_index_bytes = wasm_binary_vec
                 .get(call_index_start_position..call_index_end_position)
@@ -211,11 +201,12 @@ pub fn apply_transformations_to_wasm_binary_vec(
         .iter()
         .find(|&x| x.code == WasmSectionCode::Code)
         .unwrap();
-    let mut trampoline_function_bytes = Vec::new();
-    for trampoline_function in trampoline_functions.iter() {
-        trampoline_function_bytes.push(trampoline_function.bytes.clone());
-    }
 
+    let trampoline_function_bytes = trampoline_functions
+        .iter()
+        .cloned()
+        .map(|tf| tf.bytes)
+        .collect::<Vec<_>>();
     position_offset += add_entries_to_section(
         wasm_binary_vec,
         position_offset,
@@ -227,11 +218,11 @@ pub fn apply_transformations_to_wasm_binary_vec(
     //Done!
 }
 
-// Function to add "entries" (E.g Types in the Type section),
-// to a section. And update it's count of entries, as well as length
-// Starting offset is the overall position offset for the start of the section
-// Insertion offset is the offset for the body of the section (Useful for sections like the
-// Code section, which need it's hader, body, and tail modified)
+/// Function to add "entries" (E.g Types in the Type section),
+/// to a section. And update it's count of entries, as well as length
+/// Starting offset is the overall position offset for the start of the section
+/// Insertion offset is the offset for the body of the section (Useful for sections like the
+/// Code section, which need it's hader, body, and tail modified)
 fn add_entries_to_section(
     mut wasm_binary_vec: &mut Vec<u8>,
     starting_offset: usize,
@@ -317,7 +308,7 @@ fn add_entries_to_section(
                     + section.end_position
                     + previous_entry_offset
                     + i,
-                *entry.get(i).unwrap(),
+                (*entry)[i],
             );
         }
         previous_entry_offset += entry.len();

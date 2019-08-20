@@ -6,7 +6,9 @@ use wasmparser::Parser;
 use wasmparser::ParserState;
 use wasmparser::WasmDecoder;
 
-// Modified from: https://docs.rs/wasmparser/0.35.3/src/wasmparser/primitives.rs.html#54-71
+/// Modified from: https://docs.rs/wasmparser/0.35.3/src/wasmparser/primitives.rs.html#54-71
+// Licensed under Apache: https://github.com/yurydelendik/wasmparser.rs/blob/master/LICENSE
+// Changes: Removed the lifetime from the Start Code
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum WasmSectionCode {
     Type,      // Function signature declarations
@@ -24,8 +26,8 @@ pub enum WasmSectionCode {
     Custom,    // Custom section declarations
 }
 
-// Interface for a general section in the Wasm Bindary
-// https://github.com/WebAssembly/design/blob/master/BinaryEncoding.md#module-structure
+/// Interface for a general section in the Wasm Bindary
+/// https://github.com/WebAssembly/design/blob/master/BinaryEncoding.md#module-structure
 #[derive(Debug, Copy, Clone)]
 pub struct WasmSection {
     pub start_position: usize,
@@ -37,8 +39,8 @@ pub struct WasmSection {
     pub count_byte_length: usize,
 }
 
-// Interface for a Fucntion Type signature
-// https://github.com/WebAssembly/design/blob/master/BinaryEncoding.md#type-section
+/// Interface for a Fucntion Type signature
+/// https://github.com/WebAssembly/design/blob/master/BinaryEncoding.md#type-section
 #[derive(Debug)]
 pub struct WasmTypeSignature {
     pub start_position: usize,
@@ -51,8 +53,8 @@ pub struct WasmTypeSignature {
     pub has_i64_returns: bool,
 }
 
-// Interface for the binary where the function signatures are defined for an import function declaration / function body
-// https://github.com/WebAssembly/design/blob/master/BinaryEncoding.md#function-section
+/// Interface for the binary where the function signatures are defined for an import function declaration / function body
+/// https://github.com/WebAssembly/design/blob/master/BinaryEncoding.md#function-section
 #[derive(Debug)]
 pub struct WasmFunction {
     pub is_import: bool,
@@ -65,8 +67,8 @@ pub struct WasmFunction {
     pub has_i64_returns: bool,
 }
 
-// Interface for a call expression in a code section function body
-// https://github.com/WebAssembly/design/blob/master/BinaryEncoding.md#call-operators-described-here
+/// Interface for a call expression in a code section function body
+/// https://github.com/WebAssembly/design/blob/master/BinaryEncoding.md#call-operators-described-here
 #[derive(Debug)]
 pub struct WasmCall {
     pub position: usize,
@@ -75,7 +77,7 @@ pub struct WasmCall {
     pub function_body_index: usize,
 }
 
-// Overall psuedo-AST for our parsed wasm
+/// Overall psuedo-AST for our parsed wasm
 #[derive(Debug)]
 pub struct ParsedWasmInfo {
     pub wasm_type_signatures: Vec<WasmTypeSignature>,
@@ -84,7 +86,7 @@ pub struct ParsedWasmInfo {
     pub wasm_calls: Vec<WasmCall>,
 }
 
-// Function to walk the wasm binary, and produce a minimal psuedo-AST representation
+/// Function to walk the wasm binary, and produce a minimal psuedo-AST representation
 pub fn parse_wasm_vec(wasm_binary_vec: &mut Vec<u8>) -> ParsedWasmInfo {
     let mut wasm_type_signatures: Vec<WasmTypeSignature> = Vec::new();
     let mut wasm_sections: Vec<WasmSection> = Vec::new();
@@ -208,7 +210,7 @@ pub fn parse_wasm_vec(wasm_binary_vec: &mut Vec<u8>) -> ParsedWasmInfo {
             } => {
                 match ty {
                     wasmparser::ImportSectionEntryType::Function(index) => {
-                        let wasm_type_signature = wasm_type_signatures.get(index as usize).unwrap();
+                        let wasm_type_signature = &wasm_type_signatures[index as usize];
 
                         let wasm_function: WasmFunction = WasmFunction {
                             is_import: true,
@@ -227,7 +229,7 @@ pub fn parse_wasm_vec(wasm_binary_vec: &mut Vec<u8>) -> ParsedWasmInfo {
                 };
             }
             ParserState::FunctionSectionEntry(index) => {
-                let wasm_type_signature = wasm_type_signatures.get(index as usize).unwrap();
+                let wasm_type_signature = &wasm_type_signatures[index as usize];
 
                 let wasm_function: WasmFunction = WasmFunction {
                     is_import: false,

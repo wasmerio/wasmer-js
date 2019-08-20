@@ -1,5 +1,6 @@
 /* tslint:disable */
 /**
+ * i64 lowering that can be done by the browser
  * @param {any} passed_wasm_binary
  * @returns {any}
  */

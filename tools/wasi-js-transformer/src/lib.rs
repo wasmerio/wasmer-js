@@ -53,7 +53,7 @@ mod parser;
 mod transformer;
 mod utils;
 
-// i64 lowering that can be done by the browser
+/// i64 lowering that can be done by the browser
 #[wasm_bindgen]
 pub fn lower_i64_imports(passed_wasm_binary: &JsValue) -> js_sys::Uint8Array {
     let wasm_binary = js_sys::Uint8Array::new(passed_wasm_binary);
