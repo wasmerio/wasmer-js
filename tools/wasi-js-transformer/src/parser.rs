@@ -132,32 +132,21 @@ pub fn parse_wasm_vec(wasm_binary_vec: &mut Vec<u8>) -> ParsedWasmInfo {
                 }
 
                 // Convert their wasmparser's section code to our section code
-                let mut section_code = WasmSectionCode::Custom;
-                if code == wasmparser::SectionCode::Type {
-                    section_code = WasmSectionCode::Type;
-                } else if code == wasmparser::SectionCode::Import {
-                    section_code = WasmSectionCode::Import;
-                } else if code == wasmparser::SectionCode::Function {
-                    section_code = WasmSectionCode::Function;
-                } else if code == wasmparser::SectionCode::Table {
-                    section_code = WasmSectionCode::Table;
-                } else if code == wasmparser::SectionCode::Memory {
-                    section_code = WasmSectionCode::Memory;
-                } else if code == wasmparser::SectionCode::Global {
-                    section_code = WasmSectionCode::Global;
-                } else if code == wasmparser::SectionCode::Export {
-                    section_code = WasmSectionCode::Export;
-                } else if code == wasmparser::SectionCode::Start {
-                    section_code = WasmSectionCode::Start;
-                } else if code == wasmparser::SectionCode::Element {
-                    section_code = WasmSectionCode::Element;
-                } else if code == wasmparser::SectionCode::Code {
-                    section_code = WasmSectionCode::Code;
-                } else if code == wasmparser::SectionCode::Data {
-                    section_code = WasmSectionCode::Data;
-                } else if code == wasmparser::SectionCode::DataCount {
-                    section_code = WasmSectionCode::DataCount;
-                }
+                let section_code = match code {
+                    wasmparser::SectionCode::Type => WasmSectionCode::Type,
+                    wasmparser::SectionCode::Import => WasmSectionCode::Import,
+                    wasmparser::SectionCode::Function => WasmSectionCode::Function,
+                    wasmparser::SectionCode::Table => WasmSectionCode::Table,
+                    wasmparser::SectionCode::Memory => WasmSectionCode::Memory,
+                    wasmparser::SectionCode::Global => WasmSectionCode::Global,
+                    wasmparser::SectionCode::Export => WasmSectionCode::Export,
+                    wasmparser::SectionCode::Start => WasmSectionCode::Start,
+                    wasmparser::SectionCode::Element => WasmSectionCode::Element,
+                    wasmparser::SectionCode::Code => WasmSectionCode::Code,
+                    wasmparser::SectionCode::Data => WasmSectionCode::Data,
+                    wasmparser::SectionCode::DataCount => WasmSectionCode::DataCount,
+                    _ => WasmSectionCode::Custom,
+                };
 
                 let wasm_section = WasmSection {
                     code: section_code,
@@ -171,22 +160,11 @@ pub fn parse_wasm_vec(wasm_binary_vec: &mut Vec<u8>) -> ParsedWasmInfo {
                 wasm_sections.push(wasm_section);
             }
             ParserState::EndSection => {
-                let wasm_section_index = wasm_sections.len() - 1;
-                wasm_sections
-                    .get_mut(wasm_section_index)
-                    .unwrap()
-                    .end_position = position;
+                wasm_sections.last_mut().unwrap().end_position = position;
             }
             ParserState::TypeSectionEntry(ref state) => {
-                let has_i64_param = state.params.iter().any(|&x| match x {
-                    wasmparser::Type::I64 => true,
-                    _ => false,
-                });
-
-                let has_i64_returns = state.returns.iter().any(|&x| match x {
-                    wasmparser::Type::I64 => true,
-                    _ => false,
-                });
+                let has_i64_param = state.params.iter().any(|&x| x == wasmparser::Type::I64);
+                let has_i64_returns = state.returns.iter().any(|&x| x == wasmparser::Type::I64);
 
                 let num_params = state.params.len();
                 let num_returns = state.returns.len();
@@ -194,12 +172,12 @@ pub fn parse_wasm_vec(wasm_binary_vec: &mut Vec<u8>) -> ParsedWasmInfo {
                 let wasm_type_signature = WasmTypeSignature {
                     start_position: position,
                     end_position: 0,
-                    num_params: num_params,
+                    num_params,
                     num_params_byte_length: 0,
-                    num_returns: num_returns,
+                    num_returns,
                     num_returns_byte_length: 1,
-                    has_i64_param: has_i64_param,
-                    has_i64_returns: has_i64_returns,
+                    has_i64_param,
+                    has_i64_returns,
                 };
                 wasm_type_signatures.push(wasm_type_signature);
             }
@@ -273,13 +251,13 @@ pub fn parse_wasm_vec(wasm_binary_vec: &mut Vec<u8>) -> ParsedWasmInfo {
         .iter()
         .find(|&x| x.code == WasmSectionCode::Import)
         .unwrap();
-    for i in 0..wasm_functions.len() {
-        let function = wasm_functions.get_mut(i).unwrap();
-        if function.is_import && function.function_index == 0 {
+    wasm_functions
+        .iter_mut()
+        .filter(|function| function.is_import && function.function_index == 0)
+        .for_each(|function| {
             function.position +=
-                1 + import_section.size_byte_length + import_section.count_byte_length;
-        }
-    }
+                1 + import_section.size_byte_length + import_section.count_byte_length
+        });
 
     // NOTE: Type signature positions are buggy, and can return the wrong positions
     // Thus we need to do a second pass to correct some of our required values and add end positions

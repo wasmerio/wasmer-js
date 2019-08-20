@@ -235,11 +235,7 @@ fn add_entries_to_section(
     let mut position_offset: usize = 0;
 
     // Calculate how many bytes will be added to the end of the section
-    let mut added_bytes_from_entries: usize = 0;
-    for entry in entries.iter() {
-        added_bytes_from_entries += entry.len();
-    }
-
+    let added_bytes_from_entries: usize = entries.iter().map(|e| e.len()).sum();
     position_offset += added_bytes_from_entries;
 
     // Section size

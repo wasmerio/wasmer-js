@@ -4,6 +4,14 @@
 use crate::parser::*;
 use std::*;
 
+/// Constants for the different opcodes of the WASM Binary we will insert
+const WASM_OPCODE_I32: u8 = 0x7F;
+const WASM_OPCODE_I64: u8 = 0x7E;
+const WASM_OPCODE_LOCAL_GET: u8 = 0x20;
+const WASM_OPCODE_I32_WRAP_I64: u8 = 0xA7;
+const WASM_OPCODE_CALL: u8 = 0x10;
+const WASM_OPCODE_END: u8 = 0x0B;
+
 /// Type signatures that have been lowered
 #[derive(Debug, Clone)]
 pub struct LoweredSignature {
@@ -82,18 +90,19 @@ fn get_lowered_signature(
     for i in params_start..params_end {
         // If the param or return byte at the index is i64, set to i32
         let byte = lowered_type_signature.bytes.get_mut(i).unwrap();
-        if *byte == 0x7e {
-            *byte = 0x7f;
+        if *byte == WASM_OPCODE_I64 {
+            *byte = WASM_OPCODE_I32;
         }
     }
 
     // Edit the signature to only use i32 returns
     // TODO: Support multiple return values once formalized in the spec
+    assert!(type_signature.num_returns == 1);
     if type_signature.num_returns == 1 {
         let bytes_len = lowered_type_signature.bytes.len();
         let byte = lowered_type_signature.bytes.get_mut(bytes_len - 1).unwrap();
-        if *byte == 0x7e {
-            *byte = 0x7f;
+        if *byte == WASM_OPCODE_I64 {
+            *byte = WASM_OPCODE_I32;
         }
     }
 
@@ -122,19 +131,18 @@ fn get_trampoline_function(
     // Local get of all of our params
     for i in 0..type_signature.num_params {
         // local get
-        trampoline_function.bytes.push(0x20);
+        trampoline_function.bytes.push(WASM_OPCODE_LOCAL_GET);
         // local index
         trampoline_function.bytes.push(i as u8);
 
         //Get our param value type
-        if *wasm_binary_vec
-            .get(type_signature.start_position + 1 + type_signature.num_params_byte_length + i)
-            .unwrap()
-            == 0x7e
+        if (*wasm_binary_vec)
+            [type_signature.start_position + 1 + type_signature.num_params_byte_length + i]
+            == WASM_OPCODE_I64
         {
             // Param was an i64, wrap as i32
             // i32.wrap_i64
-            trampoline_function.bytes.push(0xa7);
+            trampoline_function.bytes.push(WASM_OPCODE_I32_WRAP_I64);
         }
     }
 
@@ -143,23 +151,23 @@ fn get_trampoline_function(
         let byte = *wasm_binary_vec
             .get(type_signature.end_position - 1)
             .unwrap();
-        if byte == 0x7e {
+        if byte == WASM_OPCODE_I64 {
             // Return was an i64, wrap as i32
             // i32.wrap_i64
-            trampoline_function.bytes.push(0xa7);
+            trampoline_function.bytes.push(WASM_OPCODE_I32_WRAP_I64);
         }
     }
 
     // Call the original function
     // Call
-    trampoline_function.bytes.push(0x10);
+    trampoline_function.bytes.push(WASM_OPCODE_CALL);
     // Function index
     trampoline_function
         .bytes
         .push(imported_i64_function.function_index as u8);
 
     // end
-    trampoline_function.bytes.push(0x0b);
+    trampoline_function.bytes.push(WASM_OPCODE_END);
 
     // Add the function body length
     trampoline_function
