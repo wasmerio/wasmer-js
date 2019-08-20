@@ -5,6 +5,7 @@ use crate::parser::*;
 use crate::utils::*;
 use std::*;
 
+// Function to add/edit bytes in the binary
 pub fn apply_transformations_to_wasm_binary_vec(
     mut wasm_binary_vec: &mut Vec<u8>,
     imported_i64_functions: &Vec<&WasmFunction>,
@@ -15,24 +16,12 @@ pub fn apply_transformations_to_wasm_binary_vec(
     wasm_functions: &Vec<WasmFunction>,
     wasm_calls: &Vec<WasmCall>,
 ) {
-    // TODO: Remove this:
-    let test_vec = vec![0xe2, 0x06];
-    let (test, _) = read_bytes_as_varunit(test_vec.as_slice());
-    console_log!(" ");
-    console_log!("Testing a conversion from bytes to varuint: {:?}", test);
-    console_log!(" ");
-
     // Must apply updates in order acording to the binary spec to preserve the position offset,
     // https://github.com/WebAssembly/design/blob/master/BinaryEncoding.md#high-level-structure
 
+    // Offset from the original position from our sections.
+    // This should be updated as bytes are added.
     let mut position_offset: usize = 0;
-
-    console_log!(" ");
-    console_log!("!!!!!!!!!!!!!!!!");
-    console_log!("Adding Lowered signatures...");
-    console_log!("!!!!!!!!!!!!!!!!");
-    console_log!(" ");
-    console_log!("Lowered Signatures: {:?}", lowered_signatures);
 
     // Add the new lowered signatures to the Types Section
     let types_section = wasm_sections
@@ -50,12 +39,6 @@ pub fn apply_transformations_to_wasm_binary_vec(
         lowered_signature_bytes,
         *types_section,
     );
-
-    console_log!(" ");
-    console_log!("!!!!!!!!!!!!!!!!");
-    console_log!("Updating Import signatures...");
-    console_log!("!!!!!!!!!!!!!!!!");
-    console_log!(" ");
 
     // Update the imports to point at the new lowered_signatures
     for i in 0..imported_i64_functions.len() {
@@ -120,27 +103,7 @@ pub fn apply_transformations_to_wasm_binary_vec(
         let byte_length_difference =
             (new_signature_bytes.len() - import_function_signature_byte_length) as usize;
         position_offset += byte_length_difference;
-
-        console_log!(" ");
-        console_log!(
-            "Original Import: {:?}, lowered sig: {:?}",
-            imported_i64_function,
-            new_signature_index
-        );
-
-        console_log!(" ");
-        console_log!(
-            "Original sig index: {:?}, new sig index: {:?}",
-            import_function_signature,
-            new_signature_index
-        );
     }
-
-    console_log!(" ");
-    console_log!("!!!!!!!!!!!!!!!!");
-    console_log!("Adding Trampoline signatures...");
-    console_log!("!!!!!!!!!!!!!!!!");
-    console_log!(" ");
 
     // Add the signatures for the trampoline functions in the Functions section
     let functions_section = wasm_sections
@@ -153,7 +116,6 @@ pub fn apply_transformations_to_wasm_binary_vec(
             get_u32_as_bytes_for_varunit(trampoline_function.signature_index as u32);
         trampoline_signatures.push(trampoline_signature_bytes.clone());
     }
-    console_log!("Trampoline Signatures: {:?}", trampoline_signatures);
     position_offset += add_entries_to_section(
         wasm_binary_vec,
         position_offset,
@@ -161,12 +123,6 @@ pub fn apply_transformations_to_wasm_binary_vec(
         trampoline_signatures,
         *functions_section,
     );
-
-    console_log!(" ");
-    console_log!("!!!!!!!!!!!!!!!!");
-    console_log!("Updating Calls in Code Section...");
-    console_log!("!!!!!!!!!!!!!!!!");
-    console_log!(" ");
 
     // Edit calls to the original function, to now point at the trampoline functions'
     // NOTE: Since Calls are a part of the function body, we need to calculate the offset
@@ -176,18 +132,10 @@ pub fn apply_transformations_to_wasm_binary_vec(
     for i in 0..imported_i64_functions.len() {
         let imported_i64_function = imported_i64_functions.get(i).unwrap();
 
-        console_log!(" ");
-        console_log!("===========================");
-        console_log!("Imported: {:?}", imported_i64_function);
-
         for wasm_call_to_old_function in wasm_calls
             .iter()
             .filter(|&x| x.function_index == imported_i64_function.function_index)
         {
-            console_log!(" ");
-            console_log!("Call: {:?}", wasm_call_to_old_function);
-            console_log!("Call in hex: {:x?}", wasm_call_to_old_function);
-
             // Get the old call
             let call_index_start_position =
                 position_offset + calls_byte_offset + wasm_call_to_old_function.position + 1;
@@ -196,18 +144,10 @@ pub fn apply_transformations_to_wasm_binary_vec(
                 call_index_end_position = wasm_binary_vec.len();
             }
 
-            console_log!(
-                "Call Bytes: {:?}",
-                wasm_binary_vec
-                    .get((call_index_start_position - 1)..call_index_end_position)
-                    .unwrap()
-            );
-
             let wasm_call_function_index_bytes = wasm_binary_vec
                 .get(call_index_start_position..call_index_end_position)
                 .unwrap();
-            let (call_index, call_index_byte_length) =
-                read_bytes_as_varunit(wasm_call_function_index_bytes);
+            let (_, call_index_byte_length) = read_bytes_as_varunit(wasm_call_function_index_bytes);
             remove_number_of_bytes_in_vec_at_position(
                 &mut wasm_binary_vec,
                 call_index_start_position,
@@ -231,27 +171,8 @@ pub fn apply_transformations_to_wasm_binary_vec(
                 (trampoline_function_bytes.len() - call_index_byte_length) as usize;
             calls_byte_offset += byte_length_difference;
 
-            console_log!(
-                "Original function: {:?}, new function: {:?}",
-                imported_i64_function,
-                trampoline_functions
-                    .get(trampoline_function_vec_index)
-                    .unwrap()
-            );
-            console_log!(
-                "Original function index: {:?}, new function vec index {:?}, new function index: {:?}",
-                call_index,
-                trampoline_function_vec_index,
-                trampoline_function_index
-            );
-            console_log!(
-                "Testing... {:?} - {:?} = {:?}",
-                trampoline_function_bytes.len(),
-                call_index_byte_length,
-                byte_length_difference
-            );
-
             // Also, we may need to update the function body size
+            // If the function signature had a larger byte_length
             if byte_length_difference > 0 {
                 // We need to subtract what we just added here, since the body size is BEFORE the call
                 let function_size_position = position_offset + calls_byte_offset
@@ -281,28 +202,9 @@ pub fn apply_transformations_to_wasm_binary_vec(
                 let function_size_byte_length_difference =
                     (new_function_size_bytes.len() - function_size_byte_length) as usize;
                 calls_byte_offset += function_size_byte_length_difference;
-
-                console_log!(
-                    "Original function body size: {:?}, new function body size: {:?}",
-                    function_size,
-                    new_function_size
-                );
-                console_log!(
-                    "Testing... {:?} - {:?} = {:?}",
-                    new_function_size_bytes.len(),
-                    function_size_byte_length,
-                    function_size_byte_length_difference
-                );
             }
         }
     }
-
-    console_log!(" ");
-    console_log!("!!!!!!!!!!!!!!!!");
-    console_log!("Adding Trampoline functions...");
-    console_log!("!!!!!!!!!!!!!!!!");
-    console_log!(" ");
-    console_log!("Trampoline Functions: {:?}", trampoline_functions);
 
     // Add the trampoline functions to the code section
     let code_section = wasm_sections
@@ -313,6 +215,7 @@ pub fn apply_transformations_to_wasm_binary_vec(
     for trampoline_function in trampoline_functions.iter() {
         trampoline_function_bytes.push(trampoline_function.bytes.clone());
     }
+
     position_offset += add_entries_to_section(
         wasm_binary_vec,
         position_offset,
@@ -324,6 +227,11 @@ pub fn apply_transformations_to_wasm_binary_vec(
     //Done!
 }
 
+// Function to add "entries" (E.g Types in the Type section),
+// to a section. And update it's count of entries, as well as length
+// Starting offset is the overall position offset for the start of the section
+// Insertion offset is the offset for the body of the section (Useful for sections like the
+// Code section, which need it's hader, body, and tail modified)
 fn add_entries_to_section(
     mut wasm_binary_vec: &mut Vec<u8>,
     starting_offset: usize,
@@ -331,25 +239,8 @@ fn add_entries_to_section(
     entries: Vec<Vec<u8>>,
     section: WasmSection,
 ) -> usize {
-    console_log!(" ");
-    console_log!("!!!!!!!!!!!!!!!!");
-    console_log!("Added Entries to section...");
-    console_log!("!!!!!!!!!!!!!!!!");
-    console_log!(" ");
-    console_log!("Section: {:?}", section);
-    console_log!("Entries: {:?}", entries);
-    console_log!("Starting offset: {:?}", starting_offset);
-    console_log!("Insertion offset: {:?}", insertion_offset);
-    console_log!(
-        "Starting offset + start position: {:?}",
-        starting_offset + section.start_position
-    );
-    let start_pos = starting_offset + section.start_position;
-    console_log!(
-        "Starting bytes of (starting offset + start position)..+10 in hex: {:x?}",
-        wasm_binary_vec.get((start_pos)..(start_pos + 10)).unwrap()
-    );
-
+    // Position offset that is calculated while adding entries, and returned.
+    // This is then added to the overall position offset.
     let mut position_offset: usize = 0;
 
     // Calculate how many bytes will be added to the end of the section
@@ -411,7 +302,10 @@ fn add_entries_to_section(
         (number_of_entries_byte_length - new_number_of_entries_bytes.len()) as usize;
     position_offset += section_count_byte_length_difference;
 
-    // Lastly, add the entries
+    // Add the bytes of the entries
+    // previous_entry_offset is the number of bytes added
+    // byte inserting the previous entries (this is to make sure
+    // entries are added in order).
     let mut previous_entry_offset = 0;
     for entry in entries.iter() {
         for i in 0..entry.len() {
@@ -428,18 +322,6 @@ fn add_entries_to_section(
         }
         previous_entry_offset += entry.len();
     }
-
-    console_log!("Starting length: {:?}", section_length);
-    console_log!("New length: {:?}", new_section_length);
-    console_log!("Starting count: {:?}", number_of_entries);
-    console_log!("New count: {:?}", new_number_of_entries);
-    console_log!(
-        "offset: {:?}, bytes added: {:?}, len byte len diff: {:?}, count byte len diff: {:?}",
-        position_offset,
-        added_bytes_from_entries,
-        section_length_byte_length_difference,
-        section_count_byte_length_difference
-    );
 
     position_offset += insertion_offset;
     return position_offset;

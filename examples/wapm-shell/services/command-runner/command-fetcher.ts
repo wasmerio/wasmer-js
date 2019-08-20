@@ -117,22 +117,12 @@ const getWasmModuleFromUrl = async (
     let buffer = await fetched.arrayBuffer();
     let binary = new Uint8Array(buffer);
 
-    // Modify the binary
-    if (true) {
-      const start = performance.now();
-      await wasmInit(wasmJsTransformerWasmUrl);
-      binary = lower_i64_imports(binary);
-      console.log("time to transform", performance.now() - start);
-    }
-
-    console.log("binary", binary);
-    console.log("binary.buffer", binary.buffer);
-
-    console.log("is valid?", WebAssembly.validate(binary));
+    // Make Modifications to the binary to support browser side WASI.
+    await wasmInit(wasmJsTransformerWasmUrl);
+    binary = lower_i64_imports(binary);
 
     // Compile the buffer
     const wasmModule = await WebAssembly.compile(binary);
-    console.log("Modulke", wasmModule);
     return wasmModule;
   }
 };

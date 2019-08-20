@@ -2,9 +2,9 @@
 // As well as modify the binary to point at the generated trampolines.
 
 use crate::parser::*;
-use crate::utils::*;
 use std::*;
 
+// Type signatures that have been lowered
 #[derive(Debug)]
 pub struct LoweredSignature {
     pub original_signature_index: usize,
@@ -13,6 +13,7 @@ pub struct LoweredSignature {
     pub num_returns: usize,
 }
 
+// Trampoline functions that replace original import calls, but truncate its i64s.
 #[derive(Debug)]
 pub struct TrampolineFunction {
     pub signature_index: usize,
@@ -21,6 +22,7 @@ pub struct TrampolineFunction {
     pub num_returns: usize,
 }
 
+// Function to generate trampoline functions and lowered type signaturtes
 pub fn generate_trampolines_and_signatures(
     wasm_binary_vec: &mut Vec<u8>,
     imported_i64_functions: &Vec<&WasmFunction>,
@@ -52,6 +54,7 @@ pub fn generate_trampolines_and_signatures(
     return (trampoline_functions, lowered_signatures);
 }
 
+// Function to generate a lowered type signature
 fn get_lowered_signature(
     wasm_binary_vec: &Vec<u8>,
     type_signature: &WasmTypeSignature,
@@ -78,7 +81,7 @@ fn get_lowered_signature(
     let params_end = params_start + type_signature.num_params;
     for i in params_start..params_end {
         // If the param or return byte at the index is i64, set to i32
-        let mut byte = lowered_type_signature.bytes.get_mut(i).unwrap();
+        let byte = lowered_type_signature.bytes.get_mut(i).unwrap();
         if *byte == 0x7e {
             *byte = 0x7f;
         }
@@ -98,6 +101,7 @@ fn get_lowered_signature(
     return lowered_type_signature;
 }
 
+// Function to generate a trampoline function
 fn get_trampoline_function(
     wasm_binary_vec: &Vec<u8>,
     imported_i64_function: &&WasmFunction,

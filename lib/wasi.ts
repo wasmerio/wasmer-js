@@ -462,6 +462,7 @@ class WASI {
         return WASI_ESUCCESS;
       },
       clock_time_get: (clockId: number, precision: number, time: number) => {
+        this.refreshMemory();
         const n = now(clockId);
         if (n === null) {
           return WASI_EINVAL;

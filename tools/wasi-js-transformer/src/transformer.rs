@@ -1,37 +1,14 @@
 // Main transformation logic
-// TODO: Rename this
 
 use crate::applier::*;
 use crate::generator::*;
 use crate::parser::*;
-use crate::utils::*;
 use std::*;
 
-// ===Mutating the Binary===
-// 1. Find if an imported function has i64. If it does, continue...
-// 2. Make a copy of its function signature
-// 3. Modify the function signature copy to only use i32
-// 4. Create a tampoline function that points to the old function signature, and wraps i64
-// 5. Edit the original function to point at the new function signature
-// 6. Edit calls to the original function, to now point at the trampoline function
-// 7. Add the copied function signature. Update Types section
-// 8. Add the new functions to function section (Where the signature is defined, which the body is later in the code section)
-// 9. Add the function body. Update Code section
+// Function to lower i64 imports for a wasm binary vec
 pub fn lower_i64_wasm_for_wasi_js(mut wasm_binary_vec: &mut Vec<u8>) {
-    console_log!(" ");
-    console_log!("!!!!!!!!!!!!!!!!");
-    console_log!("Parsing...");
-    console_log!("!!!!!!!!!!!!!!!!");
-    console_log!(" ");
-
     // First parse the wasm vec
     let parsed_info = parse_wasm_vec(&mut wasm_binary_vec);
-
-    console_log!(
-        "Number Of Signatures {:?}",
-        parsed_info.wasm_type_signatures.len()
-    );
-    console_log!("Number Of Functions {:?}", parsed_info.wasm_functions.len());
 
     // Get our imported wasm_functions
     let imported_i64_function_filter = parsed_info
@@ -44,12 +21,6 @@ pub fn lower_i64_wasm_for_wasi_js(mut wasm_binary_vec: &mut Vec<u8>) {
         return;
     }
 
-    console_log!(" ");
-    console_log!("!!!!!!!!!!!!!!!!");
-    console_log!("Generating functions...");
-    console_log!("!!!!!!!!!!!!!!!!");
-    console_log!(" ");
-
     // Get our imported functions
     let imported_i64_functions: Vec<_> = imported_i64_function_filter.clone().collect();
 
@@ -59,12 +30,6 @@ pub fn lower_i64_wasm_for_wasi_js(mut wasm_binary_vec: &mut Vec<u8>) {
         &imported_i64_functions,
         &parsed_info.wasm_type_signatures,
     );
-
-    console_log!(" ");
-    console_log!("!!!!!!!!!!!!!!!!");
-    console_log!("Updating binary...");
-    console_log!("!!!!!!!!!!!!!!!!");
-    console_log!(" ");
 
     // Update the binary to point at the trampoline and signatures
     // This should be done in order, in order to not have to do continuous passes of the position.

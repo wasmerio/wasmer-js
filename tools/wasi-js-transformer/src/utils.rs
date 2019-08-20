@@ -1,5 +1,9 @@
 // Utility functions
 
+// Read a set of bytes as a varuint32
+// https://github.com/WebAssembly/design/blob/master/BinaryEncoding.md#varuintn
+// https://en.wikipedia.org/wiki/LEB128
+// E.g https://docs.rs/wasmparser/0.35.3/src/wasmparser/binary_reader.rs.html#436
 pub fn read_bytes_as_varunit(bytes: &[u8]) -> (u32, usize) {
     if bytes.len() < 1 {
         panic!("Did not pass enough bytes")
@@ -29,6 +33,7 @@ pub fn read_bytes_as_varunit(bytes: &[u8]) -> (u32, usize) {
     return (response, byte_length);
 }
 
+// Take a u32, and output a vec of bytes that represent the value as a varuint32
 pub fn get_u32_as_bytes_for_varunit(value: u32) -> Vec<u8> {
     let mut response = Vec::new();
 
@@ -37,12 +42,12 @@ pub fn get_u32_as_bytes_for_varunit(value: u32) -> Vec<u8> {
         return response;
     }
 
-    let mut currentValue: u32 = value;
+    let mut current_value: u32 = value;
 
-    while currentValue > 0 {
-        let mut byte = (currentValue & 0x7F) as u8;
-        currentValue = currentValue >> 7;
-        if currentValue > 0 {
+    while current_value > 0 {
+        let mut byte = (current_value & 0x7F) as u8;
+        current_value = current_value >> 7;
+        if current_value > 0 {
             // Set the top (7th) bit
             byte = byte | 0x80
         }
@@ -52,12 +57,14 @@ pub fn get_u32_as_bytes_for_varunit(value: u32) -> Vec<u8> {
     return response;
 }
 
+// Function to insert bytes into a vec at the position
 pub fn insert_bytes_into_vec_at_position(vec: &mut Vec<u8>, position: usize, bytes: Vec<u8>) {
     for i in 0..bytes.len() {
         vec.insert(position + i, bytes[i]);
     }
 }
 
+// Function to remove bytes in a vec at the position
 pub fn remove_number_of_bytes_in_vec_at_position(
     vec: &mut Vec<u8>,
     position: usize,

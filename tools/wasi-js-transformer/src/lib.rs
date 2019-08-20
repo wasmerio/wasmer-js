@@ -11,6 +11,7 @@ pub fn set_panic_hook() {
     console_error_panic_hook::set_once();
 }
 
+#[allow(unused_imports)]
 use js_sys::*;
 use std::*;
 use wasm_bindgen::prelude::*;
@@ -21,6 +22,7 @@ use wasm_bindgen::prelude::*;
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
+// Add support for browser console.log
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_namespace = console)]
@@ -31,6 +33,7 @@ extern "C" {
 #[macro_export]
 macro_rules! console_log {
     ($($t:tt)*) => {
+        // TODO: Find out how to use this macro from child modules
         // log(&format_args!($($t)*).to_string());
     };
 }
@@ -50,6 +53,7 @@ mod parser;
 mod transformer;
 mod utils;
 
+// i64 lowering that can be done by the browser
 #[wasm_bindgen]
 pub fn lower_i64_imports(passed_wasm_binary: &JsValue) -> js_sys::Uint8Array {
     let wasm_binary = js_sys::Uint8Array::new(passed_wasm_binary);
