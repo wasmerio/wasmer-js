@@ -20,12 +20,37 @@ import browserBindings from "./bindings/browser";
 defaultBindings = browserBindings;
 ROLLUP_REPLACE_BROWSER*/
 
-/// This project is based from the Node implementation made by Gus Caplan
-/// https://github.com/devsnek/node-wasi
-/// However, JavaScript WASI is focused on:
-/// * Bringing WASI to the Browsers
-/// * Make easy to plug different filesystems
-/// * Provide a type-safe api using Typescript
+/*
+
+This project is based from the Node implementation made by Gus Caplan
+https://github.com/devsnek/node-wasi
+However, JavaScript WASI is focused on:
+ * Bringing WASI to the Browsers
+ * Make easy to plug different filesystems
+ * Provide a type-safe api using Typescript
+
+
+Copyright 2019 Gus Caplan
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to
+deal in the Software without restriction, including without limitation the
+rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+IN THE SOFTWARE.
+
+ */
 
 import {
   WASI_ESUCCESS,
@@ -140,12 +165,12 @@ const stat = (wasi: WASI, fd: number): File => {
       stats
     );
     entry.filetype = filetype;
-    // if (entry.rights === undefined) {
-    //   entry.rights = {
-    //     base: rightsBase as bigint,
-    //     inheriting: rightsInheriting
-    //   }
-    // }
+    if (entry.rights === undefined) {
+      entry.rights = {
+        base: rightsBase,
+        inheriting: rightsInheriting
+      };
+    }
   }
   return entry;
 };
@@ -437,11 +462,12 @@ class WASI {
         return WASI_ESUCCESS;
       },
       clock_time_get: (clockId: number, precision: number, time: number) => {
+        this.refreshMemory();
         const n = now(clockId);
         if (n === null) {
           return WASI_EINVAL;
         }
-        this.view.setBigUint64(time, n, true);
+        this.view.setBigUint64(time, BigInt(n), true);
         return WASI_ESUCCESS;
       },
       fd_advise: wrap(
@@ -738,11 +764,29 @@ class WASI {
       fd_seek: wrap(
         (fd: number, offset: number, whence: number, newOffsetPtr: number) => {
           const stats = CHECK_FD(fd, WASI_RIGHT_FD_SEEK);
+          // TODO: Why?
+          // Refreshing memory here either way
+          this.refreshMemory();
           throw new Error("fd_seek to be implemented (without binding)");
+
+          // const newOffset = binding.seek(stats.real, offset, {
+          //  [WASI_WHENCE_CUR]: binding.SEEK_CUR,
+          //  [WASI_WHENCE_END]: binding.SEEK_END,
+          //  [WASI_WHENCE_SET]: binding.SEEK_SET,
+          // }[whence]);
+          // if (typeof newOffset === 'number') { // errno
+          // throw newOffset;
+          // }
+          // this.refreshMemory();
+          // this.view.setBigUint64(newOffsetPtr, newOffset, true);
+          // return WASI_ESUCCESS;
         }
       ),
       fd_tell: wrap((fd: number, offsetPtr: number) => {
         const stats = CHECK_FD(fd, WASI_RIGHT_FD_TELL);
+        // TODO: Why?
+        // Refreshing memory here either way
+        this.refreshMemory();
         throw new Error("fd_tell to be implemented (without binding)");
         // const currentOffset = binding.seek(stats.real, BigInt(0), SEEK_CUR)
         // if (typeof currentOffset === 'number') {

@@ -41,7 +41,9 @@ const replaceBrowserOptions = {
   delimiters: ["", ""],
   values: {
     "/*ROLLUP_REPLACE_BROWSER": "",
-    "ROLLUP_REPLACE_BROWSER*/": ""
+    "ROLLUP_REPLACE_BROWSER*/": "",
+    // Replace a weird global import object that conflicts with rollup-plugin-node-globals
+    "module = import.meta.url.replace": "// Replace by rollup"
   }
 };
 
@@ -51,7 +53,7 @@ let plugins = [
     plugins: [postcssImport()]
   }),
   url({
-    limit: 10 * 1024,
+    limit: 1 * 1024,
     include: ["**/*.wasm"],
     emitFiles: true
   }),

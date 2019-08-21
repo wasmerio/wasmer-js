@@ -1,4 +1,12 @@
-import hrtime from "../lib/polyfills/hrtime.bigint";
+import { BigIntPolyfillType } from "../lib/polyfills/bigint";
+import getBigIntHrtime from "../lib/polyfills/hrtime.bigint";
+
+let hrtime: (time?: [number, number]) => BigIntPolyfillType = getBigIntHrtime(
+  process.hrtime
+);
+if (process.hrtime && process.hrtime.bigint) {
+  hrtime = process.hrtime.bigint;
+}
 
 const waitForTime = (milliseconds: number) => {
   return new Promise(resolve => {

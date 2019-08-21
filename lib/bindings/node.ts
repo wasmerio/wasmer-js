@@ -4,10 +4,18 @@ const { isatty: isTTY } = require("tty");
 const path = require("path");
 
 import { WASIBindings } from "../wasi";
-import hrtime from "../polyfills/hrtime.bigint";
+import { BigIntPolyfillType } from "../polyfills/bigint";
+import getBigIntHrtime from "../polyfills/hrtime.bigint";
+
+let bigIntHrtime: (
+  time?: [number, number]
+) => BigIntPolyfillType = getBigIntHrtime(process.hrtime);
+if (process.hrtime && process.hrtime.bigint) {
+  bigIntHrtime = process.hrtime.bigint;
+}
 
 const bindings: WASIBindings = {
-  hrtime: hrtime,
+  hrtime: bigIntHrtime,
   exit: process.exit,
   kill: (signal: string) => {
     process.kill(process.pid, signal);

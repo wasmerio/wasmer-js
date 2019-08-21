@@ -12,7 +12,7 @@ import Process from "../process/process";
 
 import { CommandOptions, Command } from "./command";
 
-import CommandCache from "./command-cache";
+import CommandFetcher from "./command-fetcher";
 
 let processWorkerBlobUrl: string | undefined = undefined;
 const getBlobUrlForProcessWorker = async (xterm: Terminal) => {
@@ -48,8 +48,8 @@ const getBlobUrlForProcessWorker = async (xterm: Terminal) => {
 
 const getCommandOptionsFromAST = (
   ast: any,
-  commandCache: CommandCache,
-  commandCacheCallback: Function,
+  commandFetcher: CommandFetcher,
+  commandFetcherCallback: Function,
   xterm?: Terminal
 ): Promise<Array<CommandOptions>> => {
   // The array of command options we are returning
@@ -73,8 +73,8 @@ const getCommandOptionsFromAST = (
       if (astRedirect && astRedirect.type === "pipe") {
         const redirectedCommandOptions = await getCommandOptionsFromAST(
           astRedirect.command,
-          commandCache,
-          commandCacheCallback,
+          commandFetcher,
+          commandFetcherCallback,
           xterm
         );
         // Add the child options to our command options
@@ -84,7 +84,7 @@ const getCommandOptionsFromAST = (
   };
 
   const getWasmModuleTask = async () => {
-    return await commandCache.getWasmModuleForCommandName(command, xterm);
+    return await commandFetcher.getWasmModuleForCommandName(command, xterm);
   };
 
   return redirectTask()
@@ -95,13 +95,13 @@ const getCommandOptionsFromAST = (
         env,
         module: wasmModule
       });
-      commandCacheCallback(command);
+      commandFetcherCallback(command);
       return commandOptions;
     });
 };
 
 export default class CommandRunner {
-  commandCache: CommandCache;
+  commandFetcher: CommandFetcher;
   commandOptionsForProcessesToRun: Array<any>;
   spawnedProcessObjects: Array<any>;
   spawnedProcesses: number;
@@ -113,15 +113,15 @@ export default class CommandRunner {
   commandString: string;
 
   commandEndCallback: Function;
-  commandCacheCallback: Function;
+  commandFetcherCallback: Function;
 
   constructor(
     xterm: Terminal,
     commandString: string,
     commandEndCallback: Function,
-    commandCacheCallback: Function
+    commandFetcherCallback: Function
   ) {
-    this.commandCache = new CommandCache();
+    this.commandFetcher = new CommandFetcher();
     this.commandOptionsForProcessesToRun = [];
     this.spawnedProcessObjects = [];
     this.spawnedProcesses = 0;
@@ -134,7 +134,7 @@ export default class CommandRunner {
     this.commandString = commandString;
 
     this.commandEndCallback = commandEndCallback;
-    this.commandCacheCallback = commandCacheCallback;
+    this.commandFetcherCallback = commandFetcherCallback;
   }
 
   async runCommand() {
@@ -151,12 +151,14 @@ export default class CommandRunner {
       // Translate our AST into Command Options
       this.commandOptionsForProcessesToRun = await getCommandOptionsFromAST(
         commandAst[0],
-        this.commandCache,
-        this.commandCacheCallback,
+        this.commandFetcher,
+        this.commandFetcherCallback,
         this.xterm
       );
     } catch (c) {
+      this.xterm.write("\r\n");
       this.xterm.write(`wapm shell: parse error (${c.toString()})\r\n`);
+      console.error(c);
       this.commandEndCallback();
       return;
     }
