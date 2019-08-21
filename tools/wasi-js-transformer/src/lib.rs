@@ -46,7 +46,7 @@ macro_rules! console_log {
     }
 }
 
-// Import our modules
+// Declare our modules in scope
 mod applier;
 mod generator;
 mod parser;

@@ -27,7 +27,7 @@ pub fn apply_transformations_to_wasm_binary_vec(
     let types_section = wasm_sections
         .iter()
         .find(|&x| x.code == WasmSectionCode::Type)
-        .unwrap();
+        .ok_or("Couldn't find types section")?;
     let lowered_signature_bytes = lowered_signatures
         .iter()
         .cloned()
@@ -37,7 +37,7 @@ pub fn apply_transformations_to_wasm_binary_vec(
         wasm_binary_vec,
         position_offset,
         0,
-        lowered_signature_bytes,
+        &lowered_signature_bytes,
         *types_section,
     )?;
 
@@ -104,7 +104,7 @@ pub fn apply_transformations_to_wasm_binary_vec(
     let functions_section = wasm_sections
         .iter()
         .find(|&x| x.code == WasmSectionCode::Function)
-        .unwrap();
+        .ok_or("Couldn't find functions section")?;
     let trampoline_signatures = trampoline_functions
         .iter()
         .cloned()
@@ -114,7 +114,7 @@ pub fn apply_transformations_to_wasm_binary_vec(
         wasm_binary_vec,
         position_offset,
         0,
-        trampoline_signatures,
+        &trampoline_signatures,
         *functions_section,
     )?;
 
@@ -201,7 +201,7 @@ pub fn apply_transformations_to_wasm_binary_vec(
     let code_section = wasm_sections
         .iter()
         .find(|&x| x.code == WasmSectionCode::Code)
-        .unwrap();
+        .ok_or("Couldn't find code section")?;
 
     let trampoline_function_bytes = trampoline_functions
         .iter()
@@ -212,7 +212,7 @@ pub fn apply_transformations_to_wasm_binary_vec(
         wasm_binary_vec,
         position_offset,
         calls_byte_offset,
-        trampoline_function_bytes,
+        &trampoline_function_bytes,
         *code_section,
     )?;
 
@@ -229,7 +229,7 @@ fn add_entries_to_section(
     wasm_binary_vec: &mut Vec<u8>,
     starting_offset: usize,
     insertion_offset: usize,
-    entries: Vec<Vec<u8>>,
+    entries: &[Vec<u8>],
     section: WasmSection,
 ) -> Result<usize, &'static str> {
     // Position offset that is calculated while adding entries, and returned.
