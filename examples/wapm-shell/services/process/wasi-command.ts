@@ -59,9 +59,9 @@ export default class WASICommand extends Command {
     this.pipedStdin = "";
 
     this.wasi = new WASI({
-      preopenDirectories: {},
-      env: options.env,
-      args: options.args,
+      // preopenDirectories: {},
+      // env: options.env,
+      // args: options.args,
       bindings: {
         ...WASI.defaultBindings,
         fs: this.wasmerFileSystem.fs
@@ -110,6 +110,7 @@ export default class WASICommand extends Command {
     length: number = stdoutBuffer.byteLength,
     position?: number
   ) {
+    console.log(new TextDecoder("utf-8").decode(stdoutBuffer));
     if (this.stdoutCallback) {
       this.stdoutCallback(stdoutBuffer);
     }
