@@ -87,13 +87,10 @@ fn get_lowered_signature(
     // Edit the signature to only use i32 Params
     let params_start = 1 + type_signature.num_params_byte_length;
     let params_end = params_start + type_signature.num_params;
-    for i in params_start..params_end {
-        // If the param or return byte at the index is i64, set to i32
-        let byte = lowered_type_signature.bytes.get_mut(i).unwrap();
-        if *byte == WASM_OPCODE_I64 {
-            *byte = WASM_OPCODE_I32;
-        }
-    }
+    lowered_type_signature.bytes[params_start..params_end]
+        .iter_mut()
+        .filter(|b| **b == 0x7e)
+        .for_each(|b| *b = 0x7f);
 
     // Edit the signature to only use i32 returns
     // TODO: Support multiple return values once formalized in the spec

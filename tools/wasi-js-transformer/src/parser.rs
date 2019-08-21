@@ -112,7 +112,8 @@ pub fn parse_wasm_vec(wasm_binary_vec: &mut Vec<u8>) -> ParsedWasmInfo {
                     wasm_binary_vec
                         .get(size_position..(size_position + 4))
                         .unwrap(),
-                );
+                )
+                .unwrap();
 
                 let mut count = 0;
                 let mut count_byte_length = 0;
@@ -125,7 +126,8 @@ pub fn parse_wasm_vec(wasm_binary_vec: &mut Vec<u8>) -> ParsedWasmInfo {
                             wasm_binary_vec
                                 .get(count_position..(count_position + 4))
                                 .unwrap(),
-                        );
+                        )
+                        .unwrap();
                         count = response;
                         count_byte_length = byte_length;
                     }
@@ -262,19 +264,17 @@ pub fn parse_wasm_vec(wasm_binary_vec: &mut Vec<u8>) -> ParsedWasmInfo {
     // NOTE: Type signature positions are buggy, and can return the wrong positions
     // Thus we need to do a second pass to correct some of our required values and add end positions
     // (The order of signatures will be correct, but position will be completely wrong)
-    let types_section = wasm_sections
-        .iter()
-        .find(|&x| x.code == WasmSectionCode::Type)
-        .unwrap();
-    let types_section_entries_position = types_section.start_position
-        + types_section.size_byte_length
-        + types_section.count_byte_length
-        + 1;
-    for i in 0..wasm_type_signatures.len() + 1 {
-        if i == 0 {
-            wasm_type_signatures.get_mut(0).unwrap().start_position =
-                types_section_entries_position;
-        } else {
+    if !wasm_type_signatures.is_empty() {
+        let types_section = wasm_sections
+            .iter()
+            .find(|&x| x.code == WasmSectionCode::Type)
+            .unwrap();
+        let types_section_entries_position = types_section.start_position
+            + types_section.size_byte_length
+            + types_section.count_byte_length
+            + 1;
+        wasm_type_signatures.first_mut().unwrap().start_position = types_section_entries_position;
+        for i in 1..wasm_type_signatures.len() + 1 {
             let previous_type_signature = wasm_type_signatures.get_mut(i - 1).unwrap();
 
             // Get the byte length of our values to determine the correct posisition
@@ -283,7 +283,8 @@ pub fn parse_wasm_vec(wasm_binary_vec: &mut Vec<u8>) -> ParsedWasmInfo {
                 wasm_binary_vec
                     .get(num_params_position..(num_params_position + 4))
                     .unwrap(),
-            );
+            )
+            .unwrap();
             previous_type_signature.num_params_byte_length = num_params_byte_length;
 
             let new_position = previous_type_signature.start_position

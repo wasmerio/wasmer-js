@@ -4,16 +4,16 @@
 // https://github.com/WebAssembly/design/blob/master/BinaryEncoding.md#varuintn
 // https://en.wikipedia.org/wiki/LEB128
 // E.g https://docs.rs/wasmparser/0.35.3/src/wasmparser/binary_reader.rs.html#436
-pub fn read_bytes_as_varunit(bytes: &[u8]) -> (u32, usize) {
+pub fn read_bytes_as_varunit(bytes: &[u8]) -> Result<(u32, usize), &'static str> {
     if bytes.len() < 1 {
-        panic!("Did not pass enough bytes")
+        return Err("Did not pass enough bytes");
     }
 
     // Check if it is only a single byte
     if (bytes[0] & 0x80) == 0 {
-        return (bytes[0] as u32, 1);
+        return Ok((bytes[0] as u32, 1));
     } else if bytes.len() < 2 {
-        panic!("Error decoding the varuint32, the high bit was incorrectly set");
+        return Err("Error decoding the varuint32, the high bit was incorrectly set");
     }
 
     let mut response: u32 = 0;
@@ -30,7 +30,7 @@ pub fn read_bytes_as_varunit(bytes: &[u8]) -> (u32, usize) {
         shift += 7;
     }
 
-    return (response, byte_length);
+    return Ok((response, byte_length));
 }
 
 // Take a u32, and output a vec of bytes that represent the value as a varuint32
