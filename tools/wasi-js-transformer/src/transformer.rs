@@ -46,6 +46,7 @@ pub fn lower_i64_wasm_for_wasi_js(mut wasm_binary_vec: &mut Vec<u8>) -> Result<(
     );
 }
 
+#[cfg(test)]
 #[test]
 fn converts() {
     // Run tests for the following strings
