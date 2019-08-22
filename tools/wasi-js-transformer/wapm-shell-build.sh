@@ -32,7 +32,7 @@ echo "Moving pkg to wapm-shell"
 echo "============================================="
 echo " "
 
-cp -r pkg/* ../../examples/wapm-shell/assets/wasi-js-transformer
+cp -r pkg/ ../../examples/wapm-shell/assets/wasi-js-transformer
 rm ../../examples/wapm-shell/assets/wasi-js-transformer/.gitignore || true
 rm ../../examples/wapm-shell/assets/wasi-js-transformer/README.md || true
 
