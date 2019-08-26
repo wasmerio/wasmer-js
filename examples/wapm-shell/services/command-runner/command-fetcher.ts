@@ -26,11 +26,15 @@ import dukTapeUrl from "../../assets/duk.wasm";
 // @ts-ignore
 import dukTapeLoweredUrl from "../../assets/duk-lowered.wasm";
 // @ts-ignore
+import wapmLoweredUrl from "../../assets/wapm-lowered.wasm";
+// @ts-ignore
 import testResultUrl from "../../assets/test_result.wasm";
 // @ts-ignore
 import argtestUrl from "../../assets/argtest.wasm";
 // @ts-ignore
 import gettimeofdayUrl from "../../assets/gettimeofday.wasm";
+// @ts-ignore
+import gettimeofdayLoweredUrl from "../../assets/gettimeofday-lowered.wasm";
 
 let commandToUrlCache: { [key: string]: string } = {
   matrixlowered: matrixLoweredUrl,
@@ -38,9 +42,11 @@ let commandToUrlCache: { [key: string]: string } = {
   c: clockTimeGetUrl,
   p: pathOpenGetUrl,
   g: gettimeofdayUrl,
+  gl: gettimeofdayLoweredUrl,
   qjs: quickJsUrl,
   duk: dukTapeUrl,
   duklow: dukTapeLoweredUrl,
+  w: wapmLoweredUrl,
   tr: testResultUrl,
   two: twoImportsUrl,
   arg: argtestUrl
@@ -111,6 +117,30 @@ const getWapmUrlForCommandName = async (commandName: String) => {
     });
 };
 
+// TODO: Remove these testing fucntions
+const downloadBlob = function(data: any, fileName: any, mimeType: any) {
+  let blob: any;
+  let url: any;
+  blob = new Blob([data], {
+    type: mimeType
+  });
+  url = window.URL.createObjectURL(blob);
+  downloadURL(url, fileName);
+  setTimeout(function() {
+    return window.URL.revokeObjectURL(url);
+  }, 1000);
+};
+
+const downloadURL = function(data: any, fileName: any) {
+  var a;
+  a = document.createElement("a");
+  a.href = data;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+};
+
 const getWasmModuleFromUrl = async (
   url: string
 ): Promise<WebAssembly.Module> => {
@@ -125,7 +155,11 @@ const getWasmModuleFromUrl = async (
 
     // Make Modifications to the binary to support browser side WASI.
     await wasmInit(wasmJsTransformerWasmUrl);
+    console.log("Binary size", binary.length);
     binary = lower_i64_imports(binary);
+    console.log("Binary size", binary.length);
+
+    // downloadBlob(binary, 'wapm-lowered.wasm', 'application/octet-stream');
 
     // Compile the buffer
     const wasmModule = await WebAssembly.compile(binary);

@@ -55,14 +55,8 @@ mod utils;
 
 /// i64 lowering that can be done by the browser
 #[wasm_bindgen]
-pub fn lower_i64_imports(passed_wasm_binary: &JsValue) -> js_sys::Uint8Array {
-    let wasm_binary = js_sys::Uint8Array::new(passed_wasm_binary);
-    let mut wasm_binary_vec = vec![0; wasm_binary.length() as usize];
-    wasm_binary.copy_to(&mut wasm_binary_vec);
-    transformer::lower_i64_wasm_for_wasi_js(&mut wasm_binary_vec).unwrap();
-    let response: js_sys::Uint8Array;
-    unsafe {
-        response = js_sys::Uint8Array::view(wasm_binary_vec.as_slice());
-    }
-    return response;
+pub fn lower_i64_imports(mut wasm_binary: Vec<u8>) -> Vec<u8> {
+    log("yoooo");
+    transformer::lower_i64_wasm_for_wasi_js(&mut wasm_binary).unwrap();
+    return wasm_binary.clone();
 }
