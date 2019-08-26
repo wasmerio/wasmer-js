@@ -110,7 +110,7 @@ pub fn parse_wasm_vec(wasm_binary_vec: &mut Vec<u8>) -> ParsedWasmInfo {
                 let size_position = position + 1;
                 let (size, size_byte_length) = read_bytes_as_varunit(
                     wasm_binary_vec
-                        .get(size_position..(size_position + 4))
+                        .get(size_position..(size_position + 5))
                         .unwrap(),
                 )
                 .unwrap();
@@ -124,7 +124,7 @@ pub fn parse_wasm_vec(wasm_binary_vec: &mut Vec<u8>) -> ParsedWasmInfo {
                         let count_position = position + size_byte_length;
                         let (response, byte_length) = read_bytes_as_varunit(
                             wasm_binary_vec
-                                .get(count_position..(count_position + 4))
+                                .get(count_position..(count_position + 5))
                                 .unwrap(),
                         )
                         .unwrap();
@@ -281,7 +281,7 @@ pub fn parse_wasm_vec(wasm_binary_vec: &mut Vec<u8>) -> ParsedWasmInfo {
             let num_params_position = previous_type_signature.start_position + 1;
             let (_, num_params_byte_length) = read_bytes_as_varunit(
                 wasm_binary_vec
-                    .get(num_params_position..(num_params_position + 4))
+                    .get(num_params_position..(num_params_position + 5))
                     .unwrap(),
             )
             .unwrap();

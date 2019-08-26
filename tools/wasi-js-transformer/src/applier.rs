@@ -48,7 +48,7 @@ pub fn apply_transformations_to_wasm_binary_vec(
         let (import_module_name_length, import_module_name_length_byte_length) =
             read_bytes_as_varunit(
                 wasm_binary_vec
-                    .get(name_length_start_position..(name_length_start_position + 4))
+                    .get(name_length_start_position..(name_length_start_position + 5))
                     .unwrap(),
             )?;
 
@@ -59,7 +59,7 @@ pub fn apply_transformations_to_wasm_binary_vec(
         let (import_field_name_length, import_field_name_length_byte_length) =
             read_bytes_as_varunit(
                 wasm_binary_vec
-                    .get(field_length_start_position..(field_length_start_position + 4))
+                    .get(field_length_start_position..(field_length_start_position + 5))
                     .unwrap(),
             )?;
 
@@ -74,7 +74,7 @@ pub fn apply_transformations_to_wasm_binary_vec(
         let (import_function_signature, import_function_signature_byte_length) =
             read_bytes_as_varunit(
                 &wasm_binary_vec
-                    [import_function_signature_position..(import_function_signature_position + 4)],
+                    [import_function_signature_position..(import_function_signature_position + 5)],
             )?;
 
         // Change the signature index to our newly created import index
@@ -187,7 +187,7 @@ pub fn apply_transformations_to_wasm_binary_vec(
                     + wasm_call_to_old_function.function_body_position;
 
                 let function_size_bytes = wasm_binary_vec
-                    .get(function_size_position..(function_size_position + 4))
+                    .get(function_size_position..(function_size_position + 5))
                     .unwrap();
                 let (function_size, function_size_byte_length) =
                     read_bytes_as_varunit(function_size_bytes)?;
@@ -260,7 +260,7 @@ fn add_entries_to_section(
     let section_length_position = starting_offset + section.start_position + 1;
     let (section_length, section_length_byte_length) = read_bytes_as_varunit(
         wasm_binary_vec
-            .get(section_length_position..(section_length_position + 4))
+            .get(section_length_position..(section_length_position + 5))
             .unwrap(),
     )?;
     let new_section_length =
@@ -287,7 +287,7 @@ fn add_entries_to_section(
         starting_offset + section.start_position + 1 + section_length_byte_length;
     let (number_of_entries, number_of_entries_byte_length) = read_bytes_as_varunit(
         wasm_binary_vec
-            .get(number_of_entries_position..(number_of_entries_position + 4))
+            .get(number_of_entries_position..(number_of_entries_position + 5))
             .unwrap(),
     )?;
     let new_number_of_entries = number_of_entries + entries.len() as u32;
