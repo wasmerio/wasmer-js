@@ -55,7 +55,7 @@ fn converts() {
     test_file_paths.push("./wasm-module-examples/clock_time_get.wasm");
     test_file_paths.push("./wasm-module-examples/matrix.wasm");
     test_file_paths.push("./wasm-module-examples/two-imports.wasm");
-    // test_file_paths.push("./wasm-module-examples/gettimeofday/gettimeofday.wasm");
+    test_file_paths.push("./wasm-module-examples/gettimeofday/gettimeofday.wasm");
     test_file_paths.push("./wasm-module-examples/qjs.wasm");
     test_file_paths.push("./wasm-module-examples/duk.wasm");
 
