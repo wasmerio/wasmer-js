@@ -9,8 +9,6 @@ pub fn read_bytes_as_varunit(bytes: &[u8]) -> Result<(u32, usize), &'static str>
         return Err("Did not pass enough bytes");
     }
 
-    console_log!("yooo");
-
     // Check if it is only a single byte
     if (bytes[0] & 0x80) == 0 {
         return Ok((bytes[0] as u32, 1));
@@ -31,13 +29,6 @@ pub fn read_bytes_as_varunit(bytes: &[u8]) -> Result<(u32, usize), &'static str>
         }
         shift += 7;
     }
-
-    console_log!(
-        "Bytes: {:X?}, response: {:?}, byte_length: {:?}",
-        bytes,
-        response,
-        byte_length
-    );
 
     return Ok((response, byte_length));
 }

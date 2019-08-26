@@ -61,9 +61,10 @@ fn converts() {
 
     for test_file_path in test_file_paths.iter() {
         console_log!(" ");
-        console_log!("==========");
+        console_log!("=======================================");
+
+        console_log!(" ");
         console_log!("Testing: {:?}", test_file_path);
-        console_log!("==========");
         console_log!(" ");
 
         let mut wasm = fs::read(test_file_path).unwrap();
@@ -92,9 +93,7 @@ fn converts() {
         let transformed_wat = wabt::wasm2wat(wasm.to_vec());
 
         console_log!(" ");
-        console_log!("==========");
         console_log!("Convert Back to Wat for descriptive errors (if there is one)");
-        console_log!("==========");
         console_log!(" ");
 
         match transformed_wat {

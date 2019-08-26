@@ -33,8 +33,7 @@ extern "C" {
 #[macro_export]
 macro_rules! console_log {
     ($($t:tt)*) => {
-        // TODO: Find out how to use this macro from child modules
-        // log(&format_args!($($t)*).to_string());
+        log(&format_args!($($t)*).to_string());
     };
 }
 
