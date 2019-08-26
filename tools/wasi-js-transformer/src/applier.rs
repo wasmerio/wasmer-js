@@ -134,10 +134,16 @@ pub fn apply_transformations_to_wasm_binary_vec(
             let call_index_end_position =
                 std::cmp::min(call_index_start_position + 4, wasm_binary_vec.len());
 
+            console_log!("call: {:X?}", wasm_call_to_old_function);
+            console_log!(
+                "surrounding bytes: {:X?}",
+                wasm_binary_vec.get((call_index_start_position - 5)..(call_index_end_position + 5))
+            );
+
             let wasm_call_function_index_bytes = wasm_binary_vec
                 .get(call_index_start_position..call_index_end_position)
                 .unwrap();
-            let (_, call_index_byte_length) =
+            let (call_index, call_index_byte_length) =
                 read_bytes_as_varunit(wasm_call_function_index_bytes)?;
             remove_number_of_bytes_in_vec_at_position(
                 &mut wasm_binary_vec,
@@ -158,9 +164,19 @@ pub fn apply_transformations_to_wasm_binary_vec(
                 trampoline_function_bytes.to_vec(),
             );
 
+            console_log!("ci: {:?}, ti: {:?}", call_index, trampoline_function_index);
+
+            console_log!(
+                "t: {:?}, c: {:?}",
+                trampoline_function_bytes.len(),
+                call_index_byte_length
+            );
+
             let byte_length_difference =
                 (trampoline_function_bytes.len() - call_index_byte_length) as usize;
             calls_byte_offset += byte_length_difference;
+
+            console_log!("diff: {:?}", byte_length_difference);
 
             // Also, we may need to update the function body size
             // If the function signature had a larger byte_length
