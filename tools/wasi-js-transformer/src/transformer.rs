@@ -78,6 +78,12 @@ fn converts() {
 
         lower_i64_wasm_for_wasi_js(&mut wasm);
 
+        fs::write("./wasm-module-examples/test_result.wasm", &wasm).expect("Unable to write file");
+
+        console_log!(" ");
+        console_log!("Wrote resulting Wasm to: ./wasm-module-examples/test_result.wasm");
+        console_log!(" ");
+
         let transformed_wat = wabt::wasm2wat(wasm.to_vec());
 
         console_log!(" ");
