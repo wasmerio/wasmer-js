@@ -117,30 +117,6 @@ const getWapmUrlForCommandName = async (commandName: String) => {
     });
 };
 
-// TODO: Remove these testing fucntions
-const downloadBlob = function(data: any, fileName: any, mimeType: any) {
-  let blob: any;
-  let url: any;
-  blob = new Blob([data], {
-    type: mimeType
-  });
-  url = window.URL.createObjectURL(blob);
-  downloadURL(url, fileName);
-  setTimeout(function() {
-    return window.URL.revokeObjectURL(url);
-  }, 1000);
-};
-
-const downloadURL = function(data: any, fileName: any) {
-  var a;
-  a = document.createElement("a");
-  a.href = data;
-  a.download = fileName;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-};
-
 const getWasmModuleFromUrl = async (
   url: string
 ): Promise<WebAssembly.Module> => {
@@ -155,14 +131,8 @@ const getWasmModuleFromUrl = async (
 
     // Make Modifications to the binary to support browser side WASI.
     await wasmInit(wasmJsTransformerWasmUrl);
-    console.log("Binary size", binary.length);
     binary = lower_i64_imports(binary);
-    console.log("Binary size", binary.length);
 
-    // downloadBlob(binary, 'wapm-lowered.wasm', 'application/octet-stream');
-
-    // Compile the buffer
-    console.log("Is Wasm Valid?", WebAssembly.validate(binary));
     const wasmModule = await WebAssembly.compile(binary);
     return wasmModule;
   }

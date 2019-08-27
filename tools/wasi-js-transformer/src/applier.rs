@@ -42,8 +42,6 @@ pub fn apply_transformations_to_wasm_binary_vec(
         *types_section,
     )?;
 
-    console_log!("position_offset: {:?}", position_offset);
-
     // Update the imports to point at the new lowered_signatures
     for imported_i64_function in imported_i64_functions.iter() {
         // Get the name length (module_len)

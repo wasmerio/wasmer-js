@@ -68,9 +68,6 @@ function init(module) {
   let result;
   const imports = {};
   imports.wbg = {};
-  imports.wbg.__wbg_log_d8df46bedcc7f34e = function(arg0, arg1) {
-    console.log(getStringFromWasm(arg0, arg1));
-  };
   imports.wbg.__wbindgen_throw = function(arg0, arg1) {
     throw new Error(getStringFromWasm(arg0, arg1));
   };

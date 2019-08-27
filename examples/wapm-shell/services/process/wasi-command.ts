@@ -9,8 +9,6 @@ import { Command, CommandOptions } from "../../services/command-runner/command";
 
 import { Duplex, PassThrough } from "stream";
 
-import sinon from "sinon";
-
 const merge = (...streams: Duplex[]) => {
   let pass = new PassThrough();
   let waiting = streams.length;
@@ -68,19 +66,6 @@ export default class WASICommand extends Command {
         ...WASI.defaultBindings,
         fs: this.wasmerFileSystem.fs
       }
-    });
-
-    // TODO: Remove this
-    // Stub all wasi export methods
-    Object.keys(this.wasi.exports).forEach(wasiExportKey => {
-      const originalWasiExport = this.wasi.exports[wasiExportKey];
-      this.wasi.exports[wasiExportKey] = sinon
-        .stub(this.wasi.exports, wasiExportKey)
-        .callsFake(function() {
-          console.log("Called Wasi Export:", wasiExportKey);
-          console.log(arguments);
-          return originalWasiExport.apply(null, arguments);
-        });
     });
 
     this.promisedInstance = WebAssembly.instantiate(options.module, {
