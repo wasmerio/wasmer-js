@@ -12,8 +12,6 @@ import wasmJsTransformerWasmUrl from "../../assets/wasi-js-transformer/wasi_js_t
 // @ts-ignore
 import stdinWasmUrl from "../../assets/stdin.wasm";
 // @ts-ignore
-import matrixLoweredUrl from "../../assets/matrix-loweredi64.wasm";
-// @ts-ignore
 import clockTimeGetUrl from "../../assets/clock_time_get.wasm";
 // @ts-ignore
 import pathOpenGetUrl from "../../assets/path_open.wasm";
@@ -24,30 +22,17 @@ import quickJsUrl from "../../assets/qjs.wasm";
 // @ts-ignore
 import dukTapeUrl from "../../assets/duk.wasm";
 // @ts-ignore
-import dukTapeLoweredUrl from "../../assets/duk-lowered.wasm";
-// @ts-ignore
-import wapmLoweredUrl from "../../assets/wapm-lowered.wasm";
-// @ts-ignore
-import testResultUrl from "../../assets/test_result.wasm";
-// @ts-ignore
 import argtestUrl from "../../assets/argtest.wasm";
 // @ts-ignore
 import gettimeofdayUrl from "../../assets/gettimeofday.wasm";
-// @ts-ignore
-import gettimeofdayLoweredUrl from "../../assets/gettimeofday-lowered.wasm";
 
 let commandToUrlCache: { [key: string]: string } = {
-  matrixlowered: matrixLoweredUrl,
   a: stdinWasmUrl,
   c: clockTimeGetUrl,
   p: pathOpenGetUrl,
   g: gettimeofdayUrl,
-  gl: gettimeofdayLoweredUrl,
   qjs: quickJsUrl,
   duk: dukTapeUrl,
-  duklow: dukTapeLoweredUrl,
-  w: wapmLoweredUrl,
-  tr: testResultUrl,
   two: twoImportsUrl,
   arg: argtestUrl
 };
