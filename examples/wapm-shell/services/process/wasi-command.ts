@@ -110,7 +110,6 @@ export default class WASICommand extends Command {
     length: number = stdoutBuffer.byteLength,
     position?: number
   ) {
-    console.log(new TextDecoder("utf-8").decode(stdoutBuffer));
     if (this.stdoutCallback) {
       this.stdoutCallback(stdoutBuffer);
     }

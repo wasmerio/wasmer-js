@@ -118,7 +118,9 @@ const getWapmUrlForCommandName = async (commandName: String) => {
 };
 
 const getWasmModuleFromUrl = async (
-  url: string
+  url: string,
+  commandName?: string,
+  xterm?: Terminal
 ): Promise<WebAssembly.Module> => {
   // @ts-ignore
   if (WebAssembly.compileStreaming && false) {
@@ -128,6 +130,17 @@ const getWasmModuleFromUrl = async (
     let fetched = await fetch(url);
     let buffer = await fetched.arrayBuffer();
     let binary = new Uint8Array(buffer);
+
+    if (commandName && xterm) {
+      // Restore the cursor position
+      xterm.write("\u001b[u");
+
+      // Clear from cursor to end of screen
+      xterm.write("\u001b[1000D");
+      xterm.write("\u001b[0J");
+
+      xterm.write(`[INFO] Doing Transformations for "${commandName}"`);
+    }
 
     // Make Modifications to the binary to support browser side WASI.
     await wasmInit(wasmJsTransformerWasmUrl);
@@ -157,7 +170,7 @@ export default class CommandFetcher {
 
       // Fetch the wasm modules, but at least show the message for a short while
       cachedData = compiledModulesCache[commandUrl] = await Promise.all([
-        getWasmModuleFromUrl(commandUrl),
+        getWasmModuleFromUrl(commandUrl, commandName, xterm),
         new Promise(resolve => setTimeout(resolve, 500))
       ]).then(responses => responses[0]);
 
