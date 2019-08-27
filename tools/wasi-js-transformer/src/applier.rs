@@ -1,7 +1,7 @@
 // Module to update and insert bytes into the wasm binary
 
 use crate::generator::*;
-use crate::log;
+
 use crate::parser::*;
 use crate::utils::*;
 use std::*;
@@ -142,7 +142,7 @@ pub fn apply_transformations_to_wasm_binary_vec(
             let wasm_call_function_index_bytes = wasm_binary_vec
                 .get(call_index_start_position..call_index_end_position)
                 .unwrap();
-            let (call_index, call_index_byte_length) =
+            let (_call_index, call_index_byte_length) =
                 read_bytes_as_varunit(wasm_call_function_index_bytes)?;
             remove_number_of_bytes_in_vec_at_position(
                 &mut wasm_binary_vec,
@@ -226,7 +226,7 @@ pub fn apply_transformations_to_wasm_binary_vec(
     )?;
 
     //Done!
-    return Ok(());
+    Ok(())
 }
 
 /// Function to add "entries" (E.g Types in the Type section),
@@ -326,5 +326,5 @@ fn add_entries_to_section(
     }
 
     position_offset += insertion_offset as isize;
-    return Ok(position_offset);
+    Ok(position_offset)
 }

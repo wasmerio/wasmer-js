@@ -56,5 +56,5 @@ mod utils;
 #[wasm_bindgen]
 pub fn lower_i64_imports(mut wasm_binary: Vec<u8>) -> Vec<u8> {
     transformer::lower_i64_wasm_for_wasi_js(&mut wasm_binary).unwrap();
-    return wasm_binary.clone();
+    wasm_binary.clone()
 }

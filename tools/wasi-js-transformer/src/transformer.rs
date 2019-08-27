@@ -3,7 +3,7 @@
 use crate::applier::*;
 use crate::generator::*;
 use crate::parser::*;
-use crate::utils::*;
+
 use std::*;
 
 // Function to lower i64 imports for a wasm binary vec
@@ -35,7 +35,7 @@ pub fn lower_i64_wasm_for_wasi_js(mut wasm_binary_vec: &mut Vec<u8>) -> Result<(
     // Update the binary to point at the trampoline and signatures
     // This should be done in order, in order to not have to do continuous passes of the position.
     // https://github.com/WebAssembly/design/blob/master/BinaryEncoding.md#high-level-structure
-    return apply_transformations_to_wasm_binary_vec(
+    apply_transformations_to_wasm_binary_vec(
         &mut wasm_binary_vec,
         &imported_i64_functions,
         &trampoline_functions,
@@ -44,7 +44,7 @@ pub fn lower_i64_wasm_for_wasi_js(mut wasm_binary_vec: &mut Vec<u8>) -> Result<(
         &parsed_info.wasm_type_signatures,
         &parsed_info.wasm_functions,
         &parsed_info.wasm_calls,
-    );
+    )
 }
 
 #[cfg(test)]
