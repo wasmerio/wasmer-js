@@ -96,11 +96,11 @@ fn converts() {
         console_log!("Wrote resulting Wasm to: ./wasm-module-examples/test_result.wasm");
         console_log!(" ");
 
-        let transformed_wat = wabt::wasm2wat(wasm.to_vec());
-
         console_log!(" ");
         console_log!("Convert Back to Wat for descriptive errors (if there is one)");
         console_log!(" ");
+
+        let transformed_wat = wabt::wasm2wat(wasm.to_vec());
 
         match transformed_wat {
             Err(e) => {

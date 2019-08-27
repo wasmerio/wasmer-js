@@ -103,11 +103,7 @@ pub fn apply_transformations_to_wasm_binary_vec(
             - (import_function_signature_byte_length as isize))
             as isize;
         position_offset += byte_length_difference;
-
-        console_log!("byte_length_difference: {:?}", byte_length_difference);
     }
-
-    console_log!("position_offset: {:?}", position_offset);
 
     // Add the signatures for the trampoline functions in the Functions section
     let functions_section = wasm_sections
@@ -127,8 +123,6 @@ pub fn apply_transformations_to_wasm_binary_vec(
         *functions_section,
     )?;
 
-    console_log!("position_offset: {:?}", position_offset);
-
     // Edit calls to the original function, to now point at the trampoline functions'
     // NOTE: Since Calls are a part of the function body, we need to calculate the offset
     // from modifying the calls, before adding the trampoline functions. Thus, we get an,
@@ -145,12 +139,7 @@ pub fn apply_transformations_to_wasm_binary_vec(
                 + (wasm_call_to_old_function.position as isize)
                 + 1) as usize;
             let call_index_end_position =
-                std::cmp::min(call_index_start_position + 4, wasm_binary_vec.len());
-
-            console_log!(
-                "wasm_call_to_old_function: {:X?}",
-                wasm_call_to_old_function
-            );
+                std::cmp::min(call_index_start_position + 5, wasm_binary_vec.len());
 
             let wasm_call_function_index_bytes = wasm_binary_vec
                 .get(call_index_start_position..call_index_end_position)
@@ -180,8 +169,6 @@ pub fn apply_transformations_to_wasm_binary_vec(
                 - (call_index_byte_length as isize))
                 as isize;
 
-            console_log!("byte_length_difference: {:?}", byte_length_difference);
-
             // Also, we may need to update the function body size
             // If the function signature had a smaller/larger byte_length
             if byte_length_difference != 0 {
@@ -202,11 +189,6 @@ pub fn apply_transformations_to_wasm_binary_vec(
                 );
 
                 let new_function_size = ((function_size as isize) + byte_length_difference) as u32;
-                console_log!(
-                    "old fn size: {:X?}, new fn size: {:X?}",
-                    function_size,
-                    new_function_size
-                );
                 let new_function_size_bytes =
                     get_u32_as_bytes_for_varunit(new_function_size as u32);
                 insert_bytes_into_vec_at_position(
@@ -219,20 +201,12 @@ pub fn apply_transformations_to_wasm_binary_vec(
                     ((new_function_size_bytes.len() as isize)
                         - (function_size_byte_length as isize)) as isize;
                 calls_byte_offset += function_size_byte_length_difference;
-
-                console_log!(
-                    "function_size_byte_length_difference: {:?}",
-                    function_size_byte_length_difference
-                );
             }
 
             // Add the byte_length_difference
             calls_byte_offset += byte_length_difference;
         }
     }
-
-    console_log!("calls_byte_offset: {:?}", calls_byte_offset);
-    console_log!("position_offset: {:?}", position_offset);
 
     // Add the trampoline functions to the code section
     let code_section = wasm_sections
