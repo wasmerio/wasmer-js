@@ -50,9 +50,9 @@ echo "Moving pkg to wapm-shell"
 echo "============================================="
 echo " "
 
-cp -r pkg/ ../../examples/node/wasi-js-transformer
-rm ../../examples/node/wasi-js-transformer/.gitignore || true
-rm ../../examples/node/wasi-js-transformer/README.md || true
+cp -r pkg/ ../../examples/node-stubbed/wasi-js-transformer
+rm ../../examples/node-stubbed/wasi-js-transformer/.gitignore || true
+rm ../../examples/node-stubbed/wasi-js-transformer/README.md || true
 
 
 echo " "
