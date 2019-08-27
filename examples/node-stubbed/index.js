@@ -6,19 +6,26 @@ const wasiJsTransformer = require("./wasi-js-transformer");
 const WasmerFileSystem = require("../../dist/examples/file-system/file-system.cjs.js");
 const argv = require("minimist")(process.argv.slice(2));
 
+const fsSpyLog = action => {
+  console.log(" ");
+  console.log(" ");
+  console.log("[FS Spy]:");
+  console.log(action.method);
+  console.log(action.args);
+};
+
 const nodeFs = spy(fs, action => {
-  console.log(action);
+  fsSpyLog(action);
 });
 const wasmerFs = new WasmerFileSystem();
 // stdout / error writing
 const stdoutWrite = buffer => {
-  console.log("[WASM]: ", buffer.toString());
   return buffer.length;
 };
 wasmerFs.volume.fds[1].write = stdoutWrite.bind(this);
 wasmerFs.volume.fds[2].write = stdoutWrite.bind(this);
 wasmerFs.fs = spy(wasmerFs.fs, action => {
-  console.log(action);
+  fsSpyLog(action);
 });
 
 let boundFs = nodeFs;
@@ -40,7 +47,10 @@ Object.keys(wasi.exports).forEach(wasiExportKey => {
   wasi.exports[wasiExportKey] = sinon
     .stub(wasi.exports, wasiExportKey)
     .callsFake(function() {
-      console.log("Called Wasi Export:", wasiExportKey);
+      console.log(" ");
+      console.log(" ");
+      console.log("[Wasi Stub]:");
+      console.log(wasiExportKey);
       console.log(arguments);
       return originalWasiExport.apply(null, arguments);
     });
