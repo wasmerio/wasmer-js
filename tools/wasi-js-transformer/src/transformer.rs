@@ -3,6 +3,7 @@
 use crate::applier::*;
 use crate::generator::*;
 use crate::parser::*;
+use crate::utils::*;
 use std::*;
 
 // Function to lower i64 imports for a wasm binary vec
@@ -58,6 +59,11 @@ fn converts() {
     test_file_paths.push("./wasm-module-examples/gettimeofday/gettimeofday.wasm");
     test_file_paths.push("./wasm-module-examples/qjs.wasm");
     test_file_paths.push("./wasm-module-examples/duk.wasm");
+
+    // Do a simply bytes to varuint for testing
+    console_log!("Bytes to varuint");
+    let (testing_varuint, _) = read_bytes_as_varunit((vec![0xB5, 0x63]).as_slice()).unwrap();
+    console_log!("{:?}", testing_varuint);
 
     for test_file_path in test_file_paths.iter() {
         console_log!(" ");
