@@ -162,6 +162,7 @@ const getWasmModuleFromUrl = async (
     // downloadBlob(binary, 'wapm-lowered.wasm', 'application/octet-stream');
 
     // Compile the buffer
+    console.log("Is Wasm Valid?", WebAssembly.validate(binary));
     const wasmModule = await WebAssembly.compile(binary);
     return wasmModule;
   }
