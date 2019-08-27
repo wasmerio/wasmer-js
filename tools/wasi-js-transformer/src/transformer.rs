@@ -60,11 +60,6 @@ fn converts() {
     test_file_paths.push("./wasm-module-examples/qjs.wasm");
     test_file_paths.push("./wasm-module-examples/duk.wasm");
 
-    // Do a simply bytes to varuint for testing
-    console_log!("Bytes to varuint");
-    let (testing_varuint, _) = read_bytes_as_varunit((vec![0xB5, 0x63]).as_slice()).unwrap();
-    console_log!("{:?}", testing_varuint);
-
     for test_file_path in test_file_paths.iter() {
         console_log!(" ");
         console_log!("=======================================");
