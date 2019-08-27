@@ -110,7 +110,7 @@ pub fn parse_wasm_vec(wasm_binary_vec: &mut Vec<u8>) -> ParsedWasmInfo {
                 let size_position = position + 1;
                 let (size, size_byte_length) = read_bytes_as_varunit(
                     wasm_binary_vec
-                        .get(size_position..(size_position + 4))
+                        .get(size_position..(size_position + 5))
                         .unwrap(),
                 )
                 .unwrap();
@@ -124,7 +124,7 @@ pub fn parse_wasm_vec(wasm_binary_vec: &mut Vec<u8>) -> ParsedWasmInfo {
                         let count_position = position + size_byte_length;
                         let (response, byte_length) = read_bytes_as_varunit(
                             wasm_binary_vec
-                                .get(count_position..(count_position + 4))
+                                .get(count_position..(count_position + 5))
                                 .unwrap(),
                         )
                         .unwrap();
@@ -152,10 +152,10 @@ pub fn parse_wasm_vec(wasm_binary_vec: &mut Vec<u8>) -> ParsedWasmInfo {
 
                 let wasm_section = WasmSection {
                     code: section_code,
-                    size: size,
-                    size_byte_length: size_byte_length,
-                    count: count,
-                    count_byte_length: count_byte_length,
+                    size,
+                    size_byte_length,
+                    count,
+                    count_byte_length,
                     start_position: position,
                     end_position: 0,
                 };
@@ -183,37 +183,30 @@ pub fn parse_wasm_vec(wasm_binary_vec: &mut Vec<u8>) -> ParsedWasmInfo {
                 };
                 wasm_type_signatures.push(wasm_type_signature);
             }
-            ParserState::ImportSectionEntry {
-                module: _,
-                field: _,
-                ty,
-            } => {
-                match ty {
-                    wasmparser::ImportSectionEntryType::Function(index) => {
-                        let wasm_type_signature = &wasm_type_signatures[index as usize];
+            ParserState::ImportSectionEntry { ty, .. } => {
+                if let wasmparser::ImportSectionEntryType::Function(index) = ty {
+                    let wasm_type_signature = &wasm_type_signatures[index as usize];
 
-                        let wasm_function: WasmFunction = WasmFunction {
-                            is_import: true,
-                            position: position,
-                            function_index: current_function_index as usize,
-                            signature_index: index as usize,
-                            num_params: wasm_type_signature.num_params,
-                            num_returns: wasm_type_signature.num_returns,
-                            has_i64_param: wasm_type_signature.has_i64_param,
-                            has_i64_returns: wasm_type_signature.has_i64_returns,
-                        };
-                        current_function_index += 1;
-                        wasm_functions.push(wasm_function);
-                    }
-                    _ => (),
-                };
+                    let wasm_function: WasmFunction = WasmFunction {
+                        is_import: true,
+                        position,
+                        function_index: current_function_index as usize,
+                        signature_index: index as usize,
+                        num_params: wasm_type_signature.num_params,
+                        num_returns: wasm_type_signature.num_returns,
+                        has_i64_param: wasm_type_signature.has_i64_param,
+                        has_i64_returns: wasm_type_signature.has_i64_returns,
+                    };
+                    current_function_index += 1;
+                    wasm_functions.push(wasm_function);
+                }
             }
             ParserState::FunctionSectionEntry(index) => {
                 let wasm_type_signature = &wasm_type_signatures[index as usize];
 
                 let wasm_function: WasmFunction = WasmFunction {
                     is_import: false,
-                    position: position,
+                    position,
                     function_index: current_function_index as usize,
                     signature_index: index as usize,
                     num_params: wasm_type_signature.num_params,
@@ -230,7 +223,7 @@ pub fn parse_wasm_vec(wasm_binary_vec: &mut Vec<u8>) -> ParsedWasmInfo {
             ParserState::CodeOperator(ref state) => match *state {
                 wasmparser::Operator::Call { function_index } => {
                     let wasm_call = WasmCall {
-                        position: position,
+                        position,
                         function_index: function_index as usize,
                         function_body_position: current_function_body_start_position,
                         function_body_index: current_function_body_index,
@@ -281,7 +274,7 @@ pub fn parse_wasm_vec(wasm_binary_vec: &mut Vec<u8>) -> ParsedWasmInfo {
             let num_params_position = previous_type_signature.start_position + 1;
             let (_, num_params_byte_length) = read_bytes_as_varunit(
                 wasm_binary_vec
-                    .get(num_params_position..(num_params_position + 4))
+                    .get(num_params_position..(num_params_position + 5))
                     .unwrap(),
             )
             .unwrap();
@@ -301,10 +294,10 @@ pub fn parse_wasm_vec(wasm_binary_vec: &mut Vec<u8>) -> ParsedWasmInfo {
         }
     }
 
-    return ParsedWasmInfo {
-        wasm_type_signatures: wasm_type_signatures,
-        wasm_sections: wasm_sections,
-        wasm_functions: wasm_functions,
-        wasm_calls: wasm_calls,
-    };
+    ParsedWasmInfo {
+        wasm_type_signatures,
+        wasm_sections,
+        wasm_functions,
+        wasm_calls,
+    }
 }

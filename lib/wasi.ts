@@ -145,7 +145,7 @@ const wrap = <T extends Function>(f: T) => (...args: any[]) => {
     if (typeof e === "number") {
       return e;
     }
-    if (e.errno) {
+    if (e && e.errno) {
       return ERROR_MAP[e.code] || WASI_EINVAL;
     }
     throw e;

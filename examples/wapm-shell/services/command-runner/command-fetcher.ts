@@ -12,8 +12,6 @@ import wasmJsTransformerWasmUrl from "../../assets/wasi-js-transformer/wasi_js_t
 // @ts-ignore
 import stdinWasmUrl from "../../assets/stdin.wasm";
 // @ts-ignore
-import matrixLoweredUrl from "../../assets/matrix-loweredi64.wasm";
-// @ts-ignore
 import clockTimeGetUrl from "../../assets/clock_time_get.wasm";
 // @ts-ignore
 import pathOpenGetUrl from "../../assets/path_open.wasm";
@@ -29,7 +27,6 @@ import argtestUrl from "../../assets/argtest.wasm";
 import gettimeofdayUrl from "../../assets/gettimeofday.wasm";
 
 let commandToUrlCache: { [key: string]: string } = {
-  matrixlowered: matrixLoweredUrl,
   a: stdinWasmUrl,
   c: clockTimeGetUrl,
   p: pathOpenGetUrl,
@@ -106,7 +103,9 @@ const getWapmUrlForCommandName = async (commandName: String) => {
 };
 
 const getWasmModuleFromUrl = async (
-  url: string
+  url: string,
+  commandName?: string,
+  xterm?: Terminal
 ): Promise<WebAssembly.Module> => {
   // @ts-ignore
   if (WebAssembly.compileStreaming && false) {
@@ -117,11 +116,21 @@ const getWasmModuleFromUrl = async (
     let buffer = await fetched.arrayBuffer();
     let binary = new Uint8Array(buffer);
 
+    if (commandName && xterm) {
+      // Restore the cursor position
+      xterm.write("\u001b[u");
+
+      // Clear from cursor to end of screen
+      xterm.write("\u001b[1000D");
+      xterm.write("\u001b[0J");
+
+      xterm.write(`[INFO] Doing Transformations for "${commandName}"`);
+    }
+
     // Make Modifications to the binary to support browser side WASI.
     await wasmInit(wasmJsTransformerWasmUrl);
     binary = lower_i64_imports(binary);
 
-    // Compile the buffer
     const wasmModule = await WebAssembly.compile(binary);
     return wasmModule;
   }
@@ -146,7 +155,7 @@ export default class CommandFetcher {
 
       // Fetch the wasm modules, but at least show the message for a short while
       cachedData = compiledModulesCache[commandUrl] = await Promise.all([
-        getWasmModuleFromUrl(commandUrl),
+        getWasmModuleFromUrl(commandUrl, commandName, xterm),
         new Promise(resolve => setTimeout(resolve, 500))
       ]).then(responses => responses[0]);
 

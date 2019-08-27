@@ -33,8 +33,8 @@ pub struct TrampolineFunction {
 /// Function to generate trampoline functions and lowered type signaturtes
 pub fn generate_trampolines_and_signatures(
     wasm_binary_vec: &mut Vec<u8>,
-    imported_i64_functions: &Vec<&WasmFunction>,
-    type_signatures: &Vec<WasmTypeSignature>,
+    imported_i64_functions: &[&WasmFunction],
+    type_signatures: &[WasmTypeSignature],
 ) -> (Vec<TrampolineFunction>, Vec<LoweredSignature>) {
     // Iterate through the imported functions, and grab data we need to insert
     let mut lowered_signatures = Vec::new();
@@ -59,12 +59,12 @@ pub fn generate_trampolines_and_signatures(
         trampoline_functions.push(trampoline_function);
     }
 
-    return (trampoline_functions, lowered_signatures);
+    (trampoline_functions, lowered_signatures)
 }
 
 /// Function to generate a lowered type signature
 fn get_lowered_signature(
-    wasm_binary_vec: &Vec<u8>,
+    wasm_binary_vec: &[u8],
     type_signature: &WasmTypeSignature,
     signature_index: usize,
 ) -> LoweredSignature {
@@ -104,13 +104,13 @@ fn get_lowered_signature(
     }
 
     // Return the lowered signature
-    return lowered_type_signature;
+    lowered_type_signature
 }
 
 /// Function to generate a trampoline function
 fn get_trampoline_function(
-    wasm_binary_vec: &Vec<u8>,
-    imported_i64_function: &&WasmFunction,
+    wasm_binary_vec: &[u8],
+    imported_i64_function: &WasmFunction,
     type_signature: &WasmTypeSignature,
 ) -> TrampolineFunction {
     // Construct our trampoline function
@@ -171,5 +171,5 @@ fn get_trampoline_function(
         .bytes
         .insert(0, trampoline_function.bytes.len() as u8);
 
-    return trampoline_function;
+    trampoline_function
 }

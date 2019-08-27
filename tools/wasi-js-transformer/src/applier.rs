@@ -1,6 +1,7 @@
 // Module to update and insert bytes into the wasm binary
 
 use crate::generator::*;
+
 use crate::parser::*;
 use crate::utils::*;
 use std::*;
@@ -21,7 +22,7 @@ pub fn apply_transformations_to_wasm_binary_vec(
 
     // Offset from the original position from our sections.
     // This should be updated as bytes are added.
-    let mut position_offset: usize = 0;
+    let mut position_offset: isize = 0;
 
     // Add the new lowered signatures to the Types Section
     let types_section = wasm_sections
@@ -44,11 +45,12 @@ pub fn apply_transformations_to_wasm_binary_vec(
     // Update the imports to point at the new lowered_signatures
     for imported_i64_function in imported_i64_functions.iter() {
         // Get the name length (module_len)
-        let name_length_start_position = position_offset + imported_i64_function.position;
+        let name_length_start_position =
+            (position_offset + (imported_i64_function.position) as isize) as usize;
         let (import_module_name_length, import_module_name_length_byte_length) =
             read_bytes_as_varunit(
                 wasm_binary_vec
-                    .get(name_length_start_position..(name_length_start_position + 4))
+                    .get(name_length_start_position..(name_length_start_position + 5))
                     .unwrap(),
             )?;
 
@@ -59,7 +61,7 @@ pub fn apply_transformations_to_wasm_binary_vec(
         let (import_field_name_length, import_field_name_length_byte_length) =
             read_bytes_as_varunit(
                 wasm_binary_vec
-                    .get(field_length_start_position..(field_length_start_position + 4))
+                    .get(field_length_start_position..(field_length_start_position + 5))
                     .unwrap(),
             )?;
 
@@ -74,7 +76,7 @@ pub fn apply_transformations_to_wasm_binary_vec(
         let (import_function_signature, import_function_signature_byte_length) =
             read_bytes_as_varunit(
                 &wasm_binary_vec
-                    [import_function_signature_position..(import_function_signature_position + 4)],
+                    [import_function_signature_position..(import_function_signature_position + 5)],
             )?;
 
         // Change the signature index to our newly created import index
@@ -95,8 +97,9 @@ pub fn apply_transformations_to_wasm_binary_vec(
             new_signature_bytes.clone(),
         );
 
-        let byte_length_difference =
-            (new_signature_bytes.len() - import_function_signature_byte_length) as usize;
+        let byte_length_difference = ((new_signature_bytes.len() as isize)
+            - (import_function_signature_byte_length as isize))
+            as isize;
         position_offset += byte_length_difference;
     }
 
@@ -122,22 +125,24 @@ pub fn apply_transformations_to_wasm_binary_vec(
     // NOTE: Since Calls are a part of the function body, we need to calculate the offset
     // from modifying the calls, before adding the trampoline functions. Thus, we get an,
     // insertion_offset.
-    let mut calls_byte_offset: usize = 0;
+    let mut calls_byte_offset: isize = 0;
     for imported_i64_function in imported_i64_functions.iter() {
         for wasm_call_to_old_function in wasm_calls
             .iter()
             .filter(|&x| x.function_index == imported_i64_function.function_index)
         {
             // Get the old call
-            let call_index_start_position =
-                position_offset + calls_byte_offset + wasm_call_to_old_function.position + 1;
+            let call_index_start_position = (position_offset
+                + calls_byte_offset
+                + (wasm_call_to_old_function.position as isize)
+                + 1) as usize;
             let call_index_end_position =
-                std::cmp::min(call_index_start_position + 4, wasm_binary_vec.len());
+                std::cmp::min(call_index_start_position + 5, wasm_binary_vec.len());
 
             let wasm_call_function_index_bytes = wasm_binary_vec
                 .get(call_index_start_position..call_index_end_position)
                 .unwrap();
-            let (_, call_index_byte_length) =
+            let (_call_index, call_index_byte_length) =
                 read_bytes_as_varunit(wasm_call_function_index_bytes)?;
             remove_number_of_bytes_in_vec_at_position(
                 &mut wasm_binary_vec,
@@ -158,20 +163,20 @@ pub fn apply_transformations_to_wasm_binary_vec(
                 trampoline_function_bytes.to_vec(),
             );
 
-            let byte_length_difference =
-                (trampoline_function_bytes.len() - call_index_byte_length) as usize;
-            calls_byte_offset += byte_length_difference;
+            let byte_length_difference = ((trampoline_function_bytes.len() as isize)
+                - (call_index_byte_length as isize))
+                as isize;
 
             // Also, we may need to update the function body size
-            // If the function signature had a larger byte_length
-            if byte_length_difference > 0 {
-                // We need to subtract what we just added here, since the body size is BEFORE the call
-                let function_size_position = position_offset + calls_byte_offset
-                    - byte_length_difference
-                    + wasm_call_to_old_function.function_body_position;
+            // If the function signature had a smaller/larger byte_length
+            if byte_length_difference != 0 {
+                let function_size_position = (position_offset
+                    + calls_byte_offset
+                    + (wasm_call_to_old_function.function_body_position as isize))
+                    as usize;
 
                 let function_size_bytes = wasm_binary_vec
-                    .get(function_size_position..(function_size_position + 4))
+                    .get(function_size_position..(function_size_position + 5))
                     .unwrap();
                 let (function_size, function_size_byte_length) =
                     read_bytes_as_varunit(function_size_bytes)?;
@@ -181,7 +186,7 @@ pub fn apply_transformations_to_wasm_binary_vec(
                     function_size_byte_length,
                 );
 
-                let new_function_size = function_size + byte_length_difference as u32;
+                let new_function_size = ((function_size as isize) + byte_length_difference) as u32;
                 let new_function_size_bytes =
                     get_u32_as_bytes_for_varunit(new_function_size as u32);
                 insert_bytes_into_vec_at_position(
@@ -191,9 +196,13 @@ pub fn apply_transformations_to_wasm_binary_vec(
                 );
 
                 let function_size_byte_length_difference =
-                    (new_function_size_bytes.len() - function_size_byte_length) as usize;
+                    ((new_function_size_bytes.len() as isize)
+                        - (function_size_byte_length as isize)) as isize;
                 calls_byte_offset += function_size_byte_length_difference;
             }
+
+            // Add the byte_length_difference
+            calls_byte_offset += byte_length_difference;
         }
     }
 
@@ -217,7 +226,7 @@ pub fn apply_transformations_to_wasm_binary_vec(
     )?;
 
     //Done!
-    return Ok(());
+    Ok(())
 }
 
 /// Function to add "entries" (E.g Types in the Type section),
@@ -227,28 +236,29 @@ pub fn apply_transformations_to_wasm_binary_vec(
 /// Code section, which need it's hader, body, and tail modified)
 fn add_entries_to_section(
     wasm_binary_vec: &mut Vec<u8>,
-    starting_offset: usize,
-    insertion_offset: usize,
+    starting_offset: isize,
+    insertion_offset: isize,
     entries: &[Vec<u8>],
     section: WasmSection,
-) -> Result<usize, &'static str> {
+) -> Result<isize, &'static str> {
     // Position offset that is calculated while adding entries, and returned.
     // This is then added to the overall position offset.
-    let mut position_offset: usize = 0;
+    let mut position_offset: isize = 0;
 
     // Calculate how many bytes will be added to the end of the section
     let added_bytes_from_entries: usize = entries.iter().map(|e| e.len()).sum();
-    position_offset += added_bytes_from_entries;
+    position_offset += added_bytes_from_entries as isize;
 
     // Section size
-    let section_length_position = starting_offset + section.start_position + 1;
+    let section_length_position =
+        (starting_offset + (section.start_position as isize) + 1) as usize;
     let (section_length, section_length_byte_length) = read_bytes_as_varunit(
         wasm_binary_vec
-            .get(section_length_position..(section_length_position + 4))
+            .get(section_length_position..(section_length_position + 5))
             .unwrap(),
     )?;
     let new_section_length =
-        section_length + (insertion_offset as u32) + (added_bytes_from_entries as u32);
+        ((section_length as isize) + insertion_offset + (added_bytes_from_entries as isize)) as u32;
     let new_section_length_bytes = get_u32_as_bytes_for_varunit(new_section_length);
     let new_section_length_bytes_length = new_section_length_bytes.len();
     remove_number_of_bytes_in_vec_at_position(
@@ -263,15 +273,17 @@ fn add_entries_to_section(
     );
 
     let section_length_byte_length_difference =
-        (new_section_length_bytes_length - section_length_byte_length) as usize;
+        (new_section_length_bytes_length - section_length_byte_length) as isize;
     position_offset += section_length_byte_length_difference;
 
     // Number of Entries (AKA Count)
-    let number_of_entries_position =
-        starting_offset + section.start_position + 1 + section_length_byte_length;
+    let number_of_entries_position = (starting_offset
+        + (section.start_position as isize)
+        + 1
+        + (section_length_byte_length as isize)) as usize;
     let (number_of_entries, number_of_entries_byte_length) = read_bytes_as_varunit(
         wasm_binary_vec
-            .get(number_of_entries_position..(number_of_entries_position + 4))
+            .get(number_of_entries_position..(number_of_entries_position + 5))
             .unwrap(),
     )?;
     let new_number_of_entries = number_of_entries + entries.len() as u32;
@@ -288,7 +300,7 @@ fn add_entries_to_section(
     );
 
     let section_count_byte_length_difference =
-        (number_of_entries_byte_length - new_number_of_entries_bytes.len()) as usize;
+        (number_of_entries_byte_length - new_number_of_entries_bytes.len()) as isize;
     position_offset += section_count_byte_length_difference;
 
     // Add the bytes of the entries
@@ -300,19 +312,19 @@ fn add_entries_to_section(
     for entry in entries.iter() {
         for i in 0..entry.len() {
             wasm_binary_vec.insert(
-                starting_offset
+                (starting_offset
                     + section_length_byte_length_difference
                     + section_count_byte_length_difference
                     + insertion_offset
-                    + section.end_position
+                    + (section.end_position as isize)
                     + previous_entry_offset
-                    + i,
+                    + (i as isize)) as usize,
                 (*entry)[i],
             );
         }
-        previous_entry_offset += entry.len();
+        previous_entry_offset += entry.len() as isize;
     }
 
-    position_offset += insertion_offset;
-    return Ok(position_offset);
+    position_offset += insertion_offset as isize;
+    Ok(position_offset)
 }

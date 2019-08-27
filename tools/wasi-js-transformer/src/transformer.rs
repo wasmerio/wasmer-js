@@ -3,6 +3,7 @@
 use crate::applier::*;
 use crate::generator::*;
 use crate::parser::*;
+
 use std::*;
 
 // Function to lower i64 imports for a wasm binary vec
@@ -34,7 +35,7 @@ pub fn lower_i64_wasm_for_wasi_js(mut wasm_binary_vec: &mut Vec<u8>) -> Result<(
     // Update the binary to point at the trampoline and signatures
     // This should be done in order, in order to not have to do continuous passes of the position.
     // https://github.com/WebAssembly/design/blob/master/BinaryEncoding.md#high-level-structure
-    return apply_transformations_to_wasm_binary_vec(
+    apply_transformations_to_wasm_binary_vec(
         &mut wasm_binary_vec,
         &imported_i64_functions,
         &trampoline_functions,
@@ -43,7 +44,7 @@ pub fn lower_i64_wasm_for_wasi_js(mut wasm_binary_vec: &mut Vec<u8>) -> Result<(
         &parsed_info.wasm_type_signatures,
         &parsed_info.wasm_functions,
         &parsed_info.wasm_calls,
-    );
+    )
 }
 
 #[cfg(test)]
@@ -51,40 +52,50 @@ pub fn lower_i64_wasm_for_wasi_js(mut wasm_binary_vec: &mut Vec<u8>) -> Result<(
 fn converts() {
     // Run tests for the following strings
     let mut test_file_paths = Vec::new();
-    test_file_paths.push("./wasm-module-examples/path_open.wat");
-    test_file_paths.push("./wasm-module-examples/clock_time_get.wat");
-    test_file_paths.push("./wasm-module-examples/matrix.wat");
-    test_file_paths.push("./wasm-module-examples/two-imports.wat");
-    test_file_paths.push("./wasm-module-examples/gettimeofday/gettimeofday.wat");
-    test_file_paths.push("./wasm-module-examples/qjs.wat");
-    test_file_paths.push("./wasm-module-examples/duk.wat");
+    test_file_paths.push("./wasm-module-examples/path_open.wasm");
+    test_file_paths.push("./wasm-module-examples/clock_time_get.wasm");
+    test_file_paths.push("./wasm-module-examples/matrix.wasm");
+    test_file_paths.push("./wasm-module-examples/two-imports.wasm");
+    test_file_paths.push("./wasm-module-examples/gettimeofday/gettimeofday.wasm");
+    test_file_paths.push("./wasm-module-examples/qjs.wasm");
+    test_file_paths.push("./wasm-module-examples/duk.wasm");
 
     for test_file_path in test_file_paths.iter() {
         console_log!(" ");
-        console_log!("==========");
+        console_log!("=======================================");
+
+        console_log!(" ");
         console_log!("Testing: {:?}", test_file_path);
-        console_log!("==========");
         console_log!(" ");
 
-        let wat_string =
-            fs::read_to_string(test_file_path).expect("Something went wrong reading the file");
-
-        let mut wasm = wabt::wat2wasm(&wat_string).expect("parsed properly");
+        let mut wasm = fs::read(test_file_path).unwrap();
 
         assert!(
             wasmparser::validate(&wasm, None),
             "original wasm is not valid"
         );
 
-        lower_i64_wasm_for_wasi_js(&mut wasm);
+        console_log!(" ");
+        console_log!("Original Wasm Size: {}", &wasm.len());
+        console_log!(" ");
+
+        lower_i64_wasm_for_wasi_js(&mut wasm).unwrap();
+
+        console_log!(" ");
+        console_log!("New Wasm Size: {}", &wasm.len());
+        console_log!(" ");
+
+        fs::write("./wasm-module-examples/test_result.wasm", &wasm).expect("Unable to write file");
+
+        console_log!(" ");
+        console_log!("Wrote resulting Wasm to: ./wasm-module-examples/test_result.wasm");
+        console_log!(" ");
+
+        console_log!(" ");
+        console_log!("Convert Back to Wat for descriptive errors (if there is one)");
+        console_log!(" ");
 
         let transformed_wat = wabt::wasm2wat(wasm.to_vec());
-
-        console_log!(" ");
-        console_log!("==========");
-        console_log!("Convert Back to Wat for descriptive errors (if there is one)");
-        console_log!("==========");
-        console_log!(" ");
 
         match transformed_wat {
             Err(e) => {

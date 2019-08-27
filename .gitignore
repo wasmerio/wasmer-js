@@ -1,6 +1,8 @@
 # Project ignore
 .cache
 report.*
+**/test_result.wat
+**/test_result.wasm
 
 # Node
 node_modules

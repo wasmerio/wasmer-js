@@ -5,13 +5,13 @@
 // https://en.wikipedia.org/wiki/LEB128
 // E.g https://docs.rs/wasmparser/0.35.3/src/wasmparser/binary_reader.rs.html#436
 pub fn read_bytes_as_varunit(bytes: &[u8]) -> Result<(u32, usize), &'static str> {
-    if bytes.len() < 1 {
+    if bytes.is_empty() {
         return Err("Did not pass enough bytes");
     }
 
     // Check if it is only a single byte
     if (bytes[0] & 0x80) == 0 {
-        return Ok((bytes[0] as u32, 1));
+        return Ok((u32::from(bytes[0]), 1));
     } else if bytes.len() < 2 {
         return Err("Error decoding the varuint32, the high bit was incorrectly set");
     }
@@ -19,9 +19,8 @@ pub fn read_bytes_as_varunit(bytes: &[u8]) -> Result<(u32, usize), &'static str>
     let mut response: u32 = 0;
     let mut byte_length: usize = 0;
     let mut shift = 0;
-    for i in 0..bytes.len() {
-        let byte: u8 = bytes[i];
-        let low_order_byte: u32 = (byte & 0x7F) as u32;
+    for byte in bytes.iter() {
+        let low_order_byte: u32 = u32::from(byte & 0x7F);
         response |= (low_order_byte << shift) as u32;
         byte_length += 1;
         if byte & 0x80 == 0 {
@@ -30,7 +29,7 @@ pub fn read_bytes_as_varunit(bytes: &[u8]) -> Result<(u32, usize), &'static str>
         shift += 7;
     }
 
-    return Ok((response, byte_length));
+    Ok((response, byte_length))
 }
 
 // Take a u32, and output a vec of bytes that represent the value as a varuint32
@@ -46,21 +45,21 @@ pub fn get_u32_as_bytes_for_varunit(value: u32) -> Vec<u8> {
 
     while current_value > 0 {
         let mut byte = (current_value & 0x7F) as u8;
-        current_value = current_value >> 7;
+        current_value >>= 7;
         if current_value > 0 {
             // Set the top (7th) bit
-            byte = byte | 0x80
+            byte |= 0x80;
         }
         response.push(byte);
     }
 
-    return response;
+    response
 }
 
 // Function to insert bytes into a vec at the position
 pub fn insert_bytes_into_vec_at_position(vec: &mut Vec<u8>, position: usize, bytes: Vec<u8>) {
-    for i in 0..bytes.len() {
-        vec.insert(position + i, bytes[i]);
+    for (i, byte) in bytes.iter().enumerate() {
+        vec.insert(position + i, *byte);
     }
 }
 
