@@ -30,7 +30,7 @@ export default class WASICommand extends Command {
 
   sharedStdin?: Int32Array;
   stdinReadCallback?: Function;
-  stdinReadCounter: number;
+  isReadingStdin: boolean;
   pipedStdin: string;
 
   stdoutLog: string;
@@ -45,18 +45,14 @@ export default class WASICommand extends Command {
 
     this.wasmerFileSystem = new WasmerFileSystem();
 
-    // Bind our stdinRead
+    // Bind our stdinRead / stdoutWrite
     this.wasmerFileSystem.volume.fds[0].read = this.stdinRead.bind(this);
     this.wasmerFileSystem.volume.fds[1].write = this.stdoutWrite.bind(this);
     this.wasmerFileSystem.volume.fds[2].write = this.stdoutWrite.bind(this);
 
-    if (sharedStdin) {
-      this.sharedStdin = sharedStdin;
-    }
-    if (stdinReadCallback) {
-      this.stdinReadCallback = stdinReadCallback;
-    }
-    this.stdinReadCounter = 0;
+    this.sharedStdin = sharedStdin;
+    this.stdinReadCallback = stdinReadCallback;
+    this.isReadingStdin = false;
     this.pipedStdin = "";
 
     this.stdoutLog = "";
@@ -135,20 +131,11 @@ export default class WASICommand extends Command {
     length: number = stdinBuffer.byteLength,
     position?: number
   ) {
-    // For some reason, read is called 3 times per actual read
-    // Thus we have a counter to handle this.
-    // TODO: This should only be needed if we are prompting, and not needed for piping.
-    if (this.stdinReadCounter !== 0) {
-      if (this.stdinReadCounter < 2) {
-        this.stdinReadCounter++;
-      } else {
-        this.stdinReadCounter = 0;
-      }
+    if (this.isReadingStdin) {
+      this.isReadingStdin = false;
       return 0;
     }
-
-    // Since reading will keep requesting data, we need to give end of file
-    this.stdinReadCounter++;
+    this.isReadingStdin = true;
 
     let responseStdin: string | null = null;
     if (this.pipedStdin) {
@@ -165,7 +152,6 @@ export default class WASICommand extends Command {
       for (let i = 0; i < numberOfElements; i++) {
         newStdinData[i] = this.sharedStdin[1 + i];
       }
-
       responseStdin = new TextDecoder("utf-8").decode(newStdinData);
     } else {
       responseStdin = prompt(

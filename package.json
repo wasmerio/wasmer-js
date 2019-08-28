@@ -93,5 +93,10 @@
     "typescript": "^3.5.3",
     "url": "^0.11.0",
     "xterm": "^3.14.5"
+  },
+  "dependencies": {
+    "@types/shell-quote": "^1.6.1",
+    "local-echo": "github:wavesoft/local-echo",
+    "shell-quote": "^1.7.1"
   }
 }

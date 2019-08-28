@@ -6,104 +6,12 @@ import * as fit from "xterm/lib/addons/fit/fit";
 Terminal.applyAddon(fit);
 
 import CommandRunner from "../services/command-runner/command-runner";
-
-import parse_ from "shell-parse";
-const parse = parse_;
-
-const xtermMoveCursorX = (
-  xterm: Terminal,
-  line: string,
-  isPrompting: boolean,
-  movementX: number
-) => {
-  // https://github.com/xtermjs/xterm.js/issues/2290
-  // https://github.com/jerch/xterm.js/blob/master/src/InputHandler.ts#L602
-  // https://github.com/xtermjs/xterm.js/issues/1409
-
-  const minX = 0;
-  const maxX = line.length;
-  let cursorX = xterm.buffer.cursorX;
-  if (isPrompting) {
-    cursorX -= 2;
-  }
-  let newCursorX = cursorX + movementX;
-  newCursorX = Math.min(line.length, Math.max(newCursorX, 0));
-
-  const amountToMoveCursorX = newCursorX - cursorX;
-
-  // http://www.lihaoyi.com/post/BuildyourownCommandLinewithANSIescapecodes.html#cursor-navigation
-  // https://github.com/sindresorhus/ansi-escapes/blob/master/index.js
-  if (amountToMoveCursorX > 0) {
-    xterm.write(`\u001b[${amountToMoveCursorX}C`);
-  } else if (amountToMoveCursorX < 0) {
-    xterm.write(`\u001b[${Math.abs(amountToMoveCursorX)}D`);
-  }
-};
-
-const xtermRemoveCharacterOnLine = (
-  xterm: Terminal,
-  line: string,
-  isPrompting: boolean,
-  promptCallback: Function,
-  charactersX: number
-) => {
-  // http://www.lihaoyi.com/post/BuildyourownCommandLinewithANSIescapecodes.html#deletion
-
-  let cursorX = xterm.buffer.cursorX;
-  if (isPrompting) {
-    cursorX -= 2;
-  }
-
-  // Handle all the cases where we don't do anything
-  if (charactersX === 0) {
-    // No characters to be removes
-    return;
-  } else if (charactersX < 0 && cursorX <= 0) {
-    // Wanted to remove a character behind me,
-    // but I can't go any farther back
-    return;
-  } else if (charactersX > 0 && line.length === 0) {
-    // Wanted to delete some characters, but there are no characters to delete
-    return;
-  }
-
-  // Create our new line with the changes
-  let newLine = "";
-  if (charactersX > 0) {
-    newLine = line.slice(0, cursorX) + line.slice(cursorX + charactersX);
-  } else if (charactersX < 0) {
-    newLine = line.slice(0, cursorX + charactersX) + line.slice(cursorX);
-  }
-
-  // Clear the line
-  xterm.write("\u001b[1000D");
-  xterm.write("\u001b[0K");
-
-  // Write the new line
-  if (isPrompting) {
-    promptCallback();
-    cursorX += 2;
-  }
-  if (charactersX < 0) {
-    cursorX -= 1;
-  }
-  xterm.write(newLine);
-
-  // Move the cursor back to the correct position
-  xterm.write("\u001b[1000D");
-  if (cursorX > 0) {
-    xterm.write(`\u001b[${cursorX}C`);
-  }
-};
+import LocalEchoController from "../services/local-echo/LocalEchoController";
 
 export default class XTerm extends Component {
   xterm: Terminal;
   container: HTMLElement | null;
-  isPrompting: boolean;
-
-  commandHistory: Array<string>;
-  commandHistoryIndex: number;
-
+  localEcho: LocalEchoController;
   wapmHistory: Array<string>;
 
   commandRunner?: CommandRunner;
@@ -112,20 +20,19 @@ export default class XTerm extends Component {
     super();
     this.container = null;
     this.xterm = new Terminal();
-    this.isPrompting = false;
-    this.commandHistory = [];
-    this.commandHistoryIndex = -1;
     this.wapmHistory = [];
+    this.localEcho = new LocalEchoController(this.xterm);
+    this.localEcho.addAutocompleteHandler((index, tokens) => {
+      return this.wapmHistory;
+    });
   }
 
   componentDidMount() {
     if (!this.container) {
       return;
     }
-
     this.xterm.open(this.container);
     this.prompt();
-    this.xterm.on("key", this.onKey.bind(this));
     this.xterm.on("paste", this.onPaste.bind(this));
     this.xterm.focus();
     (this.xterm as any).fit();
@@ -136,59 +43,17 @@ export default class XTerm extends Component {
     delete this.xterm;
   }
 
-  prompt() {
-    this.xterm.write(`$ `);
-    this.isPrompting = true;
-  }
-
-  onPaste(data: string) {
-    this.xterm.write(data);
-  }
-
-  onKey(key: string, ev: KeyboardEvent) {
-    const printable = !ev.altKey && !ev.ctrlKey && !ev.metaKey;
-
-    // Get the current line, as well as variations of the line
-    let line = this.xterm.buffer.baseY + this.xterm.buffer.cursorY;
-    let bufferLine = this.xterm.buffer.getLine(line);
-    let bufferLineAsStringWithoutTrim = "";
-    if (bufferLine) {
-      bufferLineAsStringWithoutTrim = bufferLine.translateToString();
-      if (this.isPrompting) {
-        bufferLineAsStringWithoutTrim = bufferLineAsStringWithoutTrim.substr(2);
-      }
-    }
-    const bufferLineAsString = bufferLineAsStringWithoutTrim.trim();
-
-    if (ev.code === "Enter") {
-      if (
-        this.commandRunner &&
-        this.commandRunner.isRunning &&
-        this.commandRunner.supportsSharedArrayBuffer
-      ) {
-        // Pass stdin
-        this.commandRunner.sendStdinLine(bufferLineAsString);
-        this.xterm.write("\r\n");
-        return;
-      }
-
-      // Place a newline on the terminal
-      this.xterm.write("\r\n");
-
-      if (bufferLineAsString.length === 0) {
-        this.prompt();
-        return;
-      }
-
-      this.isPrompting = false;
-
+  async prompt() {
+    try {
+      this.xterm.write("$ ");
+      let line = await this.localEcho.read("$ ");
       if (this.commandRunner) {
         this.commandRunner.kill();
       }
 
       this.commandRunner = new CommandRunner(
         this.xterm,
-        bufferLineAsString,
+        line,
         // Command End Callback
         () => {
           this.prompt();
@@ -198,193 +63,20 @@ export default class XTerm extends Component {
           if (this.wapmHistory.includes(wapmModuleName)) {
             return;
           }
-
           this.wapmHistory.push(wapmModuleName);
         }
       );
-      this.commandHistory.unshift(bufferLineAsString);
-      this.commandHistoryIndex = -1;
-      this.commandRunner.runCommand();
-    } else if (ev.code === "Backspace") {
-      // Backspace (Delete on Mac)
-      // Do not delete the prompt
-      xtermRemoveCharacterOnLine(
-        this.xterm,
-        bufferLineAsString,
-        this.isPrompting,
-        () => {
-          this.prompt();
-        },
-        -1
-      );
-    } else if (ev.code === "Delete") {
-      // Delete
-      xtermRemoveCharacterOnLine(
-        this.xterm,
-        bufferLineAsString,
-        this.isPrompting,
-        () => {
-          this.prompt();
-        },
-        1
-      );
-    } else if (ev.code === "ArrowUp") {
-      if (!this.isPrompting) {
-        return;
-      }
-
-      // Increase the command history, andcheck if we traversed too high
-      this.commandHistoryIndex++;
-      if (this.commandHistoryIndex > this.commandHistory.length - 1) {
-        this.commandHistoryIndex = this.commandHistory.length - 1;
-      }
-
-      const command = this.commandHistory[this.commandHistoryIndex];
-
-      // Clear the line
-      this.xterm.write("\u001b[1000D");
-      this.xterm.write("\u001b[0K");
-
-      // Write the command
+      // this.commandHistory.unshift(bufferLineAsString);
+      // this.commandHistoryIndex = -1;
+      await this.commandRunner.runCommand();
+    } catch (e) {
+      this.xterm.writeln(`Error: ${e.toString()}`);
       this.prompt();
-      this.xterm.write(command);
-    } else if (ev.code === "ArrowDown") {
-      if (!this.isPrompting) {
-        return;
-      }
-
-      // Decrease the command history, and check if we went too low
-      this.commandHistoryIndex--;
-      if (this.commandHistoryIndex < -1) {
-        this.commandHistoryIndex = -1;
-      }
-
-      // Default to an empty command, otherwise, the command the index points to.
-      let command = "";
-      if (this.commandHistoryIndex >= 0) {
-        command = this.commandHistory[this.commandHistoryIndex];
-      }
-
-      // Clear the line
-      this.xterm.write("\u001b[1000D");
-      this.xterm.write("\u001b[0K");
-
-      // Write the command
-      this.prompt();
-      this.xterm.write(command);
-    } else if (ev.code === "ArrowLeft") {
-      xtermMoveCursorX(this.xterm, bufferLineAsString, this.isPrompting, -1);
-    } else if (ev.code === "ArrowRight") {
-      xtermMoveCursorX(this.xterm, bufferLineAsString, this.isPrompting, 1);
-    } else if (ev.code === "Tab") {
-      let cursorX = this.xterm.buffer.cursorX;
-      if (this.isPrompting) {
-        cursorX -= 2;
-      }
-
-      // Split the current line by pipe
-      const pipeSplit = bufferLineAsString.split(" | ");
-
-      // Find which command we are trying to autocomplete
-      let commandToMatchIndex =
-        cursorX > bufferLineAsString.length - 1 ? pipeSplit.length - 1 : 0;
-      for (let i = 0; i < pipeSplit.length - 1; i++) {
-        if (
-          cursorX >= pipeSplit[i].length &&
-          cursorX < pipeSplit[i + 1].length
-        ) {
-          commandToMatchIndex = i;
-        }
-      }
-      const commandToMatch = pipeSplit[commandToMatchIndex].split(" ")[0];
-
-      // Find which downloaded wapm commands match the command we are trying to complete
-      const matchedCommands: Array<string> = [];
-      this.wapmHistory.forEach(commandName => {
-        if (commandName.startsWith(commandToMatch)) {
-          matchedCommands.push(commandName);
-        }
-      });
-
-      // If we found no commands, return;
-      if (matchedCommands.length === 0) {
-        return;
-      }
-
-      // If we found more than one command, list them
-      if (matchedCommands.length > 1) {
-        this.xterm.write("\r\n");
-        this.xterm.write(matchedCommands.join(" "));
-        this.xterm.write("\r\n");
-        this.prompt();
-        this.xterm.write(bufferLineAsString);
-
-        // Restore cursor position
-        if (this.isPrompting) {
-          cursorX += 2;
-        }
-        this.xterm.write("\u001b[1000D");
-        this.xterm.write(`\u001b[${cursorX}C`);
-
-        return;
-      }
-
-      // Auto fill the command
-      let newCommand = matchedCommands[0];
-      let newCommandArgs = pipeSplit[commandToMatchIndex].split(" ");
-      newCommandArgs.shift();
-      newCommand += " " + newCommandArgs.join(" ");
-      pipeSplit[commandToMatchIndex] = newCommand;
-      const movementX = newCommand.length - commandToMatch.length;
-
-      // Clear the line
-      this.xterm.write("\u001b[1000D");
-      this.xterm.write("\u001b[0K");
-
-      // Write the new line
-      if (this.isPrompting) {
-        this.prompt();
-        cursorX += 2;
-      }
-      this.xterm.write(pipeSplit.join(" | "));
-
-      // Move the cursor back to the correct position
-      // +movementX because we added new characters
-      cursorX += movementX;
-      this.xterm.write("\u001b[1000D");
-      this.xterm.write(`\u001b[${cursorX}C`);
-    } else if (printable && !ev.key.startsWith("Arrow")) {
-      // Typing characters
-
-      let cursorX = this.xterm.buffer.cursorX;
-      if (this.isPrompting) {
-        cursorX -= 2;
-      }
-
-      // Create our new line with the change
-      let newLine =
-        bufferLineAsStringWithoutTrim.slice(0, cursorX) +
-        key +
-        bufferLineAsStringWithoutTrim.slice(cursorX);
-      newLine = newLine.trim();
-
-      // Clear the line
-      this.xterm.write("\u001b[1000D");
-      this.xterm.write("\u001b[0K");
-
-      // Write the new line
-      if (this.isPrompting) {
-        this.prompt();
-        cursorX += 2;
-      }
-      this.xterm.write(newLine);
-
-      // Move the cursor back to the correct position
-      // +1 because we added a character
-      cursorX += 1;
-      this.xterm.write("\u001b[1000D");
-      this.xterm.write(`\u001b[${cursorX}C`);
     }
+  }
+
+  onPaste(data: string) {
+    this.xterm.write(data);
   }
 
   render() {
