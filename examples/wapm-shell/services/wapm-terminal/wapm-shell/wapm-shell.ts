@@ -1,4 +1,3 @@
-import { ShellHistory } from "./shell-history";
 import {
   closestLeftBoundary,
   closestRightBoundary,
@@ -9,6 +8,9 @@ import {
   isIncompleteInput,
   offsetToColRow
 } from "./shell-utils";
+import { ShellHistory } from "./shell-history";
+
+import CommandRunner from "../command-runner/command-runner";
 
 /**
  * A shell is the primary interface that is used to start other programs.
@@ -20,19 +22,14 @@ import {
  * - Interpret text within the tty to launch processes and interpret programs
  */
 type AutoCompleteHandler = (index: number, tokens: string[]) => string[];
-
 export default class WapmShell {
-  term: Terminal;
-  history: HistoryController;
+  wapmTty: WapmTty;
+  history: ShellHistory;
+  commandRunner?: CommandRunner;
+
   maxAutocompleteEntries: number;
   _autocompleteHandlers: AutoCompleteHandler[];
   _active: boolean;
-  _cursor: number;
-  _input: string;
-  _termSize: {
-    cols: number;
-    rows: number;
-  };
   firstInit: boolean = true;
   _activePrompt: {
     prompt: string;
@@ -53,26 +50,19 @@ export default class WapmShell {
       maxAutocompleteEntries: 100
     }
   ) {
+    this.wapmTty = wapmTty;
     this.history = new HistoryController(options.historySize);
-    this.maxAutocompleteEntries = options.maxAutocompleteEntries;
+    this.commandRunner = undefined;
 
+    this.maxAutocompleteEntries = options.maxAutocompleteEntries;
     this._autocompleteHandlers = [];
     this._active = false;
-    this._input = "";
-    this._cursor = 0;
     this._activePrompt = null;
     this._activeCharPrompt = null;
-    this._termSize = {
-      cols: this.term.cols,
-      rows: this.term.rows
-    };
-
-    this.attach();
   }
 
   async prompt() {
     try {
-      this.xterm.write("$ ");
       let line = await this.WapmTty.read("$ ");
       if (this.commandRunner) {
         this.commandRunner.kill();
@@ -93,8 +83,6 @@ export default class WapmShell {
           this.wapmHistory.push(wapmModuleName);
         }
       );
-      // this.commandHistory.unshift(bufferLineAsString);
-      // this.commandHistoryIndex = -1;
       await this.commandRunner.runCommand();
     } catch (e) {
       this.xterm.writeln(`Error: ${e.toString()}`);
@@ -106,12 +94,14 @@ export default class WapmShell {
    * Apply prompts to the given input
    */
   applyPrompts(input: string): string {
-    const prompt = this._activePrompt ? this._activePrompt.prompt : "";
+    const promptPrefix = this._activePrompt
+      ? this._activePrompt.promptPrefix
+      : "";
     const continuationPrompt = this._activePrompt
       ? this._activePrompt.continuationPrompt
       : "";
 
-    return prompt + input.replace(/\n/g, "\n" + continuationPrompt);
+    return promptPrefix + input.replace(/\n/g, "\n" + continuationPrompt);
   }
 
   /**
@@ -132,7 +122,7 @@ export default class WapmShell {
 
     // Complete input
     this.setCursor(this._input.length);
-    this.term.write("\r\n");
+    this.wasmTty.print("\r\n");
 
     // Prepare a function that will resume prompt
     const resume = () => {
@@ -201,7 +191,7 @@ export default class WapmShell {
       this._activePrompt.resolve(this._input);
       this._activePrompt = null;
     }
-    this.term.write("\r\n");
+    this.wasmTty.print("\r\n");
     this._active = false;
   };
 
@@ -343,12 +333,18 @@ export default class WapmShell {
 
         case "\x03": // CTRL+C
           this.setCursor(this._input.length);
-          this.term.write(
+          this.wasmTty.print(
             "^C\r\n" + (this._activePrompt ? this._activePrompt.prompt : "")
           );
           this._input = "";
           this._cursor = 0;
           if (this.history) this.history.rewind();
+
+          if (this.commandRunner) {
+            this.commandRunner.kill();
+            this.commandRunner = undefined;
+          }
+
           break;
       }
 

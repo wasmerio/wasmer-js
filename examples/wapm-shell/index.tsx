@@ -1,6 +1,6 @@
 import { h, render, Component } from "preact";
 
-import WapmTerminal from "./components/wapm-terminal/wapm-terminal";
+import WapmTerminal from "./components/wapm-terminal/wapm-terminal.component";
 import "./index.css";
 
 class App extends Component {

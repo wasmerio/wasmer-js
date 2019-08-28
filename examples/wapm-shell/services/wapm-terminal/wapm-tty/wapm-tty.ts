@@ -72,10 +72,17 @@ export default class WapmTTY {
    * Return a promise that will resolve when the user has completed
    * typing a single line
    */
-  read(prompt: string, continuationPrompt: string = "> "): Promise<string> {
+  read(
+    promptPrefix: string,
+    continuationPrompt: string = "> "
+  ): Promise<string> {
+    if (promptPrefix.length > 0) {
+      this.print(promptPrefix);
+    }
+
     return new Promise((resolve, reject) => {
       this._activePrompt = {
-        prompt: prompt,
+        promptPrefix,
         continuationPrompt,
         resolve,
         reject

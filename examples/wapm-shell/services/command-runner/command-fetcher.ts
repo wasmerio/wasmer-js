@@ -1,7 +1,7 @@
 // Service to fetch and instantiate modules
 // And cache them to run again
 
-import { Terminal } from "xterm";
+import WapmTty from "../wapm-terminal/wapm-tty/wapm-tty";
 
 import wasmInit, {
   lower_i64_imports
@@ -105,7 +105,7 @@ const getWapmUrlForCommandName = async (commandName: String) => {
 const getWasmModuleFromUrl = async (
   url: string,
   commandName?: string,
-  xterm?: Terminal
+  wapmTty?: WapmTty
 ): Promise<WebAssembly.Module> => {
   // @ts-ignore
   if (WebAssembly.compileStreaming && false) {
@@ -116,15 +116,15 @@ const getWasmModuleFromUrl = async (
     let buffer = await fetched.arrayBuffer();
     let binary = new Uint8Array(buffer);
 
-    if (commandName && xterm) {
+    if (commandName && wapmTty) {
       // Restore the cursor position
-      xterm.write("\u001b[u");
+      wapmTty.print("\u001b[u");
 
       // Clear from cursor to end of screen
-      xterm.write("\u001b[1000D");
-      xterm.write("\u001b[0J");
+      wapmTty.print("\u001b[1000D");
+      wapmTty.print("\u001b[0J");
 
-      xterm.write(`[INFO] Doing Transformations for "${commandName}"`);
+      wapmTty.print(`[INFO] Doing Transformations for "${commandName}"`);
     }
 
     // Make Modifications to the binary to support browser side WASI.
@@ -137,7 +137,7 @@ const getWasmModuleFromUrl = async (
 };
 
 export default class CommandFetcher {
-  async getWasmModuleForCommandName(commandName: string, xterm?: Terminal) {
+  async getWasmModuleForCommandName(commandName: string, wapmTty?: WapmTty) {
     let commandUrl = commandToUrlCache[commandName];
     if (!commandUrl) {
       commandUrl = await getWapmUrlForCommandName(commandName);
@@ -146,26 +146,28 @@ export default class CommandFetcher {
 
     let cachedData = compiledModulesCache[commandUrl];
     if (!cachedData) {
-      if (xterm) {
+      if (wapmTty) {
         // Save the cursor position
-        xterm.write("\u001b[s");
+        wapmTty.print("\u001b[s");
 
-        xterm.write(`[INFO] Downloading "${commandName}" from "${commandUrl}"`);
+        wapmTty.print(
+          `[INFO] Downloading "${commandName}" from "${commandUrl}"`
+        );
       }
 
       // Fetch the wasm modules, but at least show the message for a short while
       cachedData = compiledModulesCache[commandUrl] = await Promise.all([
-        getWasmModuleFromUrl(commandUrl, commandName, xterm),
+        getWasmModuleFromUrl(commandUrl, commandName, wapmTty),
         new Promise(resolve => setTimeout(resolve, 500))
       ]).then(responses => responses[0]);
 
-      if (xterm) {
+      if (wapmTty) {
         // Restore the cursor position
-        xterm.write("\u001b[u");
+        wapmTty.print("\u001b[u");
 
         // Clear from cursor to end of screen
-        xterm.write("\u001b[1000D");
-        xterm.write("\u001b[0J");
+        wapmTty.print("\u001b[1000D");
+        wapmTty.print("\u001b[0J");
       }
     }
 

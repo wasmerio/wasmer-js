@@ -10,11 +10,17 @@ import WapmShell from "./wapm-shell/wapm-shell";
 
 export default class WapmTerminal {
   xterm: Terminal;
+  wapmTty: WapmTty;
+  wapmShell: WapmShell;
 
   constructor() {
     // Create our xterm element
     this.xterm = new Terminal();
     this.xterm.on("paste", this.onPaste.bind(this));
+
+    // Create our Shell and tty
+    this.wapmTty = new WapmTty(this.xterm);
+    this.wapmShell = new WapmShell(this.wapmTty);
   }
 
   open(container: HTMLElement) {
@@ -84,16 +90,16 @@ export default class WapmTerminal {
 
     // Adjust vertically
     if (newRow > prevRow) {
-      for (let i = prevRow; i < newRow; ++i) this.term.write("\x1B[B");
+      for (let i = prevRow; i < newRow; ++i) this.xterm.write("\x1B[B");
     } else {
-      for (let i = newRow; i < prevRow; ++i) this.term.write("\x1B[A");
+      for (let i = newRow; i < prevRow; ++i) this.xterm.write("\x1B[A");
     }
 
     // Adjust horizontally
     if (newCol > prevCol) {
-      for (let i = prevCol; i < newCol; ++i) this.term.write("\x1B[C");
+      for (let i = prevCol; i < newCol; ++i) this.xterm.write("\x1B[C");
     } else {
-      for (let i = newCol; i < prevCol; ++i) this.term.write("\x1B[D");
+      for (let i = newCol; i < prevCol; ++i) this.xterm.write("\x1B[D");
     }
 
     // Set new offset
