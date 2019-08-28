@@ -44,17 +44,13 @@ export default class WASICommand extends Command {
 
     this.wasmerFileSystem = new WasmerFileSystem();
 
-    // Bind our stdinRead
+    // Bind our stdinRead / stdoutWrite
     this.wasmerFileSystem.volume.fds[0].read = this.stdinRead.bind(this);
     this.wasmerFileSystem.volume.fds[1].write = this.stdoutWrite.bind(this);
     this.wasmerFileSystem.volume.fds[2].write = this.stdoutWrite.bind(this);
 
-    if (sharedStdin) {
-      this.sharedStdin = sharedStdin;
-    }
-    if (stdinReadCallback) {
-      this.stdinReadCallback = stdinReadCallback;
-    }
+    this.sharedStdin = sharedStdin;
+    this.stdinReadCallback = stdinReadCallback;
     this.stdinReadCounter = 0;
     this.pipedStdin = "";
 
@@ -110,6 +106,11 @@ export default class WASICommand extends Command {
     length: number = stdoutBuffer.byteLength,
     position?: number
   ) {
+    console.log(
+      `stdoutWrite ${new TextDecoder("utf-8").decode(
+        stdoutBuffer
+      )} offset:${offset}, length:${length}, position: ${position}`
+    );
     if (this.stdoutCallback) {
       this.stdoutCallback(stdoutBuffer);
     }
@@ -128,6 +129,7 @@ export default class WASICommand extends Command {
     length: number = stdinBuffer.byteLength,
     position?: number
   ) {
+    console.log("stdinRead", offset, length, position);
     // For some reason, read is called 3 times per actual read
     // Thus we have a counter to handle this.
     // TODO: This should only be needed if we are prompting, and not needed for piping.
@@ -148,6 +150,7 @@ export default class WASICommand extends Command {
       responseStdin = this.pipedStdin;
       this.pipedStdin = "";
     } else if (this.sharedStdin && this.stdinReadCallback) {
+      console.log("stdinReadCallback");
       this.stdinReadCallback();
       Atomics.wait(this.sharedStdin, 0, -1);
 
@@ -165,11 +168,11 @@ export default class WASICommand extends Command {
     }
 
     // First check for errors
-    if (!responseStdin) {
-      return 0;
-    }
+    // if (!responseStdin) {
+    //   return 0;
+    // }
 
-    const buffer = new TextEncoder().encode(responseStdin);
+    const buffer = new TextEncoder().encode(responseStdin + "\n");
     for (let x = 0; x < buffer.length; ++x) {
       stdinBuffer[x] = buffer[x];
     }

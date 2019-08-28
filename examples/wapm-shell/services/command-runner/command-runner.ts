@@ -1,18 +1,10 @@
-import { h, Component } from "preact";
-
 import * as Comlink from "comlink";
-
-import { Duplex, PassThrough } from "stream";
-import parse_ from "shell-parse";
-const parse = parse_;
-
-import { Terminal } from "xterm";
-
+import parse from "shell-parse";
+import { Terminal, IBufferLine } from "xterm";
 import Process from "../process/process";
-
-import { CommandOptions, Command } from "./command";
-
+import { CommandOptions } from "./command";
 import CommandFetcher from "./command-fetcher";
+import LocalEchoController from "../local-echo/LocalEchoController";
 
 let processWorkerBlobUrl: string | undefined = undefined;
 const getBlobUrlForProcessWorker = async (xterm: Terminal) => {
@@ -112,6 +104,7 @@ export default class CommandRunner {
   xterm: Terminal;
   commandString: string;
   stdoutOnCurrentLine: string;
+  localEcho: LocalEchoController;
 
   commandEndCallback: Function;
   commandFetcherCallback: Function;
@@ -132,6 +125,10 @@ export default class CommandRunner {
       (window as any).SharedArrayBuffer && (window as any).Atomics;
 
     this.xterm = xterm;
+    this.localEcho = new LocalEchoController(this.xterm, {
+      historySize: 0,
+      maxAutocompleteEntries: 0
+    });
     this.commandString = commandString;
     this.stdoutOnCurrentLine = "";
 
@@ -169,14 +166,6 @@ export default class CommandRunner {
 
     // Spawn the first process
     await this.tryToSpawnProcess(0);
-  }
-
-  sendStdinLine(line: string) {
-    // Remove our stdout prefix if we have one
-    const stdin = line.replace(this.stdoutOnCurrentLine, "");
-
-    const data = new TextEncoder().encode(stdin);
-    this.addStdinToSharedStdin(data, 0);
   }
 
   addStdinToSharedStdin(data: Uint8Array, processObjectIndex: number) {
@@ -314,18 +303,21 @@ export default class CommandRunner {
         this.pipedStdinDataForNextProcess = newPipedStdinData;
       }
     } else {
+      // console.log("processDataCallback");
       // Write the output to our terminal
       let dataString = new TextDecoder("utf-8").decode(data);
+      // console.log("processDataCallback", dataString);
       this.xterm.write(dataString.replace(/\n/g, "\r\n"));
-
+      this.stdoutOnCurrentLine = dataString;
       // Check if the data ended with 10 (New Line)
       // If it did, then clear the stdout we have on our line
       // Otherwise, record this that way we don't send it along our stdin
-      if (data[data.length - 1] === 10) {
-        this.stdoutOnCurrentLine = "";
-      } else {
-        this.stdoutOnCurrentLine += dataString;
-      }
+      // if (data[data.length - 1] === 10) {
+      //   this.stdoutOnCurrentLine = "";
+      // } else {
+      //   // let lines = dataString.split("\n");
+      //   this.stdoutOnCurrentLine = dataString; //lines[lines.length-1];
+      // }
     }
   }
 
@@ -357,8 +349,21 @@ export default class CommandRunner {
     this.commandEndCallback();
   }
 
-  // TODO: Maybe Remove this? May not need it? Wait until cleanup...
-  processStdinReadCallback() {}
+  processStdinReadCallback() {
+    // When the stdin read begins
+    console.log(
+      `processStdinReadCallback y:${this.xterm.buffer.cursorY}, x: ${this.xterm.buffer.cursorX}, stdoutOnCurrentLine: ${this.stdoutOnCurrentLine}`
+    );
+    // let promptRead = (line as IBufferLine).translateToString(false, 0, this.xterm.buffer.cursorX);
+    // console.log(promptRead);
+    this.xterm.write("\u001b[2K\r\u001b[2K");
+    let lines = this.stdoutOnCurrentLine.split("\n");
+    this.localEcho.read(lines[lines.length - 1]).then((stdin: string) => {
+      this.stdoutOnCurrentLine = "";
+      const data = new TextEncoder().encode(stdin);
+      this.addStdinToSharedStdin(data, 0);
+    });
+  }
 
   kill() {
     if (!this.isRunning) {
