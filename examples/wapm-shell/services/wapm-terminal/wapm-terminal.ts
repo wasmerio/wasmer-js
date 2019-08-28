@@ -4,12 +4,16 @@ import { Terminal, ITerminalOptions, IBufferLine } from "xterm";
 import * as fit from "xterm/lib/addons/fit/fit";
 Terminal.applyAddon(fit);
 
-import CommandRunner from "../services/command-runner/command-runner";
 import WapmTty from "./wapm-tty/wapm-tty";
 import WapmShell from "./wapm-shell/wapm-shell";
 
 export default class WapmTerminal {
   xterm: Terminal;
+  _termSize: {
+    cols: number;
+    rows: number;
+  };
+
   wapmTty: WapmTty;
   wapmShell: WapmShell;
 
@@ -17,9 +21,14 @@ export default class WapmTerminal {
     // Create our xterm element
     this.xterm = new Terminal();
     this.xterm.on("paste", this.onPaste.bind(this));
+    this._termSize = {
+      cols: this.term.cols,
+      rows: this.term.rows
+    };
 
     // Create our Shell and tty
     this.wapmTty = new WapmTty(this.xterm);
+    this.wapmTty.attach();
     this.wapmShell = new WapmShell(this.wapmTty);
   }
 
@@ -36,6 +45,7 @@ export default class WapmTerminal {
   }
 
   destroy() {
+    this.wapmTty.detach();
     this.xterm.destroy();
     delete this.xterm;
   }
@@ -53,56 +63,8 @@ export default class WapmTerminal {
    */
   handleTermResize = (data: { rows: number; cols: number }) => {
     const { rows, cols } = data;
-    this.clearInput();
+    this.wapmTty.clearInput();
     this._termSize = { cols, rows };
     this.setInput(this._input, false);
   };
-
-  /**
-   * Set the new cursor position, as an offset on the input string
-   *
-   * This function:
-   * - Calculates the previous and current
-   */
-  setCursor(newCursor: number) {
-    if (newCursor < 0) newCursor = 0;
-    if (newCursor > this._input.length) newCursor = this._input.length;
-
-    // Apply prompt formatting to get the visual status of the display
-    const inputWithPrompt = this.applyPrompts(this._input);
-    const inputLines = countLines(inputWithPrompt, this._termSize.cols);
-
-    // Estimate previous cursor position
-    const prevPromptOffset = this.applyPromptOffset(this._input, this._cursor);
-    const { col: prevCol, row: prevRow } = offsetToColRow(
-      inputWithPrompt,
-      prevPromptOffset,
-      this._termSize.cols
-    );
-
-    // Estimate next cursor position
-    const newPromptOffset = this.applyPromptOffset(this._input, newCursor);
-    const { col: newCol, row: newRow } = offsetToColRow(
-      inputWithPrompt,
-      newPromptOffset,
-      this._termSize.cols
-    );
-
-    // Adjust vertically
-    if (newRow > prevRow) {
-      for (let i = prevRow; i < newRow; ++i) this.xterm.write("\x1B[B");
-    } else {
-      for (let i = newRow; i < prevRow; ++i) this.xterm.write("\x1B[A");
-    }
-
-    // Adjust horizontally
-    if (newCol > prevCol) {
-      for (let i = prevCol; i < newCol; ++i) this.xterm.write("\x1B[C");
-    } else {
-      for (let i = newCol; i < prevCol; ++i) this.xterm.write("\x1B[D");
-    }
-
-    // Set new offset
-    this._cursor = newCursor;
-  }
 }
