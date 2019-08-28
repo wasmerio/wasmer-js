@@ -356,9 +356,9 @@ export default class CommandRunner {
     );
     // let promptRead = (line as IBufferLine).translateToString(false, 0, this.xterm.buffer.cursorX);
     // console.log(promptRead);
-    this.xterm.write("\u001b[2K\r\u001b[2K");
-    let lines = this.stdoutOnCurrentLine.split("\n");
-    this.localEcho.read(lines[lines.length - 1]).then((stdin: string) => {
+    // this.xterm.write("\u001b[2K\r\u001b[2K");
+    // let lines = this.stdoutOnCurrentLine.split("\n");
+    this.localEcho.read("").then((stdin: string) => {
       this.stdoutOnCurrentLine = "";
       const data = new TextEncoder().encode(stdin);
       this.addStdinToSharedStdin(data, 0);

@@ -45,6 +45,7 @@ export default class XTerm extends Component {
 
   async prompt() {
     try {
+      this.xterm.write("$ ");
       let line = await this.localEcho.read("$ ");
       if (this.commandRunner) {
         this.commandRunner.kill();

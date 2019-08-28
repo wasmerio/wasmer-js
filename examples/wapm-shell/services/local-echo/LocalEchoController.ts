@@ -9,7 +9,7 @@ import {
   isIncompleteInput,
   offsetToColRow
 } from "./utils";
-import { Terminal } from "xterm";
+import { Terminal, IBufferLine } from "xterm";
 
 /**
  * A local terminal controller is responsible for displaying messages
@@ -36,6 +36,7 @@ export default class LocalEchoController {
     cols: number;
     rows: number;
   };
+  firstInit: boolean = true;
   _activePrompt: {
     prompt: string;
     continuationPrompt: string;
@@ -117,13 +118,14 @@ export default class LocalEchoController {
    */
   read(prompt: string, continuationPrompt: string = "> "): Promise<string> {
     return new Promise((resolve, reject) => {
-      this.term.write(prompt);
+      //   this.term.write(prompt);
       this._activePrompt = {
         prompt: prompt,
         continuationPrompt,
         resolve,
         reject
       };
+      this.firstInit = true;
       this._input = "";
       this._cursor = 0;
       this._active = true;
@@ -450,6 +452,18 @@ export default class LocalEchoController {
    */
   handleTermData = (data: string) => {
     if (!this._active) return;
+    if (this.firstInit && this._activePrompt) {
+      let line = this.term.buffer.getLine(
+        this.term.buffer.cursorY + this.term.buffer.baseY
+      );
+      let promptRead = (line as IBufferLine).translateToString(
+        false,
+        0,
+        this.term.buffer.cursorX
+      );
+      this._activePrompt.prompt = promptRead;
+      this.firstInit = false;
+    }
 
     // If we have an active character prompt, satisfy it in priority
     if (this._activeCharPrompt != null) {
