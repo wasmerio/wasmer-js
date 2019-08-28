@@ -8,7 +8,7 @@ Terminal.applyAddon(fit);
 import CommandRunner from "../services/command-runner/command-runner";
 import LocalEchoController from "../services/local-echo/LocalEchoController";
 
-export default class XTerm extends Component {
+export default class WapmShell extends Component {
   xterm: Terminal;
   container: HTMLElement | null;
   localEcho: LocalEchoController;

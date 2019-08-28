@@ -1,6 +1,6 @@
 import { h, render, Component } from "preact";
 
-import XTerm from "./components/xterm";
+import WapmShell from "./components/wapm-shell/wapm-shell";
 
 import "./index.css";
 
@@ -8,7 +8,7 @@ class App extends Component {
   render() {
     return (
       <div>
-        <XTerm />
+        <WapmShell />
       </div>
     );
   }
