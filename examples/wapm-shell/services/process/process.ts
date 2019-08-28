@@ -68,7 +68,7 @@ export default class Process {
       this.wasiCommand.run();
     } catch (e) {
       console.log("ERROR", e);
-      let error = "Uknown Error";
+      let error = "Unknown Error";
 
       if (e instanceof WASIExitError) {
         error = `exited with code: ${e.code}`;

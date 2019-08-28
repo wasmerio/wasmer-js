@@ -111,6 +111,7 @@ export default class CommandRunner {
 
   xterm: Terminal;
   commandString: string;
+  stdoutOnCurrentLine: string;
 
   commandEndCallback: Function;
   commandFetcherCallback: Function;
@@ -132,6 +133,7 @@ export default class CommandRunner {
 
     this.xterm = xterm;
     this.commandString = commandString;
+    this.stdoutOnCurrentLine = "";
 
     this.commandEndCallback = commandEndCallback;
     this.commandFetcherCallback = commandFetcherCallback;
@@ -169,7 +171,10 @@ export default class CommandRunner {
     await this.tryToSpawnProcess(0);
   }
 
-  sendStdinLine(stdin: string) {
+  sendStdinLine(line: string) {
+    // Remove our stdout prefix if we have one
+    const stdin = line.replace(this.stdoutOnCurrentLine, "");
+
     const data = new TextEncoder().encode(stdin);
     this.addStdinToSharedStdin(data, 0);
   }
@@ -312,6 +317,15 @@ export default class CommandRunner {
       // Write the output to our terminal
       let dataString = new TextDecoder("utf-8").decode(data);
       this.xterm.write(dataString.replace(/\n/g, "\r\n"));
+
+      // Check if the data ended with 10 (New Line)
+      // If it did, then clear the stdout we have on our line
+      // Otherwise, record this that way we don't send it along our stdin
+      if (data[data.length - 1] === 10) {
+        this.stdoutOnCurrentLine = "";
+      } else {
+        this.stdoutOnCurrentLine += dataString;
+      }
     }
   }
 
@@ -343,9 +357,8 @@ export default class CommandRunner {
     this.commandEndCallback();
   }
 
-  processStdinReadCallback() {
-    // TODO: I think I might need this? Wait for cleanup to remove
-  }
+  // TODO: Maybe Remove this? May not need it? Wait until cleanup...
+  processStdinReadCallback() {}
 
   kill() {
     if (!this.isRunning) {
