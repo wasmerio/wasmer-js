@@ -22,8 +22,8 @@ export default class WapmTerminal {
     this.xterm = new Terminal();
     this.xterm.on("paste", this.onPaste.bind(this));
     this._termSize = {
-      cols: this.term.cols,
-      rows: this.term.rows
+      cols: this.xterm.cols,
+      rows: this.xterm.rows
     };
 
     // Create our Shell and tty
@@ -65,6 +65,6 @@ export default class WapmTerminal {
     const { rows, cols } = data;
     this.wapmTty.clearInput();
     this._termSize = { cols, rows };
-    this.setInput(this._input, false);
+    this.wapmTty.setInput(this.wapmTty.getInput(), false);
   };
 }

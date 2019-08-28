@@ -9,30 +9,14 @@ type AutoCompleteHandler = (index: number, tokens: string[]) => string[];
 
 export default class WapmTTY {
   xterm: Terminal;
-  history: HistoryController;
-  maxAutocompleteEntries: number;
   _cursor: number;
   _input: string;
 
-  constructor(
-    xterm: Terminal,
-    options: { historySize: number; maxAutocompleteEntries: number } = {
-      historySize: 10,
-      maxAutocompleteEntries: 100
-    }
-  ) {
+  constructor(xterm: Terminal) {
     this.xterm = xterm;
 
-    this.history = new HistoryController(options.historySize);
-    this.maxAutocompleteEntries = options.maxAutocompleteEntries;
-
-    this._autocompleteHandlers = [];
     this._input = "";
     this._cursor = 0;
-    this._termSize = {
-      cols: this.xterm.cols,
-      rows: this.xterm.rows
-    };
   }
 
   /**
@@ -66,6 +50,20 @@ export default class WapmTTY {
     if (idx === -1) return;
 
     this._autocompleteHandlers.splice(idx, 1);
+  }
+
+  /**
+   * Function to get the current input in the line
+   */
+  getInput() {
+    return this._input;
+  }
+
+  /**
+   * Function to get the current cursor
+   */
+  getCursor() {
+    this._cursor;
   }
 
   /**
@@ -237,6 +235,10 @@ export default class WapmTTY {
 
     // Replace input
     this._input = newInput;
+  }
+
+  setCursor(newCursor: number) {
+    this._cursor = newCursor;
   }
 
   /**

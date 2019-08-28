@@ -118,16 +118,16 @@ export default class WapmShell {
    * and then re-displays the prompt.
    */
   printAndRestartPrompt(callback: () => Promise<any> | null) {
-    const cursor = this._cursor;
+    const cursor = this.wapmTty.getCursor();
 
     // Complete input
-    this.setCursor(this._input.length);
+    this.setCursor(this.wapmTty.getInput().length);
     this.wasmTty.print("\r\n");
 
     // Prepare a function that will resume prompt
     const resume = () => {
-      this._cursor = cursor;
-      this.setInput(this._input);
+      this.wapmTty.setCursor(cursor);
+      this.setInput(this.wapmTty.getInput());
     };
 
     // Call the given callback to echo something, and if there is a promise
@@ -141,15 +141,35 @@ export default class WapmShell {
   }
 
   /**
+   * Register a handler that will be called to satisfy auto-completion
+   */
+  addAutocompleteHandler(fn: AutoCompleteHandler) {
+    this._autocompleteHandlers.push(fn);
+  }
+
+  /**
+   * Remove a previously registered auto-complete handler
+   */
+  removeAutocompleteHandler(fn: AutoCompleteHandler) {
+    const idx = this._autocompleteHandlers.findIndex(e => e === fn);
+    if (idx === -1) return;
+
+    this._autocompleteHandlers.splice(idx, 1);
+  }
+
+  /**
    * Move cursor at given direction
    */
   handleCursorMove = (dir: number) => {
     if (dir > 0) {
-      const num = Math.min(dir, this._input.length - this._cursor);
-      this.setCursor(this._cursor + num);
+      const num = Math.min(
+        dir,
+        this.wapmTty.getInput().length - this.wapmTty.getCursor()
+      );
+      this.setCursor(this.wapmTty.getCursor() + num);
     } else if (dir < 0) {
-      const num = Math.max(dir, -this._cursor);
-      this.setCursor(this._cursor + num);
+      const num = Math.max(dir, -this.wapmTty.getCursor());
+      this.setCursor(this.wapmTty.getCursor() + num);
     }
   };
 
@@ -157,15 +177,18 @@ export default class WapmShell {
    * Erase a character at cursor location
    */
   handleCursorErase = (backspace: boolean) => {
-    const { _cursor, _input } = this;
     if (backspace) {
-      if (_cursor <= 0) return;
-      const newInput = _input.substr(0, _cursor - 1) + _input.substr(_cursor);
+      if (this.wapmTty.getCursor() <= 0) return;
+      const newInput =
+        this.wapmTty.getInput().substr(0, this.wapmTty.getCursor() - 1) +
+        this.wapmTty.getInput().substr(this.wapmTty.getCursor());
       this.clearInput();
-      this._cursor -= 1;
+      this.wapmTty.setCursor(this.wapmTty.getCursor() - 1);
       this.setInput(newInput, false);
     } else {
-      const newInput = _input.substr(0, _cursor) + _input.substr(_cursor + 1);
+      const newInput =
+        this.wapmTty.getInput().substr(0, this.wapmTty.getCursor()) +
+        this.wapmTty.getInput().substr(this.wapmTty.getCursor() + 1);
       this.setInput(newInput);
     }
   };
@@ -175,8 +198,11 @@ export default class WapmShell {
    */
   handleCursorInsert = (data: string) => {
     const { _cursor, _input } = this;
-    const newInput = _input.substr(0, _cursor) + data + _input.substr(_cursor);
-    this._cursor += data.length;
+    const newInput =
+      this.wapmTty.getInput().substr(0, this.wapmTty.getCursor()) +
+      data +
+      this.wapmTty.getInput().substr(this.wapmTty.getCursor());
+    this.wapmTty.setCursor(this.wapmTty.getCursor() + data.length);
     this.setInput(newInput);
   };
 
@@ -185,10 +211,10 @@ export default class WapmShell {
    */
   handleReadComplete = () => {
     if (this.history) {
-      this.history.push(this._input);
+      this.history.push(this.wapmTty.getInput());
     }
     if (this._activePrompt) {
-      this._activePrompt.resolve(this._input);
+      this._activePrompt.resolve(this.wapmTty.getInput());
       this._activePrompt = null;
     }
     this.wasmTty.print("\r\n");
@@ -238,7 +264,7 @@ export default class WapmShell {
           break;
 
         case "[F": // End
-          this.setCursor(this._input.length);
+          this.setCursor(this.wapmTty.getInput().length);
           break;
 
         case "[H": // Home
@@ -246,20 +272,30 @@ export default class WapmShell {
           break;
 
         case "b": // ALT + LEFT
-          ofs = closestLeftBoundary(this._input, this._cursor);
+          ofs = closestLeftBoundary(
+            this.wapmTty.getInput(),
+            this.wapmTty.getCursor()
+          );
           if (ofs != null) this.setCursor(ofs);
           break;
 
         case "f": // ALT + RIGHT
-          ofs = closestRightBoundary(this._input, this._cursor);
+          ofs = closestRightBoundary(
+            this.wapmTty.getInput(),
+            this.wapmTty.getCursor()
+          );
           if (ofs != null) this.setCursor(ofs);
           break;
 
         case "\x7F": // CTRL + BACKSPACE
-          ofs = closestLeftBoundary(this._input, this._cursor);
+          ofs = closestLeftBoundary(
+            this.wapmTty.getInput(),
+            this.wapmTty.getCursor()
+          );
           if (ofs != null) {
             this.setInput(
-              this._input.substr(0, ofs) + this._input.substr(this._cursor)
+              this.wapmTty.getInput().substr(0, ofs) +
+                this.wapmTty.getInput().substr(this.wapmTty.getCursor())
             );
             this.setCursor(ofs);
           }
@@ -270,7 +306,7 @@ export default class WapmShell {
     } else if (ord < 32 || ord === 0x7f) {
       switch (data) {
         case "\r": // ENTER
-          if (isIncompleteInput(this._input)) {
+          if (isIncompleteInput(this.wapmTty.getInput())) {
             this.handleCursorInsert("\n");
           } else {
             this.handleReadComplete();
@@ -283,7 +319,9 @@ export default class WapmShell {
 
         case "\t": // TAB
           if (this._autocompleteHandlers.length > 0) {
-            const inputFragment = this._input.substr(0, this._cursor);
+            const inputFragment = this.wapmTty
+              .getInput()
+              .substr(0, this.wapmTty.getCursor());
             const hasTailingSpace = hasTailingWhitespace(inputFragment);
             const candidates = collectAutocompleteCandidates(
               this._autocompleteHandlers,
@@ -332,12 +370,12 @@ export default class WapmShell {
           break;
 
         case "\x03": // CTRL+C
-          this.setCursor(this._input.length);
+          this.setCursor(this.wapmTty.getInput().length);
           this.wasmTty.print(
             "^C\r\n" + (this._activePrompt ? this._activePrompt.prompt : "")
           );
-          this._input = "";
-          this._cursor = 0;
+          this.wapmTty.setInput("");
+          this.wapmTty.setCursor(0);
           if (this.history) this.history.rewind();
 
           if (this.commandRunner) {
