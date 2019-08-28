@@ -103,7 +103,6 @@ export default class CommandRunner {
 
   xterm: Terminal;
   commandString: string;
-  stdoutOnCurrentLine: string;
   localEcho: LocalEchoController;
 
   commandEndCallback: Function;
@@ -130,7 +129,6 @@ export default class CommandRunner {
       maxAutocompleteEntries: 0
     });
     this.commandString = commandString;
-    this.stdoutOnCurrentLine = "";
 
     this.commandEndCallback = commandEndCallback;
     this.commandFetcherCallback = commandFetcherCallback;
@@ -303,21 +301,9 @@ export default class CommandRunner {
         this.pipedStdinDataForNextProcess = newPipedStdinData;
       }
     } else {
-      // console.log("processDataCallback");
       // Write the output to our terminal
       let dataString = new TextDecoder("utf-8").decode(data);
-      // console.log("processDataCallback", dataString);
       this.xterm.write(dataString.replace(/\n/g, "\r\n"));
-      this.stdoutOnCurrentLine = dataString;
-      // Check if the data ended with 10 (New Line)
-      // If it did, then clear the stdout we have on our line
-      // Otherwise, record this that way we don't send it along our stdin
-      // if (data[data.length - 1] === 10) {
-      //   this.stdoutOnCurrentLine = "";
-      // } else {
-      //   // let lines = dataString.split("\n");
-      //   this.stdoutOnCurrentLine = dataString; //lines[lines.length-1];
-      // }
     }
   }
 
@@ -351,16 +337,11 @@ export default class CommandRunner {
 
   processStdinReadCallback() {
     // When the stdin read begins
-    console.log(
-      `processStdinReadCallback y:${this.xterm.buffer.cursorY}, x: ${this.xterm.buffer.cursorX}, stdoutOnCurrentLine: ${this.stdoutOnCurrentLine}`
-    );
-    // let promptRead = (line as IBufferLine).translateToString(false, 0, this.xterm.buffer.cursorX);
-    // console.log(promptRead);
-    // this.xterm.write("\u001b[2K\r\u001b[2K");
-    // let lines = this.stdoutOnCurrentLine.split("\n");
+    // console.log(
+    //   `processStdinReadCallback y:${this.xterm.buffer.cursorY}, x: ${this.xterm.buffer.cursorX}`
+    // );
     this.localEcho.read("").then((stdin: string) => {
-      this.stdoutOnCurrentLine = "";
-      const data = new TextEncoder().encode(stdin);
+      const data = new TextEncoder().encode(stdin + "\n");
       this.addStdinToSharedStdin(data, 0);
     });
   }

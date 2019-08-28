@@ -30,7 +30,7 @@ export default class WASICommand extends Command {
 
   sharedStdin?: Int32Array;
   stdinReadCallback?: Function;
-  stdinReadCounter: number;
+  isReadingStdin: boolean;
   pipedStdin: string;
 
   stdoutCallback?: Function;
@@ -51,7 +51,7 @@ export default class WASICommand extends Command {
 
     this.sharedStdin = sharedStdin;
     this.stdinReadCallback = stdinReadCallback;
-    this.stdinReadCounter = 0;
+    this.isReadingStdin = false;
     this.pipedStdin = "";
 
     this.wasi = new WASI({
@@ -106,11 +106,6 @@ export default class WASICommand extends Command {
     length: number = stdoutBuffer.byteLength,
     position?: number
   ) {
-    console.log(
-      `stdoutWrite ${new TextDecoder("utf-8").decode(
-        stdoutBuffer
-      )} offset:${offset}, length:${length}, position: ${position}`
-    );
     if (this.stdoutCallback) {
       this.stdoutCallback(stdoutBuffer);
     }
@@ -129,28 +124,17 @@ export default class WASICommand extends Command {
     length: number = stdinBuffer.byteLength,
     position?: number
   ) {
-    console.log("stdinRead", offset, length, position);
-    // For some reason, read is called 3 times per actual read
-    // Thus we have a counter to handle this.
-    // TODO: This should only be needed if we are prompting, and not needed for piping.
-    if (this.stdinReadCounter !== 0) {
-      if (this.stdinReadCounter < 2) {
-        this.stdinReadCounter++;
-      } else {
-        this.stdinReadCounter = 0;
-      }
+    if (this.isReadingStdin) {
+      this.isReadingStdin = false;
       return 0;
     }
-
-    // Since reading will keep requesting data, we need to give end of file
-    this.stdinReadCounter++;
+    this.isReadingStdin = true;
 
     let responseStdin: string | null = null;
     if (this.pipedStdin) {
       responseStdin = this.pipedStdin;
       this.pipedStdin = "";
     } else if (this.sharedStdin && this.stdinReadCallback) {
-      console.log("stdinReadCallback");
       this.stdinReadCallback();
       Atomics.wait(this.sharedStdin, 0, -1);
 
@@ -161,18 +145,17 @@ export default class WASICommand extends Command {
       for (let i = 0; i < numberOfElements; i++) {
         newStdinData[i] = this.sharedStdin[1 + i];
       }
-
       responseStdin = new TextDecoder("utf-8").decode(newStdinData);
     } else {
       responseStdin = prompt("Stdin");
     }
 
     // First check for errors
-    // if (!responseStdin) {
-    //   return 0;
-    // }
+    if (!responseStdin) {
+      return 0;
+    }
 
-    const buffer = new TextEncoder().encode(responseStdin + "\n");
+    const buffer = new TextEncoder().encode(responseStdin);
     for (let x = 0; x < buffer.length; ++x) {
       stdinBuffer[x] = buffer[x];
     }
