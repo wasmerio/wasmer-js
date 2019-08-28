@@ -33,6 +33,7 @@ export default class WASICommand extends Command {
   stdinReadCounter: number;
   pipedStdin: string;
 
+  stdoutLog: string;
   stdoutCallback?: Function;
 
   constructor(
@@ -57,6 +58,8 @@ export default class WASICommand extends Command {
     }
     this.stdinReadCounter = 0;
     this.pipedStdin = "";
+
+    this.stdoutLog = "";
 
     this.wasi = new WASI({
       // preopenDirectories: {},
@@ -114,6 +117,10 @@ export default class WASICommand extends Command {
       this.stdoutCallback(stdoutBuffer);
     }
 
+    // Record all of our stdout to show in the prompt
+    let dataString = new TextDecoder("utf-8").decode(stdoutBuffer);
+    this.stdoutLog += dataString;
+
     return stdoutBuffer.length;
   }
 
@@ -161,7 +168,11 @@ export default class WASICommand extends Command {
 
       responseStdin = new TextDecoder("utf-8").decode(newStdinData);
     } else {
-      responseStdin = prompt("Stdin");
+      responseStdin = prompt(
+        this.stdoutLog.length > 0
+          ? this.stdoutLog
+          : "Please enter text for stdin:"
+      );
     }
 
     // First check for errors
