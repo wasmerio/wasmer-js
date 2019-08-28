@@ -1,4 +1,4 @@
-import { HistoryController } from "./HistoryController";
+import { ShellHistory } from "./shell-history";
 import {
   closestLeftBoundary,
   closestRightBoundary,
@@ -8,23 +8,20 @@ import {
   hasTailingWhitespace,
   isIncompleteInput,
   offsetToColRow
-} from "./utils";
-import { Terminal, IBufferLine } from "xterm";
+} from "./shell-utils";
 
 /**
- * A local terminal controller is responsible for displaying messages
- * and handling local echo for the terminal.
- *
- * Local echo supports most of bash-like input primitives. Namely:
- * - Arrow navigation on the input
- * - Alt-arrow for word-boundary navigation
- * - Alt-backspace for word-boundary deletion
- * - Multi-line input for incomplete commands
- * - Auto-complete hooks
+ * A shell is the primary interface that is used to start other programs.
+ * It's purpose to handle:
+ * - Job control (control of child processes),
+ * - Control Sequences (CTRL+C to kill the foreground process)
+ * - Line editing and history
+ * - Output text to the tty -> terminal
+ * - Interpret text within the tty to launch processes and interpret programs
  */
 type AutoCompleteHandler = (index: number, tokens: string[]) => string[];
 
-export default class LocalEchoController {
+export default class WapmShell {
   term: Terminal;
   history: HistoryController;
   maxAutocompleteEntries: number;
@@ -50,14 +47,12 @@ export default class LocalEchoController {
   } | null;
 
   constructor(
-    term: Terminal,
+    wapmTty: WapmTty,
     options: { historySize: number; maxAutocompleteEntries: number } = {
       historySize: 10,
       maxAutocompleteEntries: 100
     }
   ) {
-    this.term = term;
-
     this.history = new HistoryController(options.historySize);
     this.maxAutocompleteEntries = options.maxAutocompleteEntries;
 
@@ -75,9 +70,37 @@ export default class LocalEchoController {
     this.attach();
   }
 
-  /////////////////////////////////////////////////////////////////////////////
-  // Internal API
-  /////////////////////////////////////////////////////////////////////////////
+  async prompt() {
+    try {
+      this.xterm.write("$ ");
+      let line = await this.WapmTty.read("$ ");
+      if (this.commandRunner) {
+        this.commandRunner.kill();
+      }
+
+      this.commandRunner = new CommandRunner(
+        this.xterm,
+        line,
+        // Command End Callback
+        () => {
+          this.prompt();
+        },
+        // Wasm Module Cache Callback
+        (wapmModuleName: string) => {
+          if (this.wapmHistory.includes(wapmModuleName)) {
+            return;
+          }
+          this.wapmHistory.push(wapmModuleName);
+        }
+      );
+      // this.commandHistory.unshift(bufferLineAsString);
+      // this.commandHistoryIndex = -1;
+      await this.commandRunner.runCommand();
+    } catch (e) {
+      this.xterm.writeln(`Error: ${e.toString()}`);
+      this.prompt();
+    }
+  }
 
   /**
    * Apply prompts to the given input
@@ -98,72 +121,6 @@ export default class LocalEchoController {
   applyPromptOffset(input: string, offset: number): number {
     const newInput = this.applyPrompts(input.substr(0, offset));
     return newInput.length;
-  }
-
-  /**
-   * Clears the current prompt
-   *
-   * This function will erase all the lines that display the current prompt
-   * and move the cursor in the beginning of the first line of the prompt.
-   */
-  clearInput() {
-    const currentPrompt = this.applyPrompts(this._input);
-
-    // Get the overall number of lines to clear
-    const allRows = countLines(currentPrompt, this._termSize.cols);
-
-    // Get the line we are currently in
-    const promptCursor = this.applyPromptOffset(this._input, this._cursor);
-    const { col, row } = offsetToColRow(
-      currentPrompt,
-      promptCursor,
-      this._termSize.cols
-    );
-
-    // First move on the last line
-    const moveRows = allRows - row - 1;
-    for (var i = 0; i < moveRows; ++i) this.term.write("\x1B[E");
-
-    // Clear current input line(s)
-    this.term.write("\r\x1B[K");
-    for (var i = 1; i < allRows; ++i) this.term.write("\x1B[F\x1B[K");
-  }
-
-  /**
-   * Replace input with the new input given
-   *
-   * This function clears all the lines that the current input occupies and
-   * then replaces them with the new input.
-   */
-  setInput(newInput: string, clearInput: boolean = true) {
-    // Clear current input
-    if (clearInput) this.clearInput();
-
-    // Write the new input lines, including the current prompt
-    const newPrompt = this.applyPrompts(newInput);
-    this.print(newPrompt);
-
-    // Trim cursor overflow
-    if (this._cursor > newInput.length) {
-      this._cursor = newInput.length;
-    }
-
-    // Move the cursor to the appropriate row/col
-    const newCursor = this.applyPromptOffset(newInput, this._cursor);
-    const newLines = countLines(newPrompt, this._termSize.cols);
-    const { col, row } = offsetToColRow(
-      newPrompt,
-      newCursor,
-      this._termSize.cols
-    );
-    const moveUpRows = newLines - row - 1;
-
-    this.term.write("\r");
-    for (var i = 0; i < moveUpRows; ++i) this.term.write("\x1B[F");
-    for (var i = 0; i < col; ++i) this.term.write("\x1B[C");
-
-    // Replace input
-    this._input = newInput;
   }
 
   /**
@@ -191,54 +148,6 @@ export default class LocalEchoController {
     } else {
       ret.then(resume);
     }
-  }
-
-  /**
-   * Set the new cursor position, as an offset on the input string
-   *
-   * This function:
-   * - Calculates the previous and current
-   */
-  setCursor(newCursor: number) {
-    if (newCursor < 0) newCursor = 0;
-    if (newCursor > this._input.length) newCursor = this._input.length;
-
-    // Apply prompt formatting to get the visual status of the display
-    const inputWithPrompt = this.applyPrompts(this._input);
-    const inputLines = countLines(inputWithPrompt, this._termSize.cols);
-
-    // Estimate previous cursor position
-    const prevPromptOffset = this.applyPromptOffset(this._input, this._cursor);
-    const { col: prevCol, row: prevRow } = offsetToColRow(
-      inputWithPrompt,
-      prevPromptOffset,
-      this._termSize.cols
-    );
-
-    // Estimate next cursor position
-    const newPromptOffset = this.applyPromptOffset(this._input, newCursor);
-    const { col: newCol, row: newRow } = offsetToColRow(
-      inputWithPrompt,
-      newPromptOffset,
-      this._termSize.cols
-    );
-
-    // Adjust vertically
-    if (newRow > prevRow) {
-      for (let i = prevRow; i < newRow; ++i) this.term.write("\x1B[B");
-    } else {
-      for (let i = newRow; i < prevRow; ++i) this.term.write("\x1B[A");
-    }
-
-    // Adjust horizontally
-    if (newCol > prevCol) {
-      for (let i = prevCol; i < newCol; ++i) this.term.write("\x1B[C");
-    } else {
-      for (let i = newCol; i < prevCol; ++i) this.term.write("\x1B[D");
-    }
-
-    // Set new offset
-    this._cursor = newCursor;
   }
 
   /**
@@ -297,56 +206,7 @@ export default class LocalEchoController {
   };
 
   /**
-   * Handle terminal resize
-   *
-   * This function clears the prompt using the previous configuration,
-   * updates the cached terminal size information and then re-renders the
-   * input. This leads (most of the times) into a better formatted input.
-   */
-  handleTermResize = (data: { rows: number; cols: number }) => {
-    const { rows, cols } = data;
-    this.clearInput();
-    this._termSize = { cols, rows };
-    this.setInput(this._input, false);
-  };
-
-  /**
-   * Handle terminal input
-   */
-  handleTermData = (data: string) => {
-    if (!this._active) return;
-    if (this.firstInit && this._activePrompt) {
-      let line = this.term.buffer.getLine(
-        this.term.buffer.cursorY + this.term.buffer.baseY
-      );
-      let promptRead = (line as IBufferLine).translateToString(
-        false,
-        0,
-        this.term.buffer.cursorX
-      );
-      this._activePrompt.prompt = promptRead;
-      this.firstInit = false;
-    }
-
-    // If we have an active character prompt, satisfy it in priority
-    if (this._activeCharPrompt != null) {
-      this._activeCharPrompt.resolve(data);
-      this._activeCharPrompt = null;
-      this.term.write("\r\n");
-      return;
-    }
-
-    // If this looks like a pasted input, expand it
-    if (data.length > 3 && data.charCodeAt(0) !== 0x1b) {
-      const normData = data.replace(/[\r\n]+/g, "\r");
-      Array.from(normData).forEach(c => this.handleData(c));
-    } else {
-      this.handleData(data);
-    }
-  };
-
-  /**
-   * Handle a single piece of information from the terminal.
+   * Handle a single piece of information from the terminal -> tty.
    */
   handleData = (data: string) => {
     if (!this._active) return;

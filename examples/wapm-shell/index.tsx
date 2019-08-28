@@ -1,14 +1,13 @@
 import { h, render, Component } from "preact";
 
-import WapmShell from "./components/wapm-shell/wapm-shell";
-
+import WapmTerminal from "./components/wapm-terminal/wapm-terminal";
 import "./index.css";
 
 class App extends Component {
   render() {
     return (
       <div>
-        <WapmShell />
+        <WapmTerminal />
       </div>
     );
   }

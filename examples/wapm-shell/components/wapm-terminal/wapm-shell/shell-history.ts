@@ -1,7 +1,7 @@
 /**
- * The history controller provides an ring-buffer
+ * The shell history provides an ring-buffer
  */
-export class HistoryController {
+export class ShellHistory {
   size: number;
   entries: Array<string>;
   cursor: number;
