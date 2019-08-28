@@ -1,5 +1,5 @@
 import { h, Component } from "preact";
-import WapmTerminal from "./wapm-terminal";
+import WapmTerminal from "../../services/wapm-terminal/wapm-terminal";
 
 /**
  * A simple preact wrapper around the Wapm Temrinal

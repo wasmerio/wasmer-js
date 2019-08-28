@@ -8,70 +8,47 @@ import { Terminal, IBufferLine } from "xterm";
 type AutoCompleteHandler = (index: number, tokens: string[]) => string[];
 
 export default class WapmTTY {
-  term: Terminal;
+  xterm: Terminal;
   history: HistoryController;
   maxAutocompleteEntries: number;
-  _autocompleteHandlers: AutoCompleteHandler[];
-  _active: boolean;
   _cursor: number;
   _input: string;
-  _termSize: {
-    cols: number;
-    rows: number;
-  };
-  firstInit: boolean = true;
-  _activePrompt: {
-    prompt: string;
-    continuationPrompt: string;
-    resolve: (what: string) => any;
-    reject: (error: Error) => any;
-  } | null;
-  _activeCharPrompt: {
-    prompt: string;
-    resolve: (what: string) => any;
-    reject: (error: Error) => any;
-  } | null;
 
   constructor(
-    term: Terminal,
+    xterm: Terminal,
     options: { historySize: number; maxAutocompleteEntries: number } = {
       historySize: 10,
       maxAutocompleteEntries: 100
     }
   ) {
-    this.term = term;
+    this.xterm = xterm;
 
     this.history = new HistoryController(options.historySize);
     this.maxAutocompleteEntries = options.maxAutocompleteEntries;
 
     this._autocompleteHandlers = [];
-    this._active = false;
     this._input = "";
     this._cursor = 0;
-    this._activePrompt = null;
-    this._activeCharPrompt = null;
     this._termSize = {
-      cols: this.term.cols,
-      rows: this.term.rows
+      cols: this.xterm.cols,
+      rows: this.xterm.rows
     };
-
-    this.attach();
   }
 
   /**
    *  Detach the controller from the terminal
    */
   detach() {
-    this.term.off("data", this.handleTermData);
-    this.term.off("resize", this.handleTermResize);
+    this.xterm.off("data", this.handleTermData);
+    this.xterm.off("resize", this.handleTermResize);
   }
 
   /**
    * Attach controller to the terminal, handling events
    */
   attach() {
-    this.term.on("data", this.handleTermData);
-    this.term.on("resize", this.handleTermResize);
+    this.xterm.on("data", this.handleTermData);
+    this.xterm.on("resize", this.handleTermResize);
   }
 
   /**
@@ -97,14 +74,12 @@ export default class WapmTTY {
    */
   read(prompt: string, continuationPrompt: string = "> "): Promise<string> {
     return new Promise((resolve, reject) => {
-      //   this.term.write(prompt);
       this._activePrompt = {
         prompt: prompt,
         continuationPrompt,
         resolve,
         reject
       };
-      this.firstInit = true;
       this._input = "";
       this._cursor = 0;
       this._active = true;
@@ -120,7 +95,7 @@ export default class WapmTTY {
    */
   readChar(prompt: string) {
     return new Promise((resolve, reject) => {
-      this.term.write(prompt);
+      this.xterm.write(prompt);
       this._activeCharPrompt = {
         prompt,
         resolve,
@@ -134,7 +109,7 @@ export default class WapmTTY {
    */
   abortRead(reason = "aborted") {
     if (this._activePrompt != null || this._activeCharPrompt != null) {
-      this.term.write("\r\n");
+      this.xterm.write("\r\n");
     }
     if (this._activePrompt != null) {
       this._activePrompt.reject(new Error(reason));
@@ -159,7 +134,7 @@ export default class WapmTTY {
    */
   print(message: string) {
     const normInput = message.replace(/[\r\n]+/g, "\n");
-    this.term.write(normInput.replace(/\n/g, "\r\n"));
+    this.xterm.write(normInput.replace(/\n/g, "\r\n"));
   }
 
   /**
@@ -213,11 +188,11 @@ export default class WapmTTY {
 
     // First move on the last line
     const moveRows = allRows - row - 1;
-    for (var i = 0; i < moveRows; ++i) this.term.write("\x1B[E");
+    for (var i = 0; i < moveRows; ++i) this.xterm.write("\x1B[E");
 
     // Clear current input line(s)
-    this.term.write("\r\x1B[K");
-    for (var i = 1; i < allRows; ++i) this.term.write("\x1B[F\x1B[K");
+    this.xterm.write("\r\x1B[K");
+    for (var i = 1; i < allRows; ++i) this.xterm.write("\x1B[F\x1B[K");
   }
 
   /**
@@ -249,9 +224,9 @@ export default class WapmTTY {
     );
     const moveUpRows = newLines - row - 1;
 
-    this.term.write("\r");
-    for (var i = 0; i < moveUpRows; ++i) this.term.write("\x1B[F");
-    for (var i = 0; i < col; ++i) this.term.write("\x1B[C");
+    this.xterm.write("\r");
+    for (var i = 0; i < moveUpRows; ++i) this.xterm.write("\x1B[F");
+    for (var i = 0; i < col; ++i) this.xterm.write("\x1B[C");
 
     // Replace input
     this._input = newInput;
@@ -263,13 +238,13 @@ export default class WapmTTY {
   handleTermData = (data: string) => {
     if (!this._active) return;
     if (this.firstInit && this._activePrompt) {
-      let line = this.term.buffer.getLine(
-        this.term.buffer.cursorY + this.term.buffer.baseY
+      let line = this.xterm.buffer.getLine(
+        this.xterm.buffer.cursorY + this.xterm.buffer.baseY
       );
       let promptRead = (line as IBufferLine).translateToString(
         false,
         0,
-        this.term.buffer.cursorX
+        this.xterm.buffer.cursorX
       );
       this._activePrompt.prompt = promptRead;
       this.firstInit = false;
@@ -279,7 +254,7 @@ export default class WapmTTY {
     if (this._activeCharPrompt != null) {
       this._activeCharPrompt.resolve(data);
       this._activeCharPrompt = null;
-      this.term.write("\r\n");
+      this.xterm.write("\r\n");
       return;
     }
 
@@ -324,16 +299,16 @@ export default class WapmTTY {
 
     // Adjust vertically
     if (newRow > prevRow) {
-      for (let i = prevRow; i < newRow; ++i) this.term.write("\x1B[B");
+      for (let i = prevRow; i < newRow; ++i) this.xterm.write("\x1B[B");
     } else {
-      for (let i = newRow; i < prevRow; ++i) this.term.write("\x1B[A");
+      for (let i = newRow; i < prevRow; ++i) this.xterm.write("\x1B[A");
     }
 
     // Adjust horizontally
     if (newCol > prevCol) {
-      for (let i = prevCol; i < newCol; ++i) this.term.write("\x1B[C");
+      for (let i = prevCol; i < newCol; ++i) this.xterm.write("\x1B[C");
     } else {
-      for (let i = newCol; i < prevCol; ++i) this.term.write("\x1B[D");
+      for (let i = newCol; i < prevCol; ++i) this.xterm.write("\x1B[D");
     }
 
     // Set new offset
