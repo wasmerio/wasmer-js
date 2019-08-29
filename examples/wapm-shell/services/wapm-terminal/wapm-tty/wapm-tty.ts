@@ -16,6 +16,7 @@ export default class WapmTTY {
     cols: number;
     rows: number;
   };
+  _firstInit: boolean = true;
   _promptPrefix: string;
   _continuationPromptPrefix: string;
   _cursor: number;
@@ -68,6 +69,7 @@ export default class WapmTTY {
       this.print(promptPrefix);
     }
 
+    this._firstInit = true;
     this._promptPrefix = promptPrefix;
     this._continuationPromptPrefix = continuationPromptPrefix;
     this._input = "";
@@ -191,6 +193,13 @@ export default class WapmTTY {
   }
 
   /**
+   * Function to return if it is the initial read
+   */
+  getFirstInit(): boolean {
+    return this._firstInit;
+  }
+
+  /**
    * Function to get the current input in the line
    */
   getInput(): string {
@@ -309,5 +318,9 @@ export default class WapmTTY {
 
   setTermSize(cols: number, rows: number) {
     this._termSize = { cols, rows };
+  }
+
+  setFirstInit(value: boolean) {
+    this._firstInit = value;
   }
 }

@@ -159,6 +159,7 @@ export default class WASICommand extends Command {
           ? this.stdoutLog
           : "Please enter text for stdin:"
       );
+      responseStdin += "\n";
     }
 
     // First check for errors

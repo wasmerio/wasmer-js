@@ -34,7 +34,6 @@ export default class WapmShell {
   maxAutocompleteEntries: number;
   _autocompleteHandlers: AutoCompleteHandler[];
   _active: boolean;
-  firstInit: boolean = true;
   _activePrompt?: ActivePrompt;
   _activeCharPrompt?: ActiveCharPrompt;
 
@@ -203,8 +202,9 @@ export default class WapmShell {
    * Handle terminal -> tty input
    */
   handleTermData = (data: string) => {
+    console.log(data, this.wapmTty.getCursor());
     if (!this._active) return;
-    if (this.firstInit && this._activePrompt) {
+    if (this.wapmTty.getFirstInit() && this._activePrompt) {
       let line = this.wapmTty
         .getBuffer()
         .getLine(
@@ -216,7 +216,7 @@ export default class WapmShell {
         this.wapmTty.getBuffer().cursorX
       );
       this._activePrompt.promptPrefix = promptRead;
-      this.firstInit = false;
+      this.wapmTty.setFirstInit(false);
     }
 
     // If we have an active character prompt, satisfy it in priority
