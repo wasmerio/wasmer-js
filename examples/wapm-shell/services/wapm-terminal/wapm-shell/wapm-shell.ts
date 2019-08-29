@@ -66,6 +66,12 @@ export default class WapmShell {
       this.commandRunner = new CommandRunner(
         this.wapmTty,
         line,
+        // Command Read Callback
+        async () => {
+          this._activePrompt = this.wapmTty.read("");
+          this._active = true;
+          return await this._activePrompt.promise;
+        },
         // Command End Callback
         () => {
           this.prompt();
@@ -197,6 +203,7 @@ export default class WapmShell {
    * Handle terminal -> tty input
    */
   handleTermData = (data: string) => {
+    console.log("Got input");
     if (!this._active) return;
     if (this.firstInit && this._activePrompt) {
       let line = this.wapmTty

@@ -106,12 +106,14 @@ export default class CommandRunner {
   wapmTty: WapmTty;
   commandString: string;
 
+  commandStartReadCallback: Function;
   commandEndCallback: Function;
   commandFetcherCallback: Function;
 
   constructor(
     wapmTty: WapmTty,
     commandString: string,
+    commandStartReadCallback: Function,
     commandEndCallback: Function,
     commandFetcherCallback: Function
   ) {
@@ -127,6 +129,7 @@ export default class CommandRunner {
     this.wapmTty = wapmTty;
     this.commandString = commandString;
 
+    this.commandStartReadCallback = commandStartReadCallback;
     this.commandEndCallback = commandEndCallback;
     this.commandFetcherCallback = commandFetcherCallback;
   }
@@ -249,7 +252,7 @@ export default class CommandRunner {
       // Shared Array Bufer
       sharedStdinBuffer,
       // Stdin read callback
-      Comlink.proxy(this.processStdinReadCallback.bind(this))
+      Comlink.proxy(this.processStartStdinReadCallback.bind(this))
     );
 
     // Initialize the shared Stdin.
@@ -332,8 +335,8 @@ export default class CommandRunner {
     this.commandEndCallback();
   }
 
-  processStdinReadCallback() {
-    this.wapmTty.read("").promise.then((stdin: string) => {
+  processStartStdinReadCallback() {
+    this.commandStartReadCallback().then((stdin: string) => {
       const data = new TextEncoder().encode(stdin + "\n");
       this.addStdinToSharedStdin(data, 0);
     });

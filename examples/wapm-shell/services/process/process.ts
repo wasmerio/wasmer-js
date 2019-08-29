@@ -25,7 +25,7 @@ export default class Process {
   endCallback: Function;
   errorCallback: Function;
   sharedStdin?: Int32Array;
-  stdinReadCallback?: Function;
+  startStdinReadCallback?: Function;
 
   wasiCommand: WASICommand;
 
@@ -35,7 +35,7 @@ export default class Process {
     endCallback: Function,
     errorCallback: Function,
     sharedStdinBuffer?: SharedArrayBuffer,
-    stdinReadCallback?: Function
+    startStdinReadCallback?: Function
   ) {
     this.commandOptions = commandOptions;
     this.dataCallback = dataCallback;
@@ -50,7 +50,7 @@ export default class Process {
     this.wasiCommand = new WASICommand(
       commandOptions,
       sharedStdin,
-      stdinReadCallback
+      startStdinReadCallback
     );
   }
 
