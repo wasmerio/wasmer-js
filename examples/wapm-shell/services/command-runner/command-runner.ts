@@ -44,7 +44,7 @@ const getCommandOptionsFromAST = (
   ast: any,
   commandFetcher: CommandFetcher,
   commandFetcherCallback: Function,
-  wapmTty?: Terminal
+  wapmTty?: WapmTty
 ): Promise<Array<CommandOptions>> => {
   // The array of command options we are returning
   let commandOptions: Array<CommandOptions> = [];

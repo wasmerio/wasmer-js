@@ -1,16 +1,20 @@
+import { IBuffer, IBufferLine } from "xterm";
+
 import {
+  ActiveCharPrompt,
+  ActivePrompt,
   closestLeftBoundary,
   closestRightBoundary,
   collectAutocompleteCandidates,
-  countLines,
   getLastToken,
   hasTailingWhitespace,
-  isIncompleteInput,
-  offsetToColRow
+  isIncompleteInput
 } from "./shell-utils";
 import { ShellHistory } from "./shell-history";
 
-import CommandRunner from "../command-runner/command-runner";
+import WapmTty from "../wapm-tty/wapm-tty";
+
+import CommandRunner from "../../command-runner/command-runner";
 
 /**
  * A shell is the primary interface that is used to start other programs.
@@ -31,17 +35,8 @@ export default class WapmShell {
   _autocompleteHandlers: AutoCompleteHandler[];
   _active: boolean;
   firstInit: boolean = true;
-  _activePrompt: {
-    prompt: string;
-    continuationPrompt: string;
-    resolve: (what: string) => any;
-    reject: (error: Error) => any;
-  } | null;
-  _activeCharPrompt: {
-    prompt: string;
-    resolve: (what: string) => any;
-    reject: (error: Error) => any;
-  } | null;
+  _activePrompt?: ActivePrompt;
+  _activeCharPrompt?: ActiveCharPrompt;
 
   constructor(
     wapmTty: WapmTty,
@@ -51,25 +46,25 @@ export default class WapmShell {
     }
   ) {
     this.wapmTty = wapmTty;
-    this.history = new HistoryController(options.historySize);
+    this.history = new ShellHistory(options.historySize);
     this.commandRunner = undefined;
 
     this.maxAutocompleteEntries = options.maxAutocompleteEntries;
     this._autocompleteHandlers = [];
     this._active = false;
-    this._activePrompt = null;
-    this._activeCharPrompt = null;
   }
 
   async prompt() {
     try {
-      let line = await this.WapmTty.read("$ ");
+      this._activePrompt = this.wapmTty.read("$ ");
+      this._active = true;
+      let line = this._activePrompt.promise;
       if (this.commandRunner) {
         this.commandRunner.kill();
       }
 
       this.commandRunner = new CommandRunner(
-        this.xterm,
+        this.wapmTty,
         line,
         // Command End Callback
         () => {
@@ -77,40 +72,17 @@ export default class WapmShell {
         },
         // Wasm Module Cache Callback
         (wapmModuleName: string) => {
-          if (this.wapmHistory.includes(wapmModuleName)) {
+          if (this.history.includes(wapmModuleName)) {
             return;
           }
-          this.wapmHistory.push(wapmModuleName);
+          this.history.push(wapmModuleName);
         }
       );
       await this.commandRunner.runCommand();
     } catch (e) {
-      this.xterm.writeln(`Error: ${e.toString()}`);
+      this.wapmTty.println(`Error: ${e.toString()}`);
       this.prompt();
     }
-  }
-
-  /**
-   * Apply prompts to the given input
-   */
-  applyPrompts(input: string): string {
-    const promptPrefix = this._activePrompt
-      ? this._activePrompt.promptPrefix
-      : "";
-    const continuationPrompt = this._activePrompt
-      ? this._activePrompt.continuationPrompt
-      : "";
-
-    return promptPrefix + input.replace(/\n/g, "\n" + continuationPrompt);
-  }
-
-  /**
-   * Advances the `offset` as required in order to accompany the prompt
-   * additions to the input.
-   */
-  applyPromptOffset(input: string, offset: number): number {
-    const newInput = this.applyPrompts(input.substr(0, offset));
-    return newInput.length;
   }
 
   /**
@@ -121,13 +93,13 @@ export default class WapmShell {
     const cursor = this.wapmTty.getCursor();
 
     // Complete input
-    this.setCursor(this.wapmTty.getInput().length);
-    this.wasmTty.print("\r\n");
+    this.wapmTty.setCursor(this.wapmTty.getInput().length);
+    this.wapmTty.print("\r\n");
 
     // Prepare a function that will resume prompt
     const resume = () => {
-      this.wapmTty.setCursor(cursor);
-      this.setInput(this.wapmTty.getInput());
+      this.wapmTty.setCursor(this.wapmTty.getCursor());
+      this.wapmTty.setInput(this.wapmTty.getInput());
     };
 
     // Call the given callback to echo something, and if there is a promise
@@ -141,20 +113,21 @@ export default class WapmShell {
   }
 
   /**
-   * Register a handler that will be called to satisfy auto-completion
+   * Abort a pending read operation
    */
-  addAutocompleteHandler(fn: AutoCompleteHandler) {
-    this._autocompleteHandlers.push(fn);
-  }
-
-  /**
-   * Remove a previously registered auto-complete handler
-   */
-  removeAutocompleteHandler(fn: AutoCompleteHandler) {
-    const idx = this._autocompleteHandlers.findIndex(e => e === fn);
-    if (idx === -1) return;
-
-    this._autocompleteHandlers.splice(idx, 1);
+  abortRead(reason = "aborted") {
+    if (this._activePrompt || this._activeCharPrompt) {
+      this.wapmTty.print("\r\n");
+    }
+    if (this._activePrompt && this._activePrompt.reject) {
+      this._activePrompt.reject(new Error(reason));
+      this._activePrompt = undefined;
+    }
+    if (this._activeCharPrompt && this._activeCharPrompt.reject) {
+      this._activeCharPrompt.reject(new Error(reason));
+      this._activeCharPrompt = undefined;
+    }
+    this._active = false;
   }
 
   /**
@@ -166,10 +139,10 @@ export default class WapmShell {
         dir,
         this.wapmTty.getInput().length - this.wapmTty.getCursor()
       );
-      this.setCursor(this.wapmTty.getCursor() + num);
+      this.wapmTty.setCursor(this.wapmTty.getCursor() + num);
     } else if (dir < 0) {
       const num = Math.max(dir, -this.wapmTty.getCursor());
-      this.setCursor(this.wapmTty.getCursor() + num);
+      this.wapmTty.setCursor(this.wapmTty.getCursor() + num);
     }
   };
 
@@ -182,14 +155,14 @@ export default class WapmShell {
       const newInput =
         this.wapmTty.getInput().substr(0, this.wapmTty.getCursor() - 1) +
         this.wapmTty.getInput().substr(this.wapmTty.getCursor());
-      this.clearInput();
+      this.wapmTty.clearInput();
       this.wapmTty.setCursor(this.wapmTty.getCursor() - 1);
-      this.setInput(newInput, false);
+      this.wapmTty.setInput(newInput);
     } else {
       const newInput =
         this.wapmTty.getInput().substr(0, this.wapmTty.getCursor()) +
         this.wapmTty.getInput().substr(this.wapmTty.getCursor() + 1);
-      this.setInput(newInput);
+      this.wapmTty.setInput(newInput);
     }
   };
 
@@ -197,13 +170,12 @@ export default class WapmShell {
    * Insert character at cursor location
    */
   handleCursorInsert = (data: string) => {
-    const { _cursor, _input } = this;
     const newInput =
       this.wapmTty.getInput().substr(0, this.wapmTty.getCursor()) +
       data +
       this.wapmTty.getInput().substr(this.wapmTty.getCursor());
     this.wapmTty.setCursor(this.wapmTty.getCursor() + data.length);
-    this.setInput(newInput);
+    this.wapmTty.setInput(newInput);
   };
 
   /**
@@ -213,12 +185,49 @@ export default class WapmShell {
     if (this.history) {
       this.history.push(this.wapmTty.getInput());
     }
-    if (this._activePrompt) {
+    if (this._activePrompt && this._activePrompt.resolve) {
       this._activePrompt.resolve(this.wapmTty.getInput());
-      this._activePrompt = null;
+      this._activePrompt = undefined;
     }
-    this.wasmTty.print("\r\n");
+    this.wapmTty.print("\r\n");
     this._active = false;
+  };
+
+  /**
+   * Handle terminal -> tty input
+   */
+  handleTermData = (data: string) => {
+    if (!this._active) return;
+    if (this.firstInit && this._activePrompt) {
+      let line = this.wapmTty
+        .getBuffer()
+        .getLine(
+          this.wapmTty.getBuffer().cursorY + this.wapmTty.getBuffer().baseY
+        );
+      let promptRead = (line as IBufferLine).translateToString(
+        false,
+        0,
+        this.wapmTty.getBuffer().cursorX
+      );
+      this._activePrompt.promptPrefix = promptRead;
+      this.firstInit = false;
+    }
+
+    // If we have an active character prompt, satisfy it in priority
+    if (this._activeCharPrompt && this._activeCharPrompt.resolve) {
+      this._activeCharPrompt.resolve(data);
+      this._activeCharPrompt = undefined;
+      this.wapmTty.print("\r\n");
+      return;
+    }
+
+    // If this looks like a pasted input, expand it
+    if (data.length > 3 && data.charCodeAt(0) !== 0x1b) {
+      const normData = data.replace(/[\r\n]+/g, "\r");
+      Array.from(normData).forEach(c => this.handleData(c));
+    } else {
+      this.handleData(data);
+    }
   };
 
   /**
@@ -236,8 +245,8 @@ export default class WapmShell {
           if (this.history) {
             let value = this.history.getPrevious();
             if (value) {
-              this.setInput(value);
-              this.setCursor(value.length);
+              this.wapmTty.setInput(value);
+              this.wapmTty.setCursor(value.length);
             }
           }
           break;
@@ -246,8 +255,8 @@ export default class WapmShell {
           if (this.history) {
             let value = this.history.getNext();
             if (!value) value = "";
-            this.setInput(value);
-            this.setCursor(value.length);
+            this.wapmTty.setInput(value);
+            this.wapmTty.setCursor(value.length);
           }
           break;
 
@@ -264,11 +273,11 @@ export default class WapmShell {
           break;
 
         case "[F": // End
-          this.setCursor(this.wapmTty.getInput().length);
+          this.wapmTty.setCursor(this.wapmTty.getInput().length);
           break;
 
         case "[H": // Home
-          this.setCursor(0);
+          this.wapmTty.setCursor(0);
           break;
 
         case "b": // ALT + LEFT
@@ -276,7 +285,7 @@ export default class WapmShell {
             this.wapmTty.getInput(),
             this.wapmTty.getCursor()
           );
-          if (ofs != null) this.setCursor(ofs);
+          if (ofs != null) this.wapmTty.setCursor(ofs);
           break;
 
         case "f": // ALT + RIGHT
@@ -284,7 +293,7 @@ export default class WapmShell {
             this.wapmTty.getInput(),
             this.wapmTty.getCursor()
           );
-          if (ofs != null) this.setCursor(ofs);
+          if (ofs != null) this.wapmTty.setCursor(ofs);
           break;
 
         case "\x7F": // CTRL + BACKSPACE
@@ -293,11 +302,11 @@ export default class WapmShell {
             this.wapmTty.getCursor()
           );
           if (ofs != null) {
-            this.setInput(
+            this.wapmTty.setInput(
               this.wapmTty.getInput().substr(0, ofs) +
                 this.wapmTty.getInput().substr(this.wapmTty.getCursor())
             );
-            this.setCursor(ofs);
+            this.wapmTty.setCursor(ofs);
           }
           break;
       }
@@ -348,20 +357,22 @@ export default class WapmShell {
               // If we are less than maximum auto-complete candidates, print
               // them to the user and re-start prompt
               this.printAndRestartPrompt(() => {
-                this.printWide(candidates);
+                this.wapmTty.printWide(candidates);
                 return null;
               });
             } else {
               // If we have more than maximum auto-complete candidates, print
               // them only if the user acknowledges a warning
               this.printAndRestartPrompt(() =>
-                this.readChar(
-                  `Display all ${candidates.length} possibilities? (y or n)`
-                ).then(yn => {
-                  if (yn == "y" || yn == "Y") {
-                    this.printWide(candidates);
-                  }
-                })
+                this.wapmTty
+                  .readChar(
+                    `Display all ${candidates.length} possibilities? (y or n)`
+                  )
+                  .promise.then((yn: string) => {
+                    if (yn == "y" || yn == "Y") {
+                      this.wapmTty.printWide(candidates);
+                    }
+                  })
               );
             }
           } else {
@@ -370,9 +381,10 @@ export default class WapmShell {
           break;
 
         case "\x03": // CTRL+C
-          this.setCursor(this.wapmTty.getInput().length);
-          this.wasmTty.print(
-            "^C\r\n" + (this._activePrompt ? this._activePrompt.prompt : "")
+          this.wapmTty.setCursor(this.wapmTty.getInput().length);
+          this.wapmTty.print(
+            "^C\r\n" +
+              (this._activePrompt ? this._activePrompt.promptPrefix : "")
           );
           this.wapmTty.setInput("");
           this.wapmTty.setCursor(0);

@@ -1,5 +1,16 @@
 import { parse, ParseEntry } from "shell-quote";
 
+export interface ActiveCharPrompt {
+  promptPrefix: string;
+  promise: Promise<string>;
+  resolve?: (what: string) => any;
+  reject?: (error: Error) => any;
+}
+
+export interface ActivePrompt extends ActiveCharPrompt {
+  continuationPromptPrefix: string;
+}
+
 /**
  * Detects all the word boundaries on the given input
  */

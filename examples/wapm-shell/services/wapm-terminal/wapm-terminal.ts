@@ -9,10 +9,6 @@ import WapmShell from "./wapm-shell/wapm-shell";
 
 export default class WapmTerminal {
   xterm: Terminal;
-  _termSize: {
-    cols: number;
-    rows: number;
-  };
 
   wapmTty: WapmTty;
   wapmShell: WapmShell;
@@ -20,16 +16,13 @@ export default class WapmTerminal {
   constructor() {
     // Create our xterm element
     this.xterm = new Terminal();
-    this.xterm.on("paste", this.onPaste.bind(this));
-    this._termSize = {
-      cols: this.xterm.cols,
-      rows: this.xterm.rows
-    };
+    this.xterm.on("paste", this.onPaste);
+    this.xterm.on("resize", this.handleTermResize);
 
     // Create our Shell and tty
     this.wapmTty = new WapmTty(this.xterm);
-    this.wapmTty.attach();
     this.wapmShell = new WapmShell(this.wapmTty);
+    this.xterm.on("data", this.wapmShell.handleTermData);
   }
 
   open(container: HTMLElement) {
@@ -45,7 +38,9 @@ export default class WapmTerminal {
   }
 
   destroy() {
-    this.wapmTty.detach();
+    this.xterm.off("paste", this.onPaste);
+    this.xterm.off("resize", this.handleTermResize);
+    this.xterm.off("data", this.wapmShell.handleTermData);
     this.xterm.destroy();
     delete this.xterm;
   }
@@ -64,7 +59,7 @@ export default class WapmTerminal {
   handleTermResize = (data: { rows: number; cols: number }) => {
     const { rows, cols } = data;
     this.wapmTty.clearInput();
-    this._termSize = { cols, rows };
-    this.wapmTty.setInput(this.wapmTty.getInput(), false);
+    this.wapmTty.setTermSize(cols, rows);
+    this.wapmTty.setInput(this.wapmTty.getInput());
   };
 }

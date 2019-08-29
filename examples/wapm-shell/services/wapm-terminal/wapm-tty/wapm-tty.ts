@@ -1,4 +1,6 @@
-import { Terminal, IBufferLine } from "xterm";
+import { Terminal, IBuffer, IBufferLine } from "xterm";
+import { countLines, offsetToColRow } from "./tty-utils";
+import { ActiveCharPrompt, ActivePrompt } from "../wapm-shell/shell-utils";
 
 /**
  * A tty is a particular device file, that sits between the shell and the terminal.
@@ -9,61 +11,49 @@ type AutoCompleteHandler = (index: number, tokens: string[]) => string[];
 
 export default class WapmTTY {
   xterm: Terminal;
+
+  _termSize: {
+    cols: number;
+    rows: number;
+  };
+  _promptPrefix: string;
+  _continuationPromptPrefix: string;
   _cursor: number;
   _input: string;
 
   constructor(xterm: Terminal) {
     this.xterm = xterm;
 
+    this._termSize = {
+      cols: this.xterm.cols,
+      rows: this.xterm.rows
+    };
+    this._promptPrefix = "";
+    this._continuationPromptPrefix = "";
     this._input = "";
     this._cursor = 0;
   }
 
   /**
-   *  Detach the controller from the terminal
+   * Function to return a deconstructed readPromise
    */
-  detach() {
-    this.xterm.off("data", this.handleTermData);
-    this.xterm.off("resize", this.handleTermResize);
-  }
+  _getAsyncRead() {
+    let readResolve;
+    let readReject;
+    const readPromise = new Promise((resolve, reject) => {
+      readResolve = () => {
+        this._promptPrefix = "";
+        this._continuationPromptPrefix = "";
+        resolve();
+      };
+      readReject = reject;
+    });
 
-  /**
-   * Attach controller to the terminal, handling events
-   */
-  attach() {
-    this.xterm.on("data", this.handleTermData);
-    this.xterm.on("resize", this.handleTermResize);
-  }
-
-  /**
-   * Register a handler that will be called to satisfy auto-completion
-   */
-  addAutocompleteHandler(fn: AutoCompleteHandler) {
-    this._autocompleteHandlers.push(fn);
-  }
-
-  /**
-   * Remove a previously registered auto-complete handler
-   */
-  removeAutocompleteHandler(fn: AutoCompleteHandler) {
-    const idx = this._autocompleteHandlers.findIndex(e => e === fn);
-    if (idx === -1) return;
-
-    this._autocompleteHandlers.splice(idx, 1);
-  }
-
-  /**
-   * Function to get the current input in the line
-   */
-  getInput() {
-    return this._input;
-  }
-
-  /**
-   * Function to get the current cursor
-   */
-  getCursor() {
-    this._cursor;
+    return {
+      promise: readPromise,
+      resolve: readResolve,
+      reject: readReject
+    };
   }
 
   /**
@@ -72,23 +62,20 @@ export default class WapmTTY {
    */
   read(
     promptPrefix: string,
-    continuationPrompt: string = "> "
-  ): Promise<string> {
+    continuationPromptPrefix: string = "> "
+  ): ActivePrompt {
     if (promptPrefix.length > 0) {
       this.print(promptPrefix);
     }
 
-    return new Promise((resolve, reject) => {
-      this._activePrompt = {
-        promptPrefix,
-        continuationPrompt,
-        resolve,
-        reject
-      };
-      this._input = "";
-      this._cursor = 0;
-      this._active = true;
-    });
+    this._input = "";
+    this._cursor = 0;
+
+    return {
+      promptPrefix,
+      continuationPromptPrefix,
+      ...this._getAsyncRead()
+    };
   }
 
   /**
@@ -98,33 +85,15 @@ export default class WapmTTY {
    * This can be active in addition to `.read()` and will be resolved in
    * priority before it.
    */
-  readChar(prompt: string) {
-    return new Promise((resolve, reject) => {
-      this.xterm.write(prompt);
-      this._activeCharPrompt = {
-        prompt,
-        resolve,
-        reject
-      };
-    });
-  }
+  readChar(promptPrefix: string): ActiveCharPrompt {
+    if (promptPrefix.length > 0) {
+      this.print(promptPrefix);
+    }
 
-  /**
-   * Abort a pending read operation
-   */
-  abortRead(reason = "aborted") {
-    if (this._activePrompt != null || this._activeCharPrompt != null) {
-      this.xterm.write("\r\n");
-    }
-    if (this._activePrompt != null) {
-      this._activePrompt.reject(new Error(reason));
-      this._activePrompt = null;
-    }
-    if (this._activeCharPrompt != null) {
-      this._activeCharPrompt.reject(new Error(reason));
-      this._activeCharPrompt = null;
-    }
-    this._active = false;
+    return {
+      promptPrefix,
+      ...this._getAsyncRead()
+    };
   }
 
   /**
@@ -172,6 +141,25 @@ export default class WapmTTY {
   }
 
   /**
+   * Apply prompts to the given input
+   */
+  applyPrompts(input: string): string {
+    return (
+      this._promptPrefix +
+      input.replace(/\n/g, "\n" + this._continuationPromptPrefix)
+    );
+  }
+
+  /**
+   * Advances the `offset` as required in order to accompany the prompt
+   * additions to the input.
+   */
+  applyPromptOffset(input: string, offset: number): number {
+    const newInput = this.applyPrompts(input.substr(0, offset));
+    return newInput.length;
+  }
+
+  /**
    * Clears the current prompt
    *
    * This function will erase all the lines that display the current prompt
@@ -201,15 +189,33 @@ export default class WapmTTY {
   }
 
   /**
+   * Function to get the current input in the line
+   */
+  getInput(): string {
+    return this._input;
+  }
+
+  /**
+   * Function to get the current cursor
+   */
+  getCursor(): number {
+    return this._cursor;
+  }
+
+  /**
+   * Function to return the terminal buffer
+   */
+  getBuffer(): IBuffer {
+    return this.xterm.buffer;
+  }
+
+  /**
    * Replace input with the new input given
    *
    * This function clears all the lines that the current input occupies and
    * then replaces them with the new input.
    */
-  setInput(newInput: string, clearInput: boolean = true) {
-    // Clear current input
-    if (clearInput) this.clearInput();
-
+  setInput(newInput: string) {
     // Write the new input lines, including the current prompt
     const newPrompt = this.applyPrompts(newInput);
     this.print(newPrompt);
@@ -236,45 +242,6 @@ export default class WapmTTY {
     // Replace input
     this._input = newInput;
   }
-
-  setCursor(newCursor: number) {
-    this._cursor = newCursor;
-  }
-
-  /**
-   * Handle terminal input
-   */
-  handleTermData = (data: string) => {
-    if (!this._active) return;
-    if (this.firstInit && this._activePrompt) {
-      let line = this.xterm.buffer.getLine(
-        this.xterm.buffer.cursorY + this.xterm.buffer.baseY
-      );
-      let promptRead = (line as IBufferLine).translateToString(
-        false,
-        0,
-        this.xterm.buffer.cursorX
-      );
-      this._activePrompt.prompt = promptRead;
-      this.firstInit = false;
-    }
-
-    // If we have an active character prompt, satisfy it in priority
-    if (this._activeCharPrompt != null) {
-      this._activeCharPrompt.resolve(data);
-      this._activeCharPrompt = null;
-      this.xterm.write("\r\n");
-      return;
-    }
-
-    // If this looks like a pasted input, expand it
-    if (data.length > 3 && data.charCodeAt(0) !== 0x1b) {
-      const normData = data.replace(/[\r\n]+/g, "\r");
-      Array.from(normData).forEach(c => this.handleData(c));
-    } else {
-      this.handleData(data);
-    }
-  };
 
   /**
    * Set the new cursor position, as an offset on the input string
@@ -322,5 +289,9 @@ export default class WapmTTY {
 
     // Set new offset
     this._cursor = newCursor;
+  }
+
+  setTermSize(cols: number, rows: number) {
+    this._termSize = { cols, rows };
   }
 }

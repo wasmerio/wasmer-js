@@ -30,6 +30,13 @@ export class ShellHistory {
   }
 
   /**
+   * Check if the history includes an entry
+   */
+  includes(entry: string) {
+    return this.entries.includes(entry);
+  }
+
+  /**
    * Rewind history cursor on the last entry
    */
   rewind() {
