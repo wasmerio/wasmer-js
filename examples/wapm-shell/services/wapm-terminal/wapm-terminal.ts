@@ -27,6 +27,9 @@ export default class WapmTerminal {
 
   open(container: HTMLElement) {
     this.xterm.open(container);
+    setTimeout(() => {
+      this.wapmShell.prompt();
+    });
   }
 
   fit() {
