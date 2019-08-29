@@ -276,13 +276,6 @@ export default class WapmTTY {
   }
 
   /**
-   * Sets the direct cursor value. Should only be used in keystroke contexts
-   */
-  setCursorDirectly(newCursor: number) {
-    this._cursor = newCursor;
-  }
-
-  /**
    * Set the new cursor position, as an offset on the input string
    *
    * This function:
@@ -291,7 +284,17 @@ export default class WapmTTY {
   setCursor(newCursor: number) {
     if (newCursor < 0) newCursor = 0;
     if (newCursor > this._input.length) newCursor = this._input.length;
+    this._writeCursorPosition(newCursor);
+  }
 
+  /**
+   * Sets the direct cursor value. Should only be used in keystroke contexts
+   */
+  setCursorDirectly(newCursor: number) {
+    this._writeCursorPosition(newCursor);
+  }
+
+  _writeCursorPosition(newCursor: number) {
     // Apply prompt formatting to get the visual status of the display
     const inputWithPrompt = this.applyPrompts(this._input);
     const inputLines = countLines(inputWithPrompt, this._termSize.cols);
@@ -338,16 +341,10 @@ export default class WapmTTY {
     this._firstInit = value;
   }
 
-  /**
-   * Function to set the current Prompt prefix
-   */
   setPromptPrefix(value: string) {
     this._promptPrefix = value;
   }
 
-  /**
-   * Function to set the current Continuation Prompt prefix
-   */
   setContinuationPromptPrefix(value: string) {
     this._continuationPromptPrefix = value;
   }

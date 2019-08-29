@@ -77,7 +77,10 @@ export default class WapmShell {
         },
         // Command End Callback
         () => {
-          this.prompt();
+          // Doing a set timeout to allow whatever killed the process to do it's thing first
+          setTimeout(() => {
+            this.prompt();
+          });
         },
         // Wasm Module Cache Callback
         (wapmModuleName: string) => {
@@ -392,19 +395,16 @@ export default class WapmShell {
 
         case "\x03": // CTRL+C
           this.wapmTty.setCursor(this.wapmTty.getInput().length);
-          this.wapmTty.print(
-            "^C\r\n" +
-              (this._activePrompt ? this._activePrompt.promptPrefix : "")
-          );
           this.wapmTty.setInput("");
           this.wapmTty.setCursorDirectly(0);
+          this.wapmTty.print("^C\r\n");
           if (this.history) this.history.rewind();
 
+          // Kill the command
           if (this.commandRunner) {
             this.commandRunner.kill();
             this.commandRunner = undefined;
           }
-
           break;
       }
 
