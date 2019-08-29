@@ -206,7 +206,6 @@ export default class WapmShell {
    * Handle terminal -> tty input
    */
   handleTermData = (data: string) => {
-    console.log(data, data.charCodeAt(0), this.wapmTty.getCursor());
     if (!this._active) return;
     if (this.wapmTty.getFirstInit() && this._activePrompt) {
       let line = this.wapmTty
@@ -220,6 +219,7 @@ export default class WapmShell {
         this.wapmTty.getBuffer().cursorX
       );
       this._activePrompt.promptPrefix = promptRead;
+      this.wapmTty.setPromptPrefix(promptRead);
       this.wapmTty.setFirstInit(false);
     }
 

@@ -200,6 +200,20 @@ export default class WapmTTY {
   }
 
   /**
+   * Function to get the current Prompt prefix
+   */
+  getPromptPrefix(): string {
+    return this._promptPrefix;
+  }
+
+  /**
+   * Function to get the current Continuation Prompt prefix
+   */
+  getContinuationPromptPrefix(): string {
+    return this._continuationPromptPrefix;
+  }
+
+  /**
    * Function to get the current input in the line
    */
   getInput(): string {
@@ -322,5 +336,19 @@ export default class WapmTTY {
 
   setFirstInit(value: boolean) {
     this._firstInit = value;
+  }
+
+  /**
+   * Function to set the current Prompt prefix
+   */
+  setPromptPrefix(value: string) {
+    this._promptPrefix = value;
+  }
+
+  /**
+   * Function to set the current Continuation Prompt prefix
+   */
+  setContinuationPromptPrefix(value: string) {
+    this._continuationPromptPrefix = value;
   }
 }
