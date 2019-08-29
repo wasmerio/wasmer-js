@@ -63,6 +63,6 @@ export default class WapmTerminal {
     const { rows, cols } = data;
     this.wapmTty.clearInput();
     this.wapmTty.setTermSize(cols, rows);
-    this.wapmTty.setInput(this.wapmTty.getInput());
+    this.wapmTty.setInput(this.wapmTty.getInput(), true);
   };
 }

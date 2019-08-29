@@ -145,10 +145,10 @@ export default class WapmShell {
         dir,
         this.wapmTty.getInput().length - this.wapmTty.getCursor()
       );
-      this.wapmTty.setCursor(this.wapmTty.getCursor() + num);
+      this.wapmTty.setCursorDirectly(this.wapmTty.getCursor() + num);
     } else if (dir < 0) {
       const num = Math.max(dir, -this.wapmTty.getCursor());
-      this.wapmTty.setCursor(this.wapmTty.getCursor() + num);
+      this.wapmTty.setCursorDirectly(this.wapmTty.getCursor() + num);
     }
   };
 
@@ -162,8 +162,8 @@ export default class WapmShell {
         this.wapmTty.getInput().substr(0, this.wapmTty.getCursor() - 1) +
         this.wapmTty.getInput().substr(this.wapmTty.getCursor());
       this.wapmTty.clearInput();
-      this.wapmTty.setCursor(this.wapmTty.getCursor() - 1);
-      this.wapmTty.setInput(newInput);
+      this.wapmTty.setCursorDirectly(this.wapmTty.getCursor() - 1);
+      this.wapmTty.setInput(newInput, true);
     } else {
       const newInput =
         this.wapmTty.getInput().substr(0, this.wapmTty.getCursor()) +
@@ -180,7 +180,7 @@ export default class WapmShell {
       this.wapmTty.getInput().substr(0, this.wapmTty.getCursor()) +
       data +
       this.wapmTty.getInput().substr(this.wapmTty.getCursor());
-    this.wapmTty.setCursor(this.wapmTty.getCursor() + data.length);
+    this.wapmTty.setCursorDirectly(this.wapmTty.getCursor() + data.length);
     this.wapmTty.setInput(newInput);
   };
 
@@ -203,7 +203,6 @@ export default class WapmShell {
    * Handle terminal -> tty input
    */
   handleTermData = (data: string) => {
-    console.log("Got input");
     if (!this._active) return;
     if (this.firstInit && this._activePrompt) {
       let line = this.wapmTty
@@ -394,7 +393,7 @@ export default class WapmShell {
               (this._activePrompt ? this._activePrompt.promptPrefix : "")
           );
           this.wapmTty.setInput("");
-          this.wapmTty.setCursor(0);
+          this.wapmTty.setCursorDirectly(0);
           if (this.history) this.history.rewind();
 
           if (this.commandRunner) {

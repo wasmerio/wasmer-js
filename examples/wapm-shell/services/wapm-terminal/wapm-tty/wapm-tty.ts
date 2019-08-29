@@ -217,8 +217,14 @@ export default class WapmTTY {
    * This function clears all the lines that the current input occupies and
    * then replaces them with the new input.
    */
-  setInput(newInput: string) {
-    console.log("lmao", newInput);
+  setInput(newInput: string, shouldNotClearInput: boolean = false) {
+    // Doing the programming anitpattern here,
+    // because defaulting to true is the opposite of what
+    // not passing a param means in JS
+    if (!shouldNotClearInput) {
+      this.clearInput();
+    }
+
     // Write the new input lines, including the current prompt
     const newPrompt = this.applyPrompts(newInput);
     this.print(newPrompt);
@@ -247,13 +253,19 @@ export default class WapmTTY {
   }
 
   /**
+   * Sets the direct cursor value. Should only be used in keystroke contexts
+   */
+  setCursorDirectly(newCursor: number) {
+    this._cursor = newCursor;
+  }
+
+  /**
    * Set the new cursor position, as an offset on the input string
    *
    * This function:
    * - Calculates the previous and current
    */
   setCursor(newCursor: number) {
-    console.log("ayyee", newCursor);
     if (newCursor < 0) newCursor = 0;
     if (newCursor > this._input.length) newCursor = this._input.length;
 
