@@ -58,7 +58,7 @@ export default class WapmShell {
     try {
       this._activePrompt = this.wapmTty.read("$ ");
       this._active = true;
-      let line = this._activePrompt.promise;
+      let line = await this._activePrompt.promise;
       if (this.commandRunner) {
         this.commandRunner.kill();
       }

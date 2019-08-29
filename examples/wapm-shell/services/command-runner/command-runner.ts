@@ -333,7 +333,7 @@ export default class CommandRunner {
   }
 
   processStdinReadCallback() {
-    this.localEcho.read("").then((stdin: string) => {
+    this.wapmTty.read("").promise.then((stdin: string) => {
       const data = new TextEncoder().encode(stdin + "\n");
       this.addStdinToSharedStdin(data, 0);
     });

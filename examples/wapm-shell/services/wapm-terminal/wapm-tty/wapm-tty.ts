@@ -41,10 +41,10 @@ export default class WapmTTY {
     let readResolve;
     let readReject;
     const readPromise = new Promise((resolve, reject) => {
-      readResolve = () => {
+      readResolve = (response: string) => {
         this._promptPrefix = "";
         this._continuationPromptPrefix = "";
-        resolve();
+        resolve(response);
       };
       readReject = reject;
     });
