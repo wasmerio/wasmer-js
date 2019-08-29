@@ -68,6 +68,8 @@ export default class WapmTTY {
       this.print(promptPrefix);
     }
 
+    this._promptPrefix = promptPrefix;
+    this._continuationPromptPrefix = continuationPromptPrefix;
     this._input = "";
     this._cursor = 0;
 
@@ -216,6 +218,7 @@ export default class WapmTTY {
    * then replaces them with the new input.
    */
   setInput(newInput: string) {
+    console.log("lmao", newInput);
     // Write the new input lines, including the current prompt
     const newPrompt = this.applyPrompts(newInput);
     this.print(newPrompt);
@@ -250,6 +253,7 @@ export default class WapmTTY {
    * - Calculates the previous and current
    */
   setCursor(newCursor: number) {
+    console.log("ayyee", newCursor);
     if (newCursor < 0) newCursor = 0;
     if (newCursor > this._input.length) newCursor = this._input.length;
 
