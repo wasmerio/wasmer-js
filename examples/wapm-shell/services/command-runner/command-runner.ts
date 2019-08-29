@@ -1,23 +1,24 @@
 import * as Comlink from "comlink";
 import parse from "shell-parse";
-import { Terminal, IBufferLine } from "xterm";
 import Process from "../process/process";
 import { CommandOptions } from "./command";
 import CommandFetcher from "./command-fetcher";
-import LocalEchoController from "../local-echo/LocalEchoController";
+
+import WapmTty from "../wapm-terminal/wapm-tty/wapm-tty";
 
 let processWorkerBlobUrl: string | undefined = undefined;
-const getBlobUrlForProcessWorker = async (xterm: Terminal) => {
+const getBlobUrlForProcessWorker = async (wapmTty?: WapmTty) => {
   if (processWorkerBlobUrl) {
     return processWorkerBlobUrl;
   }
 
-  // Save the cursor position
-  xterm.write("\u001b[s");
-
-  xterm.write(
-    "[INFO] Downloading the process Web Worker (This happens once)..."
-  );
+  if (wapmTty) {
+    // Save the cursor position
+    wapmTty.print("\u001b[s");
+    wapmTty.print(
+      "[INFO] Downloading the process Web Worker (This happens once)..."
+    );
+  }
 
   // Fetch the worker, but at least show the message for a short while
   const workerString = await Promise.all([
@@ -25,12 +26,13 @@ const getBlobUrlForProcessWorker = async (xterm: Terminal) => {
     new Promise(resolve => setTimeout(resolve, 500))
   ]).then(responses => responses[0]);
 
-  // Restore the cursor position
-  xterm.write("\u001b[u");
-
-  // Clear from cursor to end of screen
-  xterm.write("\u001b[1000D");
-  xterm.write("\u001b[0J");
+  if (wapmTty) {
+    // Restore the cursor position
+    wapmTty.print("\u001b[u");
+    // Clear from cursor to end of screen
+    wapmTty.print("\u001b[1000D");
+    wapmTty.print("\u001b[0J");
+  }
 
   // Create the worker blob and URL
   const workerBlob = new Blob([workerString]);
@@ -42,7 +44,7 @@ const getCommandOptionsFromAST = (
   ast: any,
   commandFetcher: CommandFetcher,
   commandFetcherCallback: Function,
-  xterm?: Terminal
+  wapmTty?: WapmTty
 ): Promise<Array<CommandOptions>> => {
   // The array of command options we are returning
   let commandOptions: Array<CommandOptions> = [];
@@ -67,7 +69,7 @@ const getCommandOptionsFromAST = (
           astRedirect.command,
           commandFetcher,
           commandFetcherCallback,
-          xterm
+          wapmTty
         );
         // Add the child options to our command options
         commandOptions = commandOptions.concat(redirectedCommandOptions);
@@ -76,7 +78,7 @@ const getCommandOptionsFromAST = (
   };
 
   const getWasmModuleTask = async () => {
-    return await commandFetcher.getWasmModuleForCommandName(command, xterm);
+    return await commandFetcher.getWasmModuleForCommandName(command, wapmTty);
   };
 
   return redirectTask()
@@ -101,16 +103,17 @@ export default class CommandRunner {
   isRunning: boolean;
   supportsSharedArrayBuffer: boolean;
 
-  xterm: Terminal;
+  wapmTty: WapmTty;
   commandString: string;
-  localEcho: LocalEchoController;
 
+  commandStartReadCallback: Function;
   commandEndCallback: Function;
   commandFetcherCallback: Function;
 
   constructor(
-    xterm: Terminal,
+    wapmTty: WapmTty,
     commandString: string,
+    commandStartReadCallback: Function,
     commandEndCallback: Function,
     commandFetcherCallback: Function
   ) {
@@ -123,13 +126,10 @@ export default class CommandRunner {
     this.supportsSharedArrayBuffer =
       (window as any).SharedArrayBuffer && (window as any).Atomics;
 
-    this.xterm = xterm;
-    this.localEcho = new LocalEchoController(this.xterm, {
-      historySize: 0,
-      maxAutocompleteEntries: 0
-    });
+    this.wapmTty = wapmTty;
     this.commandString = commandString;
 
+    this.commandStartReadCallback = commandStartReadCallback;
     this.commandEndCallback = commandEndCallback;
     this.commandFetcherCallback = commandFetcherCallback;
   }
@@ -150,11 +150,11 @@ export default class CommandRunner {
         commandAst[0],
         this.commandFetcher,
         this.commandFetcherCallback,
-        this.xterm
+        this.wapmTty
       );
     } catch (c) {
-      this.xterm.write("\r\n");
-      this.xterm.write(`wapm shell: parse error (${c.toString()})\r\n`);
+      this.wapmTty.print("\r\n");
+      this.wapmTty.print(`wapm shell: parse error (${c.toString()})\r\n`);
       console.error(c);
       this.commandEndCallback();
       return;
@@ -231,7 +231,7 @@ export default class CommandRunner {
 
   async spawnProcessAsWorker(commandOptionIndex: number) {
     // Generate our process
-    const workerBlobUrl = await getBlobUrlForProcessWorker(this.xterm);
+    const workerBlobUrl = await getBlobUrlForProcessWorker(this.wapmTty);
     const processWorker = new Worker(workerBlobUrl);
     const processComlink = Comlink.wrap(processWorker);
 
@@ -252,7 +252,7 @@ export default class CommandRunner {
       // Shared Array Bufer
       sharedStdinBuffer,
       // Stdin read callback
-      Comlink.proxy(this.processStdinReadCallback.bind(this))
+      Comlink.proxy(this.processStartStdinReadCallback.bind(this))
     );
 
     // Initialize the shared Stdin.
@@ -303,7 +303,7 @@ export default class CommandRunner {
     } else {
       // Write the output to our terminal
       let dataString = new TextDecoder("utf-8").decode(data);
-      this.xterm.write(dataString.replace(/\n/g, "\r\n"));
+      this.wapmTty.print(dataString);
     }
   }
 
@@ -328,19 +328,15 @@ export default class CommandRunner {
   }
 
   processErrorCallback(commandOptionIndex: number, error: string) {
-    this.xterm.write(
+    this.wapmTty.print(
       `Program ${this.commandOptionsForProcessesToRun[commandOptionIndex].args[0]}: ${error}\r\n`
     );
     this.kill();
     this.commandEndCallback();
   }
 
-  processStdinReadCallback() {
-    // When the stdin read begins
-    // console.log(
-    //   `processStdinReadCallback y:${this.xterm.buffer.cursorY}, x: ${this.xterm.buffer.cursorX}`
-    // );
-    this.localEcho.read("").then((stdin: string) => {
+  processStartStdinReadCallback() {
+    this.commandStartReadCallback().then((stdin: string) => {
       const data = new TextEncoder().encode(stdin + "\n");
       this.addStdinToSharedStdin(data, 0);
     });

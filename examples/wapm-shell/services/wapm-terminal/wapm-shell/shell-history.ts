@@ -1,7 +1,7 @@
 /**
- * The history controller provides an ring-buffer
+ * The shell history provides an ring-buffer
  */
-export class HistoryController {
+export class ShellHistory {
   size: number;
   entries: Array<string>;
   cursor: number;
@@ -27,6 +27,13 @@ export class HistoryController {
       this.entries.pop();
     }
     this.cursor = this.entries.length;
+  }
+
+  /**
+   * Check if the history includes an entry
+   */
+  includes(entry: string) {
+    return this.entries.includes(entry);
   }
 
   /**

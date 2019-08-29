@@ -1,14 +1,13 @@
 import { h, render, Component } from "preact";
 
-import XTerm from "./components/xterm";
-
+import WapmTerminal from "./components/wapm-terminal/wapm-terminal.component";
 import "./index.css";
 
 class App extends Component {
   render() {
     return (
       <div>
-        <XTerm />
+        <WapmTerminal />
       </div>
     );
   }

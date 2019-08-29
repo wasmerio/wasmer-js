@@ -1,5 +1,16 @@
 import { parse, ParseEntry } from "shell-quote";
 
+export interface ActiveCharPrompt {
+  promptPrefix: string;
+  promise: Promise<any>;
+  resolve?: (what: string) => any;
+  reject?: (error: Error) => any;
+}
+
+export interface ActivePrompt extends ActiveCharPrompt {
+  continuationPromptPrefix: string;
+}
+
 /**
  * Detects all the word boundaries on the given input
  */
@@ -32,40 +43,6 @@ export function closestLeftBoundary(input: string, offset: number) {
 export function closestRightBoundary(input: string, offset: number) {
   const found = wordBoundaries(input, false).find(x => x > offset);
   return found == null ? input.length : found;
-}
-
-/**
- * Convert offset at the given input to col/row location
- *
- * This function is not optimized and practically emulates via brute-force
- * the navigation on the terminal, wrapping when they reach the column width.
- */
-export function offsetToColRow(input: string, offset: number, maxCols: number) {
-  let row = 0,
-    col = 0;
-
-  for (let i = 0; i < offset; ++i) {
-    const chr = input.charAt(i);
-    if (chr == "\n") {
-      col = 0;
-      row += 1;
-    } else {
-      col += 1;
-      if (col > maxCols) {
-        col = 0;
-        row += 1;
-      }
-    }
-  }
-
-  return { row, col };
-}
-
-/**
- * Counts the lines in the given input
- */
-export function countLines(input: string, maxCols: number) {
-  return offsetToColRow(input, input.length, maxCols).row + 1;
 }
 
 /**
@@ -107,6 +84,7 @@ export function isIncompleteInput(input: string) {
 /**
  * Returns true if the expression ends on a tailing whitespace
  */
+// TODO: Tailing -> Trailing
 export function hasTailingWhitespace(input: string) {
   return input.match(/[^\\][ \t]$/m) != null;
 }

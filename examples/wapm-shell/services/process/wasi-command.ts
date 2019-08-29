@@ -29,7 +29,7 @@ export default class WASICommand extends Command {
   wasmerFileSystem: WasmerFileSystem;
 
   sharedStdin?: Int32Array;
-  stdinReadCallback?: Function;
+  startStdinReadCallback?: Function;
   isReadingStdin: boolean;
   pipedStdin: string;
 
@@ -39,7 +39,7 @@ export default class WASICommand extends Command {
   constructor(
     options: CommandOptions,
     sharedStdin?: Int32Array,
-    stdinReadCallback?: Function
+    startStdinReadCallback?: Function
   ) {
     super(options);
 
@@ -51,16 +51,16 @@ export default class WASICommand extends Command {
     this.wasmerFileSystem.volume.fds[2].write = this.stdoutWrite.bind(this);
 
     this.sharedStdin = sharedStdin;
-    this.stdinReadCallback = stdinReadCallback;
+    this.startStdinReadCallback = startStdinReadCallback;
     this.isReadingStdin = false;
     this.pipedStdin = "";
 
     this.stdoutLog = "";
 
     this.wasi = new WASI({
-      // preopenDirectories: {},
-      // env: options.env,
-      // args: options.args,
+      preopenDirectories: {},
+      env: options.env,
+      args: options.args,
       bindings: {
         ...WASI.defaultBindings,
         fs: this.wasmerFileSystem.fs
@@ -141,8 +141,8 @@ export default class WASICommand extends Command {
     if (this.pipedStdin) {
       responseStdin = this.pipedStdin;
       this.pipedStdin = "";
-    } else if (this.sharedStdin && this.stdinReadCallback) {
-      this.stdinReadCallback();
+    } else if (this.sharedStdin && this.startStdinReadCallback) {
+      this.startStdinReadCallback();
       Atomics.wait(this.sharedStdin, 0, -1);
 
       // Grab the of elements
@@ -159,6 +159,7 @@ export default class WASICommand extends Command {
           ? this.stdoutLog
           : "Please enter text for stdin:"
       );
+      responseStdin += "\n";
     }
 
     // First check for errors
