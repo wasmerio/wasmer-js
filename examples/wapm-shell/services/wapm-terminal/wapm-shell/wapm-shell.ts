@@ -49,7 +49,11 @@ export default class WapmShell {
     this.commandRunner = undefined;
 
     this.maxAutocompleteEntries = options.maxAutocompleteEntries;
-    this._autocompleteHandlers = [];
+    this._autocompleteHandlers = [
+      (index, tokens) => {
+        return this.history.entries;
+      }
+    ];
     this._active = false;
   }
 
@@ -202,7 +206,7 @@ export default class WapmShell {
    * Handle terminal -> tty input
    */
   handleTermData = (data: string) => {
-    console.log(data, this.wapmTty.getCursor());
+    console.log(data, data.charCodeAt(0), this.wapmTty.getCursor());
     if (!this._active) return;
     if (this.wapmTty.getFirstInit() && this._activePrompt) {
       let line = this.wapmTty
