@@ -58,9 +58,9 @@ export default class WASICommand extends Command {
     this.stdoutLog = "";
 
     this.wasi = new WASI({
-      // preopenDirectories: {},
-      // env: options.env,
-      // args: options.args,
+      preopenDirectories: {},
+      env: options.env,
+      args: options.args,
       bindings: {
         ...WASI.defaultBindings,
         fs: this.wasmerFileSystem.fs
