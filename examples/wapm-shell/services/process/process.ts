@@ -1,23 +1,6 @@
-import { Duplex, PassThrough } from "stream";
-
 import { WASIExitError, WASIKillError } from "../../../../lib/bindings/browser";
-
 import { CommandOptions } from "../../services/command-runner/command";
-
 import WASICommand from "./wasi-command";
-
-const merge = (...streams: Duplex[]) => {
-  let pass = new PassThrough();
-  let waiting = streams.length;
-  for (let stream of streams) {
-    pass = stream.pipe(
-      pass,
-      { end: false }
-    );
-    stream.once("end", () => --waiting === 0 && pass.emit("end"));
-  }
-  return pass;
-};
 
 export default class Process {
   commandOptions: CommandOptions;
