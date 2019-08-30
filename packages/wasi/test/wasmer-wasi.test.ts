@@ -13,7 +13,7 @@ if ((global as any).BigInt) {
 }
 import { WASI } from "../lib";
 import WASINodeBindings from "../lib/bindings/node";
-import WasmerFileSystem from "../examples/file-system/file-system";
+import WasmerFileSystem from "../../wasmfs/file-system";
 
 const bytesConverter = (buffer: Buffer): Buffer => {
   // Help debugging: https://webassembly.github.io/wabt/demo/wat2wasm/index.html

@@ -165,7 +165,7 @@ const stat = (wasi: WASI, fd: number): File => {
       stats
     );
     entry.filetype = filetype;
-    if (entry.rights === undefined) {
+    if (!entry.rights) {
       entry.rights = {
         base: rightsBase,
         inheriting: rightsInheriting

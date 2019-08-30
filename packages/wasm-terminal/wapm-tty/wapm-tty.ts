@@ -119,7 +119,7 @@ export default class WapmTTY {
    * Prints a list of items using a wide-format
    */
   printWide(items: Array<string>, padding = 2) {
-    if (items.length == 0) return this.println("");
+    if (items.length === 0) return this.println("");
 
     // Compute item sizes and matrix row/cols
     const itemWidth =
@@ -185,11 +185,11 @@ export default class WapmTTY {
 
     // First move on the last line
     const moveRows = allRows - row - 1;
-    for (var i = 0; i < moveRows; ++i) this.xterm.write("\x1B[E");
+    for (let i = 0; i < moveRows; ++i) this.xterm.write("\x1B[E");
 
     // Clear current input line(s)
     this.xterm.write("\r\x1B[K");
-    for (var i = 1; i < allRows; ++i) this.xterm.write("\x1B[F\x1B[K");
+    for (let i = 1; i < allRows; ++i) this.xterm.write("\x1B[F\x1B[K");
   }
 
   /**
@@ -268,8 +268,8 @@ export default class WapmTTY {
     const moveUpRows = newLines - row - 1;
 
     this.xterm.write("\r");
-    for (var i = 0; i < moveUpRows; ++i) this.xterm.write("\x1B[F");
-    for (var i = 0; i < col; ++i) this.xterm.write("\x1B[C");
+    for (let i = 0; i < moveUpRows; ++i) this.xterm.write("\x1B[F");
+    for (let i = 0; i < col; ++i) this.xterm.write("\x1B[C");
 
     // Replace input
     this._input = newInput;

@@ -73,12 +73,13 @@ export default class WapmShell {
         async () => {
           this._activePrompt = this.wapmTty.read("");
           this._active = true;
-          return await this._activePrompt.promise;
+          return this._activePrompt.promise;
         },
         // Command End Callback
         () => {
           // Doing a set timeout to allow whatever killed the process to do it's thing first
           setTimeout(() => {
+            // tslint:disable-next-line
             this.prompt();
           });
         },
@@ -93,6 +94,7 @@ export default class WapmShell {
       await this.commandRunner.runCommand();
     } catch (e) {
       this.wapmTty.println(`Error: ${e.toString()}`);
+      // tslint:disable-next-line
       this.prompt();
     }
   }
@@ -101,7 +103,7 @@ export default class WapmShell {
    * This function completes the current input, calls the given callback
    * and then re-displays the prompt.
    */
-  printAndRestartPrompt(callback: () => Promise<any> | null) {
+  printAndRestartPrompt(callback: () => Promise<any> | undefined) {
     const cursor = this.wapmTty.getCursor();
 
     // Complete input
@@ -117,10 +119,11 @@ export default class WapmShell {
     // Call the given callback to echo something, and if there is a promise
     // returned, wait for the resolution before resuming prompt.
     const ret = callback();
-    if (ret == null) {
-      resume();
-    } else {
+    if (ret) {
+      // tslint:disable-next-line
       ret.then(resume);
+    } else {
+      resume();
     }
   }
 
@@ -252,7 +255,7 @@ export default class WapmShell {
     let ofs;
 
     // Handle ANSI escape sequences
-    if (ord == 0x1b) {
+    if (ord === 0x1b) {
       switch (data.substr(1)) {
         case "[A": // Up arrow
           if (this.history) {
@@ -298,7 +301,7 @@ export default class WapmShell {
             this.wapmTty.getInput(),
             this.wapmTty.getCursor()
           );
-          if (ofs != null) this.wapmTty.setCursor(ofs);
+          if (ofs) this.wapmTty.setCursor(ofs);
           break;
 
         case "f": // ALT + RIGHT
@@ -306,7 +309,7 @@ export default class WapmShell {
             this.wapmTty.getInput(),
             this.wapmTty.getCursor()
           );
-          if (ofs != null) this.wapmTty.setCursor(ofs);
+          if (ofs) this.wapmTty.setCursor(ofs);
           break;
 
         case "\x7F": // CTRL + BACKSPACE
@@ -314,7 +317,7 @@ export default class WapmShell {
             this.wapmTty.getInput(),
             this.wapmTty.getCursor()
           );
-          if (ofs != null) {
+          if (ofs) {
             this.wapmTty.setInput(
               this.wapmTty.getInput().substr(0, ofs) +
                 this.wapmTty.getInput().substr(this.wapmTty.getCursor())
@@ -382,7 +385,7 @@ export default class WapmShell {
                     `Display all ${candidates.length} possibilities? (y or n)`
                   )
                   .promise.then((yn: string) => {
-                    if (yn == "y" || yn == "Y") {
+                    if (yn === "y" || yn === "Y") {
                       this.wapmTty.printWide(candidates);
                     }
                   })

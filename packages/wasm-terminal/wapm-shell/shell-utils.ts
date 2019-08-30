@@ -19,12 +19,15 @@ export function wordBoundaries(input: string, leftSide: boolean = true) {
   const words = [];
   const rx = /\w+/g;
 
-  while ((match = rx.exec(input))) {
+  match = rx.exec(input);
+  while (match) {
     if (leftSide) {
       words.push(match.index);
     } else {
       words.push(match.index + match[0].length);
     }
+
+    match = rx.exec(input);
   }
 
   return words;
@@ -38,11 +41,11 @@ export function closestLeftBoundary(input: string, offset: number) {
   const found = wordBoundaries(input, true)
     .reverse()
     .find(x => x < offset);
-  return found == null ? 0 : found;
+  return found === undefined ? 0 : found;
 }
 export function closestRightBoundary(input: string, offset: number) {
   const found = wordBoundaries(input, false).find(x => x > offset);
-  return found == null ? input.length : found;
+  return found === undefined ? input.length : found;
 }
 
 /**
@@ -57,7 +60,7 @@ export function closestRightBoundary(input: string, offset: number) {
  */
 export function isIncompleteInput(input: string) {
   // Empty input is not incomplete
-  if (input.trim() == "") {
+  if (input.trim() === "") {
     return false;
   }
 
@@ -70,7 +73,7 @@ export function isIncompleteInput(input: string) {
     return true;
   }
   // Check for dangling boolean or pipe operations
-  if ((input.split(/(\|\||\||&&)/g).pop() as string).trim() == "") {
+  if ((input.split(/(\|\||\||&&)/g).pop() as string).trim() === "") {
     return true;
   }
   // Check for tailing slash
@@ -86,7 +89,7 @@ export function isIncompleteInput(input: string) {
  */
 // TODO: Tailing -> Trailing
 export function hasTailingWhitespace(input: string) {
-  return input.match(/[^\\][ \t]$/m) != null;
+  return input.match(/[^\\][ \t]$/m) !== null;
 }
 
 /**

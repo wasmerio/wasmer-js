@@ -1,13 +1,21 @@
 {
-  "name": "wasi",
+  "name": "@wasmer/wasi",
   "version": "0.0.1",
   "description": "A shim for running wasi applications in the browser",
-  "main": "index.ts",
+  "main": "dist/index.cjs.js",
+  "module": "dist/index.esm.js",
+  "browser": "dist/index.iife.js",
+  "typings": "dist/types/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
+    "precompile": "cd test/rs && make all",
+    "postinstall": "npm run build",
     "build": "npx rollup -c --environment LIB,PROD",
     "test": "npx jest --config jest.config.js",
     "test:watch": "npx jest --config jest.config.js --watch",
-    "test:prod": "npx run-s lint test"
+    "docs": "npx typedoc lib/ --out docs --target es6 --theme minimal --mode file"
   },
   "repository": {
     "type": "git",

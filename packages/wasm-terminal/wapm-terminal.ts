@@ -1,8 +1,7 @@
 // The Wapm Terminal
 
 import { Terminal, ITerminalOptions, IBufferLine } from "xterm";
-import * as fit from "xterm/lib/addons/fit/fit";
-Terminal.applyAddon(fit);
+import { FitAddon } from "xterm-addon-fit";
 
 import WapmTty from "./wapm-tty/wapm-tty";
 import WapmShell from "./wapm-shell/wapm-shell";
@@ -13,21 +12,27 @@ export default class WapmTerminal {
   wapmTty: WapmTty;
   wapmShell: WapmShell;
 
+  pasteEvent: any;
+  resizeEvent: any;
+  dataEvent: any;
+
   constructor() {
     // Create our xterm element
     this.xterm = new Terminal();
-    this.xterm.on("paste", this.onPaste);
-    this.xterm.on("resize", this.handleTermResize);
+    this.xterm.loadAddon(new FitAddon());
+    this.pasteEvent = this.xterm.onEvent("paste", this.onPaste);
+    this.resizeEvent = this.xterm.onEvent("resize", this.handleTermResize);
 
     // Create our Shell and tty
     this.wapmTty = new WapmTty(this.xterm);
     this.wapmShell = new WapmShell(this.wapmTty);
-    this.xterm.on("data", this.wapmShell.handleTermData);
+    this.dataEvent = this.xterm.onEvent("data", this.wapmShell.handleTermData);
   }
 
   open(container: HTMLElement) {
     this.xterm.open(container);
     setTimeout(() => {
+      // tslint:disable-next-line
       this.wapmShell.prompt();
     });
   }
@@ -41,10 +46,10 @@ export default class WapmTerminal {
   }
 
   destroy() {
-    this.xterm.off("paste", this.onPaste);
-    this.xterm.off("resize", this.handleTermResize);
-    this.xterm.off("data", this.wapmShell.handleTermData);
-    this.xterm.destroy();
+    this.pasteEvent.dispose();
+    this.resizeEvent.dispose();
+    this.dataEvent.dispose();
+    this.xterm.dispose();
     delete this.xterm;
   }
 
