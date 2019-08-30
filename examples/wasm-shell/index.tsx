@@ -1,13 +1,13 @@
 import { h, render, Component } from "preact";
 
-import WapmTerminal from "./components/wapm-terminal/wapm-terminal.component";
+import WasmTerminal from "./components/wasm-terminal";
 import "./index.css";
 
 class App extends Component {
   render() {
     return (
       <div>
-        <WapmTerminal />
+        <WasmTerminal />
       </div>
     );
   }

@@ -4,18 +4,18 @@ import Process from "../process/process";
 import { CommandOptions } from "./command";
 import CommandFetcher from "./command-fetcher";
 
-import WapmTty from "../wapm-terminal/wapm-tty/wapm-tty";
+import WasmTty from "../wasm-tty/wasm-tty";
 
 let processWorkerBlobUrl: string | undefined = undefined;
-const getBlobUrlForProcessWorker = async (wapmTty?: WapmTty) => {
+const getBlobUrlForProcessWorker = async (wapmTty?: WasmTty) => {
   if (processWorkerBlobUrl) {
     return processWorkerBlobUrl;
   }
 
-  if (wapmTty) {
+  if (wasmTty) {
     // Save the cursor position
-    wapmTty.print("\u001b[s");
-    wapmTty.print(
+    wasmTty.print("\u001b[s");
+    wasmTty.print(
       "[INFO] Downloading the process Web Worker (This happens once)..."
     );
   }
@@ -26,12 +26,12 @@ const getBlobUrlForProcessWorker = async (wapmTty?: WapmTty) => {
     new Promise(resolve => setTimeout(resolve, 500))
   ]).then(responses => responses[0]);
 
-  if (wapmTty) {
+  if (wasmTty) {
     // Restore the cursor position
-    wapmTty.print("\u001b[u");
+    wasmTty.print("\u001b[u");
     // Clear from cursor to end of screen
-    wapmTty.print("\u001b[1000D");
-    wapmTty.print("\u001b[0J");
+    wasmTty.print("\u001b[1000D");
+    wasmTty.print("\u001b[0J");
   }
 
   // Create the worker blob and URL
@@ -44,7 +44,7 @@ const getCommandOptionsFromAST = (
   ast: any,
   commandFetcher: CommandFetcher,
   commandFetcherCallback: Function,
-  wapmTty?: WapmTty
+  wasmTty?: WasmTty
 ): Promise<Array<CommandOptions>> => {
   // The array of command options we are returning
   let commandOptions: Array<CommandOptions> = [];
@@ -69,7 +69,7 @@ const getCommandOptionsFromAST = (
           astRedirect.command,
           commandFetcher,
           commandFetcherCallback,
-          wapmTty
+          wasmTty
         );
         // Add the child options to our command options
         commandOptions = commandOptions.concat(redirectedCommandOptions);
@@ -78,7 +78,7 @@ const getCommandOptionsFromAST = (
   };
 
   const getWasmModuleTask = async () => {
-    return await commandFetcher.getWasmModuleForCommandName(command, wapmTty);
+    return await commandFetcher.getWasmModuleForCommandName(command, wasmTty);
   };
 
   return redirectTask()
@@ -103,7 +103,7 @@ export default class CommandRunner {
   isRunning: boolean;
   supportsSharedArrayBuffer: boolean;
 
-  wapmTty: WapmTty;
+  wasmTty: WasmTty;
   commandString: string;
 
   commandStartReadCallback: Function;
@@ -111,7 +111,7 @@ export default class CommandRunner {
   commandFetcherCallback: Function;
 
   constructor(
-    wapmTty: WapmTty,
+    wasmTty: WasmTty,
     commandString: string,
     commandStartReadCallback: Function,
     commandEndCallback: Function,
@@ -126,7 +126,7 @@ export default class CommandRunner {
     this.supportsSharedArrayBuffer =
       (window as any).SharedArrayBuffer && (window as any).Atomics;
 
-    this.wapmTty = wapmTty;
+    this.wasmTty = wasmTty;
     this.commandString = commandString;
 
     this.commandStartReadCallback = commandStartReadCallback;
@@ -150,11 +150,11 @@ export default class CommandRunner {
         commandAst[0],
         this.commandFetcher,
         this.commandFetcherCallback,
-        this.wapmTty
+        this.wasmTty
       );
     } catch (c) {
-      this.wapmTty.print("\r\n");
-      this.wapmTty.print(`wapm shell: parse error (${c.toString()})\r\n`);
+      this.wasmTty.print("\r\n");
+      this.wasmTty.print(`wasm shell: parse error (${c.toString()})\r\n`);
       console.error(c);
       this.commandEndCallback();
       return;
@@ -231,7 +231,7 @@ export default class CommandRunner {
 
   async spawnProcessAsWorker(commandOptionIndex: number) {
     // Generate our process
-    const workerBlobUrl = await getBlobUrlForProcessWorker(this.wapmTty);
+    const workerBlobUrl = await getBlobUrlForProcessWorker(this.wasmTty);
     const processWorker = new Worker(workerBlobUrl);
     const processComlink = Comlink.wrap(processWorker);
 
@@ -303,7 +303,7 @@ export default class CommandRunner {
     } else {
       // Write the output to our terminal
       let dataString = new TextDecoder("utf-8").decode(data);
-      this.wapmTty.print(dataString);
+      this.wasmTty.print(dataString);
     }
   }
 
@@ -328,7 +328,7 @@ export default class CommandRunner {
   }
 
   processErrorCallback(commandOptionIndex: number, error: string) {
-    this.wapmTty.print(
+    this.wasmTty.print(
       `Program ${this.commandOptionsForProcessesToRun[commandOptionIndex].args[0]}: ${error}\r\n`
     );
     this.kill();

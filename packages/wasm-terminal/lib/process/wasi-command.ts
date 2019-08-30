@@ -3,7 +3,7 @@
 //@ts-ignore
 import { WASI } from "../../../../dist/index.esm";
 
-import WasmerFileSystem from "../../../file-system/file-system";
+import WasmFs from "../../../file-system/file-system";
 
 import { Command, CommandOptions } from "../../services/command-runner/command";
 
@@ -26,7 +26,7 @@ export default class WASICommand extends Command {
   wasi: WASI;
   promisedInstance: Promise<WebAssembly.Instance>;
   instance: WebAssembly.Instance | undefined;
-  wasmerFileSystem: WasmerFileSystem;
+  wasmFs: WasmFs;
 
   sharedStdin?: Int32Array;
   startStdinReadCallback?: Function;
@@ -43,12 +43,12 @@ export default class WASICommand extends Command {
   ) {
     super(options);
 
-    this.wasmerFileSystem = new WasmerFileSystem();
+    this.wasmFs = new WasmerFileSystem();
 
     // Bind our stdinRead / stdoutWrite
-    this.wasmerFileSystem.volume.fds[0].read = this.stdinRead.bind(this);
-    this.wasmerFileSystem.volume.fds[1].write = this.stdoutWrite.bind(this);
-    this.wasmerFileSystem.volume.fds[2].write = this.stdoutWrite.bind(this);
+    this.wasmFs.volume.fds[0].read = this.stdinRead.bind(this);
+    this.wasmFs.volume.fds[1].write = this.stdoutWrite.bind(this);
+    this.wasmFs.volume.fds[2].write = this.stdoutWrite.bind(this);
 
     this.sharedStdin = sharedStdin;
     this.startStdinReadCallback = startStdinReadCallback;
@@ -63,7 +63,7 @@ export default class WASICommand extends Command {
       args: options.args,
       bindings: {
         ...WASI.defaultBindings,
-        fs: this.wasmerFileSystem.fs
+        fs: this.wasmFs.fs
       }
     });
 
@@ -79,8 +79,8 @@ export default class WASICommand extends Command {
     let instance = await this.promisedInstance;
     this.instance = instance;
     this.wasi.setMemory((instance as any).exports.memory);
-    let stdoutRead = this.wasmerFileSystem.fs.createReadStream("/dev/stdout");
-    let stderrRead = this.wasmerFileSystem.fs.createReadStream("/dev/stderr");
+    let stdoutRead = this.wasmFs.fs.createReadStream("/dev/stdout");
+    let stderrRead = this.wasmFs.fs.createReadStream("/dev/stderr");
 
     this.stdoutCallback = stdoutCallback;
 
