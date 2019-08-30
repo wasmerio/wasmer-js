@@ -22,6 +22,19 @@ const merge = (...streams: Duplex[]) => {
   return pass;
 };
 
+// This function removes the ansi escape characters
+// (normally used for printing colors and so)
+// Inspired by: https://github.com/chalk/ansi-regex/blob/master/index.js
+const cleanStdout = (stdout: string) => {
+  const pattern = [
+    "[\\u001B\\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[-a-zA-Z\\d\\/#&.:=?%@~_]*)*)?\\u0007)",
+    "(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PR-TZcf-ntqry=><~]))"
+  ].join("|");
+
+  const regexPattern = new RegExp(pattern, "g");
+  return stdout.replace(regexPattern, "");
+};
+
 export default class WASICommand extends Command {
   wasi: WASI;
   promisedInstance: Promise<WebAssembly.Instance>;
@@ -156,10 +169,12 @@ export default class WASICommand extends Command {
     } else {
       responseStdin = prompt(
         this.stdoutLog.length > 0
-          ? this.stdoutLog
+          ? cleanStdout(this.stdoutLog)
           : "Please enter text for stdin:"
       );
-      responseStdin += "\n";
+      if (responseStdin) {
+        responseStdin += "\n";
+      }
     }
 
     // First check for errors
