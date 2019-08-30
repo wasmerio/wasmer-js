@@ -34,7 +34,9 @@ let commandToUrlCache: { [key: string]: string } = {
   qjs: quickJsUrl,
   duk: dukTapeUrl,
   two: twoImportsUrl,
-  arg: argtestUrl
+  arg: argtestUrl,
+  rsign:
+    "https://registry-cdn.wapm.io/contents/jedisct1/rsign2/0.5.4/rsign.wasm"
 };
 let compiledModulesCache: { [key: string]: WebAssembly.Module } = {};
 

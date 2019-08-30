@@ -71,7 +71,9 @@ export default class WASICommand extends Command {
     this.stdoutLog = "";
 
     this.wasi = new WASI({
-      preopenDirectories: {},
+      preopenDirectories: {
+        "/": "/"
+      },
       env: options.env,
       args: options.args,
       bindings: {
