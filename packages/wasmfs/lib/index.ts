@@ -9,7 +9,7 @@ const assert = (cond: boolean, message: string) => {
   }
 };
 
-export default class WasmerFileSystem {
+export default class WasmFs {
   volume: Volume;
   fs: IFs;
 

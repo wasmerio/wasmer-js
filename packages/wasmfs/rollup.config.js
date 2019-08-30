@@ -7,14 +7,12 @@ import globals from "rollup-plugin-node-globals";
 import typescript from "rollup-plugin-typescript2";
 import json from "rollup-plugin-json";
 import replace from "rollup-plugin-replace";
-import copy from "rollup-plugin-copy";
 import postcss from "rollup-plugin-postcss";
 import postcssImport from "postcss-import";
 import compiler from "@ampproject/rollup-plugin-closure-compiler";
 import bundleSize from "rollup-plugin-bundle-size";
-import hash from "rollup-plugin-hash";
 import url from "rollup-plugin-url";
-import serve from "rollup-plugin-serve";
+import pkg from "./package.json";
 
 const sourcemapOption = process.env.PROD ? undefined : "inline";
 
@@ -62,20 +60,20 @@ let plugins = [
 
 const fileSystemBundles = [
   {
-    input: "examples/file-system/file-system.ts",
+    input: "lib/index.ts",
     output: [
       {
-        file: "dist/examples/file-system/file-system.cjs.js",
+        file: pkg.main,
         format: "cjs",
         sourcemap: sourcemapOption
       },
       {
-        file: "dist/examples/file-system/file-system.esm.js",
+        file: pkg.module,
         format: "esm",
         sourcemap: sourcemapOption
       },
       {
-        file: "dist/examples/file-system/file-system.iife.js",
+        file: pkg.browser,
         format: "iife",
         sourcemap: sourcemapOption,
         name: "WasiWapmShellDemo"
