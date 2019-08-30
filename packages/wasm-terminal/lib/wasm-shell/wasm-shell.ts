@@ -12,9 +12,9 @@ import {
 } from "./shell-utils";
 import { ShellHistory } from "./shell-history";
 
-import WapmTty from "../wapm-tty/wapm-tty";
+import WasmTty from "../wasm-tty/wasm-tty";
 
-import CommandRunner from "../../command-runner/command-runner";
+import CommandRunner from "../command-runner/command-runner";
 
 /**
  * A shell is the primary interface that is used to start other programs.
@@ -26,8 +26,8 @@ import CommandRunner from "../../command-runner/command-runner";
  * - Interpret text within the tty to launch processes and interpret programs
  */
 type AutoCompleteHandler = (index: number, tokens: string[]) => string[];
-export default class WapmShell {
-  wapmTty: WapmTty;
+export default class WasmShell {
+  wasmTty: WasmTty;
   history: ShellHistory;
   commandRunner?: CommandRunner;
 
@@ -38,13 +38,13 @@ export default class WapmShell {
   _activeCharPrompt?: ActiveCharPrompt;
 
   constructor(
-    wapmTty: WapmTty,
+    wasmTty: WasmTty,
     options: { historySize: number; maxAutocompleteEntries: number } = {
       historySize: 10,
       maxAutocompleteEntries: 100
     }
   ) {
-    this.wapmTty = wapmTty;
+    this.wasmTty = wasmTty;
     this.history = new ShellHistory(options.historySize);
     this.commandRunner = undefined;
 
@@ -59,7 +59,7 @@ export default class WapmShell {
 
   async prompt() {
     try {
-      this._activePrompt = this.wapmTty.read("$ ");
+      this._activePrompt = this.wasmTty.read("$ ");
       this._active = true;
       let line = await this._activePrompt.promise;
       if (this.commandRunner) {
@@ -67,11 +67,11 @@ export default class WapmShell {
       }
 
       this.commandRunner = new CommandRunner(
-        this.wapmTty,
+        this.wasmTty,
         line,
         // Command Read Callback
         async () => {
-          this._activePrompt = this.wapmTty.read("");
+          this._activePrompt = this.wasmTty.read("");
           this._active = true;
           return this._activePrompt.promise;
         },
@@ -84,16 +84,16 @@ export default class WapmShell {
           });
         },
         // Wasm Module Cache Callback
-        (wapmModuleName: string) => {
-          if (this.history.includes(wapmModuleName)) {
+        (wasmModuleName: string) => {
+          if (this.history.includes(wasmModuleName)) {
             return;
           }
-          this.history.push(wapmModuleName);
+          this.history.push(wasmModuleName);
         }
       );
       await this.commandRunner.runCommand();
     } catch (e) {
-      this.wapmTty.println(`Error: ${e.toString()}`);
+      this.wasmTty.println(`Error: ${e.toString()}`);
       // tslint:disable-next-line
       this.prompt();
     }
@@ -104,16 +104,16 @@ export default class WapmShell {
    * and then re-displays the prompt.
    */
   printAndRestartPrompt(callback: () => Promise<any> | undefined) {
-    const cursor = this.wapmTty.getCursor();
+    const cursor = this.wasmTty.getCursor();
 
     // Complete input
-    this.wapmTty.setCursor(this.wapmTty.getInput().length);
-    this.wapmTty.print("\r\n");
+    this.wasmTty.setCursor(this.wasmTty.getInput().length);
+    this.wasmTty.print("\r\n");
 
     // Prepare a function that will resume prompt
     const resume = () => {
-      this.wapmTty.setCursor(this.wapmTty.getCursor());
-      this.wapmTty.setInput(this.wapmTty.getInput());
+      this.wasmTty.setCursor(this.wasmTty.getCursor());
+      this.wasmTty.setInput(this.wasmTty.getInput());
     };
 
     // Call the given callback to echo something, and if there is a promise
@@ -132,7 +132,7 @@ export default class WapmShell {
    */
   abortRead(reason = "aborted") {
     if (this._activePrompt || this._activeCharPrompt) {
-      this.wapmTty.print("\r\n");
+      this.wasmTty.print("\r\n");
     }
     if (this._activePrompt && this._activePrompt.reject) {
       this._activePrompt.reject(new Error(reason));
@@ -152,12 +152,12 @@ export default class WapmShell {
     if (dir > 0) {
       const num = Math.min(
         dir,
-        this.wapmTty.getInput().length - this.wapmTty.getCursor()
+        this.wasmTty.getInput().length - this.wasmTty.getCursor()
       );
-      this.wapmTty.setCursorDirectly(this.wapmTty.getCursor() + num);
+      this.wasmTty.setCursorDirectly(this.wasmTty.getCursor() + num);
     } else if (dir < 0) {
-      const num = Math.max(dir, -this.wapmTty.getCursor());
-      this.wapmTty.setCursorDirectly(this.wapmTty.getCursor() + num);
+      const num = Math.max(dir, -this.wasmTty.getCursor());
+      this.wasmTty.setCursorDirectly(this.wasmTty.getCursor() + num);
     }
   };
 
@@ -166,18 +166,18 @@ export default class WapmShell {
    */
   handleCursorErase = (backspace: boolean) => {
     if (backspace) {
-      if (this.wapmTty.getCursor() <= 0) return;
+      if (this.wasmTty.getCursor() <= 0) return;
       const newInput =
-        this.wapmTty.getInput().substr(0, this.wapmTty.getCursor() - 1) +
-        this.wapmTty.getInput().substr(this.wapmTty.getCursor());
-      this.wapmTty.clearInput();
-      this.wapmTty.setCursorDirectly(this.wapmTty.getCursor() - 1);
-      this.wapmTty.setInput(newInput, true);
+        this.wasmTty.getInput().substr(0, this.wasmTty.getCursor() - 1) +
+        this.wasmTty.getInput().substr(this.wasmTty.getCursor());
+      this.wasmTty.clearInput();
+      this.wasmTty.setCursorDirectly(this.wasmTty.getCursor() - 1);
+      this.wasmTty.setInput(newInput, true);
     } else {
       const newInput =
-        this.wapmTty.getInput().substr(0, this.wapmTty.getCursor()) +
-        this.wapmTty.getInput().substr(this.wapmTty.getCursor() + 1);
-      this.wapmTty.setInput(newInput);
+        this.wasmTty.getInput().substr(0, this.wasmTty.getCursor()) +
+        this.wasmTty.getInput().substr(this.wasmTty.getCursor() + 1);
+      this.wasmTty.setInput(newInput);
     }
   };
 
@@ -186,11 +186,11 @@ export default class WapmShell {
    */
   handleCursorInsert = (data: string) => {
     const newInput =
-      this.wapmTty.getInput().substr(0, this.wapmTty.getCursor()) +
+      this.wasmTty.getInput().substr(0, this.wasmTty.getCursor()) +
       data +
-      this.wapmTty.getInput().substr(this.wapmTty.getCursor());
-    this.wapmTty.setCursorDirectly(this.wapmTty.getCursor() + data.length);
-    this.wapmTty.setInput(newInput);
+      this.wasmTty.getInput().substr(this.wasmTty.getCursor());
+    this.wasmTty.setCursorDirectly(this.wasmTty.getCursor() + data.length);
+    this.wasmTty.setInput(newInput);
   };
 
   /**
@@ -198,13 +198,13 @@ export default class WapmShell {
    */
   handleReadComplete = () => {
     if (this.history) {
-      this.history.push(this.wapmTty.getInput());
+      this.history.push(this.wasmTty.getInput());
     }
     if (this._activePrompt && this._activePrompt.resolve) {
-      this._activePrompt.resolve(this.wapmTty.getInput());
+      this._activePrompt.resolve(this.wasmTty.getInput());
       this._activePrompt = undefined;
     }
-    this.wapmTty.print("\r\n");
+    this.wasmTty.print("\r\n");
     this._active = false;
   };
 
@@ -213,27 +213,27 @@ export default class WapmShell {
    */
   handleTermData = (data: string) => {
     if (!this._active) return;
-    if (this.wapmTty.getFirstInit() && this._activePrompt) {
-      let line = this.wapmTty
+    if (this.wasmTty.getFirstInit() && this._activePrompt) {
+      let line = this.wasmTty
         .getBuffer()
         .getLine(
-          this.wapmTty.getBuffer().cursorY + this.wapmTty.getBuffer().baseY
+          this.wasmTty.getBuffer().cursorY + this.wasmTty.getBuffer().baseY
         );
       let promptRead = (line as IBufferLine).translateToString(
         false,
         0,
-        this.wapmTty.getBuffer().cursorX
+        this.wasmTty.getBuffer().cursorX
       );
       this._activePrompt.promptPrefix = promptRead;
-      this.wapmTty.setPromptPrefix(promptRead);
-      this.wapmTty.setFirstInit(false);
+      this.wasmTty.setPromptPrefix(promptRead);
+      this.wasmTty.setFirstInit(false);
     }
 
     // If we have an active character prompt, satisfy it in priority
     if (this._activeCharPrompt && this._activeCharPrompt.resolve) {
       this._activeCharPrompt.resolve(data);
       this._activeCharPrompt = undefined;
-      this.wapmTty.print("\r\n");
+      this.wasmTty.print("\r\n");
       return;
     }
 
@@ -261,8 +261,8 @@ export default class WapmShell {
           if (this.history) {
             let value = this.history.getPrevious();
             if (value) {
-              this.wapmTty.setInput(value);
-              this.wapmTty.setCursor(value.length);
+              this.wasmTty.setInput(value);
+              this.wasmTty.setCursor(value.length);
             }
           }
           break;
@@ -271,8 +271,8 @@ export default class WapmShell {
           if (this.history) {
             let value = this.history.getNext();
             if (!value) value = "";
-            this.wapmTty.setInput(value);
-            this.wapmTty.setCursor(value.length);
+            this.wasmTty.setInput(value);
+            this.wasmTty.setCursor(value.length);
           }
           break;
 
@@ -289,40 +289,40 @@ export default class WapmShell {
           break;
 
         case "[F": // End
-          this.wapmTty.setCursor(this.wapmTty.getInput().length);
+          this.wasmTty.setCursor(this.wasmTty.getInput().length);
           break;
 
         case "[H": // Home
-          this.wapmTty.setCursor(0);
+          this.wasmTty.setCursor(0);
           break;
 
         case "b": // ALT + LEFT
           ofs = closestLeftBoundary(
-            this.wapmTty.getInput(),
-            this.wapmTty.getCursor()
+            this.wasmTty.getInput(),
+            this.wasmTty.getCursor()
           );
-          if (ofs) this.wapmTty.setCursor(ofs);
+          if (ofs) this.wasmTty.setCursor(ofs);
           break;
 
         case "f": // ALT + RIGHT
           ofs = closestRightBoundary(
-            this.wapmTty.getInput(),
-            this.wapmTty.getCursor()
+            this.wasmTty.getInput(),
+            this.wasmTty.getCursor()
           );
-          if (ofs) this.wapmTty.setCursor(ofs);
+          if (ofs) this.wasmTty.setCursor(ofs);
           break;
 
         case "\x7F": // CTRL + BACKSPACE
           ofs = closestLeftBoundary(
-            this.wapmTty.getInput(),
-            this.wapmTty.getCursor()
+            this.wasmTty.getInput(),
+            this.wasmTty.getCursor()
           );
           if (ofs) {
-            this.wapmTty.setInput(
-              this.wapmTty.getInput().substr(0, ofs) +
-                this.wapmTty.getInput().substr(this.wapmTty.getCursor())
+            this.wasmTty.setInput(
+              this.wasmTty.getInput().substr(0, ofs) +
+                this.wasmTty.getInput().substr(this.wasmTty.getCursor())
             );
-            this.wapmTty.setCursor(ofs);
+            this.wasmTty.setCursor(ofs);
           }
           break;
       }
@@ -331,7 +331,7 @@ export default class WapmShell {
     } else if (ord < 32 || ord === 0x7f) {
       switch (data) {
         case "\r": // ENTER
-          if (isIncompleteInput(this.wapmTty.getInput())) {
+          if (isIncompleteInput(this.wasmTty.getInput())) {
             this.handleCursorInsert("\n");
           } else {
             this.handleReadComplete();
@@ -344,9 +344,9 @@ export default class WapmShell {
 
         case "\t": // TAB
           if (this._autocompleteHandlers.length > 0) {
-            const inputFragment = this.wapmTty
+            const inputFragment = this.wasmTty
               .getInput()
-              .substr(0, this.wapmTty.getCursor());
+              .substr(0, this.wasmTty.getCursor());
             const hasTailingSpace = hasTailingWhitespace(inputFragment);
             const candidates = collectAutocompleteCandidates(
               this._autocompleteHandlers,
@@ -373,20 +373,20 @@ export default class WapmShell {
               // If we are less than maximum auto-complete candidates, print
               // them to the user and re-start prompt
               this.printAndRestartPrompt(() => {
-                this.wapmTty.printWide(candidates);
+                this.wasmTty.printWide(candidates);
                 return null;
               });
             } else {
               // If we have more than maximum auto-complete candidates, print
               // them only if the user acknowledges a warning
               this.printAndRestartPrompt(() =>
-                this.wapmTty
+                this.wasmTty
                   .readChar(
                     `Display all ${candidates.length} possibilities? (y or n)`
                   )
                   .promise.then((yn: string) => {
                     if (yn === "y" || yn === "Y") {
-                      this.wapmTty.printWide(candidates);
+                      this.wasmTty.printWide(candidates);
                     }
                   })
               );
@@ -397,10 +397,10 @@ export default class WapmShell {
           break;
 
         case "\x03": // CTRL+C
-          this.wapmTty.setCursor(this.wapmTty.getInput().length);
-          this.wapmTty.setInput("");
-          this.wapmTty.setCursorDirectly(0);
-          this.wapmTty.print("^C\r\n");
+          this.wasmTty.setCursor(this.wasmTty.getInput().length);
+          this.wasmTty.setInput("");
+          this.wasmTty.setCursorDirectly(0);
+          this.wasmTty.print("^C\r\n");
           if (this.history) this.history.rewind();
 
           // Kill the command

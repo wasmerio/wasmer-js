@@ -1,0 +1,33 @@
+{
+  "name": "@wasmer/wasm-terminal",
+  "version": "0.0.1",
+  "description": "A DOM Element for providing a Terminal, TTY, and Shell for running wasm \\ wasi programs.",
+  "main": "rollup.config.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wasmerio/wasmer-js.git"
+  },
+  "keywords": [
+    "wasm",
+    "wasi",
+    "tty",
+    "shell",
+    "terminal",
+    "html",
+    "xterm",
+    "dom",
+    "browser"
+  ],
+  "author": "Aaron Turner",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/wasmerio/wasmer-js/issues"
+  },
+  "homepage": "https://github.com/wasmerio/wasmer-js#readme",
+  "dependencies": {
+    "xterm": "^3.14.5"
+  }
+}

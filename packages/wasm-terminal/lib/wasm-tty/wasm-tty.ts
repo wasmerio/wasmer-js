@@ -1,6 +1,6 @@
 import { Terminal, IBuffer, IBufferLine } from "xterm";
 import { countLines, offsetToColRow } from "./tty-utils";
-import { ActiveCharPrompt, ActivePrompt } from "../wapm-shell/shell-utils";
+import { ActiveCharPrompt, ActivePrompt } from "../wasm-shell/shell-utils";
 
 /**
  * A tty is a particular device file, that sits between the shell and the terminal.
@@ -9,7 +9,7 @@ import { ActiveCharPrompt, ActivePrompt } from "../wapm-shell/shell-utils";
  */
 type AutoCompleteHandler = (index: number, tokens: string[]) => string[];
 
-export default class WapmTTY {
+export default class WasmTTY {
   xterm: Terminal;
 
   _termSize: {

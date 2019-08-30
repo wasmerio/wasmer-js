@@ -1,16 +1,16 @@
-// The Wapm Terminal
+// The Wasm Terminal
 
 import { Terminal, ITerminalOptions, IBufferLine } from "xterm";
 import { FitAddon } from "xterm-addon-fit";
 
-import WapmTty from "./wapm-tty/wapm-tty";
-import WapmShell from "./wapm-shell/wapm-shell";
+import WasmTty from "./wasm-tty/wasm-tty";
+import WasmShell from "./wasm-shell/wasm-shell";
 
-export default class WapmTerminal {
+export default class WasmTerminal {
   xterm: Terminal;
 
-  wapmTty: WapmTty;
-  wapmShell: WapmShell;
+  wasmTty: WasmTty;
+  wasmShell: WasmShell;
 
   pasteEvent: any;
   resizeEvent: any;
@@ -24,16 +24,16 @@ export default class WapmTerminal {
     this.resizeEvent = this.xterm.onEvent("resize", this.handleTermResize);
 
     // Create our Shell and tty
-    this.wapmTty = new WapmTty(this.xterm);
-    this.wapmShell = new WapmShell(this.wapmTty);
-    this.dataEvent = this.xterm.onEvent("data", this.wapmShell.handleTermData);
+    this.wasmTty = new WasmTty(this.xterm);
+    this.wasmShell = new WasmShell(this.wasmTty);
+    this.dataEvent = this.xterm.onEvent("data", this.wasmShell.handleTermData);
   }
 
   open(container: HTMLElement) {
     this.xterm.open(container);
     setTimeout(() => {
       // tslint:disable-next-line
-      this.wapmShell.prompt();
+      this.wasmShell.prompt();
     });
   }
 
@@ -54,7 +54,7 @@ export default class WapmTerminal {
   }
 
   onPaste(data: string) {
-    this.wapmTty.print(data);
+    this.wasmTty.print(data);
   }
 
   /**
@@ -66,8 +66,8 @@ export default class WapmTerminal {
    */
   handleTermResize = (data: { rows: number; cols: number }) => {
     const { rows, cols } = data;
-    this.wapmTty.clearInput();
-    this.wapmTty.setTermSize(cols, rows);
-    this.wapmTty.setInput(this.wapmTty.getInput(), true);
+    this.wasmTty.clearInput();
+    this.wasmTty.setTermSize(cols, rows);
+    this.wasmTty.setInput(this.wasmTty.getInput(), true);
   };
 }
