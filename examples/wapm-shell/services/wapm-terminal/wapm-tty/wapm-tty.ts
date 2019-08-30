@@ -214,6 +214,13 @@ export default class WapmTTY {
   }
 
   /**
+   * Function to get the terminal size
+   */
+  getTermSize(): { rows: number; cols: number } {
+    return this._termSize;
+  }
+
+  /**
    * Function to get the current input in the line
    */
   getInput(): string {
