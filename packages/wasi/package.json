@@ -1,0 +1,32 @@
+{
+  "name": "wasi",
+  "version": "0.0.1",
+  "description": "A shim for running wasi applications in the browser",
+  "main": "index.ts",
+  "scripts": {
+    "build": "npx rollup -c --environment LIB,PROD",
+    "test": "npx jest --config jest.config.js",
+    "test:watch": "npx jest --config jest.config.js --watch",
+    "test:prod": "npx run-s lint test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wasmerio/wasmer-js.git"
+  },
+  "keywords": [
+    "wasi",
+    "webassembly",
+    "wasm",
+    "wasmer",
+    "abi",
+    "esm",
+    "es",
+    "module"
+  ],
+  "author": "Aaron Turner",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/wasmerio/wasmer-js/issues"
+  },
+  "homepage": "https://github.com/wasmerio/wasmer-js#readme"
+}

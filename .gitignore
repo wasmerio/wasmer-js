@@ -3,6 +3,7 @@
 report.*
 **/test_result.wat
 **/test_result.wasm
+**/dist
 
 # Node
 node_modules
