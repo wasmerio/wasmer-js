@@ -52,13 +52,13 @@ pub fn lower_i64_wasm_for_wasi_js(mut wasm_binary_vec: &mut Vec<u8>) -> Result<(
 fn converts() {
     // Run tests for the following strings
     let mut test_file_paths = Vec::new();
-    test_file_paths.push("./wasm-module-examples/path_open.wasm");
-    test_file_paths.push("./wasm-module-examples/clock_time_get.wasm");
-    test_file_paths.push("./wasm-module-examples/matrix.wasm");
-    test_file_paths.push("./wasm-module-examples/two-imports.wasm");
-    test_file_paths.push("./wasm-module-examples/gettimeofday/gettimeofday.wasm");
-    test_file_paths.push("./wasm-module-examples/qjs.wasm");
-    test_file_paths.push("./wasm-module-examples/duk.wasm");
+    test_file_paths.push("./wasm_module_examples/path_open.wasm");
+    test_file_paths.push("./wasm_module_examples/clock_time_get.wasm");
+    test_file_paths.push("./wasm_module_examples/matrix.wasm");
+    test_file_paths.push("./wasm_module_examples/two-imports.wasm");
+    test_file_paths.push("./wasm_module_examples/gettimeofday/gettimeofday.wasm");
+    test_file_paths.push("./wasm_module_examples/qjs.wasm");
+    test_file_paths.push("./wasm_module_examples/duk.wasm");
 
     for test_file_path in test_file_paths.iter() {
         console_log!(" ");
@@ -85,7 +85,7 @@ fn converts() {
         console_log!("New Wasm Size: {}", &wasm.len());
         console_log!(" ");
 
-        fs::write("./wasm-module-examples/test_result.wasm", &wasm).expect("Unable to write file");
+        fs::write("./wasm_module_examples/test_result.wasm", &wasm).expect("Unable to write file");
 
         console_log!(" ");
         console_log!("Wrote resulting Wasm to: ./wasm-module-examples/test_result.wasm");
@@ -106,11 +106,11 @@ fn converts() {
                 console_log!(" ");
             }
             Ok(wat) => {
-                fs::write("./wasm-module-examples/test_result.wat", wat)
+                fs::write("./wasm_module_examples/test_result.wat", wat)
                     .expect("Unable to write file");
 
                 console_log!(" ");
-                console_log!("Wrote resulting Wat to: ./wasm-module-examples/test_result.wat");
+                console_log!("Wrote resulting Wat to: ./wasm_module_examples/test_result.wat");
                 console_log!(" ");
             }
         }

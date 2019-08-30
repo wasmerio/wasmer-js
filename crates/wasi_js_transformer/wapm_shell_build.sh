@@ -36,6 +36,16 @@ wasm-pack build --target web
 
 echo " "
 echo "============================================="
+echo "Moving pkg to wasi_js_transformer"
+echo "============================================="
+echo " "
+
+cp -r pkg/ ../../packages/wasi_js_transformer
+rm ../../packages/wasi_js_transformer/.gitignore || true
+
+
+echo " "
+echo "============================================="
 echo "Moving pkg to wapm-shell"
 echo "============================================="
 echo " "
