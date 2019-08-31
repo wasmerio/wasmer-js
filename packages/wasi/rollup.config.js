@@ -39,7 +39,9 @@ const plugins = [
   resolve({ preferBuiltins: true }),
   commonjs(),
   builtins(),
-  json()
+  json(),
+  process.env.PROD ? compiler() : undefined,
+  process.env.PROD ? bundleSize() : undefined
 ];
 
 const libBundles = [
@@ -53,7 +55,7 @@ const libBundles = [
     watch: {
       clearScreen: false
     },
-    plugins: [replace(replaceNodeOptions), ...plugins, bundleSize()]
+    plugins: [replace(replaceNodeOptions), ...plugins]
   },
   {
     input: "./lib/index.ts",
@@ -65,12 +67,7 @@ const libBundles = [
     watch: {
       clearScreen: false
     },
-    plugins: [
-      replace(replaceBrowserOptions),
-      ...plugins,
-      process.env.PROD ? compiler() : undefined,
-      bundleSize()
-    ]
+    plugins: [replace(replaceBrowserOptions), ...plugins]
   },
   {
     input: "./lib/index.ts",
@@ -83,12 +80,7 @@ const libBundles = [
     watch: {
       clearScreen: false
     },
-    plugins: [
-      replace(replaceBrowserOptions),
-      ...plugins,
-      process.env.PROD ? compiler() : undefined,
-      bundleSize()
-    ]
+    plugins: [replace(replaceBrowserOptions), ...plugins]
   }
 ];
 

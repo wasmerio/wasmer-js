@@ -1,5 +1,6 @@
 import * as Comlink from "comlink";
 import parse from "shell-parse";
+
 import Process from "../process/process";
 import { CommandOptions } from "./command";
 import CommandFetcher from "./command-fetcher";
@@ -7,7 +8,7 @@ import CommandFetcher from "./command-fetcher";
 import WasmTty from "../wasm-tty/wasm-tty";
 
 let processWorkerBlobUrl: string | undefined = undefined;
-const getBlobUrlForProcessWorker = async (wapmTty?: WasmTty) => {
+const getBlobUrlForProcessWorker = async (wasmTty?: WasmTty) => {
   if (processWorkerBlobUrl) {
     return processWorkerBlobUrl;
   }

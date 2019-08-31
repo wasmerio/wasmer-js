@@ -2,9 +2,12 @@
   "name": "@wasmer/wasm-terminal",
   "version": "0.0.1",
   "description": "A DOM Element for providing a Terminal, TTY, and Shell for running wasm \\ wasi programs.",
-  "main": "rollup.config.js",
+  "main": "dist/index.cjs.js",
+  "module": "dist/index.esm.js",
+  "browser": "dist/index.iife.js",
+  "typings": "dist/packages/wasm-terminal/lib/index.d.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "npx rollup -c --environment LIB,WORKER,PROD"
   },
   "repository": {
     "type": "git",
@@ -28,6 +31,12 @@
   },
   "homepage": "https://github.com/wasmerio/wasmer-js#readme",
   "dependencies": {
+    "@wasmer/wasi": "file:../wasi",
+    "@wasmer/wasi_js_transformer": "file:../wasi_js_transformer",
+    "@wasmer/wasmfs": "file:../wasmfs",
+    "comlink": "^4.0.2",
+    "shell-parse": "0.0.2",
+    "shell-quote": "^1.7.1",
     "xterm": "^3.14.5"
   }
 }

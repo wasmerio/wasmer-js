@@ -1,5 +1,5 @@
 {
-  "name": "wasi_js_transformer",
+  "name": "@wasmer/wasi_js_transformer",
   "collaborators": [
     "Aaron Turner <aaron@aaronthedev.com>"
   ],

@@ -1,7 +1,10 @@
 // The Wasm Terminal
 
 import { Terminal, ITerminalOptions, IBufferLine } from "xterm";
-import { FitAddon } from "xterm-addon-fit";
+// tslint:disable-next-line
+import * as fit from "xterm/lib/addons/fit/fit";
+// tslint:disable-next-line
+Terminal.applyAddon(fit);
 
 import WasmTty from "./wasm-tty/wasm-tty";
 import WasmShell from "./wasm-shell/wasm-shell";
@@ -19,14 +22,16 @@ export default class WasmTerminal {
   constructor() {
     // Create our xterm element
     this.xterm = new Terminal();
-    this.xterm.loadAddon(new FitAddon());
-    this.pasteEvent = this.xterm.onEvent("paste", this.onPaste);
-    this.resizeEvent = this.xterm.onEvent("resize", this.handleTermResize);
+    // tslint:disable-next-line
+    this.pasteEvent = this.xterm.on("paste", this.onPaste);
+    // tslint:disable-next-line
+    this.resizeEvent = this.xterm.on("resize", this.handleTermResize);
 
     // Create our Shell and tty
     this.wasmTty = new WasmTty(this.xterm);
     this.wasmShell = new WasmShell(this.wasmTty);
-    this.dataEvent = this.xterm.onEvent("data", this.wasmShell.handleTermData);
+    // tslint:disable-next-line
+    this.dataEvent = this.xterm.on("data", this.wasmShell.handleTermData);
   }
 
   open(container: HTMLElement) {
@@ -46,10 +51,13 @@ export default class WasmTerminal {
   }
 
   destroy() {
-    this.pasteEvent.dispose();
-    this.resizeEvent.dispose();
-    this.dataEvent.dispose();
-    this.xterm.dispose();
+    // tslint:disable-next-line
+    this.xterm.off("paste", this.onPaste);
+    // tslint:disable-next-line
+    this.xterm.off("resize", this.handleTermResize);
+    // tslint:disable-next-line
+    this.xterm.off("data", this.wasmShell.handleTermData);
+    this.xterm.destroy();
     delete this.xterm;
   }
 

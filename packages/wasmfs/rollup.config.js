@@ -6,12 +6,8 @@ import builtins from "rollup-plugin-node-builtins";
 import globals from "rollup-plugin-node-globals";
 import typescript from "rollup-plugin-typescript2";
 import json from "rollup-plugin-json";
-import replace from "rollup-plugin-replace";
-import postcss from "rollup-plugin-postcss";
-import postcssImport from "postcss-import";
 import compiler from "@ampproject/rollup-plugin-closure-compiler";
 import bundleSize from "rollup-plugin-bundle-size";
-import url from "rollup-plugin-url";
 import pkg from "./package.json";
 
 const sourcemapOption = process.env.PROD ? undefined : "inline";
@@ -20,32 +16,11 @@ const fs = require("fs");
 const mkdirp = require("mkdirp");
 
 let typescriptPluginOptions = {
-  tsconfig: "./tsconfig.json",
-  clean: process.env.PROD ? true : false,
-  objectHashIgnoreUnknownHack: true
-};
-
-const replaceBrowserOptions = {
-  delimiters: ["", ""],
-  values: {
-    "/*ROLLUP_REPLACE_BROWSER": "",
-    "ROLLUP_REPLACE_BROWSER*/": "",
-    // Replace a weird global import object that conflicts with rollup-plugin-node-globals
-    "module = import.meta.url.replace": "// Replace by rollup"
-  }
+  tsconfig: "../../tsconfig.json",
+  clean: process.env.PROD ? true : false
 };
 
 let plugins = [
-  postcss({
-    extensions: [".css"],
-    plugins: [postcssImport()]
-  }),
-  url({
-    limit: 1 * 1024,
-    include: ["**/*.wasm"],
-    emitFiles: true
-  }),
-  replace(replaceBrowserOptions),
   typescript(typescriptPluginOptions),
   resolve({
     preferBuiltins: true
@@ -55,7 +30,7 @@ let plugins = [
   builtins(),
   json(),
   process.env.PROD ? compiler() : undefined,
-  bundleSize()
+  process.env.PROD ? bundleSize() : undefined
 ];
 
 const fileSystemBundles = [

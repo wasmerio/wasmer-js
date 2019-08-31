@@ -33,6 +33,7 @@ echo "============================================="
 echo " "
 
 wasm-pack build --target web
+npx json -I -f pkg/package.json -e 'this.name="@wasmer/wasi_js_transformer"'
 
 echo " "
 echo "============================================="
@@ -50,9 +51,9 @@ echo "Moving pkg to wapm-shell"
 echo "============================================="
 echo " "
 
-cp -r pkg/ ../../examples/wapm-shell/assets/wasi-js-transformer
-rm ../../examples/wapm-shell/assets/wasi-js-transformer/.gitignore || true
-rm ../../examples/wapm-shell/assets/wasi-js-transformer/README.md || true
+cp -r pkg/ ../../examples/wasm-shell/assets/wasi-js-transformer
+rm ../../examples/wasm-shell/assets/wasi-js-transformer/.gitignore || true
+rm ../../examples/wasm-shell/assets/wasi-js-transformer/README.md || true
 
 echo " "
 echo "============================================="
@@ -61,6 +62,7 @@ echo "============================================="
 echo " "
 
 wasm-pack build --target nodejs
+npx json -I -f pkg/package.json -e 'this.name="@wasmer/wasi_js_transformer"'
 
 echo " "
 echo "============================================="

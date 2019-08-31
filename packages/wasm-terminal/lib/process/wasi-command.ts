@@ -1,11 +1,9 @@
 // The class for Wasi Commands
 
-//@ts-ignore
-import { WASI } from "../../../../dist/index.esm";
+import { WASI } from "@wasmer/wasi";
+import WasmFs from "@wasmer/wasmfs";
 
-import WasmFs from "../../../file-system/file-system";
-
-import { Command, CommandOptions } from "../../services/command-runner/command";
+import { Command, CommandOptions } from "../command-runner/command";
 
 import { Duplex, PassThrough } from "stream";
 
@@ -43,7 +41,7 @@ export default class WASICommand extends Command {
   ) {
     super(options);
 
-    this.wasmFs = new WasmerFileSystem();
+    this.wasmFs = new WasmFs();
 
     // Bind our stdinRead / stdoutWrite
     this.wasmFs.volume.fds[0].read = this.stdinRead.bind(this);

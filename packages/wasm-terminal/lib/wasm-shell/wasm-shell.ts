@@ -374,7 +374,7 @@ export default class WasmShell {
               // them to the user and re-start prompt
               this.printAndRestartPrompt(() => {
                 this.wasmTty.printWide(candidates);
-                return null;
+                return undefined;
               });
             } else {
               // If we have more than maximum auto-complete candidates, print

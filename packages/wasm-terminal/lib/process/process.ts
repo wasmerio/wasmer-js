@@ -1,23 +1,6 @@
-import { Duplex, PassThrough } from "stream";
-
-import { WASIExitError, WASIKillError } from "../../../../lib/bindings/browser";
-
-import { CommandOptions } from "../../services/command-runner/command";
+import { CommandOptions } from "../command-runner/command";
 
 import WASICommand from "./wasi-command";
-
-const merge = (...streams: Duplex[]) => {
-  let pass = new PassThrough();
-  let waiting = streams.length;
-  for (let stream of streams) {
-    pass = stream.pipe(
-      pass,
-      { end: false }
-    );
-    stream.once("end", () => --waiting === 0 && pass.emit("end"));
-  }
-  return pass;
-};
 
 export default class Process {
   commandOptions: CommandOptions;
@@ -70,11 +53,8 @@ export default class Process {
       console.log("ERROR", e);
       let error = "Unknown Error";
 
-      if (e instanceof WASIExitError) {
-        error = `exited with code: ${e.code}`;
-      } else if (e instanceof WASIKillError) {
-        error = `killed with signal: ${e.signal}`;
-      }
+      // TODO: Get the default WASI Bindings, and check if instance of:
+      // WASIExitError or WASIKillError
 
       this.errorCallback(error);
     }

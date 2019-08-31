@@ -3,39 +3,11 @@
 
 import WasmTty from "../wasm-tty/wasm-tty";
 
-import wasmInit, {
-  lower_i64_imports
-} from "../../assets/wasi-js-transformer/wasi_js_transformer";
-// @ts-ignore
-import wasmJsTransformerWasmUrl from "../../assets/wasi-js-transformer/wasi_js_transformer_bg.wasm";
+import wasmInit, { lower_i64_imports } from "@wasmer/wasi_js_transformer";
 
-// @ts-ignore
-import stdinWasmUrl from "../../assets/stdin.wasm";
-// @ts-ignore
-import clockTimeGetUrl from "../../assets/clock_time_get.wasm";
-// @ts-ignore
-import pathOpenGetUrl from "../../assets/path_open.wasm";
-// @ts-ignore
-import twoImportsUrl from "../../assets/two-imports.wasm";
-// @ts-ignore
-import quickJsUrl from "../../assets/qjs.wasm";
-// @ts-ignore
-import dukTapeUrl from "../../assets/duk.wasm";
-// @ts-ignore
-import argtestUrl from "../../assets/argtest.wasm";
-// @ts-ignore
-import gettimeofdayUrl from "../../assets/gettimeofday.wasm";
+// TODO: Allow passing in your own custom commands / wasm files
 
-let commandToUrlCache: { [key: string]: string } = {
-  a: stdinWasmUrl,
-  c: clockTimeGetUrl,
-  p: pathOpenGetUrl,
-  g: gettimeofdayUrl,
-  qjs: quickJsUrl,
-  duk: dukTapeUrl,
-  two: twoImportsUrl,
-  arg: argtestUrl
-};
+let commandToUrlCache: { [key: string]: string } = {};
 let compiledModulesCache: { [key: string]: WebAssembly.Module } = {};
 
 const WAPM_GRAPHQL_QUERY = `query shellGetCommandQuery($command: String!) {
@@ -128,6 +100,8 @@ const getWasmModuleFromUrl = async (
     }
 
     // Make Modifications to the binary to support browser side WASI.
+    // TODO: Pass in the transformer wasm url
+    const wasmJsTransformerWasmUrl = "";
     await wasmInit(wasmJsTransformerWasmUrl);
     binary = lower_i64_imports(binary);
 

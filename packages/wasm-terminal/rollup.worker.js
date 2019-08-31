@@ -6,7 +6,6 @@ import builtins from "rollup-plugin-node-builtins";
 import globals from "rollup-plugin-node-globals";
 import typescript from "rollup-plugin-typescript2";
 import json from "rollup-plugin-json";
-import replace from "rollup-plugin-replace";
 import compiler from "@ampproject/rollup-plugin-closure-compiler";
 import bundleSize from "rollup-plugin-bundle-size";
 import pkg from "./package.json";
@@ -14,21 +13,12 @@ import pkg from "./package.json";
 const sourcemapOption = process.env.PROD ? undefined : "inline";
 
 let typescriptPluginOptions = {
-  tsconfig: "./tsconfig.json",
+  tsconfig: "../../tsconfig.json",
   clean: process.env.PROD ? true : false,
   objectHashIgnoreUnknownHack: true
 };
 
-const replaceBrowserOptions = {
-  delimiters: ["", ""],
-  values: {
-    "/*ROLLUP_REPLACE_BROWSER": "",
-    "ROLLUP_REPLACE_BROWSER*/": ""
-  }
-};
-
 const plugins = [
-  replace(replaceBrowserOptions),
   typescript(typescriptPluginOptions),
   resolve({
     preferBuiltins: true
@@ -38,18 +28,18 @@ const plugins = [
   builtins(),
   json(),
   process.env.PROD ? compiler() : undefined,
-  bundleSize()
+  process.env.PROD ? bundleSize() : undefined
 ];
 
 const workerBundles = [
   {
-    input: "examples/wapm-shell/workers/process.worker.ts",
+    input: "./workers/process.worker.ts",
     output: [
       {
-        file: "dist/examples/wapm-shell/workers/process.worker.js",
+        file: "dist/workers/process.worker.js",
         format: "iife",
         sourcemap: sourcemapOption,
-        name: "WasiWapmShellDemo"
+        name: "Process"
       }
     ],
     watch: {
