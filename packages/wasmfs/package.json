@@ -32,5 +32,8 @@
   "bugs": {
     "url": "https://github.com/wasmerio/wasmer-js/issues"
   },
-  "homepage": "https://github.com/wasmerio/wasmer-js#readme"
+  "homepage": "https://github.com/wasmerio/wasmer-js#readme",
+  "dependencies": {
+    "memfs": "^2.15.5"
+  }
 }

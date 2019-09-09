@@ -1,5 +1,5 @@
 import { h, Component } from "preact";
-import WasmTerminal from "../../services/wasm-terminal/wasm-terminal";
+import WasmTerminal from "@wasmer/wasm-terminal";
 
 /**
  * A simple preact wrapper around the Wasm Temrinal

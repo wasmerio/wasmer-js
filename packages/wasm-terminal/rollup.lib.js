@@ -7,7 +7,10 @@ import replace from "rollup-plugin-replace";
 import globals from "rollup-plugin-node-globals";
 import typescript from "rollup-plugin-typescript2";
 import json from "rollup-plugin-json";
-import compiler from "@ampproject/rollup-plugin-closure-compiler";
+// Not using the closure compiler here, because it seems to have an issue
+// With ComLinks Async/Await when outputing the js module
+// import compiler from "@ampproject/rollup-plugin-closure-compiler";
+import { terser } from "rollup-plugin-terser";
 import bundleSize from "rollup-plugin-bundle-size";
 import pkg from "./package.json";
 
@@ -23,7 +26,7 @@ let typescriptPluginOptions = {
 const replaceWasiJsTransformerOptions = {
   delimiters: ["", ""],
   values: {
-    "import.meta": "window.import.meta"
+    "module = import.meta.url.replace": "// Replace by rollup"
   }
 };
 
@@ -37,7 +40,8 @@ let plugins = [
   globals(),
   builtins(),
   json(),
-  process.env.PROD ? compiler() : undefined,
+  // process.env.PROD ? compiler() : undefined,
+  process.env.PROD ? terser() : undefined,
   process.env.PROD ? bundleSize() : undefined
 ];
 
