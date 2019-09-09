@@ -12,6 +12,8 @@ import {
 } from "./shell-utils";
 import { ShellHistory } from "./shell-history";
 
+import TerminalConfig from "../terminal-config";
+
 import WasmTty from "../wasm-tty/wasm-tty";
 
 import CommandRunner from "../command-runner/command-runner";
@@ -27,6 +29,7 @@ import CommandRunner from "../command-runner/command-runner";
  */
 type AutoCompleteHandler = (index: number, tokens: string[]) => string[];
 export default class WasmShell {
+  terminalConfig: TerminalConfig;
   wasmTty: WasmTty;
   history: ShellHistory;
   commandRunner?: CommandRunner;
@@ -38,12 +41,14 @@ export default class WasmShell {
   _activeCharPrompt?: ActiveCharPrompt;
 
   constructor(
+    terminalConfig: TerminalConfig,
     wasmTty: WasmTty,
     options: { historySize: number; maxAutocompleteEntries: number } = {
       historySize: 10,
       maxAutocompleteEntries: 100
     }
   ) {
+    this.terminalConfig = terminalConfig;
     this.wasmTty = wasmTty;
     this.history = new ShellHistory(options.historySize);
     this.commandRunner = undefined;
@@ -67,6 +72,7 @@ export default class WasmShell {
       }
 
       this.commandRunner = new CommandRunner(
+        this.terminalConfig,
         this.wasmTty,
         line,
         // Command Read Callback

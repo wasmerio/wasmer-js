@@ -5,10 +5,15 @@ import Process from "../process/process";
 import { CommandOptions } from "./command";
 import CommandFetcher from "./command-fetcher";
 
+import TerminalConfig from "../terminal-config";
+
 import WasmTty from "../wasm-tty/wasm-tty";
 
 let processWorkerBlobUrl: string | undefined = undefined;
-const getBlobUrlForProcessWorker = async (wasmTty?: WasmTty) => {
+const getBlobUrlForProcessWorker = async (
+  processWorkerUrl: string,
+  wasmTty?: WasmTty
+) => {
   if (processWorkerBlobUrl) {
     return processWorkerBlobUrl;
   }
@@ -23,7 +28,7 @@ const getBlobUrlForProcessWorker = async (wasmTty?: WasmTty) => {
 
   // Fetch the worker, but at least show the message for a short while
   const workerString = await Promise.all([
-    fetch("workers/process.worker.js").then(response => response.text()),
+    fetch(processWorkerUrl).then(response => response.text()),
     new Promise(resolve => setTimeout(resolve, 500))
   ]).then(responses => responses[0]);
 
@@ -104,6 +109,7 @@ export default class CommandRunner {
   isRunning: boolean;
   supportsSharedArrayBuffer: boolean;
 
+  terminalConfig: TerminalConfig;
   wasmTty: WasmTty;
   commandString: string;
 
@@ -112,27 +118,30 @@ export default class CommandRunner {
   commandFetcherCallback: Function;
 
   constructor(
+    terminalConfig: TerminalConfig,
     wasmTty: WasmTty,
     commandString: string,
     commandStartReadCallback: Function,
     commandEndCallback: Function,
     commandFetcherCallback: Function
   ) {
-    this.commandFetcher = new CommandFetcher();
+    this.terminalConfig = terminalConfig;
+    this.wasmTty = wasmTty;
+    this.commandString = commandString;
+    this.commandStartReadCallback = commandStartReadCallback;
+    this.commandEndCallback = commandEndCallback;
+    this.commandFetcherCallback = commandFetcherCallback;
+
+    this.commandFetcher = new CommandFetcher(this.terminalConfig);
     this.commandOptionsForProcessesToRun = [];
     this.spawnedProcessObjects = [];
     this.spawnedProcesses = 0;
     this.pipedStdinDataForNextProcess = new Uint8Array();
     this.isRunning = false;
     this.supportsSharedArrayBuffer =
-      (window as any).SharedArrayBuffer && (window as any).Atomics;
-
-    this.wasmTty = wasmTty;
-    this.commandString = commandString;
-
-    this.commandStartReadCallback = commandStartReadCallback;
-    this.commandEndCallback = commandEndCallback;
-    this.commandFetcherCallback = commandFetcherCallback;
+      this.terminalConfig.processWorkerUrl &&
+      (window as any).SharedArrayBuffer &&
+      (window as any).Atomics;
   }
 
   async runCommand() {
@@ -231,8 +240,15 @@ export default class CommandRunner {
   }
 
   async spawnProcessAsWorker(commandOptionIndex: number) {
+    if (!this.terminalConfig.processWorkerUrl) {
+      throw new Error("Terminal Config missing the Process Worker URL");
+    }
+
     // Generate our process
-    const workerBlobUrl = await getBlobUrlForProcessWorker(this.wasmTty);
+    const workerBlobUrl = await getBlobUrlForProcessWorker(
+      this.terminalConfig.processWorkerUrl,
+      this.wasmTty
+    );
     const processWorker = new Worker(workerBlobUrl);
     const processComlink = Comlink.wrap(processWorker);
 

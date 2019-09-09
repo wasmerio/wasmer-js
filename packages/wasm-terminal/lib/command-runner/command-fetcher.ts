@@ -1,6 +1,8 @@
 // Service to fetch and instantiate modules
 // And cache them to run again
 
+import TerminalConfig from "../terminal-config";
+
 import WasmTty from "../wasm-tty/wasm-tty";
 
 import wasmInit, { lower_i64_imports } from "@wasmer/wasi_js_transformer";
@@ -76,6 +78,7 @@ const getWapmUrlForCommandName = async (commandName: String) => {
 
 const getWasmModuleFromUrl = async (
   url: string,
+  wasiJsTransformerWasmUrl: string,
   commandName?: string,
   wasmTty?: WasmTty
 ): Promise<WebAssembly.Module> => {
@@ -100,9 +103,7 @@ const getWasmModuleFromUrl = async (
     }
 
     // Make Modifications to the binary to support browser side WASI.
-    // TODO: Pass in the transformer wasm url
-    const wasmJsTransformerWasmUrl = "";
-    await wasmInit(wasmJsTransformerWasmUrl);
+    await wasmInit(wasiJsTransformerWasmUrl);
     binary = lower_i64_imports(binary);
 
     const wasmModule = await WebAssembly.compile(binary);
@@ -111,6 +112,27 @@ const getWasmModuleFromUrl = async (
 };
 
 export default class CommandFetcher {
+  terminalConfig: TerminalConfig;
+
+  constructor(terminalConfig: TerminalConfig) {
+    this.terminalConfig = terminalConfig;
+
+    // Fill our command to URL Cache with the
+    // "additionalWasmCommands" in the Terminal Config
+    if (this.terminalConfig.additionalWasmCommands) {
+      Object.keys(this.terminalConfig.additionalWasmCommands).forEach(
+        commandName => {
+          // Using @ts-ignore on next line as it thinks additionalWasmCommands may be undefined,
+          // Even though we check above if it is not.
+          // @ts-ignore
+          commandToUrlCache[
+            commandName
+          ] = this.terminalConfig.additionalWasmCommands[commandName];
+        }
+      );
+    }
+  }
+
   async getWasmModuleForCommandName(commandName: string, wasmTty?: WasmTty) {
     let commandUrl = commandToUrlCache[commandName];
     if (!commandUrl) {
@@ -131,7 +153,12 @@ export default class CommandFetcher {
 
       // Fetch the wasm modules, but at least show the message for a short while
       cachedData = compiledModulesCache[commandUrl] = await Promise.all([
-        getWasmModuleFromUrl(commandUrl, commandName, wasmTty),
+        getWasmModuleFromUrl(
+          commandUrl,
+          this.terminalConfig.wasiJsTransformerWasmUrl,
+          commandName,
+          wasmTty
+        ),
         new Promise(resolve => setTimeout(resolve, 500))
       ]).then(responses => responses[0]);
 
