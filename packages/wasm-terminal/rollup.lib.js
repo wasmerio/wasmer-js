@@ -3,26 +3,38 @@
 import resolve from "rollup-plugin-node-resolve";
 import commonjs from "rollup-plugin-commonjs";
 import builtins from "rollup-plugin-node-builtins";
+import replace from "rollup-plugin-replace";
+import globals from "rollup-plugin-node-globals";
 import typescript from "rollup-plugin-typescript2";
 import json from "rollup-plugin-json";
 import compiler from "@ampproject/rollup-plugin-closure-compiler";
 import bundleSize from "rollup-plugin-bundle-size";
-
 import pkg from "./package.json";
 
 const sourcemapOption = process.env.PROD ? undefined : "inline";
 
 let typescriptPluginOptions = {
   tsconfig: "../../tsconfig.json",
-  clean: process.env.PROD ? true : false
+  clean: process.env.PROD ? true : false,
+  objectHashIgnoreUnknownHack: true
+};
+
+// Need to replace this line for commonjs, as the import.meta object doesn't exist in node
+const replaceWasiJsTransformerOptions = {
+  delimiters: ["", ""],
+  values: {
+    "import.meta": "window.import.meta"
+  }
 };
 
 let plugins = [
+  replace(replaceWasiJsTransformerOptions),
   typescript(typescriptPluginOptions),
   resolve({
     preferBuiltins: true
   }),
   commonjs(),
+  globals(),
   builtins(),
   json(),
   process.env.PROD ? compiler() : undefined,
