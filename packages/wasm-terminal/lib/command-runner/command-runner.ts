@@ -66,6 +66,11 @@ const getCommandOptionsFromAST = (
       value.value
     ])
   );
+  if (wapmTty) {
+    const { rows, cols } = wapmTty.getTermSize();
+    env.LINES = rows;
+    env.COLUMNS = cols;
+  }
 
   // Get other commands from the redirects
   const redirectTask = async () => {
