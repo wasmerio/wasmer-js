@@ -5,7 +5,8 @@ import { Duplex } from "stream";
 export type CommandOptions = {
   args: string[];
   env: { [key: string]: string };
-  module: WebAssembly.Module;
+  module?: WebAssembly.Module;
+  callback?: Function;
 };
 
 export class Command {

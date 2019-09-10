@@ -5,7 +5,7 @@ import Process from "../process/process";
 import { CommandOptions } from "./command";
 import CommandFetcher from "./command-fetcher";
 
-import TerminalConfig from "../terminal-config";
+import TerminalConfig, { CallbackCommand } from "../terminal-config";
 
 import WasmTty from "../wasm-tty/wasm-tty";
 
@@ -50,6 +50,7 @@ const getCommandOptionsFromAST = (
   ast: any,
   commandFetcher: CommandFetcher,
   commandFetcherCallback: Function,
+  terminalConfig: TerminalConfig,
   wasmTty?: WasmTty
 ): Promise<Array<CommandOptions>> => {
   // The array of command options we are returning
@@ -75,6 +76,7 @@ const getCommandOptionsFromAST = (
           astRedirect.command,
           commandFetcher,
           commandFetcherCallback,
+          terminalConfig,
           wasmTty
         );
         // Add the child options to our command options
@@ -87,17 +89,45 @@ const getCommandOptionsFromAST = (
     return await commandFetcher.getWasmModuleForCommandName(command, wasmTty);
   };
 
-  return redirectTask()
-    .then(() => getWasmModuleTask())
-    .then(wasmModule => {
+  // Check if the command is a callback command from the terminal config
+  let callbackCommandFunction: CallbackCommand | undefined = undefined;
+  if (terminalConfig.callbackCommands) {
+    Object.keys(terminalConfig.callbackCommands).some(callbackCommandKey => {
+      if (callbackCommandKey === command) {
+        callbackCommandFunction = (terminalConfig.callbackCommands as any)[
+          callbackCommandKey
+        ];
+        return true;
+      }
+      return false;
+    });
+  }
+
+  if (callbackCommandFunction) {
+    // Add a callback command
+    return redirectTask().then(wasmModule => {
       commandOptions.unshift({
         args,
         env,
-        module: wasmModule
+        callback: callbackCommandFunction
       });
       commandFetcherCallback(command);
       return commandOptions;
     });
+  } else {
+    // Add a wasm module command
+    return redirectTask()
+      .then(() => getWasmModuleTask())
+      .then(wasmModule => {
+        commandOptions.unshift({
+          args,
+          env,
+          module: wasmModule
+        });
+        commandFetcherCallback(command);
+        return commandOptions;
+      });
+  }
 };
 
 export default class CommandRunner {
@@ -160,6 +190,7 @@ export default class CommandRunner {
         commandAst[0],
         this.commandFetcher,
         this.commandFetcherCallback,
+        this.terminalConfig,
         this.wasmTty
       );
     } catch (c) {
@@ -208,7 +239,12 @@ export default class CommandRunner {
 
   async spawnProcess(commandOptionIndex: number) {
     let spawnedProcessObject = undefined;
-    if (this.supportsSharedArrayBuffer) {
+
+    // Check if it is a wasm command, that can be placed into a worker.
+    if (
+      this.commandOptionsForProcessesToRun[commandOptionIndex].module &&
+      this.supportsSharedArrayBuffer
+    ) {
       spawnedProcessObject = await this.spawnProcessAsWorker(
         commandOptionIndex
       );
@@ -234,7 +270,13 @@ export default class CommandRunner {
     }
 
     // Try to spawn the next process, if we haven't already
-    if (this.supportsSharedArrayBuffer) {
+    let isNextCallbackCommand = false;
+    if (this.commandOptionsForProcessesToRun.length > commandOptionIndex + 1) {
+      isNextCallbackCommand =
+        this.commandOptionsForProcessesToRun[commandOptionIndex + 1]
+          .callback !== undefined;
+    }
+    if (this.supportsSharedArrayBuffer && !isNextCallbackCommand) {
       this.tryToSpawnProcess(commandOptionIndex + 1);
     }
   }

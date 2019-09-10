@@ -2,7 +2,7 @@
 
 // A Custom command is a function that takes in a stdin string, and an array of argument strings,
 // And returns an stdout string, or undefined.
-type CallbackCommand = (
+export type CallbackCommand = (
   args: string[],
   stdin: string
 ) => Promise<string | undefined>;
@@ -11,10 +11,14 @@ interface WasmCommandJsonMap {
   [commandName: string]: string;
 }
 
+interface CallbackCommandJsonMap {
+  [commandName: string]: CallbackCommand;
+}
+
 export default class TerminalConfig {
   wasiJsTransformerWasmUrl: string;
   processWorkerUrl?: string;
-  callbackCommands?: Array<CallbackCommand>;
+  callbackCommands?: CallbackCommandJsonMap;
   additionalWasmCommands?: WasmCommandJsonMap;
 
   constructor(config: any) {

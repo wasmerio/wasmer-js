@@ -1,10 +1,29 @@
 import { h, Component } from "preact";
 import WasmTerminal from "@wasmer/wasm-terminal";
 
+// Require wasm terminal URLs
 // @ts-ignore
 import wasiJsTransformerWasmUrl from "../../../packages/wasm-terminal/dist/wasi_js_transformer/wasi_js_transformer_bg.wasm";
 // @ts-ignore
 import processWorkerUrl from "../../../packages/wasm-terminal/dist/workers/process.worker.js";
+
+// Additional Command URLs
+// @ts-ignore
+import stdinWasmUrl from "../../../crates/wasi_js_transformer/wasm_module_examples/stdin.wasm";
+// @ts-ignore
+import clockTimeGetUrl from "../../../crates/wasi_js_transformer/wasm_module_examples/clock_time_get.wasm";
+// @ts-ignore
+import pathOpenGetUrl from "../../../crates/wasi_js_transformer/wasm_module_examples/path_open.wasm";
+// @ts-ignore
+import twoImportsUrl from "../../../crates/wasi_js_transformer/wasm_module_examples/two-imports.wasm";
+// @ts-ignore
+import quickJsUrl from "../../../crates/wasi_js_transformer/wasm_module_examples/qjs.wasm";
+// @ts-ignore
+import dukTapeUrl from "../../../crates/wasi_js_transformer/wasm_module_examples/duk.wasm";
+// @ts-ignore
+import argtestUrl from "../../../crates/wasi_js_transformer/wasm_module_examples/argtest.wasm";
+// @ts-ignore
+import gettimeofdayUrl from "../../../crates/wasi_js_transformer/wasm_module_examples/gettimeofday/gettimeofday.wasm";
 
 /**
  * A simple preact wrapper around the Wasm Terminal
@@ -17,7 +36,26 @@ export default class WasmTerminalComponent extends Component {
     super();
     this.wasmTerminal = new WasmTerminal({
       wasiJsTransformerWasmUrl,
-      processWorkerUrl
+      processWorkerUrl,
+      additionalWasmCommands: {
+        a: stdinWasmUrl,
+        c: clockTimeGetUrl,
+        p: pathOpenGetUrl,
+        g: gettimeofdayUrl,
+        qjs: quickJsUrl,
+        duk: dukTapeUrl,
+        two: twoImportsUrl,
+        arg: argtestUrl,
+        rsign:
+          "https://registry-cdn.wapm.io/contents/jedisct1/rsign2/0.5.4/rsign.wasm"
+      },
+      callbackCommands: {
+        callback: (args: string[], stdin: string) => {
+          return Promise.resolve(
+            `Callback Command Working! Args: ${args}, stdin: ${stdin}`
+          );
+        }
+      }
     });
     this.container = null;
   }

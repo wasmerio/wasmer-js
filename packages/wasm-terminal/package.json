@@ -6,7 +6,8 @@
   "browser": "dist/index.iife.js",
   "typings": "dist/packages/wasm-terminal/lib/index.d.ts",
   "scripts": {
-    "build": "npx rollup -c --environment LIB,WORKER,PROD"
+    "build": "npx rollup -c --environment LIB,WORKER,PROD",
+    "dev": "npx rollup -c -w --environment LIB,WORKER"
   },
   "repository": {
     "type": "git",

@@ -65,6 +65,10 @@ export default class WASICommand extends Command {
       }
     });
 
+    if (!options.module) {
+      throw new Error("Did not find a WebAssembly.Module for the Wasi Command");
+    }
+
     this.promisedInstance = WebAssembly.instantiate(options.module, {
       wasi_unstable: this.wasi.exports
     });

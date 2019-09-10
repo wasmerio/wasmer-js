@@ -122,12 +122,10 @@ export default class CommandFetcher {
     if (this.terminalConfig.additionalWasmCommands) {
       Object.keys(this.terminalConfig.additionalWasmCommands).forEach(
         commandName => {
-          // Using @ts-ignore on next line as it thinks additionalWasmCommands may be undefined,
+          // Using as any on next line as it thinks additionalWasmCommands may be undefined,
           // Even though we check above if it is not.
-          // @ts-ignore
-          commandToUrlCache[
-            commandName
-          ] = this.terminalConfig.additionalWasmCommands[commandName];
+          commandToUrlCache[commandName] = (this.terminalConfig
+            .additionalWasmCommands as any)[commandName];
         }
       );
     }
