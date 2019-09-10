@@ -13,7 +13,9 @@ if ((global as any).BigInt) {
 }
 import { WASI } from "../lib";
 import WASINodeBindings from "../lib/bindings/node";
-import WasmerFileSystem from "../../wasmfs/file-system";
+
+// @ts-ignore
+const WasmerFileSystem = require("../../wasmfs/dist/index.cjs");
 
 const bytesConverter = (buffer: Buffer): Buffer => {
   // Help debugging: https://webassembly.github.io/wabt/demo/wat2wasm/index.html
@@ -64,7 +66,7 @@ const bytesConverter = (buffer: Buffer): Buffer => {
 
 const instantiateWasi = async (
   file: string,
-  wasmerFileSystem: WasmerFileSystem,
+  wasmerFileSystem: any,
   args: string[] = [],
   env: { [key: string]: string } = {}
 ) => {
@@ -89,7 +91,7 @@ const instantiateWasi = async (
 };
 
 describe("WASI interaction", () => {
-  let wasmerFileSystem: WasmerFileSystem;
+  let wasmerFileSystem: any;
 
   beforeEach(async () => {
     wasmerFileSystem = new WasmerFileSystem();
