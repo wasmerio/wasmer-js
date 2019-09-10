@@ -15,8 +15,5 @@
   "bugs": {
     "url": "https://github.com/wasmerio/wasmer-js/issues"
   },
-  "homepage": "https://github.com/wasmerio/wasmer-js#readme",
-  "dependencies": {
-    "@wasmer/wasm-terminal": "file:../../packages/wasm-terminal"
-  }
+  "homepage": "https://github.com/wasmerio/wasmer-js#readme"
 }

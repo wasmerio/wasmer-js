@@ -6,6 +6,7 @@
   "browser": "dist/index.iife.js",
   "typings": "dist/packages/wasm-terminal/lib/index.d.ts",
   "scripts": {
+    "postinstall": "npm run build",
     "build": "npx rollup -c --environment LIB,WORKER,PROD",
     "dev": "npx rollup -c -w --environment LIB,WORKER"
   },
@@ -31,9 +32,9 @@
   },
   "homepage": "https://github.com/wasmerio/wasmer-js#readme",
   "dependencies": {
-    "@wasmer/wasi": "file:../wasi",
-    "@wasmer/wasi_js_transformer": "file:../wasi_js_transformer",
-    "@wasmer/wasmfs": "file:../wasmfs",
+    "@wasmer/wasi": "^0.0.1",
+    "@wasmer/wasi_js_transformer": "^0.0.1",
+    "@wasmer/wasmfs": "^0.0.1",
     "comlink": "^4.0.2",
     "shell-parse": "0.0.2",
     "shell-quote": "^1.7.1",

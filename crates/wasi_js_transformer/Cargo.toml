@@ -1,6 +1,6 @@
 [package]
 name = "wasi_js_transformer"
-version = "0.1.0"
+version = "0.0.1"
 authors = ["Aaron Turner <aaron@aaronthedev.com>"]
 edition = "2018"
 

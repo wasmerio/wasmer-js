@@ -14,12 +14,14 @@
   "license": "MIT",
   "scripts": {
     "prebuild": "rimraf dist",
+    "postinstall": "npx run-s lerna:bootstrap",
     "dev": "npx run-s lerna:build wasm-shell:dev",
     "build": "npx run-s lerna:build wasm-shell:build",
     "lint": "npx run-s lint:js lint:ts:tslint lint:ts:preetier",
     "lint:js": "npx prettier --write packages/**/rollup.*.js",
     "lint:ts:tslint": "npx tslint --project tsconfig.json -t codeFrame 'packages/**/*.ts'",
     "lint:ts:preetier": "npx prettier --write packages/**/*.ts",
+    "lerna:bootstrap": "npx lerna bootstrap",
     "lerna:build": "npx lerna run build",
     "wasm-shell:dev": "npx rollup -c examples/wasm-shell/rollup.config.js -w",
     "wasm-shell:build": "npx rollup -c examples/wasm-shell/rollup.config.js --environment PROD"
