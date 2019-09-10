@@ -1,4 +1,4 @@
-# JavaScript WASI
+# wasmer-js
 
 [![styled with prettier](https://img.shields.io/badge/styled_with-prettier-ff69b4.svg)](https://github.com/prettier/prettier)
 [![Greenkeeper badge](https://badges.greenkeeper.io/wasmerio/js-wasi.svg)](https://greenkeeper.io/)
@@ -6,98 +6,62 @@
 [![Coveralls](https://img.shields.io/coveralls/wasmerio/js-wasi.svg)](https://coveralls.io/github/wasmerio/js-wasi)
 [![Dev Dependencies](https://david-dm.org/wasmerio/js-wasi/dev-status.svg)](https://david-dm.org/wasmerio/js-wasi?type=dev)
 
-JavaScript WASI is a library for interacting with WASI Modules from JavaScript easily.
-It's focused on compatibility with Node.js and browsers.
+Monorepo for all JavaScript packages, or JavaScript related Rust crates, for Wasmer. The JS Packages are managed by [lerna](https://lerna.js.org/).
 
-## Install
+## Packages
 
-For instaling WASI, just run this command in your shell
+- [`packages/wasi`](./packages/wasi) - Wasi Implementation for Node and Browsers.
 
-```bash
-npm install --save @wasmer/wasi
-```
+- [`packages/wasmfs`](./packages/wasmfs) - Wasi/Wasm FileSystem to be used in browsers, or for sandboxing in Node.
 
-## Examples
+- [`packages/wasi_js_transformer`](./packages/wasi_js_transformer) - wasm-pack output of `crates/wasi_js_transformer`.
 
-```js
-import { WASI } from "@wasmer/wasi";
+- [`packages/wasm-terminal`](./packages/wasm-terminal) - A terminal/shell for interacting with Wasi/Wasm Modules that runs in the browser.
 
-// Bindings are options
-// The bindings (fs, path), useful for using WASI in diferent environments
-// such as Node.js, Browsers, ...
-const bindings = undefined;
-if (optionalAlternativeBindings) {
-  bindings = optionalAlternativeBindings;
-}
+- [`crates/wasi_js_transformer`](./crates/wasi_js_transformer) - Rust/Wasm crate for running transformations on Wasm module binaries.
 
-// Instantiate a new WASI Instance
-let wasi = new WASI({
-  // The pre-opened dirctories
-  preopenDirectories: {},
-  // The environment vars
-  env: {},
-  // The arguments provided
-  args: [],
-  bindings: bindings
-});
+## Contributing
 
-// Instantiating the WebAssembly file
-const wasm_bytes = new Uint8Array(fs.readFileSync(file)).buffer;
-let { instance } = await WebAssembly.instantiate(bytes, {
-  wasi_unstable: wasi.exports
-});
+For additional contribution guidelines, please see our [CONTRIBUTING.md](./CONTRIBUTING.md) and our [Code of Conduct](./code-of-conduct).
 
-// Plug the Instance into WASI
-wasi.setMemory(instance.exports.memory);
+### Quick Start
 
-// Start the WebAssembly WASI instance!
-instance.exports._start();
-```
+To get started contributing to wasmer-js, create your own fork of the [wasmer-js repository](https://github.com/wasmerio/wasmer-js) by clicking "Fork" in the Web UI.
 
-### Develop
+#### Javascript Packages
 
-First, clone the project locally:
+1. Install the latest LTS version of [Node.js](https://nodejs.org/) (which includes npm). An easy way to do so is with `nvm`. (Mac and Linux: [here](https://github.com/creationix/nvm), Windows: [here](https://github.com/coreybutler/nvm-windows))
 
-```bash
-git clone https://github.com/wasmerio/js-wasi
-cd js-wasi
+2. Download / Clone your fork to a local repository. Navigate into the project directory.
 
-npm install
-```
+3. Install the dependencies with `npm install`. **NOTE:** This will run `lerna bootstrap`, and build the neccessary JS Packages.
 
-### NPM scripts
+4. Run `npm run dev`, which will serve the `examples/wasm-shell` example, which can be accessed with: http://localhost:8000/examples/wasm-shell/index.html
 
-- `npm start`: Run `npm run dev`
-- `npm test`: Run test suite
-- `npm run build`: Generate bundles and typings, create docs
+To make changes to any of the sub projects, they can be tested by either: Running their local tests with `npm run test` in their respective package directory, or by running their watch for changes developement command with `npm run dev`.
 
-- `npm run test:watch`: Run test suite in [interactive watch mode](http://facebook.github.io/jest/docs/cli.html#watch)
-- `npm run test:prod`: Run linting and generate coverage
-- `npm run lint`: Lints code
-- `npm run precompile`: Precompile all the source files (requires Rust nightly) to the WebAssembly WASI binaries
-- `npm run commit`: Commit using conventional commit style ([husky](https://github.com/typicode/husky) will tell you to use it if you haven't :wink:)
+#### Rust Crates
 
-### Adding new dependencies
+1. Install the latest Nightly version of [Rust](https://www.rust-lang.org/tools/install) (which includes cargo).
 
-Wasmer-js uses [Lerna](https://lernajs.io/).
+2. Install the latest version of [wasm-pack](https://github.com/rustwasm/wasm-pack).
 
-`devDependencies` should be added to the root [package.json](package.json) file. Per-package dependencies should be added to their respective `package.json`.
+3. Download / Clone your fork to a local repository. Navigate into the `wasmer-js/crates/you_package_here` directory.
 
-When creating a new package inside the `packages` directory, use the following command:
+4. Run the respecitve build / tests commands. For example, for `wasi_js_transformer` you would run `./wapm_shell_build.sh` to execute the bash script, which handles:
 
-```
-npm run bootstrap
-```
+- Running Clippy
 
-## Credits
+- Running tests
 
-This project is based from the Node implementation made by Gus Caplan: https://github.com/devsnek/node-wasi
+- Building the project, moving output into the correct directories.
 
-However, `@wasmer/wasi` is focused on:
+### Using Lerna
 
-- Bringing WASI to the Browsers (so it can be used in the [WAPM](https://wapm.io/) shell)
-- Make easy to plug different filesystems (via [memfs](https://github.com/streamich/memfs))
-- Make it type-safe using [Typescript](http://www.typescriptlang.org/)
+Please see the website for [lerna](https://lerna.js.org/) for a quick introduction into what it is. Here are some general notes about using lerna in this project:
 
-This project follows the [all-contributors](https://github.com/kentcdodds/all-contributors) specification.
-Contributions of any kind are welcome!
+- Packages can be added by simply creating a new directory within the `packages/` directory, and running `npm init` in this new package directory. Then, the new package must be botstraped using learna. For this project, this can be done running `npm run lerna:bootstrap` in the base project directory.
+
+- To add new dependencies and keep build times low, `devDependencies` ([not CLI dependencies](https://github.com/lerna/lerna/issues/1079#issuecomment-337660289)) must be added to the root [package.json](./package.json) file. Project installation / runtime dependencies are managed for each package individually.
+
+- Sibling JS packages can depend on one another. You can do this by using [@lerna/add](https://github.com/lerna/lerna/pull/1069). For example, `lerna add @wasmer/package-1 --scope=@wasmer/package-2` will add @wasmer/package-1@^1.0.0 to @wasmer/package-2

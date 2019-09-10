@@ -3,7 +3,7 @@
   "collaborators": [
     "Aaron Turner <aaron@aaronthedev.com>"
   ],
-  "version": "0.1.0",
+  "version": "0.0.1",
   "files": [
     "wasi_js_transformer_bg.wasm",
     "wasi_js_transformer.js",

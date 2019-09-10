@@ -1,5 +1,7 @@
 import { h, Component } from "preact";
-import WasmTerminal from "@wasmer/wasm-terminal";
+
+// @ts-ignore
+import WasmTerminal from "../../../packages/wasm-terminal/dist/index.esm";
 
 // Require wasm terminal URLs
 // @ts-ignore
