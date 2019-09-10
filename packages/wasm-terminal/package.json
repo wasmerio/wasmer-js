@@ -30,7 +30,7 @@
   "bugs": {
     "url": "https://github.com/wasmerio/wasmer-js/issues"
   },
-  "homepage": "https://github.com/wasmerio/wasmer-js#readme",
+  "homepage": "https://github.com/wasmerio/wasmer-js/tree/master/packages/wasm-terminal",
   "dependencies": {
     "@wasmer/wasi": "^0.0.1",
     "@wasmer/wasi_js_transformer": "^0.0.1",

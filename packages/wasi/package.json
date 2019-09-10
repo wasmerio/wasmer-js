@@ -36,7 +36,7 @@
   "bugs": {
     "url": "https://github.com/wasmerio/wasmer-js/issues"
   },
-  "homepage": "https://github.com/wasmerio/wasmer-js#readme",
+  "homepage": "https://github.com/wasmerio/wasmer-js/tree/master/packages/wasi",
   "dependencies": {
     "browser-process-hrtime": "^1.0.0",
     "path-browserify": "^1.0.0",
