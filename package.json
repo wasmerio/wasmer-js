@@ -15,7 +15,7 @@
   "scripts": {
     "prebuild": "rimraf dist",
     "postinstall": "npx run-s lerna:bootstrap",
-    "dev": "npx run-s lerna:build wasm-shell:dev",
+    "dev": "npx run-s wasm-shell:dev",
     "build": "npx run-s lerna:build wasm-shell:build",
     "lint": "npx run-s lint:js lint:ts:tslint lint:ts:preetier",
     "lint:js": "npx prettier --write packages/**/rollup.*.js",
