@@ -66,8 +66,8 @@ const getCommandOptionsFromAST = (
       value.value
     ])
   );
-  if (wapmTty) {
-    const { rows, cols } = wapmTty.getTermSize();
+  if (wasmTty) {
+    const { rows, cols } = wasmTty.getTermSize();
     env.LINES = rows;
     env.COLUMNS = cols;
   }
