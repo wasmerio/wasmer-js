@@ -1,45 +1,28 @@
 {
-  "name": "@wasmer/wasi",
+  "name": "@wasmer/wasmer-js",
   "version": "0.0.1",
-  "description": "Run WASI on the Browser easily",
   "keywords": [
     "webassembly",
     "wasm",
     "wasi"
   ],
-  "main": "dist/index.cjs.js",
-  "module": "dist/index.esm.js",
-  "browser": "dist/index.iife.js",
-  "typings": "dist/types/index.d.ts",
-  "files": [
-    "dist"
-  ],
   "author": "Syrus Akbary <syrus@wasmer.io>",
   "repository": {
     "type": "git",
-    "url": "https://github.com/wasmerio/js-wasi"
+    "url": "https://github.com/wasmerio/wasmer-js"
   },
   "license": "MIT",
   "scripts": {
     "prebuild": "rimraf dist",
-    "precompile": "cd test/rs && make all",
-    "postinstall": "npm run build",
-    "start": "npm run dev",
-    "dev": "npm run dev:wapm-shell",
-    "build": "npx run-s build:lib",
-    "dev:lib": "npx rollup -c --watch --environment LIB,DEV",
-    "build:lib": "npx rollup -c --environment LIB,PROD",
-    "build:file-system": "npx rollup -c --environment LIB,FILE_SYSTEM,PROD",
-    "dev:wapm-shell": "npx rollup -c --watch --environment LIB,WORKER,WAPM_SHELL,DEV",
-    "build:wapm-shell": "npx rollup -c --environment LIB,WORKER,WAPM_SHELL,PROD",
+    "dev": "npx run-s lerna:build wasm-shell:dev",
+    "build": "npx run-s lerna:build wasm-shell:build",
     "lint": "npx run-s lint:js lint:ts:tslint lint:ts:preetier",
-    "lint:js": "npx prettier --write rollup.*.js",
-    "lint:ts:tslint": "npx tslint --project tsconfig.json -t codeFrame 'lib/**/*.ts' 'test/**/*.ts'",
-    "lint:ts:preetier": "npx prettier --write lib/**/*.ts test/**/*.ts",
-    "test": "npx jest --config jest.config.js",
-    "test:watch": "npx jest --config jest.config.js --watch",
-    "test:prod": "npx run-s lint test",
-    "docs": "npx typedoc lib/ --out docs --target es6 --theme minimal --mode file"
+    "lint:js": "npx prettier --write packages/**/rollup.*.js",
+    "lint:ts:tslint": "npx tslint --project tsconfig.json -t codeFrame 'packages/**/*.ts'",
+    "lint:ts:preetier": "npx prettier --write packages/**/*.ts",
+    "lerna:build": "npx lerna run build",
+    "wasm-shell:dev": "npx rollup -c examples/wasm-shell/rollup.config.js -w",
+    "wasm-shell:build": "npx rollup -c examples/wasm-shell/rollup.config.js --environment PROD"
   },
   "husky": {
     "hooks": {
@@ -50,12 +33,12 @@
     "@ampproject/rollup-plugin-closure-compiler": "^0.10.0",
     "@types/jest": "^24.0.16",
     "@types/shell-quote": "^1.6.1",
-    "browser-process-hrtime": "^1.0.0",
     "chalk": "^2.4.2",
     "comlink": "^4.0.2",
     "deasync": "^0.1.15",
     "husky": "^3.0.2",
     "jest": "^24.8.0",
+    "lerna": "^3.16.4",
     "local-echo": "^0.2.0",
     "memfs": "^2.15.5",
     "minimist": "^1.2.0",
@@ -66,7 +49,6 @@
     "preact": "^8.4.2",
     "prettier": "1.18.2",
     "pretty-quick": "^1.11.1",
-    "randomfill": "^1.0.4",
     "rimraf": "^2.6.3",
     "rollup": "^1.17.0",
     "rollup-plugin-bundle-size": "^1.0.3",
@@ -80,6 +62,7 @@
     "rollup-plugin-postcss": "^2.0.3",
     "rollup-plugin-replace": "^2.2.0",
     "rollup-plugin-serve": "^1.0.1",
+    "rollup-plugin-terser": "^5.1.1",
     "rollup-plugin-typescript": "^1.0.1",
     "rollup-plugin-typescript2": "^0.22.1",
     "rollup-plugin-url": "^2.2.2",
@@ -96,6 +79,5 @@
     "typescript": "^3.5.3",
     "url": "^0.11.0",
     "xterm": "^3.14.5"
-  },
-  "dependencies": {}
+  }
 }

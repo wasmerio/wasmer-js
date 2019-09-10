@@ -7,9 +7,9 @@
   "files": [
     "wasi_js_transformer_bg.wasm",
     "wasi_js_transformer.js",
-    "wasi_js_transformer_bg.js",
     "wasi_js_transformer.d.ts"
   ],
-  "main": "wasi_js_transformer.js",
-  "types": "wasi_js_transformer.d.ts"
+  "module": "wasi_js_transformer.js",
+  "types": "wasi_js_transformer.d.ts",
+  "sideEffects": "false"
 }

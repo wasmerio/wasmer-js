@@ -1,0 +1,42 @@
+{
+  "name": "@wasmer/wasm-terminal",
+  "version": "0.0.1",
+  "description": "A DOM Element for providing a Terminal, TTY, and Shell for running wasm \\ wasi programs.",
+  "module": "dist/index.esm.js",
+  "browser": "dist/index.iife.js",
+  "typings": "dist/packages/wasm-terminal/lib/index.d.ts",
+  "scripts": {
+    "build": "npx rollup -c --environment LIB,WORKER,PROD",
+    "dev": "npx rollup -c -w --environment LIB,WORKER"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wasmerio/wasmer-js.git"
+  },
+  "keywords": [
+    "wasm",
+    "wasi",
+    "tty",
+    "shell",
+    "terminal",
+    "html",
+    "xterm",
+    "dom",
+    "browser"
+  ],
+  "author": "Aaron Turner",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/wasmerio/wasmer-js/issues"
+  },
+  "homepage": "https://github.com/wasmerio/wasmer-js#readme",
+  "dependencies": {
+    "@wasmer/wasi": "file:../wasi",
+    "@wasmer/wasi_js_transformer": "file:../wasi_js_transformer",
+    "@wasmer/wasmfs": "file:../wasmfs",
+    "comlink": "^4.0.2",
+    "shell-parse": "0.0.2",
+    "shell-quote": "^1.7.1",
+    "xterm": "^3.14.5"
+  }
+}
