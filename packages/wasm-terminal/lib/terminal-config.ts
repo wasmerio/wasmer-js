@@ -16,7 +16,7 @@ interface CallbackCommandJsonMap {
 }
 
 export default class TerminalConfig {
-  wasiJsTransformerWasmUrl: string;
+  wasmTransformerWasmUrl: string;
   processWorkerUrl?: string;
   callbackCommands?: CallbackCommandJsonMap;
   additionalWasmCommands?: WasmCommandJsonMap;
@@ -26,9 +26,9 @@ export default class TerminalConfig {
       throw new Error("You must provide a config for the wasm terminal.");
     }
 
-    if (!config.wasiJsTransformerWasmUrl) {
+    if (!config.wasmTransformerWasmUrl) {
       throw new Error(
-        "You must provide a wasiTransformerUrl for the wasm terminal config, to fetch the wasi transformer"
+        "You must provide a wasmTransformerUrl for the wasm terminal config, to fetch the wasi transformer"
       );
     }
 
@@ -39,7 +39,7 @@ export default class TerminalConfig {
     }
 
     // Assign our values
-    this.wasiJsTransformerWasmUrl = config.wasiJsTransformerWasmUrl;
+    this.wasmTransformerWasmUrl = config.wasmTransformerWasmUrl;
     this.processWorkerUrl = config.processWorkerUrl;
     this.callbackCommands = config.callbackCommands;
     this.additionalWasmCommands = config.additionalWasmCommands;
