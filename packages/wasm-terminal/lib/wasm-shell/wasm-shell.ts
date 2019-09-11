@@ -63,6 +63,11 @@ export default class WasmShell {
   }
 
   async prompt() {
+    // If we are already prompting, do nothing...
+    if (this._activePrompt) {
+      return;
+    }
+
     try {
       this._activePrompt = this.wasmTty.read("$ ");
       this._active = true;
@@ -408,6 +413,7 @@ export default class WasmShell {
           this.wasmTty.setCursorDirectly(0);
           this.wasmTty.print("^C\r\n");
           if (this.history) this.history.rewind();
+          this._activePrompt = undefined;
 
           // Kill the command
           if (this.commandRunner) {

@@ -1,3 +1,5 @@
+import { WASI } from "@wasmer/wasi";
+
 import { CommandOptions } from "../command-runner/command";
 
 import WASICommand from "./wasi-command";
@@ -67,11 +69,15 @@ export default class Process {
     try {
       this.wasiCommand.run();
     } catch (e) {
-      console.log("ERROR", e);
       let error = "Unknown Error";
 
-      // TODO: Get the default WASI Bindings, and check if instance of:
-      // WASIExitError or WASIKillError
+      if (e.code !== undefined) {
+        error = `exited with code: ${e.code}`;
+      } else if (e.signal !== undefined) {
+        error = `killed with signal: ${e.signal}`;
+      } else if (e.user !== undefined) {
+        error = e.message;
+      }
 
       this.errorCallback(error);
     }
