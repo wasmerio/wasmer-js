@@ -2,24 +2,8 @@ import * as randomfill from "randomfill";
 import hrtime from "browser-process-hrtime";
 import path from "path-browserify";
 
-import { WASIBindings } from "../wasi";
+import { WASIBindings, WASIExitError, WASIKillError } from "../wasi";
 import getBigIntHrtime from "../polyfills/hrtime.bigint";
-
-export class WASIExitError extends Error {
-  code: number | null;
-  constructor(code: number | null) {
-    super(`WASI Exit error: ${code}`);
-    this.code = code;
-  }
-}
-
-export class WASIKillError extends Error {
-  signal: string;
-  constructor(signal: string) {
-    super(`WASI Kill signal: ${signal}`);
-    this.signal = signal;
-  }
-}
 
 const bindings: WASIBindings = {
   hrtime: getBigIntHrtime(hrtime),

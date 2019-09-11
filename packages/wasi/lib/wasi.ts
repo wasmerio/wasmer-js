@@ -292,6 +292,22 @@ export type WASIConfig = {
   bindings: WASIBindings;
 };
 
+export class WASIExitError extends Error {
+  code: number | null;
+  constructor(code: number | null) {
+    super(`WASI Exit error: ${code}`);
+    this.code = code;
+  }
+}
+
+export class WASIKillError extends Error {
+  signal: string;
+  constructor(signal: string) {
+    super(`WASI Kill signal: ${signal}`);
+    this.signal = signal;
+  }
+}
+
 class WASI {
   memory: WebAssembly.Memory;
   view: DataViewPolyfillType;
