@@ -1,5 +1,5 @@
 [package]
-name = "wasi_js_transformer"
+name = "wasm_transformer"
 version = "0.0.1"
 authors = ["Aaron Turner <aaron@aaronthedev.com>"]
 edition = "2018"

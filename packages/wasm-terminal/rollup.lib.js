@@ -45,7 +45,7 @@ let plugins = [
   // This is needed since we will want the user to pass in the transformer wasm file
   copy({
     targets: [
-      { src: "../wasi_js_transformer/**/*", dest: "dist/wasi_js_transformer/" }
+      { src: "../wasm_transformer/**/*", dest: "dist/wasm_transformer/" }
     ]
   }),
   process.env.PROD ? terser() : undefined,
