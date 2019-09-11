@@ -5,7 +5,7 @@ import TerminalConfig from "../terminal-config";
 
 import WasmTty from "../wasm-tty/wasm-tty";
 
-import wasmInit, { lower_i64_imports } from "@wasmer/wasi_js_transformer";
+import wasmInit, { lower_i64_imports } from "@wasmer/wasm_transformer";
 
 // TODO: Allow passing in your own custom commands / wasm files
 
@@ -78,7 +78,7 @@ const getWapmUrlForCommandName = async (commandName: String) => {
 
 const getWasmModuleFromUrl = async (
   url: string,
-  wasiJsTransformerWasmUrl: string,
+  wasmTransformerWasmUrl: string,
   commandName?: string,
   wasmTty?: WasmTty
 ): Promise<WebAssembly.Module> => {
@@ -103,7 +103,7 @@ const getWasmModuleFromUrl = async (
     }
 
     // Make Modifications to the binary to support browser side WASI.
-    await wasmInit(wasiJsTransformerWasmUrl);
+    await wasmInit(wasmTransformerWasmUrl);
     binary = lower_i64_imports(binary);
 
     const wasmModule = await WebAssembly.compile(binary);
@@ -153,7 +153,7 @@ export default class CommandFetcher {
       cachedData = compiledModulesCache[commandUrl] = await Promise.all([
         getWasmModuleFromUrl(
           commandUrl,
-          this.terminalConfig.wasiJsTransformerWasmUrl,
+          this.terminalConfig.wasmTransformerWasmUrl,
           commandName,
           wasmTty
         ),

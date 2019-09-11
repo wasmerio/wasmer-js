@@ -14,11 +14,11 @@ Monorepo for all JavaScript packages, or JavaScript related Rust crates, for Was
 
 - [`packages/wasmfs`](./packages/wasmfs) - Wasi/Wasm FileSystem to be used in browsers, or for sandboxing in Node.
 
-- [`packages/wasi_js_transformer`](./packages/wasi_js_transformer) - wasm-pack output of `crates/wasi_js_transformer`.
+- [`packages/wasm_transformer`](./packages/wasm_transformer) - wasm-pack output of `crates/wasm_transformer`.
 
 - [`packages/wasm-terminal`](./packages/wasm-terminal) - A terminal/shell for interacting with Wasi/Wasm Modules that runs in the browser.
 
-- [`crates/wasi_js_transformer`](./crates/wasi_js_transformer) - Rust/Wasm crate for running transformations on Wasm module binaries.
+- [`crates/wasm_transformer`](./crates/wasm_transformer) - Rust/Wasm crate for running transformations on Wasm module binaries.
 
 ## Contributing
 
@@ -48,7 +48,7 @@ To make changes to any of the sub projects, they can be tested by either: Runnin
 
 3. Download / Clone your fork to a local repository. Navigate into the `wasmer-js/crates/you_package_here` directory.
 
-4. Run the respecitve build / tests commands. For example, for `wasi_js_transformer` you would run `./wapm_shell_build.sh` to execute the bash script, which handles:
+4. Run the respecitve build / tests commands. For example, for `wasm_transformer` you would run `./wasm_transformer_build.sh` to execute the bash script, which handles:
 
 - Running Clippy
 

@@ -65,4 +65,4 @@ function getStringFromWasm(ptr, len) {
 module.exports.__wbindgen_throw = function(arg0, arg1) {
   throw new Error(getStringFromWasm(arg0, arg1));
 };
-wasm = require("./wasi_js_transformer_bg");
+wasm = require("./wasm_transformer_bg");

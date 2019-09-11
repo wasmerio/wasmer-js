@@ -33,27 +33,16 @@ echo "============================================="
 echo " "
 
 wasm-pack build --target web
-npx json -I -f pkg/package.json -e 'this.name="@wasmer/wasi_js_transformer"'
+npx json -I -f pkg/package.json -e 'this.name="@wasmer/wasm_transformer"'
 
 echo " "
 echo "============================================="
-echo "Moving pkg to wasi_js_transformer"
+echo "Moving pkg to wasm_transformer"
 echo "============================================="
 echo " "
 
-cp -r pkg/ ../../packages/wasi_js_transformer
-rm ../../packages/wasi_js_transformer/.gitignore || true
-
-
-echo " "
-echo "============================================="
-echo "Moving pkg to wapm-shell"
-echo "============================================="
-echo " "
-
-cp -r pkg/ ../../examples/wasm-shell/assets/wasi-js-transformer
-rm ../../examples/wasm-shell/assets/wasi-js-transformer/.gitignore || true
-rm ../../examples/wasm-shell/assets/wasi-js-transformer/README.md || true
+cp -r pkg/ ../../packages/wasm_transformer
+rm ../../packages/wasm_transformer/.gitignore || true
 
 echo " "
 echo "============================================="
@@ -62,17 +51,17 @@ echo "============================================="
 echo " "
 
 wasm-pack build --target nodejs
-npx json -I -f pkg/package.json -e 'this.name="@wasmer/wasi_js_transformer"'
+npx json -I -f pkg/package.json -e 'this.name="@wasmer/wasm_transformer"'
 
 echo " "
 echo "============================================="
-echo "Moving pkg to wapm-shell"
+echo "Moving pkg to node stubbed"
 echo "============================================="
 echo " "
 
-cp -r pkg/ ../../examples/node-stubbed/wasi-js-transformer
-rm ../../examples/node-stubbed/wasi-js-transformer/.gitignore || true
-rm ../../examples/node-stubbed/wasi-js-transformer/README.md || true
+cp -r pkg/ ../../examples/node-stubbed/wasm_transformer
+rm ../../examples/node-stubbed/wasm_transformer/.gitignore || true
+rm ../../examples/node-stubbed/wasm_transformer/README.md || true
 
 
 echo " "

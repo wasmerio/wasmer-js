@@ -33,7 +33,7 @@
   "homepage": "https://github.com/wasmerio/wasmer-js/tree/master/packages/wasm-terminal",
   "dependencies": {
     "@wasmer/wasi": "^0.0.1",
-    "@wasmer/wasi_js_transformer": "^0.0.1",
+    "@wasmer/wasm_transformer": "^0.0.1",
     "@wasmer/wasmfs": "^0.0.1",
     "comlink": "^4.0.2",
     "shell-parse": "0.0.2",
