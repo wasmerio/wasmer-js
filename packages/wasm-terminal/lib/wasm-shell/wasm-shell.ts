@@ -76,6 +76,17 @@ export default class WasmShell {
         this.commandRunner.kill();
       }
 
+      if (line === "!!") {
+        // This means run the previous command
+        if (this.history && this.history.entries.length > 0) {
+          line = this.history.entries[this.history.entries.length - 1];
+        } else {
+          throw new Error("No Previous command in History");
+        }
+      } else if (this.history) {
+        this.history.push(this.wasmTty.getInput());
+      }
+
       this.commandRunner = new CommandRunner(
         this.terminalConfig,
         this.wasmTty,
@@ -95,16 +106,11 @@ export default class WasmShell {
           });
         },
         // Wasm Module Cache Callback
-        (wasmModuleName: string) => {
-          if (this.history.includes(wasmModuleName)) {
-            return;
-          }
-          this.history.push(wasmModuleName);
-        }
+        (wasmModuleName: string) => {}
       );
       await this.commandRunner.runCommand();
     } catch (e) {
-      this.wasmTty.println(`Error: ${e.toString()}`);
+      this.wasmTty.println(`${e.toString()}`);
       // tslint:disable-next-line
       this.prompt();
     }
@@ -208,9 +214,6 @@ export default class WasmShell {
    * Handle input completion
    */
   handleReadComplete = () => {
-    if (this.history) {
-      this.history.push(this.wasmTty.getInput());
-    }
     if (this._activePrompt && this._activePrompt.resolve) {
       this._activePrompt.resolve(this.wasmTty.getInput());
       this._activePrompt = undefined;
@@ -223,7 +226,10 @@ export default class WasmShell {
    * Handle terminal -> tty input
    */
   handleTermData = (data: string) => {
-    if (!this._active) return;
+    // Only Allow CTRL+C Through
+    if (!this._active && data !== "\x03") {
+      return;
+    }
     if (this.wasmTty.getFirstInit() && this._activePrompt) {
       let line = this.wasmTty
         .getBuffer()
@@ -261,7 +267,11 @@ export default class WasmShell {
    * Handle a single piece of information from the terminal -> tty.
    */
   handleData = (data: string) => {
-    if (!this._active) return;
+    // Only Allow CTRL+C Through
+    if (!this._active && data !== "\x03") {
+      return;
+    }
+
     const ord = data.charCodeAt(0);
     let ofs;
 
@@ -307,6 +317,8 @@ export default class WasmShell {
           this.wasmTty.setCursor(0);
           break;
 
+        // case "b": // ALT + a
+
         case "b": // ALT + LEFT
           ofs = closestLeftBoundary(
             this.wasmTty.getInput(),
@@ -342,6 +354,8 @@ export default class WasmShell {
     } else if (ord < 32 || ord === 0x7f) {
       switch (data) {
         case "\r": // ENTER
+        case "\x0a": // CTRL+J
+        case "\x0d": // CTRL+M
           if (isIncompleteInput(this.wasmTty.getInput())) {
             this.handleCursorInsert("\n");
           } else {
@@ -350,6 +364,8 @@ export default class WasmShell {
           break;
 
         case "\x7F": // BACKSPACE
+        case "\x08": // CTRL+H
+        case "\x04": // CTRL+D
           this.handleCursorErase(true);
           break;
 
@@ -407,7 +423,16 @@ export default class WasmShell {
           }
           break;
 
+        case "\x01": // CTRL+A
+          this.wasmTty.setCursor(0);
+          break;
+
+        case "\x02": // CTRL+B
+          this.handleCursorMove(-1);
+          break;
+
         case "\x03": // CTRL+C
+        case "\x1a": // CTRL+Z
           this.wasmTty.setCursor(this.wasmTty.getInput().length);
           this.wasmTty.setInput("");
           this.wasmTty.setCursorDirectly(0);
@@ -420,6 +445,57 @@ export default class WasmShell {
             this.commandRunner.kill();
             this.commandRunner = undefined;
           }
+          break;
+
+        case "\x05": // CTRL+E
+          this.wasmTty.setCursor(this.wasmTty.getInput().length);
+          break;
+
+        case "\x06": // CTRL+F
+          this.handleCursorMove(1);
+          break;
+
+        case "\x07": // CTRL+G
+          if (this.history) this.history.rewind();
+          this.wasmTty.setInput("");
+          break;
+
+        case "\x0b": // CTRL+K
+          this.wasmTty.setInput(
+            this.wasmTty.getInput().substring(0, this.wasmTty.getCursor())
+          );
+          this.wasmTty.setCursor(this.wasmTty.getInput().length);
+          break;
+
+        case "\x0c": // CTRL+L
+          this.wasmTty.clearTty();
+          this.wasmTty.print(`$ ${this.wasmTty.getInput()}`);
+          break;
+
+        case "\x0e": // CTRL+N
+          if (this.history) {
+            let value = this.history.getNext();
+            if (!value) value = "";
+            this.wasmTty.setInput(value);
+            this.wasmTty.setCursor(value.length);
+          }
+          break;
+
+        case "\x10": // CTRL+P
+          if (this.history) {
+            let value = this.history.getPrevious();
+            if (value) {
+              this.wasmTty.setInput(value);
+              this.wasmTty.setCursor(value.length);
+            }
+          }
+          break;
+
+        case "\x15": // CTRL+U
+          this.wasmTty.setInput(
+            this.wasmTty.getInput().substring(this.wasmTty.getCursor())
+          );
+          this.wasmTty.setCursor(0);
           break;
       }
 
