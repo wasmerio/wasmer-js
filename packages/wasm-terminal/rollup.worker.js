@@ -17,6 +17,7 @@ const sourcemapOption = process.env.PROD ? undefined : "inline";
 
 let typescriptPluginOptions = {
   tsconfig: "../../tsconfig.json",
+  exclude: ["./test/**/*"],
   clean: process.env.PROD ? true : false,
   objectHashIgnoreUnknownHack: true
 };

@@ -19,6 +19,7 @@ const sourcemapOption = process.env.PROD ? undefined : "inline";
 
 let typescriptPluginOptions = {
   tsconfig: "../../tsconfig.json",
+  exclude: ["./test/**/*"],
   clean: process.env.PROD ? true : false,
   objectHashIgnoreUnknownHack: true
 };
@@ -31,7 +32,16 @@ const replaceWasiJsTransformerOptions = {
   }
 };
 
+const replaceBrowserOptions = {
+  delimiters: ["", ""],
+  values: {
+    "/*ROLLUP_REPLACE_BROWSER": "",
+    "ROLLUP_REPLACE_BROWSER*/": ""
+  }
+};
+
 let plugins = [
+  replace(replaceBrowserOptions),
   replace(replaceWasiJsTransformerOptions),
   typescript(typescriptPluginOptions),
   resolve({
