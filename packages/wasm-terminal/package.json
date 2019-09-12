@@ -5,6 +5,12 @@
   "module": "dist/index.esm.js",
   "browser": "dist/index.iife.js",
   "typings": "dist/packages/wasm-terminal/lib/index.d.ts",
+  "files": [
+    "dist",
+    "package.json",
+    "../../LICENSE",
+    "README.md"
+  ],
   "scripts": {
     "postinstall": "npm run build",
     "build": "npx rollup -c --environment LIB,WORKER,PROD",
