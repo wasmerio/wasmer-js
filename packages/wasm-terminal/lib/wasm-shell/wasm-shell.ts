@@ -17,6 +17,7 @@ import TerminalConfig from "../terminal-config";
 import WasmTty from "../wasm-tty/wasm-tty";
 
 import CommandRunner from "../command-runner/command-runner";
+import CommandFetcher from "../command-runner/command-fetcher";
 
 /**
  * A shell is the primary interface that is used to start other programs.
@@ -32,6 +33,7 @@ export default class WasmShell {
   terminalConfig: TerminalConfig;
   wasmTty: WasmTty;
   history: ShellHistory;
+  commandFetcher: CommandFetcher;
   commandRunner?: CommandRunner;
 
   maxAutocompleteEntries: number;
@@ -51,6 +53,7 @@ export default class WasmShell {
     this.terminalConfig = terminalConfig;
     this.wasmTty = wasmTty;
     this.history = new ShellHistory(options.historySize);
+    this.commandFetcher = new CommandFetcher(this.terminalConfig);
     this.commandRunner = undefined;
 
     this.maxAutocompleteEntries = options.maxAutocompleteEntries;
@@ -93,13 +96,9 @@ export default class WasmShell {
             this.prompt();
           });
         },
-        // Wasm Module Cache Callback
-        (wasmModuleName: string) => {
-          if (this.history.includes(wasmModuleName)) {
-            return;
-          }
-          this.history.push(wasmModuleName);
-        },
+        // Command Fetcher
+        this.commandFetcher,
+        // TTY
         this.wasmTty
       );
       await this.commandRunner.runCommand();

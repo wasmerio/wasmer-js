@@ -97,15 +97,14 @@ export default class CommandFetcher {
       }
 
       // Fetch the wasm modules, but at least show the message for a short while
-      cachedData = this.commandToCompiledModuleCache[
-        commandName
-      ] = await Promise.all([
+      cachedData = await Promise.all([
         this._getWasmModuleFromBinary(
           commandBinary,
           this.terminalConfig.wasmTransformerWasmUrl
         ),
         new Promise(resolve => setTimeout(resolve, 500))
       ]).then(responses => responses[0]);
+      this.commandToCompiledModuleCache[commandName] = cachedData;
 
       if (wasmTty) {
         // Restore the cursor position

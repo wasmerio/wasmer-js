@@ -9,8 +9,9 @@ import TerminalConfig, { CallbackCommand } from "../terminal-config";
 
 import WasmTty from "../wasm-tty/wasm-tty";
 
+let processWorkerBlobUrl: string | undefined;
+
 export default class CommandRunner {
-  commandFetcher: CommandFetcher;
   commandOptionsForProcessesToRun: Array<any>;
   spawnedProcessObjects: Array<any>;
   spawnedProcesses: number;
@@ -23,29 +24,27 @@ export default class CommandRunner {
 
   commandStartReadCallback: Function;
   commandEndCallback: Function;
-  commandFetcherCallback: Function;
+  commandFetcher: CommandFetcher;
 
   wasmTty?: WasmTty;
-  processWorkerBlobUrl?: string;
 
   constructor(
     terminalConfig: TerminalConfig,
     commandString: string,
     commandStartReadCallback: Function,
     commandEndCallback: Function,
-    commandFetcherCallback: Function,
+    commandFetcher: CommandFetcher,
     wasmTty?: WasmTty
   ) {
     this.terminalConfig = terminalConfig;
     this.commandString = commandString;
     this.commandStartReadCallback = commandStartReadCallback;
     this.commandEndCallback = commandEndCallback;
-    this.commandFetcherCallback = commandFetcherCallback;
+    this.commandFetcher = commandFetcher;
     if (wasmTty) {
       this.wasmTty = wasmTty;
     }
 
-    this.commandFetcher = new CommandFetcher(this.terminalConfig);
     this.commandOptionsForProcessesToRun = [];
     this.spawnedProcessObjects = [];
     this.spawnedProcesses = 0;
@@ -72,7 +71,6 @@ export default class CommandRunner {
       this.commandOptionsForProcessesToRun = await this._getCommandOptionsFromAST(
         commandAst[0],
         this.commandFetcher,
-        this.commandFetcherCallback,
         this.terminalConfig,
         this.wasmTty
       );
@@ -312,8 +310,8 @@ export default class CommandRunner {
     processWorkerUrl: string,
     wasmTty?: WasmTty
   ) {
-    if (this.processWorkerBlobUrl) {
-      return this.processWorkerBlobUrl;
+    if (processWorkerBlobUrl) {
+      return processWorkerBlobUrl;
     }
 
     if (wasmTty) {
@@ -340,14 +338,13 @@ export default class CommandRunner {
 
     // Create the worker blob and URL
     const workerBlob = new Blob([workerString]);
-    this.processWorkerBlobUrl = window.URL.createObjectURL(workerBlob);
-    return this.processWorkerBlobUrl;
+    processWorkerBlobUrl = window.URL.createObjectURL(workerBlob);
+    return processWorkerBlobUrl;
   }
 
   async _getCommandOptionsFromAST(
     ast: any,
     commandFetcher: CommandFetcher,
-    commandFetcherCallback: Function,
     terminalConfig: TerminalConfig,
     wasmTty?: WasmTty
   ): Promise<Array<CommandOptions>> {
@@ -378,7 +375,6 @@ export default class CommandRunner {
           const redirectedCommandOptions = await this._getCommandOptionsFromAST(
             astRedirect.command,
             commandFetcher,
-            commandFetcherCallback,
             terminalConfig,
             wasmTty
           );
@@ -414,7 +410,6 @@ export default class CommandRunner {
           env,
           callback: callbackCommandFunction
         });
-        commandFetcherCallback(command);
         return commandOptions;
       });
     } else {
@@ -427,7 +422,6 @@ export default class CommandRunner {
             env,
             module: wasmModule
           });
-          commandFetcherCallback(command);
           return commandOptions;
         });
     }
