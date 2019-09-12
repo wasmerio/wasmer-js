@@ -193,6 +193,20 @@ export default class WasmTTY {
   }
 
   /**
+   * Clears the entire Tty
+   *
+   * This function will erase all the lines that display on the tty,
+   * and move the cursor in the beginning of the first line of the prompt.
+   */
+  clearTty() {
+    // Clear the screen
+    this.xterm.write("\u001b[2J");
+    // Set the cursor to 0, 0
+    this.xterm.write("\u001b[0;0H");
+    this._cursor = 0;
+  }
+
+  /**
    * Function to return if it is the initial read
    */
   getFirstInit(): boolean {

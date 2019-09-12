@@ -244,6 +244,8 @@ export default class CommandRunner {
   }
 
   _processDataCallback(commandOptionIndex: number, data: Uint8Array) {
+    if (!this.isRunning) return;
+
     if (commandOptionIndex < this.commandOptionsForProcessesToRun.length - 1) {
       // Pass along to the next spawned process
       if (

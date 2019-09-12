@@ -7,11 +7,16 @@
   "browser": "dist/index.iife.js",
   "typings": "dist/packages/wasmfs/lib/index.d.ts",
   "files": [
-    "dist"
+    "dist",
+    "package.json",
+    "../../LICENSE",
+    "README.md"
   ],
   "scripts": {
     "postinstall": "npm run build",
     "build": "npx rollup -c --environment PROD",
+    "test": "npx jest --config jest.config.js",
+    "test:watch": "npx jest --config jest.config.js --watch",
     "docs": "npx typedoc lib/ --out docs --target es6 --theme minimal --mode file"
   },
   "repository": {
