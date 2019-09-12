@@ -78,7 +78,6 @@ export default class WasmShell {
 
       this.commandRunner = new CommandRunner(
         this.terminalConfig,
-        this.wasmTty,
         line,
         // Command Read Callback
         async () => {
@@ -100,7 +99,8 @@ export default class WasmShell {
             return;
           }
           this.history.push(wasmModuleName);
-        }
+        },
+        this.wasmTty
       );
       await this.commandRunner.runCommand();
     } catch (e) {
