@@ -12,7 +12,7 @@ Isomorphic library for interacting with WASI Modules within Javascript easily. �
 
 ## Features
 
-This project is based from [node-wasi](https://github.com/devsnek/node-wasi), a Node implementation made by Gus Caplan. 🙏😄
+This project is forked from [node-wasi](https://github.com/devsnek/node-wasi), a Node implementation made by Gus Caplan. 🙏😄
 
 However, `@wasmer/wasi` is focused on:
 
