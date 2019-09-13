@@ -19,6 +19,7 @@ However, `@wasmer/wasi` is focused on:
 - Bringing [WASI](https://wasi.dev/) to an Isomorphic context (Node.js and the Browser) 🖥️
 - Make it easy to plug in different filesystems (via [wasmfs](../wasmfs)) 📂
 - Make it type-safe using [Typescript](http://www.typescriptlang.org/) 👷
+- ~ 15KB minified + gzipped 📦
 
 ## Installation
 
