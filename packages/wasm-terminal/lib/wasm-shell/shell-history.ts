@@ -1,7 +1,7 @@
 /**
  * The shell history provides an ring-buffer
  */
-export class ShellHistory {
+export default class ShellHistory {
   size: number;
   entries: Array<string>;
   cursor: number;
