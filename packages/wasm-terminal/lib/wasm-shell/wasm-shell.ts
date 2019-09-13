@@ -7,7 +7,7 @@ import {
   closestRightBoundary,
   collectAutocompleteCandidates,
   getLastToken,
-  hasTailingWhitespace,
+  hasTrailingWhitespace,
   isIncompleteInput
 } from "./shell-utils";
 import ShellHistory from "./shell-history";
@@ -378,7 +378,7 @@ export default class WasmShell {
             const inputFragment = this.wasmTty
               .getInput()
               .substr(0, this.wasmTty.getCursor());
-            const hasTailingSpace = hasTailingWhitespace(inputFragment);
+            const hasTrailingSpace = hasTrailingWhitespace(inputFragment);
             const candidates = collectAutocompleteCandidates(
               this._autocompleteHandlers,
               inputFragment
@@ -391,7 +391,7 @@ export default class WasmShell {
             // a different way.
             if (candidates.length === 0) {
               // No candidates? Just add a space if there is none already
-              if (!hasTailingSpace) {
+              if (!hasTrailingSpace) {
                 this.handleCursorInsert(" ");
               }
             } else if (candidates.length === 1) {
