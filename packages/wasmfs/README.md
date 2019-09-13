@@ -17,7 +17,7 @@ This project heavily depends on [memfs](https://github.com/streamich/memfs) to p
 This package provides the following features:
 
 - In-memory file-system with Node's fs API using [memfs](https://github.com/streamich/memfs). 🗄️
-- Scaffolds common shell I/O device files (e.g `/dev/stdout`), to provide a similar experience to the [Wasmer Runtime](https://github.com/wasmerio/wasmer). 🔌
+- Scaffolds common files used by the [Wasmer Runtime](https://github.com/wasmerio/wasmer) (e.g I/O Device files like `/dev/stdout`), to provide a similar experience to the Wasmer Runtime. 🔌
 - Provides convienence functions for grabbing Input / Output. ↔️
 - Allows overriding read/write of individual files to allow for custom implementations. 🛠️
 
