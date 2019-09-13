@@ -1,4 +1,5 @@
 // Rollup Config for the Wapm Shell Example
+// NOTE: URLs are relative to the project root for this rollup config
 
 import resolve from "rollup-plugin-node-resolve";
 import commonjs from "rollup-plugin-commonjs";

@@ -17,6 +17,7 @@ const mkdirp = require("mkdirp");
 
 let typescriptPluginOptions = {
   tsconfig: "../../tsconfig.json",
+  exclude: ["./test/**/*"],
   clean: process.env.PROD ? true : false
 };
 
