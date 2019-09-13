@@ -10,7 +10,7 @@ import {
   hasTailingWhitespace,
   isIncompleteInput
 } from "./shell-utils";
-import { ShellHistory } from "./shell-history";
+import ShellHistory from "./shell-history";
 
 import TerminalConfig from "../terminal-config";
 
