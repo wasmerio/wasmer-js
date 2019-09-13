@@ -87,8 +87,7 @@ export function isIncompleteInput(input: string) {
 /**
  * Returns true if the expression ends on a tailing whitespace
  */
-// TODO: Tailing -> Trailing
-export function hasTailingWhitespace(input: string) {
+export function hasTrailingWhitespace(input: string) {
   return input.match(/[^\\][ \t]$/m) !== null;
 }
 
@@ -98,7 +97,7 @@ export function hasTailingWhitespace(input: string) {
 export function getLastToken(input: string): string {
   // Empty expressions
   if (input.trim() === "") return "";
-  if (hasTailingWhitespace(input)) return "";
+  if (hasTrailingWhitespace(input)) return "";
 
   // Last token
   const tokens = parse(input);
@@ -120,7 +119,7 @@ export function collectAutocompleteCandidates(
   if (input.trim() === "") {
     index = 0;
     expr = "";
-  } else if (hasTailingWhitespace(input)) {
+  } else if (hasTrailingWhitespace(input)) {
     // Expressions with danging space
     index += 1;
     expr = "";

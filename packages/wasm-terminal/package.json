@@ -16,7 +16,7 @@
     "build": "npx rollup -c --environment LIB,WORKER,PROD",
     "dev": "npx rollup -c -w --environment LIB,WORKER",
     "test": "npx jest --config jest.config.js",
-    "test:watch": "npx jest --config jest.config.js --watch",
+    "test:watch": "npx jest --config jest.config.js --watchAll",
     "docs": "npx typedoc lib/ --out docs --target es6 --theme minimal --mode file"
   },
   "repository": {
