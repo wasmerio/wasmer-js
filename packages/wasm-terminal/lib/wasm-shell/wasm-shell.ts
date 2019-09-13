@@ -90,34 +90,41 @@ export default class WasmShell {
         this.history.push(this.wasmTty.getInput());
       }
 
-      this.commandRunner = new CommandRunner(
-        this.terminalConfig,
-        line,
-        // Command Read Callback
-        async () => {
-          this._activePrompt = this.wasmTty.read("");
-          this._active = true;
-          return this._activePrompt.promise;
-        },
-        // Command End Callback
-        () => {
-          // Doing a set timeout to allow whatever killed the process to do it's thing first
-          setTimeout(() => {
-            // tslint:disable-next-line
-            this.prompt();
-          });
-        },
-        // Command Fetcher
-        this.commandFetcher,
-        // TTY
-        this.wasmTty
-      );
+      this.commandRunner = this.getCommandRunner(line);
       await this.commandRunner.runCommand();
     } catch (e) {
       this.wasmTty.println(`${e.toString()}`);
       // tslint:disable-next-line
       this.prompt();
     }
+  }
+
+  /**
+   * This function returns a command runner for the specified line
+   */
+  getCommandRunner(line: string) {
+    return new CommandRunner(
+      this.terminalConfig,
+      line,
+      // Command Read Callback
+      async () => {
+        this._activePrompt = this.wasmTty.read("");
+        this._active = true;
+        return this._activePrompt.promise;
+      },
+      // Command End Callback
+      () => {
+        // Doing a set timeout to allow whatever killed the process to do it's thing first
+        setTimeout(() => {
+          // tslint:disable-next-line
+          this.prompt();
+        });
+      },
+      // Command Fetcher
+      this.commandFetcher,
+      // TTY
+      this.wasmTty
+    );
   }
 
   /**
