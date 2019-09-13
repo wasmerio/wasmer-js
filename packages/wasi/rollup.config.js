@@ -30,6 +30,7 @@ const replaceBrowserOptions = {
 
 let typescriptPluginOptions = {
   tsconfig: "../../tsconfig.json",
+  exclude: ["./test/**/*"],
   clean: process.env.PROD ? true : false,
   objectHashIgnoreUnknownHack: true
 };

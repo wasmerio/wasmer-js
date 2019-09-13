@@ -5,12 +5,13 @@ import TerminalConfig from "../terminal-config";
 
 import WasmTty from "../wasm-tty/wasm-tty";
 
+let wasmTransformerInit: any = () => {};
+let lowerI64Imports: any = () => {};
+/*ROLLUP_REPLACE_BROWSER
 import wasmInit, { lower_i64_imports } from "@wasmer/wasm_transformer";
-
-// TODO: Allow passing in your own custom commands / wasm files
-
-let commandToUrlCache: { [key: string]: string } = {};
-let compiledModulesCache: { [key: string]: WebAssembly.Module } = {};
+wasmTransformerInit = wasmInit;
+lowerI64Imports = lower_i64_imports;
+ROLLUP_REPLACE_BROWSER*/
 
 const WAPM_GRAPHQL_QUERY = `query shellGetCommandQuery($command: String!) {
   command: getCommand(name: $command) {
@@ -27,95 +28,17 @@ const WAPM_GRAPHQL_QUERY = `query shellGetCommandQuery($command: String!) {
   }
 }`;
 
-const getWapmUrlForCommandName = async (commandName: String) => {
-  return await fetch("https://registry.wapm.io/graphql", {
-    method: "POST",
-    mode: "cors",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      operationName: "shellGetCommandQuery",
-      query: WAPM_GRAPHQL_QUERY,
-      variables: {
-        command: commandName
-      }
-    })
-  })
-    .then(response => response.json())
-    .then(response => {
-      const optionalChaining = (baseObject: any, chain: Array<string>): any => {
-        const newObject = baseObject[chain[0]];
-        chain.shift();
-        if (newObject) {
-          if (chain.length > 1) {
-            return optionalChaining(newObject, chain);
-          }
-
-          return true;
-        }
-        return false;
-      };
-
-      if (
-        optionalChaining(response, ["data", "command", "module", "publicUrl"])
-      ) {
-        const wapmModule = response.data.command.module;
-
-        if (wapmModule.abi !== "wasi") {
-          throw new Error(
-            `${commandName} does not use the wasi abi. Currently, only the wasi abi is supported on the wapm shell.`
-          );
-        }
-
-        return wapmModule.publicUrl;
-      } else {
-        throw new Error(`command not found ${commandName}`);
-      }
-    });
-};
-
-const getWasmModuleFromUrl = async (
-  url: string,
-  wasmTransformerWasmUrl: string,
-  commandName?: string,
-  wasmTty?: WasmTty
-): Promise<WebAssembly.Module> => {
-  // @ts-ignore
-  if (WebAssembly.compileStreaming && false) {
-    // @ts-ignore
-    return await WebAssembly.compileStreaming(fetch(url));
-  } else {
-    let fetched = await fetch(url);
-    let buffer = await fetched.arrayBuffer();
-    let binary = new Uint8Array(buffer);
-
-    if (commandName && wasmTty) {
-      // Restore the cursor position
-      wasmTty.print("\u001b[u");
-
-      // Clear from cursor to end of screen
-      wasmTty.print("\u001b[1000D");
-      wasmTty.print("\u001b[0J");
-
-      wasmTty.print(`[INFO] Doing Transformations for "${commandName}"`);
-    }
-
-    // Make Modifications to the binary to support browser side WASI.
-    await wasmInit(wasmTransformerWasmUrl);
-    binary = lower_i64_imports(binary);
-
-    const wasmModule = await WebAssembly.compile(binary);
-    return wasmModule;
-  }
-};
-
 export default class CommandFetcher {
   terminalConfig: TerminalConfig;
+  commandToBinaryCache: { [key: string]: Uint8Array };
+  commandToCompiledModuleCache: { [key: string]: WebAssembly.Module };
+  additionalCommandsToUrl: { [key: string]: string };
 
   constructor(terminalConfig: TerminalConfig) {
     this.terminalConfig = terminalConfig;
+    this.commandToBinaryCache = {};
+    this.commandToCompiledModuleCache = {};
+    this.additionalCommandsToUrl = {};
 
     // Fill our command to URL Cache with the
     // "additionalWasmCommands" in the Terminal Config
@@ -124,7 +47,7 @@ export default class CommandFetcher {
         commandName => {
           // Using as any on next line as it thinks additionalWasmCommands may be undefined,
           // Even though we check above if it is not.
-          commandToUrlCache[commandName] = (this.terminalConfig
+          this.additionalCommandsToUrl[commandName] = (this.terminalConfig
             .additionalWasmCommands as any)[commandName];
         }
       );
@@ -132,14 +55,16 @@ export default class CommandFetcher {
   }
 
   async getWasmModuleForCommandName(commandName: string, wasmTty?: WasmTty) {
-    let commandUrl = commandToUrlCache[commandName];
-    if (!commandUrl) {
-      commandUrl = await getWapmUrlForCommandName(commandName);
-      commandToUrlCache[commandName] = commandUrl;
-    }
+    let commandBinary = this.commandToBinaryCache[commandName];
+    if (!commandBinary) {
+      // Check if we were passed a resource to get this command name binary
+      let commandUrl = undefined;
+      if (this.additionalCommandsToUrl[commandName]) {
+        commandUrl = this.additionalCommandsToUrl[commandName];
+      } else {
+        commandUrl = await this._getWapmUrlForCommandName(commandName);
+      }
 
-    let cachedData = compiledModulesCache[commandUrl];
-    if (!cachedData) {
       if (wasmTty) {
         // Save the cursor position
         wasmTty.print("\u001b[s");
@@ -149,16 +74,37 @@ export default class CommandFetcher {
         );
       }
 
+      commandBinary = await this._getBinaryFromUrl(commandUrl);
+      this.commandToBinaryCache[commandName] = commandBinary;
+
+      if (wasmTty) {
+        // Restore the cursor position
+        wasmTty.print("\u001b[u");
+
+        // Clear from cursor to end of screen
+        wasmTty.print("\u001b[1000D");
+        wasmTty.print("\u001b[0J");
+      }
+    }
+
+    let cachedData = this.commandToCompiledModuleCache[commandName];
+    if (!cachedData) {
+      if (wasmTty) {
+        // Save the cursor position
+        wasmTty.print("\u001b[s");
+
+        wasmTty.print(`[INFO] Doing Transformations for "${commandName}"`);
+      }
+
       // Fetch the wasm modules, but at least show the message for a short while
-      cachedData = compiledModulesCache[commandUrl] = await Promise.all([
-        getWasmModuleFromUrl(
-          commandUrl,
-          this.terminalConfig.wasmTransformerWasmUrl,
-          commandName,
-          wasmTty
+      cachedData = await Promise.all([
+        this._getWasmModuleFromBinary(
+          commandBinary,
+          this.terminalConfig.wasmTransformerWasmUrl
         ),
         new Promise(resolve => setTimeout(resolve, 500))
       ]).then(responses => responses[0]);
+      this.commandToCompiledModuleCache[commandName] = cachedData;
 
       if (wasmTty) {
         // Restore the cursor position
@@ -171,5 +117,72 @@ export default class CommandFetcher {
     }
 
     return cachedData;
+  }
+
+  async _getWapmUrlForCommandName(commandName: String) {
+    const fetchResponse = await fetch("https://registry.wapm.io/graphql", {
+      method: "POST",
+      mode: "cors",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        operationName: "shellGetCommandQuery",
+        query: WAPM_GRAPHQL_QUERY,
+        variables: {
+          command: commandName
+        }
+      })
+    });
+    const response = await fetchResponse.json();
+
+    const optionalChaining = (baseObject: any, chain: Array<string>): any => {
+      const newObject = baseObject[chain[0]];
+      chain.shift();
+      if (newObject) {
+        if (chain.length > 1) {
+          return optionalChaining(newObject, chain);
+        }
+
+        return true;
+      }
+      return false;
+    };
+
+    if (
+      optionalChaining(response, ["data", "command", "module", "publicUrl"])
+    ) {
+      const wapmModule = response.data.command.module;
+
+      if (wapmModule.abi !== "wasi") {
+        throw new Error(
+          `${commandName} does not use the wasi abi. Currently, only the wasi abi is supported on the wapm shell.`
+        );
+      }
+
+      return wapmModule.publicUrl;
+    } else {
+      throw new Error(`command not found ${commandName}`);
+    }
+  }
+
+  async _getBinaryFromUrl(url: string) {
+    const fetched = await fetch(url);
+    const buffer = await fetched.arrayBuffer();
+    return new Uint8Array(buffer);
+  }
+
+  async _getWasmModuleFromBinary(
+    commandBinary: Uint8Array,
+    wasmTransformerWasmUrl: string
+  ): Promise<WebAssembly.Module> {
+    // Make Modifications to the binary to support browser side WASI.
+    let transformedBinary = commandBinary;
+    await wasmTransformerInit(wasmTransformerWasmUrl);
+    transformedBinary = lowerI64Imports(transformedBinary);
+
+    const wasmModule = await WebAssembly.compile(transformedBinary);
+    return wasmModule;
   }
 }
