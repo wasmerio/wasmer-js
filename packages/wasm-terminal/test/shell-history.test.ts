@@ -42,4 +42,20 @@ describe("ShellHistory", () => {
     const entry = shellHistory.getPrevious();
     expect(entry).toBe("test3");
   });
+
+  it("should return the last element if you continually getPrevious()", async () => {
+    for (let i = 0; i < 11; i++) {
+      shellHistory.getPrevious();
+    }
+    const entry = shellHistory.getPrevious();
+    expect(entry).toBe("test");
+  });
+
+  it("should return undefined if you continually getNext()", async () => {
+    for (let i = 0; i < 11; i++) {
+      shellHistory.getNext();
+    }
+    const entry = shellHistory.getNext();
+    expect(entry).toBe(undefined);
+  });
 });
