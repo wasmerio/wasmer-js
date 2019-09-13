@@ -28,6 +28,7 @@ However, JavaScript WASI is focused on:
  * Bringing WASI to the Browsers
  * Make easy to plug different filesystems
  * Provide a type-safe api using Typescript
+ * Providing multiple output targets to support both browsers and node
 
 
 Copyright 2019 Gus Caplan
@@ -286,10 +287,10 @@ export type WASIArgs = string[];
 export type WASIEnv = { [key: string]: string | undefined };
 export type WASIPreopenedDirs = { [key: string]: string };
 export type WASIConfig = {
-  preopenDirectories: WASIPreopenedDirs;
-  env: WASIEnv;
-  args: WASIArgs;
-  bindings: WASIBindings;
+  preopenDirectories?: WASIPreopenedDirs;
+  env?: WASIEnv;
+  args?: WASIArgs;
+  bindings?: WASIBindings;
 };
 
 export class WASIExitError extends Error {
@@ -316,12 +317,25 @@ class WASI {
   bindings: WASIBindings;
   static defaultBindings: WASIBindings = defaultBindings;
 
-  constructor({
-    preopenDirectories = {},
-    env = {},
-    args = [],
-    bindings = defaultBindings
-  }: WASIConfig) {
+  constructor(wasiConfig?: WASIConfig) {
+    // Destructur our wasiConfig
+    let preopenDirectories: WASIPreopenedDirs = {};
+    if (wasiConfig && wasiConfig.preopenDirectories) {
+      preopenDirectories = wasiConfig.preopenDirectories;
+    }
+    let env: WASIEnv = {};
+    if (wasiConfig && wasiConfig.env) {
+      env = wasiConfig.env;
+    }
+    let args: WASIArgs = [];
+    if (wasiConfig && wasiConfig.args) {
+      args = wasiConfig.args;
+    }
+    let bindings: WASIBindings = defaultBindings;
+    if (wasiConfig && wasiConfig.bindings) {
+      bindings = wasiConfig.bindings;
+    }
+
     // @ts-ignore
     this.memory = undefined;
     // @ts-ignore

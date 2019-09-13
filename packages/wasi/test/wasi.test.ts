@@ -11,7 +11,7 @@ bigIntPolyfill.BigIntPolyfill = global.Number;
 if ((global as any).BigInt) {
   bigIntPolyfill.BigIntPolyfill = (global as any).BigInt;
 }
-import { WASI } from "../lib";
+import WASI from "../lib";
 import WASINodeBindings from "../lib/bindings/node";
 
 // @ts-ignore
@@ -97,6 +97,22 @@ describe("WASI interaction", () => {
     wasmerFileSystem = new WasmerFileSystem();
     wasmerFileSystem.fs.mkdirSync("/sandbox");
     wasmerFileSystem.fs.writeFileSync("/sandbox/file1", "contents1");
+  });
+
+  it("Can instantiate with undefined paramaters, or empty object", () => {
+    try {
+      let wasi = new WASI();
+    } catch (e) {
+      // Ensure the error is about the node bindings, not empty initialization
+      expect(e.message.includes("'fs'")).toBe(true);
+    }
+
+    try {
+      let wasi = new WASI({});
+    } catch (e) {
+      // Ensure the error is about the node bindings, not empty initialization
+      expect(e.message.includes("'fs'")).toBe(true);
+    }
   });
 
   it("Helloworld can be run", async () => {

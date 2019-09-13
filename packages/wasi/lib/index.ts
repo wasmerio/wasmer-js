@@ -1,3 +1,3 @@
 import WASI from "./wasi";
 
-export { WASI };
+export default WASI;
