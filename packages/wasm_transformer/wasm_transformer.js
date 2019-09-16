@@ -1,5 +1,18 @@
 let wasm;
 
+let cachegetInt32Memory = null;
+function getInt32Memory() {
+  if (
+    cachegetInt32Memory === null ||
+    cachegetInt32Memory.buffer !== wasm.memory.buffer
+  ) {
+    cachegetInt32Memory = new Int32Array(wasm.memory.buffer);
+  }
+  return cachegetInt32Memory;
+}
+
+let cachedTextDecoder = new TextDecoder("utf-8");
+
 let cachegetUint8Memory = null;
 function getUint8Memory() {
   if (
@@ -11,6 +24,25 @@ function getUint8Memory() {
   return cachegetUint8Memory;
 }
 
+function getStringFromWasm(ptr, len) {
+  return cachedTextDecoder.decode(getUint8Memory().subarray(ptr, ptr + len));
+}
+/**
+ * get the versioon of the package
+ * @returns {string}
+ */
+export function get_version() {
+  const retptr = 8;
+  const ret = wasm.get_version(retptr);
+  const memi32 = getInt32Memory();
+  const v0 = getStringFromWasm(
+    memi32[retptr / 4 + 0],
+    memi32[retptr / 4 + 1]
+  ).slice();
+  wasm.__wbindgen_free(memi32[retptr / 4 + 0], memi32[retptr / 4 + 1] * 1);
+  return v0;
+}
+
 let WASM_VECTOR_LEN = 0;
 
 function passArray8ToWasm(arg) {
@@ -18,17 +50,6 @@ function passArray8ToWasm(arg) {
   getUint8Memory().set(arg, ptr / 1);
   WASM_VECTOR_LEN = arg.length;
   return ptr;
-}
-
-let cachegetInt32Memory = null;
-function getInt32Memory() {
-  if (
-    cachegetInt32Memory === null ||
-    cachegetInt32Memory.buffer !== wasm.memory.buffer
-  ) {
-    cachegetInt32Memory = new Int32Array(wasm.memory.buffer);
-  }
-  return cachegetInt32Memory;
 }
 
 function getArrayU8FromWasm(ptr, len) {
@@ -53,12 +74,6 @@ export function lower_i64_imports(wasm_binary) {
   ).slice();
   wasm.__wbindgen_free(memi32[retptr / 4 + 0], memi32[retptr / 4 + 1] * 1);
   return v0;
-}
-
-let cachedTextDecoder = new TextDecoder("utf-8");
-
-function getStringFromWasm(ptr, len) {
-  return cachedTextDecoder.decode(getUint8Memory().subarray(ptr, ptr + len));
 }
 
 function init(module) {
