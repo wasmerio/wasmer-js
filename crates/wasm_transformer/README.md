@@ -12,8 +12,6 @@ Library to run transformations on WebAssembly binaries. 🦀♻️
   - [Rust](#rust-1)
   - [Javascript](#javascript-1)
 - [Reference API](#reference-api)
-  - [Rust](#rust-2)
-  - [Javascript](#javascript-2)
 - [Contributing](#contributing)
   - [Guidelines](#guidelines)
   - [Building the project](#building-the-project)
@@ -50,16 +48,59 @@ npm install --save @wasmer/wasm_transformer
 
 ### Rust
 
+For a larger example, see the simple [wasm_transformer_cli](../../examples/wasm_transformer_cli).
+
+```rust
+use wasm_transformer::*;
+
+// Some Code here
+
+// Read in a wasm file as a Vec<u8>
+let mut wasm = fs::read(wasm_file_path).unwrap();
+// Add trampoline functions to lower the i64 imports in the wasm file
+let lowered_wasm = wasm_transformer::lower_i64_imports(wasm);
+// Write back out the new wasm file
+fs::write("./out.wasm", &lowered_wasm).expect("Unable to write file");
+```
+
 ### Javascript
 
+For a larger example, see the [wasm_terminal](../../packages/wasm-terminal) package.
+
 ```js
+import wasm_transformer_init, {
+  lower_i64_imports
+} from "@wasmer/wasm_transformer";
+
+const fetchAndTransformWasmBinary = async () => {
+  // Get the original wasm binary
+  const fetchedOriginalWasmBinary = await fetch("/original-wasm-module.wasm");
+  const originalWasmBinaryBuffer = await fetchedOriginalWasmBinary.arrayBuffer();
+  const originalWasmBinary = new Uint8Array(originalWasmBinaryBuffer);
+
+  // Initialize our wasm_transformer
+  await wasm_transformer_init("/wasm_transformer_bg.wasm"); // IMPORTANT: This URL points to wherever the wasm_transformer_bg.wasm is hosted
+
+  // Transform the binary, by running the lower_i64_imports from the wasm_transformer
+  const transformedBinary = lower_i64_imports(originalWasmBinary);
+
+  // Compile the transformed binary
+  const transformedWasmModule = await WebAssembly.compile(transformedBinary);
+  return transformedWasmModule;
+};
 ```
 
 ## Reference API
 
-### Rust
+`get_version`
 
-### Javascript
+Returns the version of the crate/package
+
+---
+
+`lower_i64_imports`
+
+Inserts trampoline functions for imports that have i64 params or returns. This is useful for running wasm modules in browsers that [do not support JavaScript BigInt -> Wasm i64 integration](https://github.com/WebAssembly/proposals/issues/7). Especially in the case for [i64 WASI Imports](https://github.com/CraneStation/wasmtime/blob/master/docs/WASI-api.md#clock_time_get).
 
 ## Contributing
 
