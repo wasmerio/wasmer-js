@@ -55,7 +55,7 @@ mod utils;
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 /// get the versioon of the package
 #[wasm_bindgen]
-pub fn get_version() -> String {
+pub fn version() -> String {
     VERSION.to_string()
 }
 

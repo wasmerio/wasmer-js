@@ -20,7 +20,7 @@ fn main() {
     let wasm_file_path = matches.value_of("WASM_FILE").unwrap();
 
     println!(" ");
-    println!("Using wasm_transformer version: {}", wasm_transformer::get_version());
+    println!("Using wasm_transformer version: {}", wasm_transformer::version());
     println!(" ");
 
     // Run the transformation on the file

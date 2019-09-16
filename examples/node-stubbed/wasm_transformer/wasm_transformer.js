@@ -32,9 +32,9 @@ function getStringFromWasm(ptr, len) {
  * get the versioon of the package
  * @returns {string}
  */
-module.exports.get_version = function() {
+module.exports.version = function() {
   const retptr = 8;
-  const ret = wasm.get_version(retptr);
+  const ret = wasm.version(retptr);
   const memi32 = getInt32Memory();
   const v0 = getStringFromWasm(
     memi32[retptr / 4 + 0],

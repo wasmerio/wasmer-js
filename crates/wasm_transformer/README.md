@@ -92,13 +92,13 @@ const fetchAndTransformWasmBinary = async () => {
 
 ## Reference API
 
-`get_version`
+`version()`
 
 Returns the version of the crate/package
 
 ---
 
-`lower_i64_imports`
+`lower_i64_imports(mut wasm_binary: Vec<u8>) -> Vec<u8>`
 
 Inserts trampoline functions for imports that have i64 params or returns. This is useful for running wasm modules in browsers that [do not support JavaScript BigInt -> Wasm i64 integration](https://github.com/WebAssembly/proposals/issues/7). Especially in the case for [i64 WASI Imports](https://github.com/CraneStation/wasmtime/blob/master/docs/WASI-api.md#clock_time_get).
 
