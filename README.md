@@ -1,10 +1,10 @@
 # wasmer-js
 
 [![styled with prettier](https://img.shields.io/badge/styled_with-prettier-ff69b4.svg)](https://github.com/prettier/prettier)
-[![Greenkeeper badge](https://badges.greenkeeper.io/wasmerio/js-wasi.svg)](https://greenkeeper.io/)
-[![Travis](https://img.shields.io/travis/wasmerio/js-wasi.svg)](https://travis-ci.org/wasmerio/js-wasi)
-[![Coveralls](https://img.shields.io/coveralls/wasmerio/js-wasi.svg)](https://coveralls.io/github/wasmerio/js-wasi)
-[![Dev Dependencies](https://david-dm.org/wasmerio/js-wasi/dev-status.svg)](https://david-dm.org/wasmerio/js-wasi?type=dev)
+[![Greenkeeper badge](https://badges.greenkeeper.io/wasmerio/wasmer-js.svg)](https://greenkeeper.io/)
+[![Travis](https://img.shields.io/travis/wasmerio/wasmer-js.svg)](https://travis-ci.org/wasmerio/wasmer-js)
+[![Coveralls](https://img.shields.io/coveralls/wasmerio/wasmer-js.svg)](https://coveralls.io/github/wasmerio/wasmer-js)
+[![Dev Dependencies](https://david-dm.org/wasmerio/wasmer-js/dev-status.svg)](https://david-dm.org/wasmerio/wasmer-js?type=dev)
 
 Monorepo for all JavaScript packages, or JavaScript related Rust crates, for Wasmer. The JS Packages are managed by [lerna](https://lerna.js.org/).
 

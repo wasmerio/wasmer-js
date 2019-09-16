@@ -17,6 +17,7 @@
     "postinstall": "npx run-s lerna:bootstrap",
     "dev": "npx run-s wasm-shell:dev",
     "build": "npx run-s lerna:build wasm-shell:build",
+    "test": "npx lerna run test",
     "lint": "npx run-s lint:js lint:ts:tslint lint:ts:preetier",
     "lint:js": "npx prettier --write packages/**/rollup.*.js",
     "lint:ts:tslint": "npx tslint --project tsconfig.json -t codeFrame 'packages/**/*.ts'",
