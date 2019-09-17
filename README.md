@@ -8,6 +8,10 @@
 
 Monorepo for all JavaScript packages, or JavaScript related Rust crates, for Wasmer. The JS Packages are managed by [lerna](https://lerna.js.org/).
 
+**Wasm Terminal Example**
+
+![Wasm Terminal Demo Gif](./packages/wasm-terminal/assets/wasm-terminal-demo.gif)
+
 ## Packages
 
 - [`packages/wasi`](./packages/wasi) - Wasi Implementation for Node and Browsers.
