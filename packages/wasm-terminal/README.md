@@ -47,6 +47,8 @@ npm install --save @wasmer/wasm-terminal
 
 ## Quick Start
 
+**Javascript**
+
 ```javascript
 import WasmTerminal from "@wasmer/wasm-terminal";
 
@@ -77,6 +79,19 @@ wasmTerminal.focus();
 
 // Later, when we are done with the terminal, let's destroy it
 wasmTerminal.destroy();
+```
+
+**Css**
+
+We must also include the `[xterm](https://github.com/xtermjs/xterm.js/).css`. For example:
+
+```html
+<!-- This includes the external stylesheet. NOTE: The path should point to wherever you are hosting the wasm-terminal output. -->
+<link
+  rel="stylesheet"
+  type="text/css"
+  href="node_modules/wasm-terminal/xterm/xterm.css"
+/>
 ```
 
 ## Reference API
