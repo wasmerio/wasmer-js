@@ -52,6 +52,13 @@ mod parser;
 mod transformer;
 mod utils;
 
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+/// get the versioon of the package
+#[wasm_bindgen]
+pub fn version() -> String {
+    VERSION.to_string()
+}
+
 /// i64 lowering that can be done by the browser
 #[wasm_bindgen]
 pub fn lower_i64_imports(mut wasm_binary: Vec<u8>) -> Vec<u8> {
