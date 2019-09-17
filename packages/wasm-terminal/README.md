@@ -63,7 +63,7 @@ const wasmTerminal = new WasmTerminal({
   },
   callbackCommands: {
     // Pass a command run with `hello`, that outputs the following to /dev/stdout
-    hello: (args: string[], stdin: string) => {
+    hello: (args, stdin) => {
       return Promise.resolve(`Hello! Args: ${args}, stdin: ${stdin}`);
     }
   }
