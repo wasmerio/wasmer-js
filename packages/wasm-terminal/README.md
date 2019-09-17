@@ -52,26 +52,25 @@ import WasmTerminal from "@wasmer/wasm-terminal";
 
 // Let's create our Wasm Terminal
 const wasmTerminal = new WasmTerminal({
-    // IMPORTANT: This is wherever your wasm_transformer_bg.wasm file URL is hosted
+  // IMPORTANT: This is wherever your wasm_transformer_bg.wasm file URL is hosted
+  wasmTransformerWasmUrl:
     "/node_modules/wasm-terminal/wasm_transformer/wasm_transformer_bg.wasm",
-    // IMPORTANT: This is wherever your process.worker.js file URL is hosted
-    "/node_modules/wasm-terminal/workers/process.worker.js",
-    additionalWasmCommands: {
-      // Pass a custom command, run with `mycommand`, to fetch/run the Wasm module at the URL Provided
-      mycommand: "http://localhost:8000/mycommand.wasm",
-    },
-    callbackCommands: {
-      // Pass a command run with `hello`, that outputs the following to /dev/stdout
-      hello: (args: string[], stdin: string) => {
-        return Promise.resolve(
-          `Hello! Args: ${args}, stdin: ${stdin}`
-        );
-      }
+  // IMPORTANT: This is wherever your process.worker.js file URL is hosted
+  processWorkerUrl: "/node_modules/wasm-terminal/workers/process.worker.js",
+  additionalWasmCommands: {
+    // Pass a custom command, run with `mycommand`, to fetch/run the Wasm module at the URL Provided
+    mycommand: "http://localhost:8000/mycommand.wasm"
+  },
+  callbackCommands: {
+    // Pass a command run with `hello`, that outputs the following to /dev/stdout
+    hello: (args: string[], stdin: string) => {
+      return Promise.resolve(`Hello! Args: ${args}, stdin: ${stdin}`);
     }
+  }
 });
 
 // Let's bind our wasm terminal to it's container
-const containerElement = document.querySelector('#root');
+const containerElement = document.querySelector("#root");
 wasmTerminal.open(containerElement);
 wasmTerminal.fit();
 wasmTerminal.focus();
