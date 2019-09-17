@@ -39,7 +39,7 @@ For more simple wasm modules, E.g [cowsay](https://wapm.io/package/cowsay), the 
 
 ## Installation
 
-For instaling `@wasmer/wasm-terminal`, just run this command in your shell:
+For installing `@wasmer/wasm-terminal`, just run this command in your shell:
 
 ```bash
 npm install --save @wasmer/wasm-terminal
