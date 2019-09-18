@@ -167,6 +167,8 @@ export default class WASICommand extends Command {
     }
     this.isReadingStdin = true;
 
+    console.log("yooo", this.args, this.pipedStdin);
+
     let responseStdin: string | null = null;
     if (this.pipedStdin) {
       responseStdin = this.pipedStdin;
@@ -197,6 +199,8 @@ export default class WASICommand extends Command {
       }
       responseStdin += "\n";
     }
+
+    console.log("response", responseStdin);
 
     // First check for errors
     if (!responseStdin) {

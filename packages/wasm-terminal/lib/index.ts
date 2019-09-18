@@ -67,7 +67,9 @@ export default class WasmTerminal {
   }
 
   onPaste(data: string) {
-    this.wasmTty.print(data);
+    if (this.wasmTty) {
+      this.wasmTty.print(data);
+    }
   }
 
   /**
