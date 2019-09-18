@@ -54,8 +54,9 @@ export default class WASICommand extends Command {
 
   sharedStdin?: Int32Array;
   startStdinReadCallback?: Function;
-  isReadingStdin: boolean;
   pipedStdin: string;
+
+  readStdinCounter: number;
 
   stdoutLog: string;
   stdoutCallback?: Function;
@@ -76,7 +77,7 @@ export default class WASICommand extends Command {
 
     this.sharedStdin = sharedStdin;
     this.startStdinReadCallback = startStdinReadCallback;
-    this.isReadingStdin = false;
+    this.readStdinCounter = 0;
     this.pipedStdin = "";
 
     this.stdoutLog = "";
@@ -161,18 +162,17 @@ export default class WASICommand extends Command {
     length: number = stdinBuffer.byteLength,
     position?: number
   ) {
-    if (this.isReadingStdin) {
-      this.isReadingStdin = false;
+    if (this.readStdinCounter > 0) {
+      this.readStdinCounter--;
       return 0;
     }
-    this.isReadingStdin = true;
-
-    console.log("yooo", this.args, this.pipedStdin);
+    this.readStdinCounter = 1;
 
     let responseStdin: string | null = null;
     if (this.pipedStdin) {
-      responseStdin = this.pipedStdin;
+      responseStdin = this.pipedStdin + "\n";
       this.pipedStdin = "";
+      this.readStdinCounter++;
     } else if (this.sharedStdin && this.startStdinReadCallback) {
       this.startStdinReadCallback();
       Atomics.wait(this.sharedStdin, 0, -1);
@@ -199,8 +199,6 @@ export default class WASICommand extends Command {
       }
       responseStdin += "\n";
     }
-
-    console.log("response", responseStdin);
 
     // First check for errors
     if (!responseStdin) {
