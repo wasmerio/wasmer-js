@@ -1,7 +1,7 @@
 // Service to fetch and instantiate modules
 // And cache them to run again
 
-import { CallbackCommand } from "../wasm-terminal-plugin";
+import WasmTerminalPlugin, { CallbackCommand } from "../wasm-terminal-plugin";
 
 import WasmTerminalConfig from "../wasm-terminal-config";
 
@@ -33,19 +33,24 @@ const WAPM_GRAPHQL_QUERY = `query shellGetCommandQuery($command: String!) {
 export default class CommandFetcher {
   wasmTerminalConfig: WasmTerminalConfig;
   wasmTerminalPlugins: WasmTerminalPlugin[];
+  commandToCompiledModuleCache: { [key: string]: WebAssembly.Module };
+  wasmTty?: WasmTty;
 
   constructor(
     wasmTerminalConfig: WasmTerminalConfig,
-    wasmTerminalPlugins: WasmTerminalPlugin[]
+    wasmTerminalPlugins: WasmTerminalPlugin[],
+    wasmTty?: WasmTty
   ) {
     this.wasmTerminalConfig = wasmTerminalConfig;
     this.wasmTerminalPlugins = wasmTerminalPlugins;
+    this.commandToCompiledModuleCache = {};
+
+    if (wasmTty) {
+      this.wasmTty = wasmTty;
+    }
   }
 
-  async getCommandForCommandName(
-    commandName: string,
-    wasmTty?: WasmTty
-  ): WebAssembly.Module | CommandCallback {
+  async getCommandForCommandName(commandName: string, wasmTty?: WasmTty) {
     let cachedData = this.commandToCompiledModuleCache[commandName];
     if (cachedData) {
       return cachedData;
@@ -54,13 +59,15 @@ export default class CommandFetcher {
     // Initialize all the variables we need to build the module
     let commandUrl: string | undefined = undefined;
     let commandBinary: Uint8Array | undefined = undefined;
-    let commandCallback: CommandCallback | undefined = undefined;
+    let commandCallback: CallbackCommand | undefined = undefined;
     let commandCompiledModule: WebAssembly.Module | undefined = undefined;
 
     this._tryToWriteStatus(`[INFO] Searching for "${commandName}"...`);
 
     // Run through the plugins
-    this.wasmTerminalPlugins.some(wasmTerminalPlugin => {
+    for (let i = 0; i < this.wasmTerminalPlugins.length; i++) {
+      const wasmTerminalPlugin = this.wasmTerminalPlugins[i];
+
       const responsePromise = wasmTerminalPlugin.apply("beforeFetch", [
         commandName
       ]);
@@ -77,10 +84,9 @@ export default class CommandFetcher {
           commandCompiledModule = response;
         }
 
-        return true;
+        i = this.wasmTerminalPlugins.length;
       }
-      return false;
-    });
+    }
 
     this._tryToClearStatus();
 
@@ -100,11 +106,15 @@ export default class CommandFetcher {
       `[INFO] Downloading "${commandName}" from "${commandUrl}"`
     );
 
-    if (!commandCompiledModule && !commandBinary) {
+    if (!commandCompiledModule && !commandBinary && commandUrl) {
       commandBinary = await this._getBinaryFromUrl(commandUrl);
     }
 
     this._tryToClearStatus();
+
+    if (!commandBinary) {
+      throw new Error("Could not get the wasm module binary");
+    }
 
     this._tryToWriteStatus(`[INFO] Doing Transformations for "${commandName}"`);
 
@@ -116,6 +126,10 @@ export default class CommandFetcher {
       ),
       new Promise(resolve => setTimeout(resolve, 500))
     ]).then(responses => responses[0]);
+
+    if (!commandCompiledModule) {
+      throw new Error("Could not get/compile the compiled wasm modules");
+    }
     this.commandToCompiledModuleCache[commandName] = commandCompiledModule;
 
     this._tryToClearStatus();
@@ -124,21 +138,23 @@ export default class CommandFetcher {
   }
 
   _tryToWriteStatus(message: string) {
-    if (wasmTty) {
+    if (this.wasmTty) {
       // Save the cursor position
-      wasmTty.print("\u001b[s");
+      this.wasmTty.print("\u001b[s");
 
-      wasmTty.print(message);
+      this.wasmTty.print(message);
     }
   }
 
   _tryToClearStatus() {
-    // Restore the cursor position
-    wasmTty.print("\u001b[u");
+    if (this.wasmTty) {
+      // Restore the cursor position
+      this.wasmTty.print("\u001b[u");
 
-    // Clear from cursor to end of screen
-    wasmTty.print("\u001b[1000D");
-    wasmTty.print("\u001b[0J");
+      // Clear from cursor to end of screen
+      this.wasmTty.print("\u001b[1000D");
+      this.wasmTty.print("\u001b[0J");
+    }
   }
 
   async _getWapmUrlForCommandName(commandName: String) {

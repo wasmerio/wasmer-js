@@ -6,7 +6,7 @@ import { CommandOptions } from "./command";
 import CommandFetcher from "./command-fetcher";
 
 import WasmTerminalConfig from "../wasm-terminal-config";
-import { CallbackCommand } from "../wasm-terminal-plugin";
+import WasmTerminalPlugin, { CallbackCommand } from "../wasm-terminal-plugin";
 
 import WasmTty from "../wasm-tty/wasm-tty";
 
@@ -412,12 +412,13 @@ export default class CommandRunner {
           commandOptions.unshift({
             args,
             env,
-            module: wasmModule
+            module: response
           });
         } else {
           commandOptions.unshift({
             args,
             env,
+            // @ts-ignore
             callback: response
           });
         }

@@ -59,7 +59,8 @@ export default class WasmShell {
     this.history = new ShellHistory(options.historySize);
     this.commandFetcher = new CommandFetcher(
       this.wasmTerminalConfig,
-      this.wasmTerminalPlugins
+      this.wasmTerminalPlugins,
+      this.wasmTty
     );
     this.commandRunner = undefined;
 
