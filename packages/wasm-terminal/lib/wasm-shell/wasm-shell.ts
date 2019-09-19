@@ -12,7 +12,8 @@ import {
 } from "./shell-utils";
 import ShellHistory from "./shell-history";
 
-import TerminalConfig from "../terminal-config";
+import WasmTerminalConfig from "../wasm-terminal-config";
+import WasmTerminalPlugin from "../wasm-terminal-plugin";
 
 import WasmTty from "../wasm-tty/wasm-tty";
 
@@ -30,7 +31,8 @@ import CommandFetcher from "../command-runner/command-fetcher";
  */
 type AutoCompleteHandler = (index: number, tokens: string[]) => string[];
 export default class WasmShell {
-  terminalConfig: TerminalConfig;
+  wasmTerminalConfig: WasmTerminalConfig;
+  wasmTerminalPlugins: WasmTerminalPlugin[];
   wasmTty: WasmTty;
   history: ShellHistory;
   commandFetcher: CommandFetcher;
@@ -43,17 +45,22 @@ export default class WasmShell {
   _activeCharPrompt?: ActiveCharPrompt;
 
   constructor(
-    terminalConfig: TerminalConfig,
+    wasmTerminalConfig: WasmTerminalConfig,
+    wasmTerminalPlugins: WasmTerminalPlugin[],
     wasmTty: WasmTty,
     options: { historySize: number; maxAutocompleteEntries: number } = {
       historySize: 10,
       maxAutocompleteEntries: 100
     }
   ) {
-    this.terminalConfig = terminalConfig;
+    this.wasmTerminalConfig = wasmTerminalConfig;
+    this.wasmTerminalPlugins = wasmTerminalPlugins;
     this.wasmTty = wasmTty;
     this.history = new ShellHistory(options.historySize);
-    this.commandFetcher = new CommandFetcher(this.terminalConfig);
+    this.commandFetcher = new CommandFetcher(
+      this.wasmTerminalConfig,
+      this.wasmTerminalPlugins
+    );
     this.commandRunner = undefined;
 
     this.maxAutocompleteEntries = options.maxAutocompleteEntries;
@@ -104,7 +111,8 @@ export default class WasmShell {
    */
   getCommandRunner(line: string) {
     return new CommandRunner(
-      this.terminalConfig,
+      this.wasmTerminalConfig,
+      this.wasmTerminalPlugins,
       line,
       // Command Read Callback
       async () => {

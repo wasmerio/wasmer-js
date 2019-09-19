@@ -10,14 +10,18 @@ export type CallbackCommand = (
 ) => Promise<string | undefined>;
 
 export default class WasmTerminalPlugin {
-  afterOpen?: () => void;
+  afterOpen?: () => string | undefined;
   beforeFetchCommand?: (
     commandName: string
-  ) => Uint8Array | CallbackCommand | undefined;
+  ) =>
+    | Promise<string>
+    | Promise<Uint8Array>
+    | Promise<CallbackCommand>
+    | undefined;
   afterFetchCommand?: (
     commandName: string,
     commandBinary: Uint8Array
-  ) => Uint8Array;
+  ) => Promise<Uint8Array>;
   afterDestroy?: () => void;
 
   constructor(config: WasmTerminalPluginConfig) {
@@ -32,6 +36,15 @@ export default class WasmTerminalPlugin {
     }
     if (config.afterDestroy) {
       this.afterDestroy = config.afterDestroy;
+    }
+  }
+
+  apply(functionName: string, params?: any[]): any {
+    if ((this as any)[functionName]) {
+      const response = (this as any)[functionName].apply(null, params);
+      if (response !== undefined) {
+        return response;
+      }
     }
   }
 }

@@ -6,14 +6,16 @@ import * as fit from "xterm/lib/addons/fit/fit";
 // tslint:disable-next-line
 Terminal.applyAddon(fit);
 
-import TerminalConfig from "./terminal-config";
+import WasmTerminalConfig from "./wasm-terminal-config";
+import WasmTerminalPlugin from "./wasm-terminal-plugin";
 import WasmTty from "./wasm-tty/wasm-tty";
 import WasmShell from "./wasm-shell/wasm-shell";
 
 export default class WasmTerminal {
   xterm: Terminal;
 
-  terminalConfig: TerminalConfig;
+  wasmTerminalConfig: WasmTerminalConfig;
+  wasmTerminalPlugins: WasmTerminalPlugin[];
   wasmTty: WasmTty;
   wasmShell: WasmShell;
 
@@ -29,19 +31,39 @@ export default class WasmTerminal {
     // tslint:disable-next-line
     this.resizeEvent = this.xterm.on("resize", this.handleTermResize);
 
-    // Create our terminal config
-    this.terminalConfig = new TerminalConfig(config);
+    this.wasmTerminalConfig = new WasmTerminalConfig(config);
+    this.wasmTerminalPlugins = [];
 
     // Create our Shell and tty
     this.wasmTty = new WasmTty(this.xterm);
-    this.wasmShell = new WasmShell(this.terminalConfig, this.wasmTty);
+    this.wasmShell = new WasmShell(
+      this.wasmTerminalConfig,
+      this.wasmTerminalPlugins,
+      this.wasmTty
+    );
     // tslint:disable-next-line
     this.dataEvent = this.xterm.on("data", this.wasmShell.handleTermData);
+  }
+
+  addPlugin(wasmTerminalPlugin: WasmTerminalPlugin): () => void {
+    this.wasmTerminalPlugins.push(wasmTerminalPlugin);
+
+    return () => {
+      this.wasmTerminalPlugins.splice(
+        this.wasmTerminalPlugins.indexOf(wasmTerminalPlugin),
+        1
+      );
+    };
   }
 
   open(container: HTMLElement) {
     this.xterm.open(container);
     setTimeout(() => {
+      // Call the plugins
+      this.wasmTerminalPlugins.forEach(wasmTerminalPlugin => {
+        wasmTerminalPlugin.apply("afterOpen");
+      });
+
       // tslint:disable-next-line
       this.wasmShell.prompt();
     });
@@ -64,6 +86,11 @@ export default class WasmTerminal {
     this.xterm.off("data", this.wasmShell.handleTermData);
     this.xterm.destroy();
     delete this.xterm;
+
+    // Call the plugins
+    this.wasmTerminalPlugins.forEach(wasmTerminalPlugin => {
+      wasmTerminalPlugin.apply("afterDestroy");
+    });
   }
 
   onPaste(data: string) {
