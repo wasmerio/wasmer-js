@@ -14,7 +14,7 @@
   "scripts": {
     "postinstall": "npm run build",
     "build": "npx rollup -c --environment LIB,WORKER,PROD",
-    "dev": "npx rollup -c -w --environment LIB,WORKER",
+    "dev": "npx rollup -c --environment LIB,WORKER",
     "test": "npx jest --config jest.config.js",
     "test:watch": "npx jest --config jest.config.js --watchAll",
     "docs": "npx typedoc lib/ --out docs --target es6 --theme minimal --mode file"
