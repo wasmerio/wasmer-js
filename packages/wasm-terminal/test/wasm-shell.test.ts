@@ -25,6 +25,8 @@ describe("WasmShell", () => {
       {
         wasmTransformerWasmUrl: ""
       },
+      // Plugins
+      [],
       wasmTty
     );
 

@@ -61,7 +61,10 @@ export default class WasmTerminal {
     setTimeout(() => {
       // Call the plugins
       this.wasmTerminalPlugins.forEach(wasmTerminalPlugin => {
-        wasmTerminalPlugin.apply("afterOpen");
+        const response = wasmTerminalPlugin.apply("afterOpen");
+        if (response) {
+          this.wasmTty.print(response + "\n");
+        }
       });
 
       // tslint:disable-next-line

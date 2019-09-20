@@ -35,12 +35,13 @@ describe("CommandRunner", () => {
     isFinishedRunningPromise = new Promise((resolve, reject) => {
       commandRunner = new CommandRunner(
         { wasmTransformerWasmUrl: "" },
+        [],
         "cowsay hi | lolcat",
         () => {},
         () => resolve(),
         // @ts-ignore
         {
-          getWasmModuleForCommandName: jest.fn(() => Promise.resolve({}))
+          getCommandForCommandName: jest.fn(() => Promise.resolve({}))
         }
       );
     });

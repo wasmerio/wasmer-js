@@ -14,14 +14,15 @@ describe("CommandFetcher", () => {
   let mockWasmModule: any;
 
   beforeEach(async () => {
-    commandFetcher = new CommandFetcher(getTerminalConfig());
+    commandFetcher = new CommandFetcher(getTerminalConfig(), []);
 
     mockCommandName = "test";
     mockWasmBinary = new Uint8Array();
+    mockWasmBinary[0] = 1;
     mockWasmModule = {};
 
     commandFetcher._getWapmUrlForCommandName = jest.fn(() =>
-      Promise.resolve("")
+      Promise.resolve("CommandUrl")
     );
     commandFetcher._getBinaryFromUrl = jest.fn(() =>
       Promise.resolve(mockWasmBinary)
@@ -32,36 +33,38 @@ describe("CommandFetcher", () => {
   });
 
   it("should return a wasm module for the command name", async () => {
-    const response = await commandFetcher.getWasmModuleForCommandName(
+    const response = await commandFetcher.getCommandForCommandName(
       mockCommandName
     );
 
     expect(response).toBe(mockWasmModule);
   });
 
-  it("should cache a wasm modules url and wasm module for the command name", async () => {
-    const response = await commandFetcher.getWasmModuleForCommandName(
+  it("should cache a wasm module for the command name", async () => {
+    const response = await commandFetcher.getCommandForCommandName(
       mockCommandName
     );
 
-    expect(commandFetcher.commandToBinaryCache[mockCommandName]).toBe(
-      mockWasmBinary
-    );
     expect(commandFetcher.commandToCompiledModuleCache[mockCommandName]).toBe(
       mockWasmModule
     );
   });
 
-  it("should request a wasm binary from additionalWasmCommands on the terminal config", async () => {
+  it("should call beforeFetchCommand on the terminal config", async () => {
     const mockCommandUrl = "http://test-url.com";
     const terminalConfig = getTerminalConfig();
     (terminalConfig.additionalWasmCommands as any)[
       mockCommandName
     ] = mockCommandUrl;
-    commandFetcher = new CommandFetcher(terminalConfig);
+    const pluginApplyMock = jest.fn(() => {});
+    commandFetcher = new CommandFetcher(terminalConfig, [
+      {
+        apply: pluginApplyMock
+      }
+    ]);
 
     commandFetcher._getWapmUrlForCommandName = jest.fn(() =>
-      Promise.resolve("")
+      Promise.resolve("CommandUrl")
     );
     commandFetcher._getBinaryFromUrl = jest.fn(() =>
       Promise.resolve(mockWasmBinary)
@@ -70,10 +73,12 @@ describe("CommandFetcher", () => {
       Promise.resolve(mockWasmModule)
     );
 
-    const response = await commandFetcher.getWasmModuleForCommandName(
+    const response = await commandFetcher.getCommandForCommandName(
       mockCommandName
     );
 
-    expect(commandFetcher._getWapmUrlForCommandName.mock.calls.length).toBe(0);
+    expect(pluginApplyMock.mock.calls.length).toBe(1);
+    // @ts-ignore
+    expect(pluginApplyMock.mock.calls[0][0]).toBe("beforeFetchCommand");
   });
 });

@@ -68,11 +68,16 @@ export default class CommandFetcher {
     for (let i = 0; i < this.wasmTerminalPlugins.length; i++) {
       const wasmTerminalPlugin = this.wasmTerminalPlugins[i];
 
-      const responsePromise = wasmTerminalPlugin.apply("beforeFetch", [
+      const responsePromise = wasmTerminalPlugin.apply("beforeFetchCommand", [
         commandName
       ]);
       if (responsePromise) {
         const response = await responsePromise;
+
+        if (!response) {
+          i = this.wasmTerminalPlugins.length;
+          continue;
+        }
 
         if (typeof response === "string") {
           commandUrl = response;

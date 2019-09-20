@@ -1,7 +1,9 @@
 import { h, Component } from "preact";
 
 // @ts-ignore
-import WasmTerminal from "../../../packages/wasm-terminal/dist/index.esm";
+import WasmTerminal, {
+  WasmTerminalPlugin
+} from "../../../packages/wasm-terminal/dist/index.esm";
 
 // Require wasm terminal URLs
 // @ts-ignore
@@ -27,6 +29,38 @@ import argtestUrl from "../../../crates/wasm_transformer/wasm_module_examples/ar
 // @ts-ignore
 import gettimeofdayUrl from "../../../crates/wasm_transformer/wasm_module_examples/gettimeofday/gettimeofday.wasm";
 
+const examplePlugin = new WasmTerminalPlugin({
+  afterOpen: () => {
+    console.log("afterOpen Called!");
+    return "afterOpen Called! Welcome to the wasm-shell example!";
+  },
+  beforeFetchCommand: async (commandName: string) => {
+    console.log("beforeFetchCommand Called!", commandName);
+
+    const commands = {
+      a: stdinWasmUrl,
+      c: clockTimeGetUrl,
+      p: pathOpenGetUrl,
+      g: gettimeofdayUrl,
+      qjs: quickJsUrl,
+      duk: dukTapeUrl,
+      two: twoImportsUrl,
+      arg: argtestUrl,
+      rsign:
+        "https://registry-cdn.wapm.io/contents/jedisct1/rsign2/0.5.4/rsign.wasm",
+      callback: (args: string[], stdin: string) => {
+        return Promise.resolve(
+          `Callback Command Working! Args: ${args}, stdin: ${stdin}`
+        );
+      }
+    };
+
+    if ((commands as any)[commandName]) {
+      return (commands as any)[commandName];
+    }
+  }
+});
+
 /**
  * A simple preact wrapper around the Wasm Terminal
  */
@@ -38,27 +72,11 @@ export default class WasmTerminalComponent extends Component {
     super();
     this.wasmTerminal = new WasmTerminal({
       wasmTransformerWasmUrl,
-      processWorkerUrl,
-      additionalWasmCommands: {
-        a: stdinWasmUrl,
-        c: clockTimeGetUrl,
-        p: pathOpenGetUrl,
-        g: gettimeofdayUrl,
-        qjs: quickJsUrl,
-        duk: dukTapeUrl,
-        two: twoImportsUrl,
-        arg: argtestUrl,
-        rsign:
-          "https://registry-cdn.wapm.io/contents/jedisct1/rsign2/0.5.4/rsign.wasm"
-      },
-      callbackCommands: {
-        callback: (args: string[], stdin: string) => {
-          return Promise.resolve(
-            `Callback Command Working! Args: ${args}, stdin: ${stdin}`
-          );
-        }
-      }
+      processWorkerUrl
     });
+
+    this.wasmTerminal.addPlugin(examplePlugin);
+
     this.container = null;
   }
 

@@ -398,7 +398,7 @@ export default class CommandRunner {
     return redirectTask()
       .then(() => getCommandTask())
       .then(response => {
-        if (response instanceof Uint8Array) {
+        if (response instanceof WebAssembly.Module) {
           // Call the plugins
           this.wasmTerminalPlugins.forEach(wasmTerminalPlugin => {
             const afterFetchResponse = wasmTerminalPlugin.apply("afterFetch", [

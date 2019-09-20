@@ -17,12 +17,8 @@ export default class WasmTerminalPlugin {
     | Promise<string>
     | Promise<Uint8Array>
     | Promise<CallbackCommand>
+    | Promise<undefined>
     | undefined;
-  afterFetchCommand?: (
-    commandName: string,
-    commandBinary: Uint8Array
-  ) => Promise<Uint8Array>;
-  afterDestroy?: () => void;
 
   constructor(config: WasmTerminalPluginConfig) {
     if (config.afterOpen) {
@@ -30,12 +26,6 @@ export default class WasmTerminalPlugin {
     }
     if (config.beforeFetchCommand) {
       this.beforeFetchCommand = config.beforeFetchCommand;
-    }
-    if (config.afterFetchCommand) {
-      this.afterFetchCommand = config.afterFetchCommand;
-    }
-    if (config.afterDestroy) {
-      this.afterDestroy = config.afterDestroy;
     }
   }
 
