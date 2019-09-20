@@ -7,7 +7,8 @@ import Process from "../process/process";
 import { CommandOptions } from "./command";
 import CommandFetcher from "./command-fetcher";
 
-import TerminalConfig, { CallbackCommand } from "../terminal-config";
+import WasmTerminalConfig from "../wasm-terminal-config";
+import WasmTerminalPlugin, { CallbackCommand } from "../wasm-terminal-plugin";
 
 import WasmTty from "../wasm-tty/wasm-tty";
 
@@ -21,7 +22,8 @@ export default class CommandRunner {
   isRunning: boolean;
   supportsSharedArrayBuffer: boolean;
 
-  terminalConfig: TerminalConfig;
+  wasmTerminalConfig: WasmTerminalConfig;
+  wasmTerminalPlugins: WasmTerminalPlugin[];
   commandString: string;
 
   commandStartReadCallback: Function;
@@ -31,14 +33,16 @@ export default class CommandRunner {
   wasmTty?: WasmTty;
 
   constructor(
-    terminalConfig: TerminalConfig,
+    wasmTerminalConfig: WasmTerminalConfig,
+    wasmTerminalPlugins: WasmTerminalPlugin[],
     commandString: string,
     commandStartReadCallback: Function,
     commandEndCallback: Function,
     commandFetcher: CommandFetcher,
     wasmTty?: WasmTty
   ) {
-    this.terminalConfig = terminalConfig;
+    this.wasmTerminalConfig = wasmTerminalConfig;
+    this.wasmTerminalPlugins = wasmTerminalPlugins;
     this.commandString = commandString;
     this.commandStartReadCallback = commandStartReadCallback;
     this.commandEndCallback = commandEndCallback;
@@ -53,7 +57,7 @@ export default class CommandRunner {
     this.pipedStdinDataForNextProcess = new Uint8Array();
     this.isRunning = false;
     this.supportsSharedArrayBuffer =
-      this.terminalConfig.processWorkerUrl &&
+      this.wasmTerminalConfig.processWorkerUrl &&
       (window as any).SharedArrayBuffer &&
       (window as any).Atomics;
   }
@@ -73,7 +77,7 @@ export default class CommandRunner {
       this.commandOptionsForProcessesToRun = await this._getCommandOptionsFromAST(
         commandAst[0],
         this.commandFetcher,
-        this.terminalConfig,
+        this.wasmTerminalConfig,
         this.wasmTty
       );
     } catch (c) {
@@ -185,13 +189,13 @@ export default class CommandRunner {
   }
 
   async _spawnProcessAsWorker(commandOptionIndex: number) {
-    if (!this.terminalConfig.processWorkerUrl) {
+    if (!this.wasmTerminalConfig.processWorkerUrl) {
       throw new Error("Terminal Config missing the Process Worker URL");
     }
 
     // Generate our process
     const workerBlobUrl = await this._getBlobUrlForProcessWorker(
-      this.terminalConfig.processWorkerUrl,
+      this.wasmTerminalConfig.processWorkerUrl,
       this.wasmTty
     );
     const processWorker = new Worker(workerBlobUrl);
@@ -349,7 +353,7 @@ export default class CommandRunner {
   async _getCommandOptionsFromAST(
     ast: any,
     commandFetcher: CommandFetcher,
-    terminalConfig: TerminalConfig,
+    wasmTerminalConfig: WasmTerminalConfig,
     wasmTty?: WasmTty
   ): Promise<Array<CommandOptions>> {
     // The array of command options we are returning
@@ -379,7 +383,7 @@ export default class CommandRunner {
           const redirectedCommandOptions = await this._getCommandOptionsFromAST(
             astRedirect.command,
             commandFetcher,
-            terminalConfig,
+            wasmTerminalConfig,
             wasmTty
           );
           // Add the child options to our command options
@@ -388,46 +392,40 @@ export default class CommandRunner {
       }
     };
 
-    const getWasmModuleTask = async () => {
-      return await commandFetcher.getWasmModuleForCommandName(command, wasmTty);
+    const getCommandTask = async () => {
+      return await commandFetcher.getCommandForCommandName(command, wasmTty);
     };
 
-    // Check if the command is a callback command from the terminal config
-    let callbackCommandFunction: CallbackCommand | undefined = undefined;
-    if (terminalConfig.callbackCommands) {
-      Object.keys(terminalConfig.callbackCommands).some(callbackCommandKey => {
-        if (callbackCommandKey === command) {
-          callbackCommandFunction = (terminalConfig.callbackCommands as any)[
-            callbackCommandKey
-          ];
-          return true;
-        }
-        return false;
-      });
-    }
+    // Add a wasm module command
+    return redirectTask()
+      .then(() => getCommandTask())
+      .then(response => {
+        if (response instanceof WebAssembly.Module) {
+          // Call the plugins
+          this.wasmTerminalPlugins.forEach(wasmTerminalPlugin => {
+            const afterFetchResponse = wasmTerminalPlugin.apply("afterFetch", [
+              response
+            ]);
+            if (afterFetchResponse) {
+              response = afterFetchResponse;
+            }
+          });
 
-    if (callbackCommandFunction) {
-      // Add a callback command
-      return redirectTask().then(wasmModule => {
-        commandOptions.unshift({
-          args,
-          env,
-          callback: callbackCommandFunction
-        });
-        return commandOptions;
-      });
-    } else {
-      // Add a wasm module command
-      return redirectTask()
-        .then(() => getWasmModuleTask())
-        .then(wasmModule => {
           commandOptions.unshift({
             args,
             env,
-            module: wasmModule
+            module: response
           });
-          return commandOptions;
-        });
-    }
+        } else {
+          commandOptions.unshift({
+            args,
+            env,
+            // @ts-ignore
+            callback: response
+          });
+        }
+
+        return commandOptions;
+      });
   }
 }

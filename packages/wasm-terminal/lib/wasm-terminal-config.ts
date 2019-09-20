@@ -1,25 +1,10 @@
 // The configuration options passed when creating the wasm terminal
 
-// A Custom command is a function that takes in a stdin string, and an array of argument strings,
-// And returns an stdout string, or undefined.
-export type CallbackCommand = (
-  args: string[],
-  stdin: string
-) => Promise<string | undefined>;
+import WasmTerminalPlugin from "./wasm-terminal-plugin";
 
-interface WasmCommandJsonMap {
-  [commandName: string]: string;
-}
-
-interface CallbackCommandJsonMap {
-  [commandName: string]: CallbackCommand;
-}
-
-export default class TerminalConfig {
+export default class WasmTerminalConfig {
   wasmTransformerWasmUrl: string;
   processWorkerUrl?: string;
-  callbackCommands?: CallbackCommandJsonMap;
-  additionalWasmCommands?: WasmCommandJsonMap;
 
   constructor(config: any) {
     if (!config) {
@@ -41,7 +26,5 @@ export default class TerminalConfig {
     // Assign our values
     this.wasmTransformerWasmUrl = config.wasmTransformerWasmUrl;
     this.processWorkerUrl = config.processWorkerUrl;
-    this.callbackCommands = config.callbackCommands;
-    this.additionalWasmCommands = config.additionalWasmCommands;
   }
 }

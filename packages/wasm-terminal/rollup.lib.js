@@ -79,7 +79,8 @@ const libBundles = [
       file: pkg.browser,
       format: "iife",
       sourcemap: sourcemapOption,
-      name: "WasmTerminal"
+      name: "WasmTerminal",
+      exports: "named"
     },
     watch: {
       clearScreen: false

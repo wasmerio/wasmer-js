@@ -1,7 +1,9 @@
 // Service to fetch and instantiate modules
 // And cache them to run again
 
-import TerminalConfig from "../terminal-config";
+import WasmTerminalPlugin, { CallbackCommand } from "../wasm-terminal-plugin";
+
+import WasmTerminalConfig from "../wasm-terminal-config";
 
 import WasmTty from "../wasm-tty/wasm-tty";
 
@@ -29,94 +31,135 @@ const WAPM_GRAPHQL_QUERY = `query shellGetCommandQuery($command: String!) {
 }`;
 
 export default class CommandFetcher {
-  terminalConfig: TerminalConfig;
-  commandToBinaryCache: { [key: string]: Uint8Array };
+  wasmTerminalConfig: WasmTerminalConfig;
+  wasmTerminalPlugins: WasmTerminalPlugin[];
   commandToCompiledModuleCache: { [key: string]: WebAssembly.Module };
-  additionalCommandsToUrl: { [key: string]: string };
+  wasmTty?: WasmTty;
 
-  constructor(terminalConfig: TerminalConfig) {
-    this.terminalConfig = terminalConfig;
-    this.commandToBinaryCache = {};
+  constructor(
+    wasmTerminalConfig: WasmTerminalConfig,
+    wasmTerminalPlugins: WasmTerminalPlugin[],
+    wasmTty?: WasmTty
+  ) {
+    this.wasmTerminalConfig = wasmTerminalConfig;
+    this.wasmTerminalPlugins = wasmTerminalPlugins;
     this.commandToCompiledModuleCache = {};
-    this.additionalCommandsToUrl = {};
 
-    // Fill our command to URL Cache with the
-    // "additionalWasmCommands" in the Terminal Config
-    if (this.terminalConfig.additionalWasmCommands) {
-      Object.keys(this.terminalConfig.additionalWasmCommands).forEach(
-        commandName => {
-          // Using as any on next line as it thinks additionalWasmCommands may be undefined,
-          // Even though we check above if it is not.
-          this.additionalCommandsToUrl[commandName] = (this.terminalConfig
-            .additionalWasmCommands as any)[commandName];
-        }
-      );
+    if (wasmTty) {
+      this.wasmTty = wasmTty;
     }
   }
 
-  async getWasmModuleForCommandName(commandName: string, wasmTty?: WasmTty) {
-    let commandBinary = this.commandToBinaryCache[commandName];
-    if (!commandBinary) {
-      // Check if we were passed a resource to get this command name binary
-      let commandUrl = undefined;
-      if (this.additionalCommandsToUrl[commandName]) {
-        commandUrl = this.additionalCommandsToUrl[commandName];
-      } else {
-        commandUrl = await this._getWapmUrlForCommandName(commandName);
-      }
-
-      if (wasmTty) {
-        // Save the cursor position
-        wasmTty.print("\u001b[s");
-
-        wasmTty.print(
-          `[INFO] Downloading "${commandName}" from "${commandUrl}"`
-        );
-      }
-
-      commandBinary = await this._getBinaryFromUrl(commandUrl);
-      this.commandToBinaryCache[commandName] = commandBinary;
-
-      if (wasmTty) {
-        // Restore the cursor position
-        wasmTty.print("\u001b[u");
-
-        // Clear from cursor to end of screen
-        wasmTty.print("\u001b[1000D");
-        wasmTty.print("\u001b[0J");
-      }
-    }
-
+  async getCommandForCommandName(commandName: string, wasmTty?: WasmTty) {
     let cachedData = this.commandToCompiledModuleCache[commandName];
-    if (!cachedData) {
-      if (wasmTty) {
-        // Save the cursor position
-        wasmTty.print("\u001b[s");
+    if (cachedData) {
+      return cachedData;
+    }
 
-        wasmTty.print(`[INFO] Doing Transformations for "${commandName}"`);
-      }
+    // Initialize all the variables we need to build the module
+    let commandUrl: string | undefined = undefined;
+    let commandBinary: Uint8Array | undefined = undefined;
+    let commandCallback: CallbackCommand | undefined = undefined;
+    let commandCompiledModule: WebAssembly.Module | undefined = undefined;
 
-      // Fetch the wasm modules, but at least show the message for a short while
-      cachedData = await Promise.all([
-        this._getWasmModuleFromBinary(
-          commandBinary,
-          this.terminalConfig.wasmTransformerWasmUrl
-        ),
-        new Promise(resolve => setTimeout(resolve, 500))
-      ]).then(responses => responses[0]);
-      this.commandToCompiledModuleCache[commandName] = cachedData;
+    this._tryToWriteStatus(`[INFO] Searching for "${commandName}"...`);
 
-      if (wasmTty) {
-        // Restore the cursor position
-        wasmTty.print("\u001b[u");
+    // Run through the plugins
+    for (let i = 0; i < this.wasmTerminalPlugins.length; i++) {
+      const wasmTerminalPlugin = this.wasmTerminalPlugins[i];
 
-        // Clear from cursor to end of screen
-        wasmTty.print("\u001b[1000D");
-        wasmTty.print("\u001b[0J");
+      const responsePromise = wasmTerminalPlugin.apply("beforeFetchCommand", [
+        commandName
+      ]);
+      if (responsePromise) {
+        const response = await responsePromise;
+
+        if (!response) {
+          i = this.wasmTerminalPlugins.length;
+          continue;
+        }
+
+        if (typeof response === "string") {
+          commandUrl = response;
+        } else if (response instanceof Uint8Array) {
+          commandBinary = response;
+        } else if (typeof response === "function") {
+          commandCallback = response;
+        } else {
+          commandCompiledModule = response;
+        }
+
+        i = this.wasmTerminalPlugins.length;
       }
     }
 
-    return cachedData;
+    this._tryToClearStatus();
+
+    if (commandCallback) {
+      return commandCallback;
+    }
+
+    // Doing things backwars for fetching, transforming, and compilng the module
+    // To re-use code in the worst case scenario
+
+    // Check if we were passed a resource to get this command name binary
+    if (!commandCompiledModule && !commandBinary && !commandUrl) {
+      commandUrl = await this._getWapmUrlForCommandName(commandName);
+    }
+
+    this._tryToWriteStatus(
+      `[INFO] Downloading "${commandName}" from "${commandUrl}"`
+    );
+
+    if (!commandCompiledModule && !commandBinary && commandUrl) {
+      commandBinary = await this._getBinaryFromUrl(commandUrl);
+    }
+
+    this._tryToClearStatus();
+
+    if (!commandBinary) {
+      throw new Error("Could not get the wasm module binary");
+    }
+
+    this._tryToWriteStatus(`[INFO] Doing Transformations for "${commandName}"`);
+
+    // Fetch the wasm modules, but at least show the message for a short while
+    commandCompiledModule = await Promise.all([
+      this._getWasmModuleFromBinary(
+        commandBinary,
+        this.wasmTerminalConfig.wasmTransformerWasmUrl
+      ),
+      new Promise(resolve => setTimeout(resolve, 500))
+    ]).then(responses => responses[0]);
+
+    if (!commandCompiledModule) {
+      throw new Error("Could not get/compile the compiled wasm modules");
+    }
+    this.commandToCompiledModuleCache[commandName] = commandCompiledModule;
+
+    this._tryToClearStatus();
+
+    return commandCompiledModule;
+  }
+
+  _tryToWriteStatus(message: string) {
+    if (this.wasmTty) {
+      // Save the cursor position
+      this.wasmTty.print("\u001b[s");
+
+      this.wasmTty.print(message);
+    }
+  }
+
+  _tryToClearStatus() {
+    if (this.wasmTty) {
+      // Restore the cursor position
+      this.wasmTty.print("\u001b[u");
+
+      // Clear from cursor to end of screen
+      this.wasmTty.print("\u001b[1000D");
+      this.wasmTty.print("\u001b[0J");
+    }
   }
 
   async _getWapmUrlForCommandName(commandName: String) {
