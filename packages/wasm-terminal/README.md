@@ -61,16 +61,6 @@ const wasmTerminal = new WasmTerminal({
     "/node_modules/wasm-terminal/wasm_transformer/wasm_transformer_bg.wasm",
   // IMPORTANT: This is wherever your process.worker.js file URL is hosted
   processWorkerUrl: "/node_modules/wasm-terminal/workers/process.worker.js",
-  additionalWasmCommands: {
-    // Pass a custom command, run with `mycommand`, to fetch/run the Wasm module at the URL Provided
-    mycommand: "http://localhost:8000/mycommand.wasm"
-  },
-  callbackCommands: {
-    // Pass a command run with `hello`, that outputs the following to /dev/stdout
-    hello: (args, stdin) => {
-      return Promise.resolve(`Hello! Args: ${args}, stdin: ${stdin}`);
-    }
-  }
 });
 
 // Let's create/add a quick plugin
