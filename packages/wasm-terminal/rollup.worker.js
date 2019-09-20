@@ -6,10 +6,7 @@ import builtins from "rollup-plugin-node-builtins";
 import globals from "rollup-plugin-node-globals";
 import typescript from "rollup-plugin-typescript2";
 import json from "rollup-plugin-json";
-// Not using the closure compiler here, because it seems to have an issue
-// With ComLinks Async/Await when outputing the js module
-// import compiler from "@ampproject/rollup-plugin-closure-compiler";
-import { terser } from "rollup-plugin-terser";
+import compiler from "@ampproject/rollup-plugin-closure-compiler";
 import bundleSize from "rollup-plugin-bundle-size";
 import pkg from "./package.json";
 
@@ -31,7 +28,7 @@ const plugins = [
   globals(),
   builtins(),
   json(),
-  process.env.PROD ? terser() : undefined,
+  process.env.PROD ? compiler() : undefined,
   process.env.PROD ? bundleSize() : undefined
 ];
 
