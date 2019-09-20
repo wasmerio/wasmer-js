@@ -29,6 +29,8 @@ This project is built using [Xterm.js](https://github.com/xtermjs/xterm.js/), an
 
 - Runs processes in seperate web workers using [Comlink](https://github.com/GoogleChromeLabs/comlink)! 🔗
 
+- Allows for creating
+
 ## Browser Compatibility
 
 For more simple wasm modules, E.g [cowsay](https://wapm.io/package/cowsay), the wasm terminal will should work on the latest version of all major browsers. However, more complex wasm modules may only work on browsers that support [SharedArrayBuffer](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer). Which was previously implemented in all major browsers, but was removed due to the [Meltdown and Spectre attacks](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer#Browser_compatibility). Though, some major browsers have already started to re-enable this feature. The following cases that may be problemsome are:
@@ -50,7 +52,7 @@ npm install --save @wasmer/wasm-terminal
 **Javascript**
 
 ```javascript
-import WasmTerminal from "@wasmer/wasm-terminal";
+import WasmTerminal, {WasmTerminalPlugin} from "@wasmer/wasm-terminal";
 
 // Let's create our Wasm Terminal
 const wasmTerminal = new WasmTerminal({
@@ -70,6 +72,19 @@ const wasmTerminal = new WasmTerminal({
     }
   }
 });
+
+// Let's create/add a quick plugin
+cont myPlugin = new WasmTerminalPlugin({
+  afterOpen: () => "Welcome to the wasm-terminal!",  // Return a string to show text after opening.
+  beforeFetchCommand: (commandName) => {
+    // If the command name is some custom command we want to handle
+    // Return a promise that resolves a url to a wasm module that should represent that command.
+    if(commandName === 'custom-command') {
+      Promise.resolve("https://link-to-wasm.com/wasm-binary.wasm")
+    }
+  }
+});
+wasmTerminal.addPlugin(myPlugin);
 
 // Let's bind our wasm terminal to it's container
 const containerElement = document.querySelector("#root");
@@ -94,13 +109,13 @@ We must also include the `[xterm](https://github.com/xtermjs/xterm.js/).css`. Fo
 />
 ```
 
-## Reference API
+## Wasm Terminal Reference API
 
 `new WasmTerminal(WasmTerminalConfig)`
 
 Constructor for the WasmTerminal, that returns an instance of the WasmTerminal.
 
-The Wasm[TerminalConfig](./lib/terminal-config.ts) can be described as the following:
+The [WasmTerminalConfig](./lib/wasm-terminal-config.ts) can be described as the following:
 
 ```typescript
 {
@@ -110,14 +125,6 @@ The Wasm[TerminalConfig](./lib/terminal-config.ts) can be described as the follo
   // URL to the /node_modules/wasm-terminal/workers/process.worker.js . This is used by the shell to
   // to spawn web workers in Comlink, for features such as piping, /dev/stdin reading, and general performance enhancements.
   processWorkerUrl?: string;
-  // JavaScript Object for command that are run as callback functions.
-  // The key of the Javascript object property represents the name of the command, and the value is a Function
-  // That returns a promise. The Promise should be a string, that is then output to the shell through /dev/stdout.
-  callbackCommands?: CallbackCommandJsonMap;
-  // JavaScript Object for additional/custom wasm files that should be availble to be run as commands.
-  // The key of the Javascript object property represents the name of the command, and the value is a URL
-  // of the Wasm file to be fetched, and ran.
-  additionalWasmCommands?: WasmCommandJsonMap;
 }
 ```
 
@@ -138,6 +145,57 @@ Function to resize the terminal to fit the size of its container.
 `wasmTerminal.focus()`
 
 Function to [focus](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/focus) on the `wasmTerminal` element, and allow input into the shell.
+
+---
+
+`wasmTerminal.addPlugin() => Function`
+
+Add a [`WasmTerminalPlugin`](./lib/wasm-terminal-plugin.ts) to add additional functionality to the wasm terminal. Returns a function to remove the plugin.
+
+To learn more about plugins, see the "Plugins section"
+
+## Wasm Terminal Plugin API
+
+Wasm Terminal can have additional functionality added by adding plugins. Plugins are created by using the exported `WasmTerminalPlugin` class, and added with `wasmTerminal.addPlugin()`.
+
+---
+
+`new WasmTerminalPlugin(WasmTerminalPluginConfig)`
+
+Constructor for WasmTerminalPlugin, that returns an instance of a WasmTerminalPlugin.
+
+The config for the [WasmTerminalPlugin](./lib/wasm-terminal-plugin.ts) can be described as the following:
+
+```typescript
+{
+  // Function that runs after the terminal is opened, but before it prompts.
+  // Great for showing welcome messages.
+  afterOpen?: () => string | undefined;
+
+  // Function that runs before a command is feteched by the commandFether.
+  // Depending on what you return here, it will do different functionality,
+  // But essentially, what is returned will become the command functionality
+  beforeFetchCommand?: (
+      commandName: string
+      ) =>
+    | Promise<string> // This should be a URL string, that points to a wasm file. It will be fetched, transformed, and compiled
+    | Promise<Uint8Array> // This should be a wasm binary. It will be transformed and compiled.
+    | Promise<CallbackCommand> // This should be a CallbackCommand. See the CallbackCommand section for more
+    | Promise<undefined> // This will do nothing
+    | undefined; // This will do nothing
+}
+```
+
+---
+
+```typescript
+export type CallbackCommand = (
+  args: string[],
+  stdin: string
+) => Promise<string | undefined>;
+```
+
+CallbackCommands are functions that can be returned by WasmTerminalPlugins. They are simply Javascript callback that take in the command arguments and command stdin, and returns a Promise that resolves stdout. Since these callback commands handle `stdin` and `stdout`, that can be used as normal commands that can be piped!
 
 ## Contributing
 
