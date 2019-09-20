@@ -29,7 +29,7 @@ This project is built using [Xterm.js](https://github.com/xtermjs/xterm.js/), an
 
 - Runs processes in seperate web workers using [Comlink](https://github.com/GoogleChromeLabs/comlink)! 🔗
 
-- Allows for creating
+- Allows for creating Plugins to add additional functionality! (E.g commands, welcome messages, and more!) 🔌
 
 ## Browser Compatibility
 
