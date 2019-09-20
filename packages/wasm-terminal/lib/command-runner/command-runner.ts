@@ -1,4 +1,6 @@
-import * as Comlink from "comlink";
+// Including comlink from source:
+// https://github.com/GoogleChromeLabs/comlink/issues/366
+import * as Comlink from "../../node_modules/comlink/src/comlink";
 import parse from "shell-parse";
 
 import Process from "../process/process";
