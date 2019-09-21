@@ -1,14 +1,8 @@
-# wasmer-js
-
-[![styled with prettier](https://img.shields.io/badge/styled_with-prettier-ff69b4.svg)](https://github.com/prettier/prettier)
+# Wasmer-JS [![styled with prettier](https://img.shields.io/badge/styled_with-prettier-ff69b4.svg)](https://github.com/prettier/prettier) [![Travis](https://img.shields.io/travis/wasmerio/wasmer-js.svg)](https://travis-ci.org/wasmerio/wasmer-js) [![Coveralls](https://img.shields.io/coveralls/wasmerio/wasmer-js.svg)](https://coveralls.io/github/wasmerio/wasmer-js) [![Dev Dependencies](https://david-dm.org/wasmerio/wasmer-js/dev-status.svg)](https://david-dm.org/wasmerio/wasmer-js?type=dev)
 
 <!-- [![Greenkeeper badge](https://badges.greenkeeper.io/wasmerio/wasmer-js.svg)](https://greenkeeper.io/) -->
 
-[![Travis](https://img.shields.io/travis/wasmerio/wasmer-js.svg)](https://travis-ci.org/wasmerio/wasmer-js)
-[![Coveralls](https://img.shields.io/coveralls/wasmerio/wasmer-js.svg)](https://coveralls.io/github/wasmerio/wasmer-js)
-[![Dev Dependencies](https://david-dm.org/wasmerio/wasmer-js/dev-status.svg)](https://david-dm.org/wasmerio/wasmer-js?type=dev)
-
-Monorepo for all JavaScript packages (or JavaScript related Rust crates) for [Wasmer](https://wasmer.io/). The packages are managed using [lerna](https://lerna.js.org/):
+Monorepo for all JavaScript packages (or JavaScript-related Rust crates) for using [WebAssembly](https://webassembly.org) and [Wasmer](https://wasmer.io/) in Node and the Browser. The packages are managed using [lerna](https://lerna.js.org/):
 
 - [`@wasmer/wasi`](./packages/wasi) - WASI Implementation for Node and Browsers.
 
