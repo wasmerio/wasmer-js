@@ -104,7 +104,7 @@ export default class CommandFetcher {
 
     // Check if we were passed a resource to get this command name binary
     if (!commandCompiledModule && !commandBinary && !commandUrl) {
-      commandUrl = await this._getWapmUrlForCommandName(commandName);
+      commandUrl = await this._getWAPMUrlForCommandName(commandName);
     }
 
     this._tryToWriteStatus(
@@ -162,7 +162,7 @@ export default class CommandFetcher {
     }
   }
 
-  async _getWapmUrlForCommandName(commandName: String) {
+  async _getWAPMUrlForCommandName(commandName: String) {
     const fetchResponse = await fetch("https://registry.wapm.io/graphql", {
       method: "POST",
       mode: "cors",

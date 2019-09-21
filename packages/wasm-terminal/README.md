@@ -23,7 +23,7 @@ This project is built using [Xterm.js](https://github.com/xtermjs/xterm.js/), an
 
 - Provides a terminal-like experience, with stuff like autocomplete, hotkeys, pipes, and more! 👩‍💻
 
-- Uses [Wapm](https://wapm.io/) to fetch packages, if they are not already downloaded! 📦
+- Uses [WAPM](https://wapm.io/) to fetch packages, if they are not already downloaded! 📦
 
 - Allows passing in your own custom Wasm binaries, or callback commands to provide commands in the shell! ⚙️
 

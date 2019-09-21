@@ -1,4 +1,4 @@
-// Rollup Config for the Wapm Shell Example
+// Rollup Config for the WAPM Shell Example
 // NOTE: URLs are relative to the project root for this rollup config
 
 import resolve from "rollup-plugin-node-resolve";
@@ -83,7 +83,7 @@ const wasmShellBundles = [
         file: "dist/examples/wasm-shell/index.iife.js",
         format: "iife",
         sourcemap: sourcemapOption,
-        name: "WASIWapmShellDemo"
+        name: "WASIWAPMShellDemo"
       }
     ],
     watch: {

@@ -21,7 +21,7 @@ describe("CommandFetcher", () => {
     mockWasmBinary[0] = 1;
     mockWasmModule = {};
 
-    commandFetcher._getWapmUrlForCommandName = jest.fn(() =>
+    commandFetcher._getWAPMUrlForCommandName = jest.fn(() =>
       Promise.resolve("CommandUrl")
     );
     commandFetcher._getBinaryFromUrl = jest.fn(() =>
@@ -63,7 +63,7 @@ describe("CommandFetcher", () => {
       }
     ]);
 
-    commandFetcher._getWapmUrlForCommandName = jest.fn(() =>
+    commandFetcher._getWAPMUrlForCommandName = jest.fn(() =>
       Promise.resolve("CommandUrl")
     );
     commandFetcher._getBinaryFromUrl = jest.fn(() =>
