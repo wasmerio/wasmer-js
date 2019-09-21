@@ -1,6 +1,6 @@
 # @wasmer/wasi
 
-Isomorphic library for interacting with WASI Modules within Javascript easily. 📚
+Isomorphic JS library for interacting with WASI Modules within Javascript easily in both Node.js and the Browser. 📚
 
 ## Table of Contents
 
@@ -89,7 +89,7 @@ let myWASIInstance = new WASI({
 
 And returns a WASI Instance:
 
-```
+```js
 console.log(myWASIInstance);
 /*
 
@@ -103,7 +103,6 @@ Would Output:
   bindings: WASIBindings;
 }
 */
-
 ```
 
 ---
@@ -112,17 +111,16 @@ Would Output:
 
 The [default bindings](./lib/bindings) for the environment that are set on the `bindings` property of the constructor config object. This is useful for use cases like, you want to plugin in your own file system. For example:
 
-```
-const myFs = require('fs');
+```js
+const myFs = require("fs");
 
 let wasi = new WASI({
   preopenDirectories: {},
-  env: {
-  },
+  env: {},
   args: [],
   bindings: {
-  fs: myFs,
-  ...WASI.defaultConfig.bindings
+    fs: myFs,
+    ...WASI.defaultConfig.bindings
   }
 });
 ```
