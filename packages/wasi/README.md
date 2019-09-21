@@ -1,6 +1,6 @@
 # @wasmer/wasi
 
-Isomorphic Javascripts library for interacting with WASI Modules within Javascript easily in both Node.js and the Browser. 📚
+Isomorphic Javascript library for interacting with WASI Modules easily in Node.js and the Browser. 📚
 
 ## Table of Contents
 

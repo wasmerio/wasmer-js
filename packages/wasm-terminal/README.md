@@ -31,14 +31,6 @@ This project is built using [Xterm.js](https://github.com/xtermjs/xterm.js/), an
 
 - Allows for creating Plugins to add additional functionality! (E.g commands, welcome messages, and more!) 🔌
 
-## Browser Compatibility
-
-For more simple Wasm modules, E.g [cowsay](https://wapm.io/package/cowsay), the Wasm terminal will work on the latest version of all major browsers. However, more complex Wasm modules may only work on browsers that support [SharedArrayBuffer](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer). Which was previously implemented in all major browsers, but was removed due to the [Meltdown and Spectre attacks](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer#Browser_compatibility). Though, some major browsers have already started to re-enable this feature. The following cases that may be problemsome are:
-
-- Wasm modules that infinitely loop like [wasm-matrix](https://github.com/torch2424/wasm-matrix). They will block the main thread and freeze the browser.
-
-- Wasm modules that take in input from `/dev/stdin` such as [lolcat](https://wapm.io/package/lolcat). They will not take input from the shell. but instead, use [`window.prompt`](https://developer.mozilla.org/en-US/docs/Web/API/Window/prompt) to get input. Since `window.prompt` can pause the execution of javascript on the main thread for synchronous reads.
-
 ## Installation
 
 For installing `@wasmer/wasm-terminal`, just run this command in your shell:
@@ -70,7 +62,7 @@ cont myPlugin = new WasmTerminalPlugin({
     // If the command name is some custom command we want to handle
     // Return a promise that resolves a url to a Wasm module that should represent that command.
     if(commandName === 'custom-command') {
-      Promise.resolve("https://link-to-wasm.com/wasm-binary.wasm")
+      return Promise.resolve("https://link-to-wasm.com/wasm-binary.wasm")
     }
   }
 });
@@ -186,6 +178,14 @@ export type CallbackCommand = (
 ```
 
 CallbackCommands are functions that can be returned by WasmTerminalPlugins. They are simply Javascript callback that take in the command arguments and command stdin, and returns a Promise that resolves stdout. Since these callback commands handle `stdin` and `stdout`, that can be used as normal commands that can be piped!
+
+## Browser Compatibility
+
+For more simple Wasm modules, E.g [cowsay](https://wapm.io/package/cowsay), the Wasm terminal will work on the latest version of all major browsers. However, more complex Wasm modules may only work on browsers that support [SharedArrayBuffer](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer). Which was previously implemented in all major browsers, but was removed due to the [Meltdown and Spectre attacks](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer#Browser_compatibility). Though, some major browsers have already started to re-enable this feature. The following cases that may be problemsome are:
+
+- Wasm modules that infinitely loop like [wasm-matrix](https://github.com/torch2424/wasm-matrix). They will block the main thread and freeze the browser.
+
+- Wasm modules that take in input from `/dev/stdin` such as [lolcat](https://wapm.io/package/lolcat). They will not take input from the shell. but instead, use [`window.prompt`](https://developer.mozilla.org/en-US/docs/Web/API/Window/prompt) to get input. Since `window.prompt` can pause the execution of javascript on the main thread for synchronous reads.
 
 ## Contributing
 
