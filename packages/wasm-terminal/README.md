@@ -17,11 +17,11 @@ A terminal-like component for the browser, that fetches and runs Wasm modules in
 
 This project is built using [Xterm.js](https://github.com/xtermjs/xterm.js/), and [Comlink](https://github.com/GoogleChromeLabs/comlink) 🙏
 
-- Runs WASI Wasm modules using [@wasmer/wasi](../wasi) and [@wasmer/wasmfs](../wasmfs). 🏃
+- Runs WASI Wasm modules using [@wasmer/wasi](https://github.com/wasmerio/wasmer-js/tree/master/packages/wasi) and [@wasmer/wasmfs](https://github.com/wasmerio/wasmer-js/tree/master/packages/wasmfs). 🏃
 
-- Uses [wasm_transformer](../../crates/wasm_transformer) to transform Wasm binaries _on the fly_ to run in the browser! ♻️
+- Uses [wasm_transformer](https://github.com/wasmerio/wasmer-js/tree/master/packages/wasm_transformer) to transform Wasm binaries _on the fly_ to run in the browser! ♻️
 
-- Provides a terminal-like experience, with stuff like autocomplete, hotkeys, pipes, and more! 👩‍💻
+- Provides a terminal-like experience, with stuff slike autocomplete, hotkeys, pipes, and more! 👩‍💻
 
 - Uses [WAPM](https://wapm.io/) to fetch packages, if they are not already downloaded! 📦
 
@@ -33,11 +33,11 @@ This project is built using [Xterm.js](https://github.com/xtermjs/xterm.js/), an
 
 ## Browser Compatibility
 
-For more simple Wasm modules, E.g [cowsay](https://wapm.io/package/cowsay), the Wasm terminal will should work on the latest version of all major browsers. However, more complex Wasm modules may only work on browsers that support [SharedArrayBuffer](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer). Which was previously implemented in all major browsers, but was removed due to the [Meltdown and Spectre attacks](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer#Browser_compatibility). Though, some major browsers have already started to re-enable this feature. The following cases that may be problemsome are:
+For more simple Wasm modules, E.g [cowsay](https://wapm.io/package/cowsay), the Wasm terminal will work on the latest version of all major browsers. However, more complex Wasm modules may only work on browsers that support [SharedArrayBuffer](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer). Which was previously implemented in all major browsers, but was removed due to the [Meltdown and Spectre attacks](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer#Browser_compatibility). Though, some major browsers have already started to re-enable this feature. The following cases that may be problemsome are:
 
 - Wasm modules that infinitely loop like [wasm-matrix](https://github.com/torch2424/wasm-matrix). They will block the main thread and freeze the browser.
 
-- Wasm modules that take in input from /dev/stdin such as [lolcat](https://wapm.io/package/lolcat). They will not take input from the shell. but instead, use [`window.prompt`](https://developer.mozilla.org/en-US/docs/Web/API/Window/prompt) to get input. Since `window.prompt` can pause the execution of javascript on the main thread for synchronous reads.
+- Wasm modules that take in input from `/dev/stdin` such as [lolcat](https://wapm.io/package/lolcat). They will not take input from the shell. but instead, use [`window.prompt`](https://developer.mozilla.org/en-US/docs/Web/API/Window/prompt) to get input. Since `window.prompt` can pause the execution of javascript on the main thread for synchronous reads.
 
 ## Installation
 

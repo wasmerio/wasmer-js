@@ -1,6 +1,6 @@
 # @wasmer/wasi
 
-Isomorphic JS library for interacting with WASI Modules within Javascript easily in both Node.js and the Browser. 📚
+Isomorphic Javascripts library for interacting with WASI Modules within Javascript easily in both Node.js and the Browser. 📚
 
 ## Table of Contents
 
@@ -17,7 +17,7 @@ This project is forked from [node-wasi](https://github.com/devsnek/node-wasi), a
 However, `@wasmer/wasi` is focused on:
 
 - Bringing [WASI](https://wasi.dev/) to an Isomorphic context (Node.js and the Browser) 🖥️
-- Make it easy to plug in different filesystems (via [wasmfs](../wasmfs)) 📂
+- Make it easy to plug in different filesystems (via [wasmfs](https://github.com/wasmerio/wasmer-js/tree/master/packages/wasmfs)) 📂
 - Make it type-safe using [Typescript](http://www.typescriptlang.org/) 👷
 - ~ 15KB minified + gzipped 📦
 
@@ -50,7 +50,7 @@ wasi.bind(instance);
 instance.exports._start();
 ```
 
-For a larger end-to-end example, please see the [wasm-terminal package]('../wasm-terminal').
+For a larger end-to-end example, please see the [wasm-terminal package](https://github.com/wasmerio/wasmer-js/tree/master/packages/wasm-terminal).
 
 ## Reference API
 
