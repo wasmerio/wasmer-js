@@ -61,7 +61,7 @@ Constructs a new WASI instance.
 The Config object is is as follows:
 
 ```js
-let myWasiInstance = new WASI({
+let myWASIInstance = new WASI({
   // OPTIONAL: The pre-opened dirctories
   preopenDirectories: {},
 
@@ -87,10 +87,10 @@ let myWasiInstance = new WASI({
 });
 ```
 
-And returns a Wasi Instance:
+And returns a WASI Instance:
 
 ```
-console.log(myWasiInstance);
+console.log(myWASIInstance);
 /*
 
 Would Output:
@@ -99,7 +99,7 @@ Would Output:
   memory: WebAssembly.Memory;
   view: DataView;
   FD_MAP: Map<number, File>;
-  exports: Exports; // Wasi API to be imported in the importObject on instantiation.
+  exports: Exports; // WASI API to be imported in the importObject on instantiation.
   bindings: WASIBindings;
 }
 */

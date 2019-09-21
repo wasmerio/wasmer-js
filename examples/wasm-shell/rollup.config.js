@@ -83,7 +83,7 @@ const wasmShellBundles = [
         file: "dist/examples/wasm-shell/index.iife.js",
         format: "iife",
         sourcemap: sourcemapOption,
-        name: "WasiWapmShellDemo"
+        name: "WASIWapmShellDemo"
       }
     ],
     watch: {

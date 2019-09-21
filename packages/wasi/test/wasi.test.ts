@@ -64,7 +64,7 @@ const bytesConverter = (buffer: Buffer): Buffer => {
   return buffer;
 };
 
-const instantiateWasi = async (
+const instantiateWASI = async (
   file: string,
   wasmerFileSystem: any,
   args: string[] = [],
@@ -116,7 +116,7 @@ describe("WASI interaction", () => {
   });
 
   it("Helloworld can be run", async () => {
-    let { instance, wasi } = await instantiateWasi(
+    let { instance, wasi } = await instantiateWASI(
       "test/rs/helloworld.wasm",
       wasmerFileSystem
     );
@@ -128,7 +128,7 @@ describe("WASI interaction", () => {
   });
 
   it("WASI args work", async () => {
-    let { instance, wasi } = await instantiateWasi(
+    let { instance, wasi } = await instantiateWASI(
       "test/rs/args.wasm",
       wasmerFileSystem,
       ["demo", "-h", "--help", "--", "other"]
@@ -141,7 +141,7 @@ describe("WASI interaction", () => {
   });
 
   it("WASI env work", async () => {
-    let { instance, wasi } = await instantiateWasi(
+    let { instance, wasi } = await instantiateWASI(
       "test/rs/env.wasm",
       wasmerFileSystem,
       [],

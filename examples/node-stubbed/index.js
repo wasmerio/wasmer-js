@@ -88,17 +88,17 @@ const wasi = new WASI({
 
 // Stub all wasi export methods
 Object.keys(wasi.exports).forEach(wasiExportKey => {
-  const originalWasiExport = wasi.exports[wasiExportKey];
+  const originalWASIExport = wasi.exports[wasiExportKey];
   wasi.exports[wasiExportKey] = sinon
     .stub(wasi.exports, wasiExportKey)
     .callsFake(function() {
       console.log(
         chalk.green(`
-      [Wasi Stub]: ${wasiExportKey}
-      [Wasi Stub]: ${JSON.stringify(arguments)}
+      [WASI Stub]: ${wasiExportKey}
+      [WASI Stub]: ${JSON.stringify(arguments)}
       `)
       );
-      return originalWasiExport.apply(null, arguments);
+      return originalWASIExport.apply(null, arguments);
     });
 });
 

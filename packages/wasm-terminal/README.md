@@ -17,7 +17,7 @@ A terminal-like component for the browser, that fetches and runs Wasm modules in
 
 This project is built using [Xterm.js](https://github.com/xtermjs/xterm.js/), and [Comlink](https://github.com/GoogleChromeLabs/comlink) 🙏
 
-- Runs [Wasi](https://wasi.dev/) Wasm modules using [@wasmer/wasi](../wasi) and [@wasmer/wasmfs](../wasmfs). 🏃
+- Runs WASI Wasm modules using [@wasmer/wasi](../wasi) and [@wasmer/wasmfs](../wasmfs). 🏃
 
 - Uses [wasm_transformer](../../crates/wasm_transformer) to transform wasm binaries on the fly to run in the browser! ♻️
 

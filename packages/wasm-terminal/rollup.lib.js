@@ -22,7 +22,7 @@ let typescriptPluginOptions = {
 };
 
 // Need to replace this line for commonjs, as the import.meta object doesn't exist in node
-const replaceWasiJsTransformerOptions = {
+const replaceWASIJsTransformerOptions = {
   delimiters: ["", ""],
   values: {
     "module = import.meta.url.replace": "// Replace by rollup"
@@ -39,7 +39,7 @@ const replaceBrowserOptions = {
 
 let plugins = [
   replace(replaceBrowserOptions),
-  replace(replaceWasiJsTransformerOptions),
+  replace(replaceWASIJsTransformerOptions),
   typescript(typescriptPluginOptions),
   resolve({
     preferBuiltins: true
