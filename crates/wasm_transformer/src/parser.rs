@@ -86,7 +86,7 @@ pub struct ParsedWasmInfo {
     pub wasm_calls: Vec<WasmCall>,
 }
 
-/// Function to walk the wasm binary, and produce a minimal psuedo-AST representation
+/// Function to walk the Wasm binary, and produce a minimal psuedo-AST representation
 pub fn parse_wasm_vec(wasm_binary_vec: &mut Vec<u8>) -> ParsedWasmInfo {
     let mut wasm_type_signatures: Vec<WasmTypeSignature> = Vec::new();
     let mut wasm_sections: Vec<WasmSection> = Vec::new();

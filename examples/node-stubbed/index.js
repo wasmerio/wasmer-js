@@ -14,9 +14,9 @@ const rl = readline.createInterface({
 });
 let currentStdinLine = "";
 
-// Check if we passed a wasm file
+// Check if we passed a Wasm file
 if (argv._.length < 1) {
-  throw new Error("You must pass in a wasm file as an argument");
+  throw new Error("You must pass in a Wasm file as an argument");
 }
 
 const msleep = n => {
@@ -102,7 +102,7 @@ Object.keys(wasi.exports).forEach(wasiExportKey => {
     });
 });
 
-// Read in the input wasm file
+// Read in the input Wasm file
 const wasmBuffer = fs.readFileSync(argv._[0]);
 
 // Transform the binary

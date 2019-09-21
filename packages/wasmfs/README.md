@@ -51,7 +51,7 @@ For a larger end-to-end example, please see the [wasm-terminal package]('../wasm
 
 [memfs](https://github.com/streamich/memfs)' [node fs](https://nodejs.org/api/fs.html) implementation object. See the [node fs documentation](https://nodejs.org/api/fs.html) for API usage.
 
-**NOTE:** The functions on this `fs` implementation can easily be overriden to provide custom functionality when your wasm module (running with [`@wasmer/wasi`](../wasi)) tries to do file system operations. For example:
+**NOTE:** The functions on this `fs` implementation can easily be overriden to provide custom functionality when your Wasm module (running with [`@wasmer/wasi`](../wasi)) tries to do file system operations. For example:
 
 ```js
 const wasmFs = new WasmFs();

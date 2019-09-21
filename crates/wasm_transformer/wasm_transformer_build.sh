@@ -28,7 +28,7 @@ cargo test -- --nocapture
 
 echo " "
 echo "============================================="
-echo "Compiling wasm for web"
+echo "Compiling Wasm for web"
 echo "============================================="
 echo " "
 
@@ -46,7 +46,7 @@ rm ../../packages/wasm_transformer/.gitignore || true
 
 echo " "
 echo "============================================="
-echo "Compiling wasm for node"
+echo "Compiling Wasm for node"
 echo "============================================="
 echo " "
 

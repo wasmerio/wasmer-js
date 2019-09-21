@@ -99,7 +99,7 @@ function init(module) {
           .then(r => {
             if (r.headers.get("Content-Type") != "application/wasm") {
               console.warn(
-                "`WebAssembly.instantiateStreaming` failed because your server does not serve wasm with `application/wasm` MIME type. Falling back to `WebAssembly.instantiate` which is slower. Original error:\n",
+                "`WebAssembly.instantiateStreaming` failed because your server does not serve Wasm with `application/wasm` MIME type. Falling back to `WebAssembly.instantiate` which is slower. Original error:\n",
                 e
               );
               return r.arrayBuffer();
@@ -124,7 +124,7 @@ function init(module) {
     });
   }
   return result.then(({ instance, module }) => {
-    wasm = instance.exports;
+    Wasm = instance.exports;
     init.__wbindgen_wasm_module = module;
 
     return wasm;

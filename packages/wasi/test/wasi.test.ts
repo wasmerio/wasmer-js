@@ -1,4 +1,4 @@
-// Import fs for reading our test wasm files on disk
+// Import fs for reading our test Wasm files on disk
 import * as fs from "fs";
 
 // Since we are importing the lib directly, also we need to import our

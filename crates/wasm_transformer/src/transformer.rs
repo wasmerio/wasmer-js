@@ -6,9 +6,9 @@ use crate::parser::*;
 
 use std::*;
 
-// Function to lower i64 imports for a wasm binary vec
+// Function to lower i64 imports for a Wasm binary vec
 pub fn lower_i64_wasm_for_wasi_js(mut wasm_binary_vec: &mut Vec<u8>) -> Result<(), &'static str> {
-    // First parse the wasm vec
+    // First parse the Wasm vec
     let parsed_info = parse_wasm_vec(&mut wasm_binary_vec);
 
     // Get our imported wasm_functions
@@ -68,11 +68,11 @@ fn converts() {
         console_log!("Testing: {:?}", test_file_path);
         console_log!(" ");
 
-        let mut wasm = fs::read(test_file_path).unwrap();
+        let mut Wasm = fs::read(test_file_path).unwrap();
 
         assert!(
             wasmparser::validate(&wasm, None),
-            "original wasm is not valid"
+            "original Wasm is not valid"
         );
 
         console_log!(" ");
@@ -117,7 +117,7 @@ fn converts() {
 
         assert!(
             wasmparser::validate(&wasm, None),
-            "converted wasm is not valid"
+            "converted Wasm is not valid"
         );
     }
 }

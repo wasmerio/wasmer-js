@@ -7,7 +7,7 @@ import WasmTerminal, {
   // @ts-ignore
 } from "../../../packages/wasm-terminal/dist/index.esm";
 
-// Require wasm terminal URLs
+// Require Wasm terminal URLs
 // @ts-ignore
 import wasmTransformerWasmUrl from "../../../packages/wasm-terminal/dist/wasm_transformer/wasm_transformer_bg.wasm";
 // @ts-ignore

@@ -49,7 +49,7 @@ let plugins = [
   builtins(),
   json(),
   // Copy over the wasi-js-transformer package to the dist folder for publishing
-  // This is needed since we will want the user to pass in the transformer wasm file
+  // This is needed since we will want the user to pass in the transformer Wasm file
   copy({
     targets: [
       { src: "../wasm_transformer/**/*", dest: "dist/wasm_transformer/" },
