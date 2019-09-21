@@ -86,7 +86,7 @@ const instantiateWasi = async (
   let { instance } = await WebAssembly.instantiate(bytes, {
     wasi_unstable: wasi.exports
   });
-  wasi.setMemory(instance.exports.memory);
+  wasi.bind(instance);
   return { wasi, instance };
 };
 

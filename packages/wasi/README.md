@@ -44,7 +44,7 @@ let { instance } = await WebAssembly.instantiate(bytes, {
 });
 
 // Plug the Instance into WASI
-wasi.setMemory(instance.exports.memory);
+wasi.bind(instance);
 
 // Start the WebAssembly WASI instance!
 instance.exports._start();
@@ -60,7 +60,7 @@ Constructs a new WASI instance.
 
 The Config object is is as follows:
 
-```
+```js
 let myWasiInstance = new WASI({
   // OPTIONAL: The pre-opened dirctories
   preopenDirectories: {},

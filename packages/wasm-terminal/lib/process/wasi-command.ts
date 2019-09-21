@@ -109,7 +109,7 @@ export default class WASICommand extends Command {
   ): Promise<Duplex> {
     let instance = await this.promisedInstance;
     this.instance = instance;
-    this.wasi.setMemory((instance as any).exports.memory);
+    this.wasi.bind(instance);
     let stdoutRead = this.wasmFs.fs.createReadStream("/dev/stdout");
     let stderrRead = this.wasmFs.fs.createReadStream("/dev/stderr");
 

@@ -1325,6 +1325,11 @@ class WASI {
   setMemory(memory: WebAssembly.Memory) {
     this.memory = memory;
   }
+
+  // Bind a WebAssembly Instance into WASI
+  bind(instance: WebAssembly.Instance) {
+    this.setMemory(instance.exports.memory);
+  }
 }
 
 export default WASI;

@@ -114,7 +114,7 @@ const asyncTask = async () => {
     wasi_unstable: wasi.exports
   });
   const inst = response.instance;
-  wasi.setMemory(inst.exports.memory);
+  wasi.bind(inst);
 
   // Take in stdin
   rl.on("line", line => {
