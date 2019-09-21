@@ -14,15 +14,13 @@ Monorepo for all JavaScript packages, or JavaScript related Rust crates, for Was
 
 ## Packages
 
-- [`packages/wasi`](./packages/wasi) - Wasi Implementation for Node and Browsers.
+- [`@wasmer/wasi`](./packages/wasi) - Wasi Implementation for Node and Browsers.
 
-- [`packages/wasmfs`](./packages/wasmfs) - Wasi/Wasm FileSystem to be used in browsers, or for sandboxing in Node.
+- [`@wasmer/wasmfs`](./packages/wasmfs) - Wasi/Wasm FileSystem to be used in browsers, or for sandboxing in Node.
 
-- [`packages/wasm_transformer`](./packages/wasm_transformer) - wasm-pack output of `crates/wasm_transformer`.
+- [`@wasmer/wasm_transformer`](./packages/wasm_transformer) - the Javascript interface for the [`wasm_transformer` crate](./crates/wasm_transformer)
 
-- [`packages/wasm-terminal`](./packages/wasm-terminal) - A terminal/shell for interacting with Wasi/Wasm Modules that runs in the browser.
-
-- [`crates/wasm_transformer`](./crates/wasm_transformer) - Rust/Wasm crate for running transformations on Wasm module binaries.
+- [`@wasmer/wasm-terminal`](./packages/wasm-terminal) - A terminal/shell for interacting with Wasi/Wasm Modules that runs in the browser.
 
 ## Contributing
 
