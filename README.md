@@ -2,7 +2,7 @@
 
 <!-- [![Greenkeeper badge](https://badges.greenkeeper.io/wasmerio/wasmer-js.svg)](https://greenkeeper.io/) -->
 
-Monorepo for all JavaScript packages (or JavaScript-related Rust crates) for using [WebAssembly](https://webassembly.org) and [Wasmer](https://wasmer.io/) in Node and the Browser. The packages are managed using [lerna](https://lerna.js.org/):
+Monorepo of multiple JavaScript packages enabling easy use of [WebAssembly](https://webassembly.org) Modules in Node and the Browser.
 
 - [`@wasmer/wasi`](./packages/wasi) - WASI Implementation for Node and Browsers.
 
