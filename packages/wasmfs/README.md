@@ -1,4 +1,4 @@
-# @wasmer/wasmfs
+# `@wasmer/wasmfs`
 
 Isomorphic library to provide a sandboxed [node `fs`](https://nodejs.org/api/fs.html) implementation for Node and Browsers. 📂
 
