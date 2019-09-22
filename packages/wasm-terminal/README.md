@@ -1,4 +1,4 @@
-# @wasmer/wasm-terminal
+# `@wasmer/wasm-terminal`
 
 A terminal-like component for the browser, that fetches and runs Wasm modules in the context of a shell. 🐚
 
