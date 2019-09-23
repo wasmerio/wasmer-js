@@ -29,6 +29,8 @@ import dukTapeUrl from "../../../crates/wasm_transformer/wasm_module_examples/du
 // @ts-ignore
 import argtestUrl from "../../../crates/wasm_transformer/wasm_module_examples/argtest.wasm";
 // @ts-ignore
+import clangUrl from "../../../crates/wasm_transformer/wasm_module_examples/clang.wasm";
+// @ts-ignore
 import gettimeofdayUrl from "../../../crates/wasm_transformer/wasm_module_examples/gettimeofday/gettimeofday.wasm";
 
 const examplePlugin = new WasmTerminalPlugin({
@@ -48,6 +50,7 @@ const examplePlugin = new WasmTerminalPlugin({
       duk: dukTapeUrl,
       two: twoImportsUrl,
       arg: argtestUrl,
+      clang: clangUrl,
       rsign:
         "https://registry-cdn.wapm.io/contents/jedisct1/rsign2/0.5.4/rsign.wasm",
       callback: (args: string[], stdin: string) => {
