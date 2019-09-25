@@ -21,7 +21,7 @@ This project is built using [Xterm.js](https://github.com/xtermjs/xterm.js/), an
 
 - Uses [wasm_transformer](https://github.com/wasmerio/wasmer-js/tree/master/packages/wasm_transformer) to transform Wasm binaries _on the fly_ to run in the browser! ♻️
 
-- Provides a terminal-like experience, with stuff slike autocomplete, hotkeys, pipes, and more! 👩‍💻
+- Provides a terminal-like experience, with stuff like autocomplete, hotkeys, pipes, and more! 👩‍💻
 
 - Uses [WAPM](https://wapm.io/) to fetch packages, if they are not already downloaded! 📦
 
