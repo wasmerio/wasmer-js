@@ -84,9 +84,8 @@ const instantiateWASI = async (
   const buf = fs.readFileSync(file);
   let bytes = new Uint8Array(buf as any).buffer;
   let { instance } = await WebAssembly.instantiate(bytes, {
-    wasi_unstable: wasi.exports
+    wasi_unstable: wasi.wasiImport
   });
-  wasi.bind(instance);
   return { wasi, instance };
 };
 
@@ -120,7 +119,7 @@ describe("WASI interaction", () => {
       "test/rs/helloworld.wasm",
       wasmerFileSystem
     );
-    instance.exports._start();
+    wasi.start(instance);
     expect(await wasmerFileSystem.getStdOut()).toMatchInlineSnapshot(`
                               "Hello world!
                               "
@@ -133,7 +132,7 @@ describe("WASI interaction", () => {
       wasmerFileSystem,
       ["demo", "-h", "--help", "--", "other"]
     );
-    instance.exports._start();
+    wasi.start(instance);
     expect(await wasmerFileSystem.getStdOut()).toMatchInlineSnapshot(`
                               "[\\"demo\\", \\"-h\\", \\"--help\\", \\"--\\", \\"other\\"]
                               "
@@ -149,7 +148,7 @@ describe("WASI interaction", () => {
         WASM_EXISTING: "VALUE"
       }
     );
-    instance.exports._start();
+    wasi.start(instance);
     expect(await wasmerFileSystem.getStdOut()).toMatchInlineSnapshot(`
       "should be set (WASM_EXISTING): Some(\\"VALUE\\")
       shouldn't be set (WASM_UNEXISTING): None

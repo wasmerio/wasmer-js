@@ -124,7 +124,7 @@ function init(module) {
     });
   }
   return result.then(({ instance, module }) => {
-    Wasm = instance.exports;
+    wasm = instance.exports;
     init.__wbindgen_wasm_module = module;
 
     return wasm;
