@@ -1,7 +1,7 @@
 {
   "name": "@wasmer/wasmfs",
   "version": "0.0.1",
-  "description": "A mock file-system for running wasi / wasm in the browser ",
+  "description": "A mock file-system for running wasi / Wasm in the browser ",
   "main": "dist/index.cjs.js",
   "module": "dist/index.esm.js",
   "browser": "dist/index.iife.js",

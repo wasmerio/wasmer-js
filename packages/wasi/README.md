@@ -1,6 +1,6 @@
-# @wasmer/wasi
+# `@wasmer/wasi`
 
-Isomorphic library for interacting with WASI Modules within Javascript easily. 📚
+Isomorphic Javascript library for interacting with WASI Modules in Node.js and the Browser. 📚
 
 ## Table of Contents
 
@@ -17,7 +17,7 @@ This project is forked from [node-wasi](https://github.com/devsnek/node-wasi), a
 However, `@wasmer/wasi` is focused on:
 
 - Bringing [WASI](https://wasi.dev/) to an Isomorphic context (Node.js and the Browser) 🖥️
-- Make it easy to plug in different filesystems (via [wasmfs](../wasmfs)) 📂
+- Make it easy to plug in different filesystems (via [wasmfs](https://github.com/wasmerio/wasmer-js/tree/master/packages/wasmfs)) 📂
 - Make it type-safe using [Typescript](http://www.typescriptlang.org/) 👷
 - ~ 15KB minified + gzipped 📦
 
@@ -44,13 +44,13 @@ let { instance } = await WebAssembly.instantiate(bytes, {
 });
 
 // Plug the Instance into WASI
-wasi.setMemory(instance.exports.memory);
+wasi.bind(instance);
 
 // Start the WebAssembly WASI instance!
 instance.exports._start();
 ```
 
-For a larger end-to-end example, please see the [wasm-terminal package]('../wasm-terminal').
+For a larger end-to-end example, please see the [wasm-terminal package](https://github.com/wasmerio/wasmer-js/tree/master/packages/wasm-terminal).
 
 ## Reference API
 
@@ -60,8 +60,8 @@ Constructs a new WASI instance.
 
 The Config object is is as follows:
 
-```
-let myWasiInstance = new WASI({
+```js
+let myWASIInstance = new WASI({
   // OPTIONAL: The pre-opened dirctories
   preopenDirectories: {},
 
@@ -87,10 +87,10 @@ let myWasiInstance = new WASI({
 });
 ```
 
-And returns a Wasi Instance:
+And returns a WASI Instance:
 
-```
-console.log(myWasiInstance);
+```js
+console.log(myWASIInstance);
 /*
 
 Would Output:
@@ -99,11 +99,10 @@ Would Output:
   memory: WebAssembly.Memory;
   view: DataView;
   FD_MAP: Map<number, File>;
-  exports: Exports; // Wasi API to be imported in the importObject on instantiation.
+  exports: Exports; // WASI API to be imported in the importObject on instantiation.
   bindings: WASIBindings;
 }
 */
-
 ```
 
 ---
@@ -112,17 +111,16 @@ Would Output:
 
 The [default bindings](./lib/bindings) for the environment that are set on the `bindings` property of the constructor config object. This is useful for use cases like, you want to plugin in your own file system. For example:
 
-```
-const myFs = require('fs');
+```js
+const myFs = require("fs");
 
 let wasi = new WASI({
   preopenDirectories: {},
-  env: {
-  },
+  env: {},
   args: [],
   bindings: {
-  fs: myFs,
-  ...WASI.defaultConfig.bindings
+    fs: myFs,
+    ...WASI.defaultConfig.bindings
   }
 });
 ```

@@ -1,7 +1,7 @@
 {
   "name": "@wasmer/wasm-terminal",
   "version": "0.0.1",
-  "description": "A DOM Element for providing a Terminal, TTY, and Shell for running wasm \\ wasi programs.",
+  "description": "A DOM Element for providing a Terminal, TTY, and Shell for running Wasm \\ wasi programs.",
   "module": "dist/index.esm.js",
   "browser": "dist/index.iife.js",
   "typings": "dist/packages/wasm-terminal/lib/index.d.ts",

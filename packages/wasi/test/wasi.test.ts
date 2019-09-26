@@ -1,4 +1,4 @@
-// Import fs for reading our test wasm files on disk
+// Import fs for reading our test Wasm files on disk
 import * as fs from "fs";
 
 // Since we are importing the lib directly, also we need to import our
@@ -64,7 +64,7 @@ const bytesConverter = (buffer: Buffer): Buffer => {
   return buffer;
 };
 
-const instantiateWasi = async (
+const instantiateWASI = async (
   file: string,
   wasmerFileSystem: any,
   args: string[] = [],
@@ -86,7 +86,7 @@ const instantiateWasi = async (
   let { instance } = await WebAssembly.instantiate(bytes, {
     wasi_unstable: wasi.exports
   });
-  wasi.setMemory(instance.exports.memory);
+  wasi.bind(instance);
   return { wasi, instance };
 };
 
@@ -116,7 +116,7 @@ describe("WASI interaction", () => {
   });
 
   it("Helloworld can be run", async () => {
-    let { instance, wasi } = await instantiateWasi(
+    let { instance, wasi } = await instantiateWASI(
       "test/rs/helloworld.wasm",
       wasmerFileSystem
     );
@@ -128,7 +128,7 @@ describe("WASI interaction", () => {
   });
 
   it("WASI args work", async () => {
-    let { instance, wasi } = await instantiateWasi(
+    let { instance, wasi } = await instantiateWASI(
       "test/rs/args.wasm",
       wasmerFileSystem,
       ["demo", "-h", "--help", "--", "other"]
@@ -141,7 +141,7 @@ describe("WASI interaction", () => {
   });
 
   it("WASI env work", async () => {
-    let { instance, wasi } = await instantiateWasi(
+    let { instance, wasi } = await instantiateWASI(
       "test/rs/env.wasm",
       wasmerFileSystem,
       [],

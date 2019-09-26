@@ -52,7 +52,7 @@ const fileSystemBundles = [
         file: pkg.browser,
         format: "iife",
         sourcemap: sourcemapOption,
-        name: "WasiWapmShellDemo"
+        name: "WASIWAPMShellDemo"
       }
     ],
     watch: {

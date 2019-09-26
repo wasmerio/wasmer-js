@@ -1,4 +1,4 @@
-// Rollup Config for the Wapm Shell Example
+// Rollup Config for the WAPM Shell Example
 
 import resolve from "rollup-plugin-node-resolve";
 import commonjs from "rollup-plugin-commonjs";
@@ -22,7 +22,7 @@ let typescriptPluginOptions = {
 };
 
 // Need to replace this line for commonjs, as the import.meta object doesn't exist in node
-const replaceWasiJsTransformerOptions = {
+const replaceWASIJsTransformerOptions = {
   delimiters: ["", ""],
   values: {
     "module = import.meta.url.replace": "// Replace by rollup"
@@ -39,7 +39,7 @@ const replaceBrowserOptions = {
 
 let plugins = [
   replace(replaceBrowserOptions),
-  replace(replaceWasiJsTransformerOptions),
+  replace(replaceWASIJsTransformerOptions),
   typescript(typescriptPluginOptions),
   resolve({
     preferBuiltins: true
@@ -49,7 +49,7 @@ let plugins = [
   builtins(),
   json(),
   // Copy over the wasi-js-transformer package to the dist folder for publishing
-  // This is needed since we will want the user to pass in the transformer wasm file
+  // This is needed since we will want the user to pass in the transformer Wasm file
   copy({
     targets: [
       { src: "../wasm_transformer/**/*", dest: "dist/wasm_transformer/" },

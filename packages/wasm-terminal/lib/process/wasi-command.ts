@@ -1,4 +1,4 @@
-// The class for Wasi Commands
+// The class for WASI Commands
 
 import WASI from "@wasmer/wasi";
 import WasmFs from "@wasmer/wasmfs";
@@ -95,7 +95,7 @@ export default class WASICommand extends Command {
     });
 
     if (!options.module) {
-      throw new Error("Did not find a WebAssembly.Module for the Wasi Command");
+      throw new Error("Did not find a WebAssembly.Module for the WASI Command");
     }
 
     this.promisedInstance = WebAssembly.instantiate(options.module, {
@@ -109,7 +109,7 @@ export default class WASICommand extends Command {
   ): Promise<Duplex> {
     let instance = await this.promisedInstance;
     this.instance = instance;
-    this.wasi.setMemory((instance as any).exports.memory);
+    this.wasi.bind(instance);
     let stdoutRead = this.wasmFs.fs.createReadStream("/dev/stdout");
     let stderrRead = this.wasmFs.fs.createReadStream("/dev/stderr");
 

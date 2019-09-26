@@ -20,7 +20,7 @@ Library to run transformations on WebAssembly binaries. 🦀♻️
 
 This project depends on [wasmparser](https://github.com/yurydelendik/wasmparser.rs), and the [wasm-pack](https://github.com/rustwasm/wasm-pack) workflow. Huge shoutout to them! 🙏
 
-- Runs transformations on wasm binaries to modify the actual code that gets run, and introduces new features (such as introducing trampoline functions for i64 WASI imports). ✨
+- Runs transformations on Wasm binaries to modify the actual code that gets run, and introduces new features (such as introducing trampoline functions for i64 WASI imports). ✨
 
 - Installable on both crates.io, and npm! 📦
 
@@ -48,24 +48,24 @@ npm install --save @wasmer/wasm_transformer
 
 ### Rust
 
-For a larger example, see the simple [wasm_transformer_cli](../../examples/wasm_transformer_cli).
+For a larger example, see the simple [wasm_transformer_cli](https://github.com/wasmerio/wasmer-js/tree/master/examples/wasm_transformer_cli).
 
 ```rust
 use wasm_transformer::*;
 
 // Some Code here
 
-// Read in a wasm file as a Vec<u8>
-let mut wasm = fs::read(wasm_file_path).unwrap();
-// Add trampoline functions to lower the i64 imports in the wasm file
+// Read in a Wasm file as a Vec<u8>
+let mut Wasm = fs::read(wasm_file_path).unwrap();
+// Add trampoline functions to lower the i64 imports in the Wasm file
 let lowered_wasm = wasm_transformer::lower_i64_imports(wasm);
-// Write back out the new wasm file
+// Write back out the new Wasm file
 fs::write("./out.wasm", &lowered_wasm).expect("Unable to write file");
 ```
 
 ### Javascript
 
-For a larger example, see the [wasm_terminal](../../packages/wasm-terminal) package.
+For a larger example, see the [wasm_terminal](https://github.com/wasmerio/wasmer-js/tree/master/packages/wasm-terminal) package.
 
 ```js
 import wasm_transformer_init, {
@@ -73,7 +73,7 @@ import wasm_transformer_init, {
 } from "@wasmer/wasm_transformer";
 
 const fetchAndTransformWasmBinary = async () => {
-  // Get the original wasm binary
+  // Get the original Wasm binary
   const fetchedOriginalWasmBinary = await fetch("/original-wasm-module.wasm");
   const originalWasmBinaryBuffer = await fetchedOriginalWasmBinary.arrayBuffer();
   const originalWasmBinary = new Uint8Array(originalWasmBinaryBuffer);
@@ -100,7 +100,7 @@ Returns the version of the crate/package
 
 `lower_i64_imports(mut wasm_binary: Vec<u8>) -> Vec<u8>`
 
-Inserts trampoline functions for imports that have i64 params or returns. This is useful for running wasm modules in browsers that [do not support JavaScript BigInt -> Wasm i64 integration](https://github.com/WebAssembly/proposals/issues/7). Especially in the case for [i64 WASI Imports](https://github.com/CraneStation/wasmtime/blob/master/docs/WASI-api.md#clock_time_get).
+Inserts trampoline functions for imports that have i64 params or returns. This is useful for running Wasm modules in browsers that [do not support JavaScript BigInt -> Wasm i64 integration](https://github.com/WebAssembly/proposals/issues/7). Especially in the case for [i64 WASI Imports](https://github.com/CraneStation/wasmtime/blob/master/docs/WASI-api.md#clock_time_get).
 
 ## Contributing
 

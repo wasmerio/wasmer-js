@@ -21,7 +21,7 @@ describe("CommandFetcher", () => {
     mockWasmBinary[0] = 1;
     mockWasmModule = {};
 
-    commandFetcher._getWapmUrlForCommandName = jest.fn(() =>
+    commandFetcher._getWAPMUrlForCommandName = jest.fn(() =>
       Promise.resolve("CommandUrl")
     );
     commandFetcher._getBinaryFromUrl = jest.fn(() =>
@@ -32,7 +32,7 @@ describe("CommandFetcher", () => {
     );
   });
 
-  it("should return a wasm module for the command name", async () => {
+  it("should return a Wasm module for the command name", async () => {
     const response = await commandFetcher.getCommandForCommandName(
       mockCommandName
     );
@@ -40,7 +40,7 @@ describe("CommandFetcher", () => {
     expect(response).toBe(mockWasmModule);
   });
 
-  it("should cache a wasm module for the command name", async () => {
+  it("should cache a Wasm module for the command name", async () => {
     const response = await commandFetcher.getCommandForCommandName(
       mockCommandName
     );
@@ -63,7 +63,7 @@ describe("CommandFetcher", () => {
       }
     ]);
 
-    commandFetcher._getWapmUrlForCommandName = jest.fn(() =>
+    commandFetcher._getWAPMUrlForCommandName = jest.fn(() =>
       Promise.resolve("CommandUrl")
     );
     commandFetcher._getBinaryFromUrl = jest.fn(() =>

@@ -76,7 +76,7 @@ const libBundles = [
       file: pkg.browser,
       format: "iife",
       sourcemap: sourcemapOption,
-      name: "Wasi"
+      name: "WASI"
     },
     watch: {
       clearScreen: false

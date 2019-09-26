@@ -14,9 +14,9 @@ const rl = readline.createInterface({
 });
 let currentStdinLine = "";
 
-// Check if we passed a wasm file
+// Check if we passed a Wasm file
 if (argv._.length < 1) {
-  throw new Error("You must pass in a wasm file as an argument");
+  throw new Error("You must pass in a Wasm file as an argument");
 }
 
 const msleep = n => {
@@ -88,21 +88,21 @@ const wasi = new WASI({
 
 // Stub all wasi export methods
 Object.keys(wasi.exports).forEach(wasiExportKey => {
-  const originalWasiExport = wasi.exports[wasiExportKey];
+  const originalWASIExport = wasi.exports[wasiExportKey];
   wasi.exports[wasiExportKey] = sinon
     .stub(wasi.exports, wasiExportKey)
     .callsFake(function() {
       console.log(
         chalk.green(`
-      [Wasi Stub]: ${wasiExportKey}
-      [Wasi Stub]: ${JSON.stringify(arguments)}
+      [WASI Stub]: ${wasiExportKey}
+      [WASI Stub]: ${JSON.stringify(arguments)}
       `)
       );
-      return originalWasiExport.apply(null, arguments);
+      return originalWASIExport.apply(null, arguments);
     });
 });
 
-// Read in the input wasm file
+// Read in the input Wasm file
 const wasmBuffer = fs.readFileSync(argv._[0]);
 
 // Transform the binary
@@ -114,7 +114,7 @@ const asyncTask = async () => {
     wasi_unstable: wasi.exports
   });
   const inst = response.instance;
-  wasi.setMemory(inst.exports.memory);
+  wasi.bind(inst);
 
   // Take in stdin
   rl.on("line", line => {

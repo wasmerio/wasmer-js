@@ -1,4 +1,4 @@
-// Module to update and insert bytes into the wasm binary
+// Module to update and insert bytes into the Wasm binary
 
 use crate::generator::*;
 

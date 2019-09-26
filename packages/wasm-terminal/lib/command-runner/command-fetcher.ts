@@ -104,7 +104,7 @@ export default class CommandFetcher {
 
     // Check if we were passed a resource to get this command name binary
     if (!commandCompiledModule && !commandBinary && !commandUrl) {
-      commandUrl = await this._getWapmUrlForCommandName(commandName);
+      commandUrl = await this._getWAPMUrlForCommandName(commandName);
     }
 
     this._tryToWriteStatus(
@@ -118,12 +118,12 @@ export default class CommandFetcher {
     this._tryToClearStatus();
 
     if (!commandBinary) {
-      throw new Error("Could not get the wasm module binary");
+      throw new Error("Could not get the Wasm module binary");
     }
 
     this._tryToWriteStatus(`[INFO] Doing Transformations for "${commandName}"`);
 
-    // Fetch the wasm modules, but at least show the message for a short while
+    // Fetch the Wasm modules, but at least show the message for a short while
     commandCompiledModule = await Promise.all([
       this._getWasmModuleFromBinary(
         commandBinary,
@@ -133,7 +133,7 @@ export default class CommandFetcher {
     ]).then(responses => responses[0]);
 
     if (!commandCompiledModule) {
-      throw new Error("Could not get/compile the compiled wasm modules");
+      throw new Error("Could not get/compile the compiled Wasm modules");
     }
     this.commandToCompiledModuleCache[commandName] = commandCompiledModule;
 
@@ -162,7 +162,7 @@ export default class CommandFetcher {
     }
   }
 
-  async _getWapmUrlForCommandName(commandName: String) {
+  async _getWAPMUrlForCommandName(commandName: String) {
     const fetchResponse = await fetch("https://registry.wapm.io/graphql", {
       method: "POST",
       mode: "cors",

@@ -50,7 +50,7 @@
   )
 
 
-  ;; implement the trampoline, at the END of the wasm program
+  ;; implement the trampoline, at the END of the Wasm program
   ;; local.get puts the values on the stack
   (func $clock_time_get_trampoline (type $clock_time_get_trampoline_SIG) (param $0 i32) (param $1 i64) (param $2 i32) (result i32)
   local.get $0

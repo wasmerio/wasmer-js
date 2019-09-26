@@ -147,7 +147,7 @@ export default class CommandRunner {
   async _spawnProcess(commandOptionIndex: number) {
     let spawnedProcessObject = undefined;
 
-    // Check if it is a wasm command, that can be placed into a worker.
+    // Check if it is a Wasm command, that can be placed into a worker.
     if (
       this.commandOptionsForProcessesToRun[commandOptionIndex].module &&
       this.supportsSharedArrayBuffer
@@ -396,7 +396,7 @@ export default class CommandRunner {
       return await commandFetcher.getCommandForCommandName(command, wasmTty);
     };
 
-    // Add a wasm module command
+    // Add a Wasm module command
     return redirectTask()
       .then(() => getCommandTask())
       .then(response => {

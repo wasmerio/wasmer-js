@@ -46,13 +46,13 @@ export default class Process {
 
   async start(pipedStdinData?: Uint8Array) {
     if (this.wasiCommand) {
-      await this.startWasiCommand(pipedStdinData);
+      await this.startWASICommand(pipedStdinData);
     } else if (this.callbackCommand) {
       await this.startCallbackCommand(pipedStdinData);
     }
   }
 
-  async startWasiCommand(pipedStdinData?: Uint8Array) {
+  async startWASICommand(pipedStdinData?: Uint8Array) {
     if (!this.wasiCommand) {
       throw new Error("There is no wasi command on this process");
     }
