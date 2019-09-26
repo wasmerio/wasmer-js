@@ -87,10 +87,10 @@ const wasi = new WASI({
 });
 
 // Stub all wasi export methods
-Object.keys(wasi.exports).forEach(wasiExportKey => {
-  const originalWASIExport = wasi.exports[wasiExportKey];
-  wasi.exports[wasiExportKey] = sinon
-    .stub(wasi.exports, wasiExportKey)
+Object.keys(wasi.wasiImport).forEach(wasiExportKey => {
+  const originalWASIExport = wasi.wasiImport[wasiExportKey];
+  wasi.wasiImport[wasiExportKey] = sinon
+    .stub(wasi.wasiImport, wasiExportKey)
     .callsFake(function() {
       console.log(
         chalk.green(`
@@ -111,10 +111,8 @@ wasmBinary = wasmTransformer.lower_i64_imports(wasmBinary);
 
 const asyncTask = async () => {
   const response = await WebAssembly.instantiate(wasmBinary, {
-    wasi_unstable: wasi.exports
+    wasi_unstable: wasi.wasiImport
   });
-  const inst = response.instance;
-  wasi.bind(inst);
 
   // Take in stdin
   rl.on("line", line => {
@@ -122,7 +120,7 @@ const asyncTask = async () => {
   });
 
   try {
-    inst.exports._start();
+    wasi.start(response.instance);
   } catch (e) {
     console.error("ERROR:");
     console.error(e);

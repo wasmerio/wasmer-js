@@ -99,7 +99,7 @@ export default class WASICommand extends Command {
     }
 
     this.promisedInstance = WebAssembly.instantiate(options.module, {
-      wasi_unstable: this.wasi.exports
+      wasi_unstable: this.wasi.wasiImport
     });
   }
 
@@ -109,7 +109,6 @@ export default class WASICommand extends Command {
   ): Promise<Duplex> {
     let instance = await this.promisedInstance;
     this.instance = instance;
-    this.wasi.bind(instance);
     let stdoutRead = this.wasmFs.fs.createReadStream("/dev/stdout");
     let stderrRead = this.wasmFs.fs.createReadStream("/dev/stderr");
 
@@ -131,7 +130,7 @@ export default class WASICommand extends Command {
     if (!this.instance) {
       throw new Error("You need to call instantiate first.");
     }
-    this.instance.exports._start();
+    this.wasi.start(this.instance);
   }
 
   stdoutWrite(

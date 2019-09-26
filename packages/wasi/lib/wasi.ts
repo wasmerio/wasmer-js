@@ -29,7 +29,7 @@ However, JavaScript WASI is focused on:
  * Make easy to plug different filesystems
  * Provide a type-safe api using Typescript
  * Providing multiple output targets to support both browsers and node
-
+ * The API is adapted to the Node-WASI API: https://github.com/nodejs/wasi/blob/wasi/lib/wasi.js
 
 Copyright 2019 Gus Caplan
 
@@ -313,7 +313,7 @@ class WASI {
   memory: WebAssembly.Memory;
   view: DataViewPolyfillType;
   FD_MAP: Map<number, File>;
-  exports: Exports;
+  wasiImport: Exports;
   bindings: WASIBindings;
   static defaultBindings: WASIBindings = defaultBindings;
 
@@ -441,7 +441,7 @@ class WASI {
       }
     };
 
-    this.exports = {
+    this.wasiImport = {
       args_get: (argv: number, argvBuf: number) => {
         this.refreshMemory();
         let coffset = argv;
@@ -1326,10 +1326,28 @@ class WASI {
     this.memory = memory;
   }
 
-  // Bind a WebAssembly Instance into WASI
-  bind(instance: WebAssembly.Instance) {
-    this.setMemory(instance.exports.memory);
+  start(instance: WebAssembly.Instance) {
+    const exports = instance.exports;
+    if (exports === null || typeof exports !== "object") {
+      throw new Error(
+        `instance.exports must be an Object. Received ${exports}.`
+      );
+    }
+    const { memory } = exports;
+    if (!(memory instanceof WebAssembly.Memory)) {
+      throw new Error(
+        `instance.exports.memory must be a WebAssembly.Memory. Recceived ${memory}.`
+      );
+    }
+
+    this.setMemory(memory);
+    if (exports._start) {
+      exports._start();
+    }
   }
 }
 
 export default WASI;
+
+// Also export it as a field in the export object
+export { WASI };

@@ -13,12 +13,14 @@ Isomorphic Javascript library for interacting with WASI Modules in Node.js and t
 ## Features
 
 This project is forked from [node-wasi](https://github.com/devsnek/node-wasi), a Node implementation made by Gus Caplan. 🙏😄
+It uses the same API than the [future WASI integration in Node](https://github.com/nodejs/wasi), to help transition to it once it becomes available in Node.
 
 However, `@wasmer/wasi` is focused on:
 
 - Bringing [WASI](https://wasi.dev/) to an Isomorphic context (Node.js and the Browser) 🖥️
 - Make it easy to plug in different filesystems (via [wasmfs](https://github.com/wasmerio/wasmer-js/tree/master/packages/wasmfs)) 📂
 - Make it type-safe using [Typescript](http://www.typescriptlang.org/) 👷
+- Pure JavaScript implementation (no Native bindings needed) 🚀
 - ~ 15KB minified + gzipped 📦
 
 ## Installation
@@ -35,19 +37,16 @@ npm install --save @wasmer/wasi
 import WASI from "@wasmer/wasi";
 
 // Instantiate a new WASI Instance
-let wasi = new WASI();
+let wasi = new WASI({ args: [], env: {} });
 
 // Instantiating the WebAssembly file
 const wasm_bytes = new Uint8Array(fs.readFileSync(file)).buffer;
 let { instance } = await WebAssembly.instantiate(bytes, {
-  wasi_unstable: wasi.exports
+  wasi_unstable: wasi.wasiImport
 });
 
-// Plug the Instance into WASI
-wasi.bind(instance);
-
 // Start the WebAssembly WASI instance!
-instance.exports._start();
+wasi.start(instance);
 ```
 
 For a larger end-to-end example, please see the [wasm-terminal package](https://github.com/wasmerio/wasmer-js/tree/master/packages/wasm-terminal).
