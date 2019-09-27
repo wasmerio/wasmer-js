@@ -112,10 +112,16 @@ Contributions of any kind are welcome! 👍
 
 To get started using the project:
 
-- Install [Rust](https://www.rust-lang.org/tools/install).
+- Install the latest Nightly version of [Rust](https://www.rust-lang.org/tools/install) (which includes cargo).
 
-- Install [wasm-pack](https://github.com/rustwasm/wasm-pack).
+- Install the latest version of [wasm-pack](https://github.com/rustwasm/wasm-pack).
 
 - [OPTIONAL]: For updating the `wasm-transformer` npm package, please also install the latest LTS version of Node.js (which includes `npm` and `npx`). An easy way to do so is with nvm. (Mac and Linux: [here](https://github.com/creationix/nvm), Windows: [here](https://github.com/coreybutler/nvm-windows)).
 
-To test and build the project, run the `wasm_transformer_build.sh` script. Or, feel free to [look through the script](./wasm_transformer_build.sh) to see the documented commands for performing their respective actions individually.
+- To test and build the project, run the `wasm_transformer_build.sh` script. Or, feel free to [look through the script](./wasm_transformer_build.sh) to see the documented commands for performing their respective actions individually. The script performs:
+
+- Running Clippy
+
+- Running tests
+
+- Building the project, moving output into the correct directories.
