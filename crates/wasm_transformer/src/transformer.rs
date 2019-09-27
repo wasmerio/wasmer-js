@@ -68,7 +68,7 @@ fn converts() {
         console_log!("Testing: {:?}", test_file_path);
         console_log!(" ");
 
-        let mut Wasm = fs::read(test_file_path).unwrap();
+        let mut wasm = fs::read(test_file_path).unwrap();
 
         assert!(
             wasmparser::validate(&wasm, None),

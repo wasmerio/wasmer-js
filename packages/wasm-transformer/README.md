@@ -48,7 +48,7 @@ npm install --save @wasmer/wasm_transformer
 
 ### Rust
 
-For a larger example, see the simple [wasm_transformer_cli](https://github.com/wasmerio/wasmer-js/tree/master/examples/wasm_transformer_cli).
+For a larger example, see the simple [wasm_transformer_cli](../../examples/wasm_transformer_cli).
 
 ```rust
 use wasm_transformer::*;
@@ -65,7 +65,7 @@ fs::write("./out.wasm", &lowered_wasm).expect("Unable to write file");
 
 ### Javascript
 
-For a larger example, see the [wasm_terminal](https://github.com/wasmerio/wasmer-js/tree/master/packages/wasm-terminal) package.
+For a larger example, see the [wasm_terminal](../../packages/wasm-terminal) package.
 
 ```js
 import wasm_transformer_init, {

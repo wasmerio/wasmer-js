@@ -9,7 +9,7 @@ import WasmTerminal, {
 
 // Require Wasm terminal URLs
 // @ts-ignore
-import wasmTransformerWasmUrl from "../../../packages/wasm-terminal/dist/wasm_transformer/wasm_transformer_bg.wasm";
+import wasmTransformerWasmUrl from "../../../packages/wasm-terminal/dist/wasm-transformer/wasm_transformer_bg.wasm";
 // @ts-ignore
 import processWorkerUrl from "../../../packages/wasm-terminal/dist/workers/process.worker.js";
 

@@ -8,11 +8,11 @@ import WasmTerminalConfig from "../wasm-terminal-config";
 import WasmTty from "../wasm-tty/wasm-tty";
 
 let wasmTransformerInit: any = () => {};
-let lowerI64Imports: any = () => {};
+let wasmTransformerLowerI64Imports: any = () => {};
 /*ROLLUP_REPLACE_BROWSER
-import wasmInit, { lower_i64_imports } from "@wasmer/wasm_transformer";
+import wasmInit, { lowerI64Imports } from "@wasmer/wasm-transformer";
 wasmTransformerInit = wasmInit;
-lowerI64Imports = lower_i64_imports;
+wasmTransformerLowerI64Imports = lowerI64Imports;
 ROLLUP_REPLACE_BROWSER*/
 
 const WAPM_GRAPHQL_QUERY = `query shellGetCommandQuery($command: String!) {
@@ -223,7 +223,7 @@ export default class CommandFetcher {
     // Make Modifications to the binary to support browser side WASI.
     let transformedBinary = commandBinary;
     await wasmTransformerInit(wasmTransformerWasmUrl);
-    transformedBinary = lowerI64Imports(transformedBinary);
+    transformedBinary = wasmTransformerLowerI64Imports(transformedBinary);
 
     const wasmModule = await WebAssembly.compile(transformedBinary);
     return wasmModule;
