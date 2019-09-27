@@ -24,33 +24,13 @@ For additional contribution guidelines, please see our [CONTRIBUTING.md](./CONTR
 
 To get started contributing to wasmer-js, create your own fork of the [wasmer-js repository](https://github.com/wasmerio/wasmer-js) by clicking "Fork" in the Web UI.
 
-#### Javascript Packages
+1. Download / Clone your fork to a local repository. Navigate into the project directory.
 
-1. Install the latest LTS version of [Node.js](https://nodejs.org/) (which includes npm). An easy way to do so is with `nvm`. (Mac and Linux: [here](https://github.com/creationix/nvm), Windows: [here](https://github.com/coreybutler/nvm-windows))
+2. Install the dependencies with `npm install`. **NOTE:** This will run `lerna bootstrap`, and build the neccessary JS Packages.
 
-2. Download / Clone your fork to a local repository. Navigate into the project directory.
-
-3. Install the dependencies with `npm install`. **NOTE:** This will run `lerna bootstrap`, and build the neccessary JS Packages.
-
-4. Run `npm run dev`, which will serve the `examples/wasm-shell` example, which can be accessed with: http://localhost:8000/examples/wasm-shell/index.html
+3. Run `npm run dev`, which will serve the `examples/wasm-shell` example, which can be accessed with: http://localhost:8000/examples/wasm-shell/index.html
 
 To make changes to any of the sub projects, they can be tested by either: Running their local tests with `npm run test` in their respective package directory, or by running their watch for changes developement command with `npm run dev`.
-
-#### Rust Crates
-
-1. Install the latest Nightly version of [Rust](https://www.rust-lang.org/tools/install) (which includes cargo).
-
-2. Install the latest version of [wasm-pack](https://github.com/rustwasm/wasm-pack).
-
-3. Download / Clone your fork to a local repository. Navigate into the `wasmer-js/crates/you_package_here` directory.
-
-4. Run the respecitve build / tests commands. For example, for `wasm_transformer` you would run `./wasm_transformer_build.sh` to execute the bash script, which handles:
-
-- Running Clippy
-
-- Running tests
-
-- Building the project, moving output into the correct directories.
 
 ### Using Lerna
 
