@@ -41,7 +41,7 @@ wasm_transformer = "LATEST_VERSION_HERE"
 ### Javascript
 
 ```
-npm install --save @wasmer/wasm_transformer
+npm install --save @wasmer/wasm-transformer
 ```
 
 ## Quick Start
@@ -68,9 +68,7 @@ fs::write("./out.wasm", &lowered_wasm).expect("Unable to write file");
 For a larger example, see the [wasm_terminal](../../packages/wasm-terminal) package.
 
 ```js
-import wasm_transformer_init, {
-  lower_i64_imports
-} from "@wasmer/wasm_transformer";
+import wasmTransformerInit, { lowerI64Imports } from "@wasmer/wasm-transformer";
 
 const fetchAndTransformWasmBinary = async () => {
   // Get the original Wasm binary
@@ -78,11 +76,11 @@ const fetchAndTransformWasmBinary = async () => {
   const originalWasmBinaryBuffer = await fetchedOriginalWasmBinary.arrayBuffer();
   const originalWasmBinary = new Uint8Array(originalWasmBinaryBuffer);
 
-  // Initialize our wasm_transformer
-  await wasm_transformer_init("/wasm_transformer_bg.wasm"); // IMPORTANT: This URL points to wherever the wasm_transformer_bg.wasm is hosted
+  // Initialize our wasm-transformer
+  await wasmTransformerInit("/wasm_transformer_bg.wasm"); // IMPORTANT: This URL points to wherever the wasm_transformer_bg.wasm is hosted
 
-  // Transform the binary, by running the lower_i64_imports from the wasm_transformer
-  const transformedBinary = lower_i64_imports(originalWasmBinary);
+  // Transform the binary, by running the lower_i64_imports from the wasm-transformer
+  const transformedBinary = lowerI64Imports(originalWasmBinary);
 
   // Compile the transformed binary
   const transformedWasmModule = await WebAssembly.compile(transformedBinary);
@@ -118,6 +116,6 @@ To get started using the project:
 
 - Install [wasm-pack](https://github.com/rustwasm/wasm-pack).
 
-- [OPTIONAL]: For updating the `wasm_transformer` npm package, please also install the latest LTS version of Node.js (which includes `npm` and `npx`). An easy way to do so is with nvm. (Mac and Linux: [here](https://github.com/creationix/nvm), Windows: [here](https://github.com/coreybutler/nvm-windows)).
+- [OPTIONAL]: For updating the `wasm-transformer` npm package, please also install the latest LTS version of Node.js (which includes `npm` and `npx`). An easy way to do so is with nvm. (Mac and Linux: [here](https://github.com/creationix/nvm), Windows: [here](https://github.com/coreybutler/nvm-windows)).
 
 To test and build the project, run the `wasm_transformer_build.sh` script. Or, feel free to [look through the script](./wasm_transformer_build.sh) to see the documented commands for performing their respective actions individually.

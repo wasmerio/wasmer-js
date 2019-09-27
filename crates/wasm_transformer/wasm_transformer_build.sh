@@ -33,16 +33,16 @@ echo "============================================="
 echo " "
 
 wasm-pack build --target web
-npx json -I -f pkg/package.json -e 'this.name="@wasmer/wasm_transformer"'
+npx json -I -f pkg/package.json -e 'this.name="@wasmer/wasm-transformer"'
 
 echo " "
 echo "============================================="
-echo "Moving pkg to wasm_transformer"
+echo "Moving pkg to wasm-transformer"
 echo "============================================="
 echo " "
 
-cp -r pkg/ ../../packages/wasm_transformer
-rm ../../packages/wasm_transformer/.gitignore || true
+cp -r pkg/ ../../packages/wasm-transformer
+rm ../../packages/wasm-transformer/.gitignore || true
 
 echo " "
 echo "============================================="
@@ -51,7 +51,7 @@ echo "============================================="
 echo " "
 
 wasm-pack build --target nodejs
-npx json -I -f pkg/package.json -e 'this.name="@wasmer/wasm_transformer"'
+npx json -I -f pkg/package.json -e 'this.name="@wasmer/wasm-transformer"'
 
 echo " "
 echo "============================================="
@@ -59,9 +59,9 @@ echo "Moving pkg to node stubbed"
 echo "============================================="
 echo " "
 
-cp -r pkg/ ../../examples/node-stubbed/wasm_transformer
-rm ../../examples/node-stubbed/wasm_transformer/.gitignore || true
-rm ../../examples/node-stubbed/wasm_transformer/README.md || true
+cp -r pkg/ ../../examples/node-stubbed/wasm-transformer
+rm ../../examples/node-stubbed/wasm-transformer/.gitignore || true
+rm ../../examples/node-stubbed/wasm-transformer/README.md || true
 
 
 echo " "

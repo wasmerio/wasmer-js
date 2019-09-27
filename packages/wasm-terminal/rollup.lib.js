@@ -52,7 +52,7 @@ let plugins = [
   // This is needed since we will want the user to pass in the transformer Wasm file
   copy({
     targets: [
-      { src: "../wasm_transformer/**/*", dest: "dist/wasm_transformer/" },
+      { src: "../wasm-transformer/**/*", dest: "dist/wasm-transformer/" },
       { src: "./node_modules/xterm/dist/xterm.css", dest: "dist/xterm/" }
     ]
   }),

@@ -1,5 +1,5 @@
 {
-  "name": "@wasmer/wasm_transformer",
+  "name": "@wasmer/wasm-transformer",
   "collaborators": [
     "Aaron Turner <aaron@aaronthedev.com>"
   ],

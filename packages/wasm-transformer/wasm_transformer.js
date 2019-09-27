@@ -60,9 +60,9 @@ function getArrayU8FromWasm(ptr, len) {
  * @param {Uint8Array} wasm_binary
  * @returns {Uint8Array}
  */
-export function lower_i64_imports(wasm_binary) {
+export function lowerI64Imports(wasm_binary) {
   const retptr = 8;
-  const ret = wasm.lower_i64_imports(
+  const ret = wasm.lowerI64Imports(
     retptr,
     passArray8ToWasm(wasm_binary),
     WASM_VECTOR_LEN
@@ -99,7 +99,7 @@ function init(module) {
           .then(r => {
             if (r.headers.get("Content-Type") != "application/wasm") {
               console.warn(
-                "`WebAssembly.instantiateStreaming` failed because your server does not serve Wasm with `application/wasm` MIME type. Falling back to `WebAssembly.instantiate` which is slower. Original error:\n",
+                "`WebAssembly.instantiateStreaming` failed because your server does not serve wasm with `application/wasm` MIME type. Falling back to `WebAssembly.instantiate` which is slower. Original error:\n",
                 e
               );
               return r.arrayBuffer();
