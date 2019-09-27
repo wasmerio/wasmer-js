@@ -2,14 +2,16 @@ import { h, Component } from "preact";
 
 // @ts-ignore
 import WasmTerminal, {
-  // @ts-ignore
-  WasmTerminalPlugin
-  // @ts-ignore
+  fetchCommandFromWAPM
 } from "../../../packages/wasm-terminal/dist/index.esm";
 
-// Require Wasm terminal URLs
+import wasmInit, {
+  lowerI64Imports
+} from "../../../packages/wasm-transformer/wasm_transformer.js";
 // @ts-ignore
-import wasmTransformerWasmUrl from "../../../packages/wasm-terminal/dist/wasm-transformer/wasm_transformer_bg.wasm";
+import wasmTransformerWasmUrl from "../../../packages/wasm-transformer/wasm_transformer_bg.wasm";
+
+// Require Wasm terminal URLs
 // @ts-ignore
 import processWorkerUrl from "../../../packages/wasm-terminal/dist/workers/process.worker.js";
 
@@ -35,39 +37,50 @@ import sqliteUrl from "../../../crates/wasm_transformer/wasm_module_examples/sql
 // @ts-ignore
 import gettimeofdayUrl from "../../../crates/wasm_transformer/wasm_module_examples/gettimeofday/gettimeofday.wasm";
 
-const examplePlugin = new WasmTerminalPlugin({
-  afterOpen: () => {
-    console.log("afterOpen Called!");
-    return "afterOpen Called! Welcome to the wasm-shell example!";
-  },
-  beforeFetchCommand: async (commandName: string) => {
-    console.log("beforeFetchCommand Called!", commandName);
-
-    const commands = {
-      a: stdinWasmUrl,
-      c: clockTimeGetUrl,
-      p: pathOpenGetUrl,
-      g: gettimeofdayUrl,
-      qjs: quickJsUrl,
-      duk: dukTapeUrl,
-      two: twoImportsUrl,
-      arg: argtestUrl,
-      clang: clangUrl,
-      sqlite: sqliteUrl,
-      rsign:
-        "https://registry-cdn.wapm.io/contents/jedisct1/rsign2/0.5.4/rsign.wasm",
-      callback: (args: string[], stdin: string) => {
-        return Promise.resolve(
-          `Callback Command Working! Args: ${args}, stdin: ${stdin}`
-        );
-      }
-    };
-
-    if ((commands as any)[commandName]) {
-      return (commands as any)[commandName];
-    }
+const commands = {
+  a: stdinWasmUrl,
+  c: clockTimeGetUrl,
+  p: pathOpenGetUrl,
+  g: gettimeofdayUrl,
+  qjs: quickJsUrl,
+  duk: dukTapeUrl,
+  two: twoImportsUrl,
+  arg: argtestUrl,
+  clang: clangUrl,
+  sqlite: sqliteUrl,
+  rsign:
+    "https://registry-cdn.wapm.io/contents/jedisct1/rsign2/0.5.4/rsign.wasm",
+  callback: (args: string[], stdin: string) => {
+    return Promise.resolve(
+      `Callback Command Working! Args: ${args}, stdin: ${stdin}`
+    );
   }
-});
+};
+
+let didInitWasmTransformer = false;
+const fetchCommandHandler = async (commandName: string) => {
+  const customCommand = (commands as any)[commandName];
+  let wasmBinary = undefined;
+
+  if (customCommand) {
+    if (typeof customCommand === "string") {
+      const fetched = await fetch(customCommand);
+      const buffer = await fetched.arrayBuffer();
+      wasmBinary = new Uint8Array(buffer);
+    } else {
+      return customCommand;
+    }
+  } else {
+    wasmBinary = await fetchCommandFromWAPM(commandName);
+  }
+
+  if (!didInitWasmTransformer) {
+    await wasmInit(wasmTransformerWasmUrl);
+    didInitWasmTransformer = true;
+  }
+
+  return lowerI64Imports(wasmBinary);
+};
 
 /**
  * A simple preact wrapper around the Wasm Terminal
@@ -79,11 +92,9 @@ export default class WasmTerminalComponent extends Component {
   constructor() {
     super();
     this.wasmTerminal = new WasmTerminal({
-      wasmTransformerWasmUrl,
+      fetchCommand: fetchCommandHandler,
       processWorkerUrl
     });
-
-    this.wasmTerminal.addPlugin(examplePlugin);
 
     this.container = null;
   }
@@ -92,6 +103,7 @@ export default class WasmTerminalComponent extends Component {
     if (!this.container) {
       return;
     }
+    this.wasmTerminal.print("Welcome to the wasm terminal example!");
     this.wasmTerminal.open(this.container);
     this.wasmTerminal.fit();
     this.wasmTerminal.focus();

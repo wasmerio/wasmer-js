@@ -1,9 +1,18 @@
 // The configuration options passed when creating the Wasm terminal
 
-import WasmTerminalPlugin from "./wasm-terminal-plugin";
+// A Custom command is a function that takes in a stdin string, and an array of argument strings,
+// And returns an stdout string, or undefined.
+export type CallbackCommand = (
+  args: string[],
+  stdin: string
+) => Promise<string>;
+
+type FetchCommandFunction = (
+  commandName: string
+) => Promise<Uint8Array | CallbackCommand>;
 
 export default class WasmTerminalConfig {
-  wasmTransformerWasmUrl: string;
+  fetchCommand: FetchCommandFunction;
   processWorkerUrl?: string;
 
   constructor(config: any) {
@@ -11,9 +20,9 @@ export default class WasmTerminalConfig {
       throw new Error("You must provide a config for the Wasm terminal.");
     }
 
-    if (!config.wasmTransformerWasmUrl) {
+    if (!config.fetchCommand) {
       throw new Error(
-        "You must provide a wasmTransformerUrl for the Wasm terminal config, to fetch the wasi transformer"
+        "You must provide a fetchCommand for the Wasm terminal config, to handle fetching commands to be run"
       );
     }
 
@@ -24,7 +33,7 @@ export default class WasmTerminalConfig {
     }
 
     // Assign our values
-    this.wasmTransformerWasmUrl = config.wasmTransformerWasmUrl;
+    this.fetchCommand = config.fetchCommand;
     this.processWorkerUrl = config.processWorkerUrl;
   }
 }

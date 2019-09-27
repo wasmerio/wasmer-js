@@ -34,7 +34,7 @@ describe("CommandRunner", () => {
   beforeEach(async () => {
     isFinishedRunningPromise = new Promise((resolve, reject) => {
       commandRunner = new CommandRunner(
-        { wasmTransformerWasmUrl: "" },
+        { fetchCommand: () => () => {} },
         [],
         "cowsay hi | lolcat",
         () => {},

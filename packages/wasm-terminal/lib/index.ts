@@ -1,5 +1,5 @@
 import WasmTerminal from "./wasm-terminal";
-import WasmTerminalPluginImport from "./wasm-terminal-plugin";
+import { fetchCommandFromWAPM as fetchCommandFromWAPMImport } from "./functions/fetch-command-wapm";
 
 export default WasmTerminal;
-export const WasmTerminalPlugin = WasmTerminalPluginImport;
+export const fetchCommandFromWAPM = fetchCommandFromWAPMImport;

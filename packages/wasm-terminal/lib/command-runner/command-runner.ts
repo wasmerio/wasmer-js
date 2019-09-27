@@ -5,10 +5,8 @@ import parse from "shell-parse";
 
 import Process from "../process/process";
 import { CommandOptions } from "./command";
-import CommandFetcher from "./command-fetcher";
 
 import WasmTerminalConfig from "../wasm-terminal-config";
-import WasmTerminalPlugin, { CallbackCommand } from "../wasm-terminal-plugin";
 
 import WasmTty from "../wasm-tty/wasm-tty";
 
@@ -23,30 +21,24 @@ export default class CommandRunner {
   supportsSharedArrayBuffer: boolean;
 
   wasmTerminalConfig: WasmTerminalConfig;
-  wasmTerminalPlugins: WasmTerminalPlugin[];
   commandString: string;
 
   commandStartReadCallback: Function;
   commandEndCallback: Function;
-  commandFetcher: CommandFetcher;
 
   wasmTty?: WasmTty;
 
   constructor(
     wasmTerminalConfig: WasmTerminalConfig,
-    wasmTerminalPlugins: WasmTerminalPlugin[],
     commandString: string,
     commandStartReadCallback: Function,
     commandEndCallback: Function,
-    commandFetcher: CommandFetcher,
     wasmTty?: WasmTty
   ) {
     this.wasmTerminalConfig = wasmTerminalConfig;
-    this.wasmTerminalPlugins = wasmTerminalPlugins;
     this.commandString = commandString;
     this.commandStartReadCallback = commandStartReadCallback;
     this.commandEndCallback = commandEndCallback;
-    this.commandFetcher = commandFetcher;
     if (wasmTty) {
       this.wasmTty = wasmTty;
     }
@@ -76,7 +68,6 @@ export default class CommandRunner {
       // Translate our AST into Command Options
       this.commandOptionsForProcessesToRun = await this._getCommandOptionsFromAST(
         commandAst[0],
-        this.commandFetcher,
         this.wasmTerminalConfig,
         this.wasmTty
       );
@@ -352,16 +343,15 @@ export default class CommandRunner {
 
   async _getCommandOptionsFromAST(
     ast: any,
-    commandFetcher: CommandFetcher,
     wasmTerminalConfig: WasmTerminalConfig,
     wasmTty?: WasmTty
   ): Promise<Array<CommandOptions>> {
     // The array of command options we are returning
     let commandOptions: Array<CommandOptions> = [];
 
-    let command = ast.command.value;
+    let commandName = ast.command.value;
     let commandArgs = ast.args.map((arg: any) => arg.value);
-    let args = [command, ...commandArgs];
+    let args = [commandName, ...commandArgs];
 
     let env = Object.fromEntries(
       Object.entries(ast.env).map(([key, value]: [string, any]) => [
@@ -382,7 +372,6 @@ export default class CommandRunner {
         if (astRedirect && astRedirect.type === "pipe") {
           const redirectedCommandOptions = await this._getCommandOptionsFromAST(
             astRedirect.command,
-            commandFetcher,
             wasmTerminalConfig,
             wasmTty
           );
@@ -392,40 +381,27 @@ export default class CommandRunner {
       }
     };
 
-    const getCommandTask = async () => {
-      return await commandFetcher.getCommandForCommandName(command, wasmTty);
-    };
-
     // Add a Wasm module command
-    return redirectTask()
-      .then(() => getCommandTask())
-      .then(response => {
-        if (response instanceof WebAssembly.Module) {
-          // Call the plugins
-          this.wasmTerminalPlugins.forEach(wasmTerminalPlugin => {
-            const afterFetchResponse = wasmTerminalPlugin.apply("afterFetch", [
-              response
-            ]);
-            if (afterFetchResponse) {
-              response = afterFetchResponse;
-            }
-          });
+    await redirectTask;
+    const response = await wasmTerminalConfig.fetchCommand(commandName);
+    if (response instanceof Uint8Array) {
+      // Compile the Wasm Module
+      const wasmModule = await WebAssembly.compile(response);
 
-          commandOptions.unshift({
-            args,
-            env,
-            module: response
-          });
-        } else {
-          commandOptions.unshift({
-            args,
-            env,
-            // @ts-ignore
-            callback: response
-          });
-        }
-
-        return commandOptions;
+      commandOptions.unshift({
+        args,
+        env,
+        module: wasmModule
       });
+    } else {
+      commandOptions.unshift({
+        args,
+        env,
+        // @ts-ignore
+        callback: response
+      });
+    }
+
+    return commandOptions;
   }
 }

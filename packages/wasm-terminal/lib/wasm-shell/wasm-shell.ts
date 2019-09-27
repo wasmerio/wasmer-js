@@ -13,12 +13,10 @@ import {
 import ShellHistory from "./shell-history";
 
 import WasmTerminalConfig from "../wasm-terminal-config";
-import WasmTerminalPlugin from "../wasm-terminal-plugin";
 
 import WasmTty from "../wasm-tty/wasm-tty";
 
 import CommandRunner from "../command-runner/command-runner";
-import CommandFetcher from "../command-runner/command-fetcher";
 
 /**
  * A shell is the primary interface that is used to start other programs.
@@ -32,10 +30,8 @@ import CommandFetcher from "../command-runner/command-fetcher";
 type AutoCompleteHandler = (index: number, tokens: string[]) => string[];
 export default class WasmShell {
   wasmTerminalConfig: WasmTerminalConfig;
-  wasmTerminalPlugins: WasmTerminalPlugin[];
   wasmTty: WasmTty;
   history: ShellHistory;
-  commandFetcher: CommandFetcher;
   commandRunner?: CommandRunner;
 
   maxAutocompleteEntries: number;
@@ -46,7 +42,6 @@ export default class WasmShell {
 
   constructor(
     wasmTerminalConfig: WasmTerminalConfig,
-    wasmTerminalPlugins: WasmTerminalPlugin[],
     wasmTty: WasmTty,
     options: { historySize: number; maxAutocompleteEntries: number } = {
       historySize: 10,
@@ -54,14 +49,8 @@ export default class WasmShell {
     }
   ) {
     this.wasmTerminalConfig = wasmTerminalConfig;
-    this.wasmTerminalPlugins = wasmTerminalPlugins;
     this.wasmTty = wasmTty;
     this.history = new ShellHistory(options.historySize);
-    this.commandFetcher = new CommandFetcher(
-      this.wasmTerminalConfig,
-      this.wasmTerminalPlugins,
-      this.wasmTty
-    );
     this.commandRunner = undefined;
 
     this.maxAutocompleteEntries = options.maxAutocompleteEntries;
@@ -113,7 +102,6 @@ export default class WasmShell {
   getCommandRunner(line: string) {
     return new CommandRunner(
       this.wasmTerminalConfig,
-      this.wasmTerminalPlugins,
       line,
       // Command Read Callback
       async () => {
@@ -129,8 +117,6 @@ export default class WasmShell {
           this.prompt();
         });
       },
-      // Command Fetcher
-      this.commandFetcher,
       // TTY
       this.wasmTty
     );
