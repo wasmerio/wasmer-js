@@ -2,10 +2,14 @@ import { h, Component } from "preact";
 
 // @ts-ignore
 import WasmTerminal, {
+  // @ts-ignore
   fetchCommandFromWAPM
+  // @ts-ignore
 } from "../../../packages/wasm-terminal/dist/index.esm";
 
+// @ts-ignore
 import wasmInit, {
+  // @ts-ignore
   lowerI64Imports
 } from "../../../packages/wasm-transformer/wasm_transformer.js";
 // @ts-ignore
