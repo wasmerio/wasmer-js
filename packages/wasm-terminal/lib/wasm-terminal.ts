@@ -21,6 +21,9 @@ export default class WasmTerminal {
   resizeEvent: any;
   dataEvent: any;
 
+  isOpen: boolean;
+  pendingPrintOnOpen: string;
+
   constructor(config: any) {
     // Create our xterm element
     this.xterm = new Terminal();
@@ -36,11 +39,20 @@ export default class WasmTerminal {
     this.wasmShell = new WasmShell(this.wasmTerminalConfig, this.wasmTty);
     // tslint:disable-next-line
     this.dataEvent = this.xterm.on("data", this.wasmShell.handleTermData);
+
+    this.isOpen = false;
+    this.pendingPrintOnOpen = "";
   }
 
   open(container: HTMLElement) {
     this.xterm.open(container);
+    this.isOpen = true;
     setTimeout(() => {
+      if (this.pendingPrintOnOpen) {
+        this.wasmTty.print(this.pendingPrintOnOpen + "\n");
+        this.pendingPrintOnOpen = "";
+      }
+
       // tslint:disable-next-line
       this.wasmShell.prompt();
     });
@@ -55,7 +67,15 @@ export default class WasmTerminal {
   }
 
   print(message: string) {
-    this.wasmTty.print(message);
+    if (this.isOpen) {
+      this.wasmTty.print(message);
+    } else {
+      if (this.pendingPrintOnOpen) {
+        this.pendingPrintOnOpen += message;
+      } else {
+        this.pendingPrintOnOpen = message;
+      }
+    }
   }
 
   destroy() {

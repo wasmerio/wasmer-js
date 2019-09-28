@@ -7,10 +7,12 @@ A terminal-like component for the browser, that fetches and runs Wasm modules in
 ## Table of Contents
 
 - [Features](#features)
-- [Browser Compatibility](#browser-compatibility)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
-- [Reference API](#reference-api)
+- [Wasm Terminal Reference API](#wasm-terminal-reference-api)
+  - [WasmTerminal](#wasmterminal)
+  - [fetchCommandFromWAPM](#fetchcommandfromwapm)
+- [Browser Compatibility](#browser-compatibility)
 - [Contributing](#contributing)
 
 ## Features
@@ -19,17 +21,13 @@ This project is built using [Xterm.js](https://github.com/xtermjs/xterm.js/), an
 
 - Runs WASI Wasm modules using [@wasmer/wasi](https://github.com/wasmerio/wasmer-js/tree/master/packages/wasi) and [@wasmer/wasmfs](https://github.com/wasmerio/wasmer-js/tree/master/packages/wasmfs). 🏃
 
-- Uses [wasm_transformer](https://github.com/wasmerio/wasmer-js/tree/master/packages/wasm_transformer) to transform Wasm binaries _on the fly_ to run in the browser! ♻️
-
 - Provides a terminal-like experience, with stuff like autocomplete, hotkeys, pipes, and more! 👩‍💻
-
-- Uses [WAPM](https://wapm.io/) to fetch packages, if they are not already downloaded! 📦
 
 - Allows passing in your own custom Wasm binaries, or callback commands to provide commands in the shell! ⚙️
 
 - Runs processes in seperate web workers using [Comlink](https://github.com/GoogleChromeLabs/comlink)! 🔗
 
-- Allows for creating Plugins to add additional functionality! (E.g commands, welcome messages, and more!) 🔌
+- Exports a command fetcher for fetching packages from [WAPM](https://wapm.io/)! 📦
 
 ## Installation
 
@@ -44,29 +42,43 @@ npm install --save @wasmer/wasm-terminal
 **Javascript**
 
 ```javascript
-import WasmTerminal, {WasmTerminalPlugin} from "@wasmer/wasm-terminal";
+import WasmTerminal, { fetchCommandFromWAPM } from "@wasmer/wasm-terminal";
+import wasmInit, { lowerI64Imports } from "@wasmer/wasm-transformer";
+
+// URL for where the wasm-transformer wasm file is located. This is probably different depending on your bundler.
+const wasmTransformerWasmUrl = "node_modules/@wasmer/wasm-transformer/wasm_transformer_bg.wasm";
+
+// Let's write handler for the fetchCommand property of the WasmTerminal Config.
+const fetchCommandHandler = async (commandName: string) => {
+
+  // Let's return a "CallbackCommand" if our command matches a special name
+  if (commandName === 'callback-command') {
+    const callbackCommand = async (args: string[], stdin: string) => {
+      return `Callback Command Working! Args: ${args}, stdin: ${stdin}`
+    }
+    return callbackCommand;
+  }
+
+  // Let's fetch a wasm Binary from WAPM for the command name.
+  const wasmBinary = await fetchCommandFromWAPM(commandName);
+
+  // Initialize the Wasm Transformer, and use it to lower
+  // i64 imports from Wasi Modules, so that most Wasi modules
+  // Can run in a Javascript context.
+  await wasmInit(wasmTransformerWasmUrl);
+  return lowerI64Imports(wasmBinary);
+};
 
 // Let's create our Wasm Terminal
 const wasmTerminal = new WasmTerminal({
-  // IMPORTANT: This is wherever your wasm_transformer_bg.wasm file URL is hosted
-  wasmTransformerWasmUrl:
-    "/node_modules/wasm-terminal/wasm_transformer/wasm_transformer_bg.wasm",
+  // Function that is run whenever a command is fetched
+  fetchCommand: fetchCommandHandler
   // IMPORTANT: This is wherever your process.worker.js file URL is hosted
   processWorkerUrl: "/node_modules/wasm-terminal/workers/process.worker.js",
 });
 
-// Let's create/add a quick plugin
-cont myPlugin = new WasmTerminalPlugin({
-  afterOpen: () => "Welcome to the wasm-terminal!",  // Return a string to show text after opening.
-  beforeFetchCommand: (commandName) => {
-    // If the command name is some custom command we want to handle
-    // Return a promise that resolves a url to a Wasm module that should represent that command.
-    if(commandName === 'custom-command') {
-      return Promise.resolve("https://link-to-wasm.com/wasm-binary.wasm")
-    }
-  }
-});
-wasmTerminal.addPlugin(myPlugin);
+// Let's print out our initial message
+wasmTerminal.print("Hello World!");
 
 // Let's bind our Wasm terminal to it's container
 const containerElement = document.querySelector("#root");
@@ -93,6 +105,8 @@ We must also include the `[xterm](https://github.com/xtermjs/xterm.js/).css`. Fo
 
 ## Wasm Terminal Reference API
 
+### WasmTerminal
+
 `new WasmTerminal(WasmTerminalConfig)`
 
 Constructor for the WasmTerminal, that returns an instance of the WasmTerminal.
@@ -101,18 +115,28 @@ The [WasmTerminalConfig](./lib/wasm-terminal-config.ts) can be described as the 
 
 ```typescript
 {
-  // REQUIRED: Url to the /node_modules/wasm-terminal/wasm_transformer/wasm_transformer_bg.wasm.
-  // This is used to run the wasm_transformer on Wasm binaries so that they can be used in JS Runtimes
-  wasmTransformerWasmUrl: string;
+  // Function that is called whenever a command is entered and returns a Promise,
+  // It takes in the name of the command being run, and expects a Uint8Array of a Wasm Binary, or a
+  // CallbackCommand (see the api below) to be returned.
+  fetchCommand: (commandName: string) => Promise<Uint8Array | CallbackCommand>
   // URL to the /node_modules/wasm-terminal/workers/process.worker.js . This is used by the shell to
   // to spawn web workers in Comlink, for features such as piping, /dev/stdin reading, and general performance enhancements.
   processWorkerUrl?: string;
 }
 ```
 
+CallbackCommands are functions that can be returned in the `fetchCommand` config property. They are simply Javascript callback that take in the command arguments and command stdin, and returns a Promise that resolves stdout. Since these callback commands handle `stdin` and `stdout`, that can be used as normal commands that can be piped!
+
+```typescript
+export type CallbackCommand = (
+  args: string[],
+  stdin: string
+) => Promise<string | undefined>;
+```
+
 ---
 
-`wasmTerminal.open(containerElement)`
+`wasmTerminal.open(containerElement: Element)`
 
 Function to set the container of the `wasmTerminal`. `containerElement` can be any [Element](https://developer.mozilla.org/en-US/docs/Web/API/Element).
 
@@ -130,54 +154,15 @@ Function to [focus](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement
 
 ---
 
-`wasmTerminal.addPlugin() => Function`
+`wasmTerminal.print(message: string)`
 
-Add a [`WasmTerminalPlugin`](./lib/wasm-terminal-plugin.ts) to add additional functionality to the Wasm terminal. Returns a function to remove the plugin.
+Function to print text to the wasmTerminal. Useful for printing a welcome message before the wasmTerminal is opened.
 
-To learn more about plugins, see the "Plugins section"
+### fetchCommandFromWAPM
 
-## Wasm Terminal Plugin API
+`fectCommandFromWAPM(commandName: string) => Promise<Uint8Array>`
 
-Wasm Terminal can have additional functionality added by adding plugins. Plugins are created by using the exported `WasmTerminalPlugin` class, and added with `wasmTerminal.addPlugin()`.
-
----
-
-`new WasmTerminalPlugin(WasmTerminalPluginConfig)`
-
-Constructor for WasmTerminalPlugin, that returns an instance of a WasmTerminalPlugin.
-
-The config for the [WasmTerminalPlugin](./lib/wasm-terminal-plugin.ts) can be described as the following:
-
-```typescript
-{
-  // Function that runs after the terminal is opened, but before it prompts.
-  // Great for showing welcome messages.
-  afterOpen?: () => string | undefined;
-
-  // Function that runs before a command is feteched by the commandFether.
-  // Depending on what you return here, it will do different functionality,
-  // But essentially, what is returned will become the command functionality
-  beforeFetchCommand?: (
-      commandName: string
-      ) =>
-    | Promise<string> // This should be a URL string, that points to a Wasm file. It will be fetched, transformed, and compiled
-    | Promise<Uint8Array> // This should be a Wasm binary. It will be transformed and compiled.
-    | Promise<CallbackCommand> // This should be a CallbackCommand. See the CallbackCommand section for more
-    | Promise<undefined> // This will do nothing
-    | undefined; // This will do nothing
-}
-```
-
----
-
-```typescript
-export type CallbackCommand = (
-  args: string[],
-  stdin: string
-) => Promise<string | undefined>;
-```
-
-CallbackCommands are functions that can be returned by WasmTerminalPlugins. They are simply Javascript callback that take in the command arguments and command stdin, and returns a Promise that resolves stdout. Since these callback commands handle `stdin` and `stdout`, that can be used as normal commands that can be piped!
+Function meant to be returned in the `fetchCommand` config property of the WasmTerminal Class. This takes in the name of command, and returns a Promise that resolves a Uint8Array of the Wasm binary from WAPM.
 
 ## Browser Compatibility
 
