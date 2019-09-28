@@ -34,15 +34,10 @@ describe("CommandRunner", () => {
   beforeEach(async () => {
     isFinishedRunningPromise = new Promise((resolve, reject) => {
       commandRunner = new CommandRunner(
-        { fetchCommand: () => () => {} },
-        [],
+        { fetchCommand: () => Promise.resolve(new Uint8Array()) },
         "cowsay hi | lolcat",
         () => {},
-        () => resolve(),
-        // @ts-ignore
-        {
-          getCommandForCommandName: jest.fn(() => Promise.resolve({}))
-        }
+        () => resolve()
       );
     });
 
