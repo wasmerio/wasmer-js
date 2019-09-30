@@ -65,7 +65,7 @@ fs::write("./out.wasm", &lowered_wasm).expect("Unable to write file");
 
 ### Javascript
 
-For a larger example, see the [wasm_terminal](../../packages/wasm-terminal) package.
+For a larger example, see the [wasm-terminal](../../packages/wasm-terminal) package.
 
 ```js
 import wasmTransformerInit, { lowerI64Imports } from "@wasmer/wasm-transformer";
@@ -77,7 +77,9 @@ const fetchAndTransformWasmBinary = async () => {
   const originalWasmBinary = new Uint8Array(originalWasmBinaryBuffer);
 
   // Initialize our wasm-transformer
-  await wasmTransformerInit("/wasm_transformer_bg.wasm"); // IMPORTANT: This URL points to wherever the wasm_transformer_bg.wasm is hosted
+  await wasmTransformerInit(
+    "node_modules/@wasmer/wasm-transformer/wasm_transformer_bg.wasm"
+  ); // IMPORTANT: This URL points to wherever the wasm_transformer_bg.wasm is hosted
 
   // Transform the binary, by running the lower_i64_imports from the wasm-transformer
   const transformedBinary = lowerI64Imports(originalWasmBinary);
