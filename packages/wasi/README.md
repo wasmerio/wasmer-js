@@ -17,7 +17,7 @@ It uses the same API than the [future WASI integration in Node](https://github.c
 
 However, `@wasmer/wasi` is focused on:
 
-- Bringing [WASI](https://wasi.dev/) to an Isomorphic context (Node.js and the Browser) 🖥️
+- Bringing [WASI](https://github.com/webassembly/wasi) to an Isomorphic context (Node.js and the Browser) 🖥️
 - Make it easy to plug in different filesystems (via [wasmfs](https://github.com/wasmerio/wasmer-js/tree/master/packages/wasmfs)) 📂
 - Make it type-safe using [Typescript](http://www.typescriptlang.org/) 👷
 - Pure JavaScript implementation (no Native bindings needed) 🚀

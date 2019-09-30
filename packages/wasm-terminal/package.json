@@ -1,7 +1,7 @@
 {
   "name": "@wasmer/wasm-terminal",
   "version": "0.0.1",
-  "description": "A DOM Element for providing a Terminal, TTY, and Shell for running Wasm \\ wasi programs.",
+  "description": "A terminal-like component for the browser, that fetches and runs Wasm modules in the context of a shell. 🐚",
   "module": "dist/index.esm.js",
   "browser": "dist/index.iife.js",
   "typings": "dist/packages/wasm-terminal/lib/index.d.ts",
@@ -12,7 +12,6 @@
     "README.md"
   ],
   "scripts": {
-    "postinstall": "npm run build",
     "build": "npx rollup -c --environment LIB,WORKER,PROD",
     "dev": "npx rollup -c --environment LIB,WORKER",
     "test": "npx jest --config jest.config.js",

@@ -1,7 +1,7 @@
 {
   "name": "@wasmer/wasi",
   "version": "0.0.1",
-  "description": "A shim for running wasi applications in the browser",
+  "description": "Isomorphic Javascript library for interacting with WASI Modules in Node.js and the Browser. 📚",
   "main": "dist/index.cjs.js",
   "module": "dist/index.esm.js",
   "browser": "dist/index.iife.js",
@@ -14,7 +14,6 @@
   ],
   "scripts": {
     "precompile": "cd test/rs && make all",
-    "postinstall": "npm run build",
     "build": "npx rollup -c --environment PROD",
     "test": "npx jest --config jest.config.js",
     "test:watch": "npx jest --config jest.config.js --watch",
