@@ -34,6 +34,7 @@ echo " "
 
 wasm-pack build --target web
 npx json -I -f pkg/package.json -e 'this.name="@wasmer/wasm-transformer"'
+npx json -I -f pkg/package.json -e 'this.publishConfig={"access": "public"}'
 
 echo " "
 echo "============================================="
@@ -52,6 +53,7 @@ echo " "
 
 wasm-pack build --target nodejs
 npx json -I -f pkg/package.json -e 'this.name="@wasmer/wasm-transformer"'
+npx json -I -f pkg/package.json -e 'this.publishConfig={"access": "public"}'
 
 echo " "
 echo "============================================="
