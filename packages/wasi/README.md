@@ -41,7 +41,7 @@ let wasi = new WASI({ args: [], env: {} });
 
 // Instantiating the WebAssembly file
 const wasm_bytes = new Uint8Array(fs.readFileSync(file)).buffer;
-let { instance } = await WebAssembly.instantiate(bytes, {
+let { instance } = await WebAssembly.instantiate(wasm_bytes, {
   wasi_unstable: wasi.wasiImport
 });
 
