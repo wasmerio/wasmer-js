@@ -100,6 +100,7 @@ Would Output:
   FD_MAP: Map<number, File>;
   exports: Exports; // WASI API to be imported in the importObject on instantiation.
   bindings: WASIBindings;
+  start: (wasmInstance: WebAssembly.Instance) => void; // Function that takes in a WASI WebAssembly Instance and starts it.
 }
 */
 ```
@@ -119,7 +120,7 @@ let wasi = new WASI({
   args: [],
   bindings: {
     fs: myFs,
-    ...WASI.defaultConfig.bindings
+    ...WASI.defaultBindings
   }
 });
 ```

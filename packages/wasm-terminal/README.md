@@ -160,7 +160,7 @@ Function to print text to the wasmTerminal. Useful for printing a welcome messag
 
 ### fetchCommandFromWAPM
 
-`fectCommandFromWAPM(commandName: string) => Promise<Uint8Array>`
+`fetchCommandFromWAPM(commandName: string) => Promise<Uint8Array>`
 
 Function meant to be returned in the `fetchCommand` config property of the WasmTerminal Class. This takes in the name of command, and returns a Promise that resolves a Uint8Array of the Wasm binary from WAPM.
 
