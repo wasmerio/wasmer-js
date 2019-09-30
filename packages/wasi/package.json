@@ -24,6 +24,9 @@
     "type": "git",
     "url": "git+https://github.com/wasmerio/wasmer-js.git"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "keywords": [
     "wasi",
     "webassembly",

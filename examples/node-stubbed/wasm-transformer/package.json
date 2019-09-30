@@ -11,5 +11,8 @@
     "wasm_transformer.d.ts"
   ],
   "main": "wasm_transformer.js",
-  "types": "wasm_transformer.d.ts"
+  "types": "wasm_transformer.d.ts",
+  "publishConfig": {
+    "access": "public"
+  }
 }
