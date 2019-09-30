@@ -1,7 +1,7 @@
 {
   "name": "@wasmer/wasmfs",
   "version": "0.0.1",
-  "description": "A mock file-system for running wasi / Wasm in the browser ",
+  "description": "Isomorphic library to provide a sandboxed node fs implementation for Node and Browsers. 📂",
   "main": "dist/index.cjs.js",
   "module": "dist/index.esm.js",
   "browser": "dist/index.iife.js",
@@ -13,7 +13,6 @@
     "README.md"
   ],
   "scripts": {
-    "postinstall": "npm run build",
     "build": "npx rollup -c --environment PROD",
     "test": "npx jest --config jest.config.js",
     "test:watch": "npx jest --config jest.config.js --watch",

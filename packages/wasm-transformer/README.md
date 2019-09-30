@@ -1,4 +1,4 @@
-# wasm_transformer
+# wasm-transformer
 
 Library to run transformations on WebAssembly binaries. 🦀♻️
 
