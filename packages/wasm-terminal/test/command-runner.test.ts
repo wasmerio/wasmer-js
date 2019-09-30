@@ -30,19 +30,15 @@ const cowsayPipedToLolcatAst = [
 describe("CommandRunner", () => {
   let commandRunner: any;
   let isFinishedRunningPromise: Promise<any>;
+  let wasmCompileMock: any;
 
   beforeEach(async () => {
     isFinishedRunningPromise = new Promise((resolve, reject) => {
       commandRunner = new CommandRunner(
-        { wasmTransformerWasmUrl: "" },
-        [],
+        { fetchCommand: () => Promise.resolve(new Uint8Array([])) },
         "cowsay hi | lolcat",
         () => {},
-        () => resolve(),
-        // @ts-ignore
-        {
-          getCommandForCommandName: jest.fn(() => Promise.resolve({}))
-        }
+        () => resolve()
       );
     });
 
@@ -64,6 +60,9 @@ describe("CommandRunner", () => {
     commandRunner._spawnProcessAsWorker = getSpawnProcessAsMock();
     commandRunner._spawnProcessAsService = getSpawnProcessAsMock();
     commandRunner.supportsSharedArrayBuffer = false;
+
+    const wasmCompileMock = jest.fn(() => Promise.resolve({}));
+    WebAssembly.compile = wasmCompileMock;
   });
 
   it("should fallback to spawning as a service", async () => {

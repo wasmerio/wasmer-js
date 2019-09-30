@@ -48,11 +48,9 @@ let plugins = [
   globals(),
   builtins(),
   json(),
-  // Copy over the wasi-js-transformer package to the dist folder for publishing
-  // This is needed since we will want the user to pass in the transformer Wasm file
+  // Copy over some assets for running the wasm terminal
   copy({
     targets: [
-      { src: "../wasm-transformer/**/*", dest: "dist/wasm-transformer/" },
       { src: "./node_modules/xterm/dist/xterm.css", dest: "dist/xterm/" }
     ]
   }),

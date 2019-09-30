@@ -7,7 +7,6 @@ import * as fit from "xterm/lib/addons/fit/fit";
 Terminal.applyAddon(fit);
 
 import WasmTerminalConfig from "./wasm-terminal-config";
-import WasmTerminalPlugin from "./wasm-terminal-plugin";
 import WasmTty from "./wasm-tty/wasm-tty";
 import WasmShell from "./wasm-shell/wasm-shell";
 
@@ -15,13 +14,15 @@ export default class WasmTerminal {
   xterm: Terminal;
 
   wasmTerminalConfig: WasmTerminalConfig;
-  wasmTerminalPlugins: WasmTerminalPlugin[];
   wasmTty: WasmTty;
   wasmShell: WasmShell;
 
   pasteEvent: any;
   resizeEvent: any;
   dataEvent: any;
+
+  isOpen: boolean;
+  pendingPrintOnOpen: string;
 
   constructor(config: any) {
     // Create our xterm element
@@ -32,40 +33,25 @@ export default class WasmTerminal {
     this.resizeEvent = this.xterm.on("resize", this.handleTermResize);
 
     this.wasmTerminalConfig = new WasmTerminalConfig(config);
-    this.wasmTerminalPlugins = [];
 
     // Create our Shell and tty
     this.wasmTty = new WasmTty(this.xterm);
-    this.wasmShell = new WasmShell(
-      this.wasmTerminalConfig,
-      this.wasmTerminalPlugins,
-      this.wasmTty
-    );
+    this.wasmShell = new WasmShell(this.wasmTerminalConfig, this.wasmTty);
     // tslint:disable-next-line
     this.dataEvent = this.xterm.on("data", this.wasmShell.handleTermData);
-  }
 
-  addPlugin(wasmTerminalPlugin: WasmTerminalPlugin): () => void {
-    this.wasmTerminalPlugins.push(wasmTerminalPlugin);
-
-    return () => {
-      this.wasmTerminalPlugins.splice(
-        this.wasmTerminalPlugins.indexOf(wasmTerminalPlugin),
-        1
-      );
-    };
+    this.isOpen = false;
+    this.pendingPrintOnOpen = "";
   }
 
   open(container: HTMLElement) {
     this.xterm.open(container);
+    this.isOpen = true;
     setTimeout(() => {
-      // Call the plugins
-      this.wasmTerminalPlugins.forEach(wasmTerminalPlugin => {
-        const response = wasmTerminalPlugin.apply("afterOpen");
-        if (response) {
-          this.wasmTty.print(response + "\n");
-        }
-      });
+      if (this.pendingPrintOnOpen) {
+        this.wasmTty.print(this.pendingPrintOnOpen + "\n");
+        this.pendingPrintOnOpen = "";
+      }
 
       // tslint:disable-next-line
       this.wasmShell.prompt();
@@ -80,6 +66,18 @@ export default class WasmTerminal {
     this.xterm.focus();
   }
 
+  print(message: string) {
+    if (this.isOpen) {
+      this.wasmTty.print(message);
+    } else {
+      if (this.pendingPrintOnOpen) {
+        this.pendingPrintOnOpen += message;
+      } else {
+        this.pendingPrintOnOpen = message;
+      }
+    }
+  }
+
   destroy() {
     // tslint:disable-next-line
     this.xterm.off("paste", this.onPaste);
@@ -89,11 +87,6 @@ export default class WasmTerminal {
     this.xterm.off("data", this.wasmShell.handleTermData);
     this.xterm.destroy();
     delete this.xterm;
-
-    // Call the plugins
-    this.wasmTerminalPlugins.forEach(wasmTerminalPlugin => {
-      wasmTerminalPlugin.apply("afterDestroy");
-    });
   }
 
   onPaste(data: string) {

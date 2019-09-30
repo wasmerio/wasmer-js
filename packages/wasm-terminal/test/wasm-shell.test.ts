@@ -23,10 +23,8 @@ describe("WasmShell", () => {
     wasmShell = new WasmShell(
       // Terminal Config
       {
-        wasmTransformerWasmUrl: ""
+        fetchCommand: () => Promise.resolve(new Uint8Array())
       },
-      // Plugins
-      [],
       wasmTty
     );
 
