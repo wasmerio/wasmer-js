@@ -39,14 +39,21 @@ import WASI from "@wasmer/wasi";
 // Instantiate a new WASI Instance
 let wasi = new WASI({ args: [], env: {} });
 
-// Instantiating the WebAssembly file
-const wasm_bytes = new Uint8Array(fs.readFileSync(file)).buffer;
-let { instance } = await WebAssembly.instantiate(wasm_bytes, {
-  wasi_unstable: wasi.wasiImport
-});
+const startWasiTask = async () => {
+  // Fetch our Wasm File
+  const response = await fetch("./my-wasi-module.wasm");
+  const responseArrayBuffer = await response.arrayBuffer();
 
-// Start the WebAssembly WASI instance!
-wasi.start(instance);
+  // Instantiate the WebAssembly file
+  const wasm_bytes = new Uint8Array(responseArrayBuffer.buffer).buffer;
+  let { instance } = await WebAssembly.instantiate(wasm_bytes, {
+    wasi_unstable: wasi.wasiImport
+  });
+
+  // Start the WebAssembly WASI instance!
+  wasi.start(instance);
+};
+startWasiTask();
 ```
 
 For a larger end-to-end example, please see the [wasm-terminal package](https://github.com/wasmerio/wasmer-js/tree/master/packages/wasm-terminal).
