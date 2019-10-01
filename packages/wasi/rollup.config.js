@@ -3,6 +3,7 @@
 import resolve from "rollup-plugin-node-resolve";
 import commonjs from "rollup-plugin-commonjs";
 import builtins from "rollup-plugin-node-builtins";
+import globals from "rollup-plugin-node-globals";
 import typescript from "rollup-plugin-typescript2";
 import json from "rollup-plugin-json";
 import replace from "rollup-plugin-replace";
@@ -39,6 +40,7 @@ const plugins = [
   typescript(typescriptPluginOptions),
   resolve({ preferBuiltins: true }),
   commonjs(),
+  globals(),
   builtins(),
   json(),
   process.env.PROD ? compiler() : undefined,

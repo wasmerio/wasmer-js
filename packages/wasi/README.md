@@ -33,11 +33,22 @@ npm install --save @wasmer/wasi
 
 ## Quick Start
 
+**This quick start is for browsers. For node, WasmFs is not required**
+
 ```js
 import WASI from "@wasmer/wasi";
+import WasmFs from "@wasmer/wasmfs";
 
 // Instantiate a new WASI Instance
-let wasi = new WASI({ args: [], env: {} });
+const wasmFs = new WasmFs();
+let wasi = new WASI({
+  args: [],
+  env: {},
+  bindings: {
+    ...WASI.defaultBindings,
+    fs: wasmFs.fs
+  }
+});
 
 const startWasiTask = async () => {
   // Fetch our Wasm File
@@ -45,13 +56,17 @@ const startWasiTask = async () => {
   const responseArrayBuffer = await response.arrayBuffer();
 
   // Instantiate the WebAssembly file
-  const wasm_bytes = new Uint8Array(responseArrayBuffer.buffer).buffer;
+  const wasm_bytes = new Uint8Array(responseArrayBuffer).buffer;
   let { instance } = await WebAssembly.instantiate(wasm_bytes, {
     wasi_unstable: wasi.wasiImport
   });
 
   // Start the WebAssembly WASI instance!
   wasi.start(instance);
+
+  // Output what's inside of /dev/stdout!
+  const stdout = await wasmFs.getStdOut();
+  console.log(stdout);
 };
 startWasiTask();
 ```
