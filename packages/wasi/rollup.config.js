@@ -49,18 +49,6 @@ const libBundles = [
   {
     input: "./lib/index.ts",
     output: {
-      file: pkg.main,
-      format: "cjs",
-      sourcemap: sourcemapOption
-    },
-    watch: {
-      clearScreen: false
-    },
-    plugins: [replace(replaceNodeOptions), ...plugins]
-  },
-  {
-    input: "./lib/index.ts",
-    output: {
       file: pkg.module,
       format: "esm",
       sourcemap: sourcemapOption
@@ -82,6 +70,18 @@ const libBundles = [
       clearScreen: false
     },
     plugins: [replace(replaceBrowserOptions), ...plugins]
+  },
+  {
+    input: "./lib/index.ts",
+    output: {
+      file: pkg.main,
+      format: "cjs",
+      sourcemap: sourcemapOption
+    },
+    watch: {
+      clearScreen: false
+    },
+    plugins: [replace(replaceNodeOptions), ...plugins]
   }
 ];
 

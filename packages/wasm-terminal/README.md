@@ -46,16 +46,16 @@ import WasmTerminal, { fetchCommandFromWAPM } from "@wasmer/wasm-terminal";
 import wasmInit, { lowerI64Imports } from "@wasmer/wasm-transformer";
 
 // URL for where the wasm-transformer wasm file is located. This is probably different depending on your bundler.
-const wasmTransformerWasmUrl = "node_modules/@wasmer/wasm-transformer/wasm_transformer_bg.wasm";
+const wasmTransformerWasmUrl =
+  "./node_modules/@wasmer/wasm-transformer/wasm_transformer_bg.wasm";
 
 // Let's write handler for the fetchCommand property of the WasmTerminal Config.
-const fetchCommandHandler = async (commandName: string) => {
-
+const fetchCommandHandler = async commandName => {
   // Let's return a "CallbackCommand" if our command matches a special name
-  if (commandName === 'callback-command') {
-    const callbackCommand = async (args: string[], stdin: string) => {
-      return `Callback Command Working! Args: ${args}, stdin: ${stdin}`
-    }
+  if (commandName === "callback-command") {
+    const callbackCommand = async (args, stdin) => {
+      return `Callback Command Working! Args: ${args}, stdin: ${stdin}`;
+    };
     return callbackCommand;
   }
 
@@ -72,9 +72,9 @@ const fetchCommandHandler = async (commandName: string) => {
 // Let's create our Wasm Terminal
 const wasmTerminal = new WasmTerminal({
   // Function that is run whenever a command is fetched
-  fetchCommand: fetchCommandHandler
+  fetchCommand: fetchCommandHandler,
   // IMPORTANT: This is wherever your process.worker.js file URL is hosted
-  processWorkerUrl: "/node_modules/wasm-terminal/workers/process.worker.js",
+  processWorkerUrl: "./node_modules/wasm-terminal/workers/process.worker.js"
 });
 
 // Let's print out our initial message
@@ -87,7 +87,7 @@ wasmTerminal.fit();
 wasmTerminal.focus();
 
 // Later, when we are done with the terminal, let's destroy it
-wasmTerminal.destroy();
+// wasmTerminal.destroy();
 ```
 
 **Css**
@@ -99,7 +99,7 @@ We must also include the `[xterm](https://github.com/xtermjs/xterm.js/).css`. Fo
 <link
   rel="stylesheet"
   type="text/css"
-  href="node_modules/wasm-terminal/xterm/xterm.css"
+  href="./node_modules/@wasmer/wasm-terminal/dist/xterm/xterm.css"
 />
 ```
 
