@@ -44,7 +44,9 @@
   "homepage": "https://github.com/wasmerio/wasmer-js/tree/master/packages/wasi",
   "dependencies": {
     "browser-process-hrtime": "^1.0.0",
+    "buffer-es6": "^4.9.3",
     "path-browserify": "^1.0.0",
     "randomfill": "^1.0.4"
-  }
+  },
+  "devDependencies": {}
 }

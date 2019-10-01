@@ -1,5 +1,5 @@
 import * as randomfill from "randomfill";
-import hrtime from "browser-process-hrtime";
+import hrtime from "../polyfills/browser-hrtime";
 import path from "path-browserify";
 
 import { WASIBindings, WASIExitError, WASIKillError } from "../wasi";

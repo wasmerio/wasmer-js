@@ -8,6 +8,8 @@ import {
   DataViewPolyfill as DataView,
   DataViewPolyfillType
 } from "./polyfills/dataview";
+// @ts-ignore
+import { Buffer } from "buffer-es6";
 
 // Import our default bindings depending on the environment
 let defaultBindings: WASIBindings;
