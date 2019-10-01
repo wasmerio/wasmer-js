@@ -1,6 +1,7 @@
-# Wasmer-JS [![styled with prettier](https://img.shields.io/badge/styled_with-prettier-ff69b4.svg)](https://github.com/prettier/prettier) [![Build Status](https://dev.azure.com/wasmerio/wasmer-js/_apis/build/status/wasmerio.wasmer-js?branchName=master)](https://dev.azure.com/wasmerio/wasmer-js/_build/latest?definitionId=4&branchName=master) [![Coveralls](https://img.shields.io/coveralls/wasmerio/wasmer-js.svg)](https://coveralls.io/github/wasmerio/wasmer-js) [![Dev Dependencies](https://david-dm.org/wasmerio/wasmer-js/dev-status.svg)](https://david-dm.org/wasmerio/wasmer-js?type=dev)
+# Wasmer-JS [![styled with prettier](https://img.shields.io/badge/styled_with-prettier-ff69b4.svg)](https://github.com/prettier/prettier) [![Build Status](https://dev.azure.com/wasmerio/wasmer-js/_apis/build/status/wasmerio.wasmer-js?branchName=master)](https://dev.azure.com/wasmerio/wasmer-js/_build/latest?definitionId=4&branchName=master) [![Dev Dependencies](https://david-dm.org/wasmerio/wasmer-js/dev-status.svg)](https://david-dm.org/wasmerio/wasmer-js?type=dev)
 
 <!-- [![Greenkeeper badge](https://badges.greenkeeper.io/wasmerio/wasmer-js.svg)](https://greenkeeper.io/) -->
+<!-- [![Coveralls](https://img.shields.io/coveralls/wasmerio/wasmer-js.svg)](https://coveralls.io/github/wasmerio/wasmer-js)  -->
 
 Monorepo of multiple JavaScript packages enabling easy use of [WebAssembly](https://webassembly.org) Modules in Node and the Browser.
 
