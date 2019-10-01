@@ -3,7 +3,7 @@
   "collaborators": [
     "Aaron Turner <aaron@aaronthedev.com>"
   ],
-  "version": "0.0.2",
+  "version": "0.0.3",
   "files": [
     "wasm_transformer_bg.wasm",
     "wasm_transformer.js",

@@ -1,6 +1,6 @@
 {
   "name": "@wasmer/wasm-terminal",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "A terminal-like component for the browser, that fetches and runs Wasm modules in the context of a shell. 🐚",
   "module": "dist/index.esm.js",
   "browser": "dist/index.iife.js",
@@ -43,9 +43,9 @@
   },
   "homepage": "https://github.com/wasmerio/wasmer-js/tree/master/packages/wasm-terminal",
   "dependencies": {
-    "@wasmer/wasi": "^0.0.2",
-    "@wasmer/wasm-transformer": "^0.0.2",
-    "@wasmer/wasmfs": "^0.0.2",
+    "@wasmer/wasi": "^0.0.3",
+    "@wasmer/wasm-transformer": "^0.0.3",
+    "@wasmer/wasmfs": "^0.0.3",
     "comlink": "^4.0.2",
     "shell-parse": "0.0.2",
     "shell-quote": "^1.7.1",
