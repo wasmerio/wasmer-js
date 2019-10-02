@@ -16,6 +16,7 @@
     "jsx": "react",
     "jsxFactory": "h",
     "typeRoots": ["node_modules/@types"],
-    "preserveSymlinks": true
+    "preserveSymlinks": true,
+    "allowJs": true
   }
 }
