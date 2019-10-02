@@ -13,7 +13,10 @@
     "README.md"
   ],
   "scripts": {
-    "build": "npx rollup -c --environment PROD",
+    "build": "npm run build:prod",
+    "build:prod": "npx rollup -c --environment PROD",
+    "build:dev": "npx rollup -c --environment DEV",
+    "dev": "npx watch \"npm run build:dev\" lib",
     "test": "npx jest --config jest.config.js",
     "test:watch": "npx jest --config jest.config.js --watch",
     "docs": "npx typedoc lib/ --out docs --target es6 --theme minimal --mode file"
