@@ -78,8 +78,8 @@ export default class Process {
       } else if (e.user !== undefined) {
         error = e.message;
       }
-
-      this.errorCallback(error);
+      console.log(error);
+      // this.errorCallback(error);
     }
   }
 

@@ -5,7 +5,7 @@ import WasmTerminal, {
   // @ts-ignore
   fetchCommandFromWAPM
   // @ts-ignore
-} from "../../../packages/wasm-terminal/dist/index.esm";
+} from "../../../packages/wasm-terminal";
 
 // @ts-ignore
 import wasmInit, {
@@ -14,10 +14,6 @@ import wasmInit, {
 } from "../../../packages/wasm-transformer/wasm_transformer.js";
 // @ts-ignore
 import wasmTransformerWasmUrl from "../../../packages/wasm-transformer/wasm_transformer_bg.wasm";
-
-// Require Wasm terminal URLs
-// @ts-ignore
-import processWorkerUrl from "../../../packages/wasm-terminal/dist/workers/process.worker.js";
 
 // Additional Command URLs
 // @ts-ignore
@@ -40,6 +36,9 @@ import clangUrl from "../../../crates/wasm_transformer/wasm_module_examples/clan
 import sqliteUrl from "../../../crates/wasm_transformer/wasm_module_examples/sqlite.wasm";
 // @ts-ignore
 import gettimeofdayUrl from "../../../crates/wasm_transformer/wasm_module_examples/gettimeofday/gettimeofday.wasm";
+
+// Require Wasm terminal URLs
+const processWorkerUrl = "/examples/wasm-shell/process.worker.js";
 
 const commands = {
   a: stdinWasmUrl,

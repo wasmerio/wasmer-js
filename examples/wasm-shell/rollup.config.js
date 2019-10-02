@@ -12,6 +12,8 @@ import bundleSize from "rollup-plugin-bundle-size";
 import hash from "rollup-plugin-hash";
 import url from "rollup-plugin-url";
 import serve from "rollup-plugin-serve";
+import builtins from "rollup-plugin-node-builtins";
+import globals from "rollup-plugin-node-globals";
 
 const sourcemapOption = process.env.PROD ? undefined : "inline";
 
@@ -41,7 +43,7 @@ let plugins = [
   }),
   url({
     limit: 1 * 1024,
-    include: ["**/*.wasm", "**/*.worker.js"],
+    include: ["**/*.wasm"],
     emitFiles: true
   }),
   typescript(typescriptPluginOptions),
@@ -52,6 +54,17 @@ let plugins = [
   json(),
   process.env.PROD ? compiler() : undefined,
   bundleSize()
+];
+
+let workerPlugins = [
+  typescript(typescriptPluginOptions),
+  resolve({
+    preferBuiltins: true
+  }),
+  commonjs(),
+  builtins(),
+  globals(),
+  json()
 ];
 
 if (process.env.PROD) {
@@ -90,6 +103,21 @@ const wasmShellBundles = [
       clearScreen: false
     },
     plugins: plugins
+  },
+  {
+    input: "packages/wasm-terminal/workers/process.worker.ts",
+    output: [
+      {
+        file: "dist/examples/wasm-shell/process.worker.js",
+        format: "iife",
+        sourcemap: sourcemapOption,
+        name: "Process"
+      }
+    ],
+    watch: {
+      clearScreen: false
+    },
+    plugins: workerPlugins
   }
 ];
 
