@@ -13,10 +13,11 @@
   },
   "license": "MIT",
   "scripts": {
-    "prebuild": "rimraf dist",
     "postinstall": "npx run-s lerna:bootstrap",
-    "dev": "npx run-s wasm-shell:dev",
     "build": "npx run-s lerna:build wasm-shell:build",
+    "serve": "npx serve dist/ -p 8000",
+    "dev": "npx run-p serve wasm-terminal:dev dev:watch",
+    "dev:watch": "npx watch \"npx run-s lerna:build:dev wasm-shell:build:dev\" packages/wasi/lib packages/wasmfs/lib packages/wasm-terminal/lib examples/wasm-shell",
     "test": "npx lerna run test",
     "lint": "npx run-s lint:js lint:ts:tslint lint:ts:preetier",
     "lint:js": "npx prettier --write packages/**/rollup.*.js",
@@ -24,8 +25,10 @@
     "lint:ts:preetier": "npx prettier --write packages/**/*.ts",
     "lerna:bootstrap": "npx lerna bootstrap",
     "lerna:build": "npx lerna run build",
-    "wasm-shell:dev": "npx rollup -c examples/wasm-shell/rollup.config.js -w",
-    "wasm-shell:build": "npx rollup -c examples/wasm-shell/rollup.config.js --environment PROD"
+    "lerna:build:dev": "npx lerna run build:dev --loglevel error",
+    "wasm-terminal:dev": "npx watch \"(cd crates/wasm_transformer && ./wasm_transformer_build.sh > /dev/null)\" crates/wasm_transformer/src",
+    "wasm-shell:build": "npx rollup -c examples/wasm-shell/rollup.config.js --environment PROD",
+    "wasm-shell:build:dev": "npx rollup -c examples/wasm-shell/rollup.config.js --environment DEV"
   },
   "husky": {
     "hooks": {
@@ -66,10 +69,10 @@
     "rollup-plugin-node-resolve": "^5.2.0",
     "rollup-plugin-postcss": "^2.0.3",
     "rollup-plugin-replace": "^2.2.0",
-    "rollup-plugin-serve": "^1.0.1",
     "rollup-plugin-typescript": "^1.0.1",
     "rollup-plugin-typescript2": "^0.22.1",
     "rollup-plugin-url": "^2.2.2",
+    "serve": "^11.2.0",
     "shell-parse": "0.0.2",
     "shell-quote": "^1.7.1",
     "sinon": "^7.4.1",
@@ -82,6 +85,7 @@
     "typedoc": "^0.15.0",
     "typescript": "^3.5.3",
     "url": "^0.11.0",
+    "watch": "^1.0.2",
     "xterm": "^3.14.5"
   }
 }

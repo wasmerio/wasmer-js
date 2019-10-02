@@ -11,7 +11,6 @@ import compiler from "@ampproject/rollup-plugin-closure-compiler";
 import bundleSize from "rollup-plugin-bundle-size";
 import hash from "rollup-plugin-hash";
 import url from "rollup-plugin-url";
-import serve from "rollup-plugin-serve";
 
 const sourcemapOption = process.env.PROD ? undefined : "inline";
 
@@ -65,13 +64,7 @@ if (process.env.PROD) {
     })
   ];
 } else {
-  plugins = [
-    ...plugins,
-    serve({
-      contentBase: ["dist/"],
-      port: 8000
-    })
-  ];
+  plugins = [...plugins];
   writeIndexHtml("index.iife.js");
 }
 
