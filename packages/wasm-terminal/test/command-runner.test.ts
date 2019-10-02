@@ -1,4 +1,9 @@
 import CommandRunner from "../lib/command-runner/command-runner";
+jest.mock("../lib/process/process", () => {
+  return jest.fn().mockImplementation(() => {
+    return { mock: () => {} };
+  });
+});
 
 import * as shellParse from "shell-parse";
 
