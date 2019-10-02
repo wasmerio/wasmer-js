@@ -359,8 +359,8 @@ export default class CommandRunner {
     let env: any = {};
 
     // Manually doing Object.fromEntries for compatibility with Node 10
-    envEntries.forEach(entry => {
-      env[entry[0]] = entry[1];
+    envEntries.forEach((value, key) => {
+      env[key] = value;
     });
 
     if (wasmTty) {
