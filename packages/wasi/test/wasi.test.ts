@@ -1,6 +1,9 @@
 // Import fs for reading our test Wasm files on disk
 import * as fs from "fs";
 
+// Import WasmFs
+import WasmFs from "../../wasmfs/lib/index";
+
 // Since we are importing the lib directly, also we need to import our
 // Node bindings. For the normal library, default bindings are provided :)
 // Also, here we are using the "memfs" file system example that way we don't
@@ -13,9 +16,6 @@ if ((global as any).BigInt) {
 }
 import WASI from "../lib";
 import WASINodeBindings from "../lib/bindings/node";
-
-// @ts-ignore
-const WasmerFileSystem = require("../../wasmfs/dist/index.cjs");
 
 const bytesConverter = (buffer: Buffer): Buffer => {
   // Help debugging: https://webassembly.github.io/wabt/demo/wat2wasm/index.html
@@ -93,7 +93,7 @@ describe("WASI interaction", () => {
   let wasmerFileSystem: any;
 
   beforeEach(async () => {
-    wasmerFileSystem = new WasmerFileSystem();
+    wasmerFileSystem = new WasmFs();
     wasmerFileSystem.fs.mkdirSync("/sandbox");
     wasmerFileSystem.fs.writeFileSync("/sandbox/file1", "contents1");
   });

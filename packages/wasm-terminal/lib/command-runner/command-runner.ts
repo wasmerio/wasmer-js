@@ -353,12 +353,16 @@ export default class CommandRunner {
     let commandArgs = ast.args.map((arg: any) => arg.value);
     let args = [commandName, ...commandArgs];
 
-    let env = Object.fromEntries(
-      Object.entries(ast.env).map(([key, value]: [string, any]) => [
-        key,
-        value.value
-      ])
+    const envEntries = Object.entries(ast.env).map(
+      ([key, value]: [string, any]) => [key, value.value]
     );
+    let env: any = {};
+
+    // Manually doing Object.fromEntries for compatibility with Node 10
+    envEntries.forEach((value, key) => {
+      env[key] = value;
+    });
+
     if (wasmTty) {
       const { rows, cols } = wasmTty.getTermSize();
       env.LINES = rows;

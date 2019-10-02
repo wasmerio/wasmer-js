@@ -3,7 +3,7 @@ module.exports = {
     ".(ts|tsx)": "ts-jest"
   },
   testEnvironment: "node",
-  testRegex: "(/__tests__/.*|\\.(test|spec))\\.(ts|tsx|js)$",
+  testRegex: "(/__tests__/.*|\\.(test|spec))\\.(ts|tsx)$",
   moduleFileExtensions: ["ts", "tsx", "js"],
   coveragePathIgnorePatterns: ["/node_modules/", "/test/"],
   coverageThreshold: {
@@ -14,7 +14,7 @@ module.exports = {
       statements: 95
     }
   },
-  collectCoverageFrom: ["src/*.{js,ts}"],
+  collectCoverageFrom: ["src/*.{ts}"],
   globals: {
     window: true,
     global: true,

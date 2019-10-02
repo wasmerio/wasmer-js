@@ -1,7 +1,7 @@
-const WasmFs = require("../dist/index.cjs");
+import WasmFs from "../lib/index";
 
 describe("wasmfs", () => {
-  let wasmfs: any;
+  let wasmfs: WasmFs;
 
   beforeEach(async () => {
     wasmfs = new WasmFs();
