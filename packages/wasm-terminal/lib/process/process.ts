@@ -1,4 +1,3 @@
-import WASI from "@wasmer/wasi";
 import WasmFs from "@wasmer/wasmfs";
 
 import { CommandOptions } from "../command-runner/command";

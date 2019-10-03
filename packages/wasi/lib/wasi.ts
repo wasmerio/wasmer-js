@@ -858,6 +858,7 @@ class WASI {
           bufPtr: number
         ) => {
           const stats = CHECK_FD(fd, WASI_RIGHT_PATH_FILESTAT_GET);
+          console.log("Stats ", stats, stats.rights);
           if (!stats.path) {
             return WASI_EINVAL;
           }
@@ -964,13 +965,21 @@ class WASI {
           pathPtr: number,
           pathLen: number,
           oflags: number,
-          fsRightsBase: BigIntPolyfillType,
-          fsRightsInheriting: BigIntPolyfillType,
+          fsRightsBase: BigIntPolyfillType | number,
+          fsRightsInheriting: BigIntPolyfillType | number,
           fsFlags: number,
           fd: number
         ) => {
           const stats = CHECK_FD(dirfd, WASI_RIGHT_PATH_OPEN);
-
+          fsRightsBase = BigInt(fsRightsBase);
+          fsRightsInheriting = BigInt(fsRightsInheriting);
+          console.log("Stats", stats, stats.rights);
+          console.log(
+            "fsRightsBase",
+            fsRightsBase,
+            WASI_RIGHT_FD_READ,
+            WASI_RIGHT_FD_READDIR
+          );
           const read =
             (fsRightsBase & (WASI_RIGHT_FD_READ | WASI_RIGHT_FD_READDIR)) !==
             BigInt(0);
@@ -1042,7 +1051,9 @@ class WASI {
           ) {
             neededInheriting |= WASI_RIGHT_FD_SEEK;
           }
-
+          console.log("neededBase", neededBase);
+          console.log("noflags", noflags);
+          console.log("neededInheriting", neededInheriting);
           this.refreshMemory();
           const p = Buffer.from(
             this.memory.buffer,
@@ -1050,6 +1061,7 @@ class WASI {
             pathLen
           ).toString();
           const fullUnresolved = path.resolve(stats.path, p);
+          console.log("stats unresolved", p, stats.path, fullUnresolved);
           if (path.relative(stats.path, fullUnresolved).startsWith("..")) {
             return WASI_ENOTCAPABLE;
           }
@@ -1314,6 +1326,18 @@ class WASI {
         return WASI_ENOSYS;
       }
     };
+
+    Object.keys(this.wasiImport).forEach(wasiExportKey => {
+      const originalWASIExport = this.wasiImport[wasiExportKey];
+      this.wasiImport[wasiExportKey] = (...args: any[]) => {
+        console.log(
+          `Calling WASI function: ${wasiExportKey} with args ${args}`
+        );
+        let result = originalWASIExport(...args);
+        console.log(` -> Result: ${result}`);
+        return result;
+      };
+    });
   }
 
   refreshMemory() {

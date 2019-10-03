@@ -2,7 +2,8 @@
 // Dataview workaround at ./dataview.ts
 
 // Add Big int depending on the environment
-let exportedBigInt = Number;
+// @ts-ignore
+let exportedBigInt: BigInt = Number;
 let globalThis: any = {
   BigInt: {}
 };
@@ -16,5 +17,5 @@ if (globalThis.BigInt) {
   exportedBigInt = globalThis.BigInt;
 }
 
-export const BigIntPolyfill: any = exportedBigInt;
-export type BigIntPolyfillType = any;
+export const BigIntPolyfill: typeof BigInt = BigInt;
+export type BigIntPolyfillType = bigint;
