@@ -14,11 +14,21 @@ export default class WasmFs {
   fs: IFs;
 
   constructor() {
-    this.volume = Volume.fromJSON({
+    this.volume = new Volume();
+    this.fs = createFsFromVolume(this.volume);
+    this.fromJSON({
       "/dev/stdin": "",
       "/dev/stdout": "",
       "/dev/stderr": ""
     });
+  }
+
+  toJSON() {
+    return this.volume.toJSON();
+  }
+
+  fromJSON(fsJson: any) {
+    this.volume = Volume.fromJSON(fsJson);
     this.volume.releasedFds = [0, 1, 2];
 
     const fdErr = this.volume.openSync("/dev/stderr", "w");

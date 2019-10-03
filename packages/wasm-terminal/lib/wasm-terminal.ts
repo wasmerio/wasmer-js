@@ -25,14 +25,14 @@ export default class WasmTerminal {
   pendingPrintOnOpen: string;
 
   constructor(config: any) {
+    this.wasmTerminalConfig = new WasmTerminalConfig(config);
+
     // Create our xterm element
     this.xterm = new Terminal();
     // tslint:disable-next-line
     this.pasteEvent = this.xterm.on("paste", this.onPaste);
     // tslint:disable-next-line
     this.resizeEvent = this.xterm.on("resize", this.handleTermResize);
-
-    this.wasmTerminalConfig = new WasmTerminalConfig(config);
 
     // Create our Shell and tty
     this.wasmTty = new WasmTty(this.xterm);

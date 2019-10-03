@@ -63,14 +63,14 @@ export default class WASICommand extends Command {
 
   constructor(
     options: CommandOptions,
+    wasmFs: WasmFs,
     sharedStdin?: Int32Array,
     startStdinReadCallback?: Function
   ) {
     super(options);
 
-    this.wasmFs = new WasmFs();
-
     // Bind our stdinRead / stdoutWrite
+    this.wasmFs = wasmFs;
     this.wasmFs.volume.fds[0].read = this.stdinRead.bind(this);
     this.wasmFs.volume.fds[1].write = this.stdoutWrite.bind(this);
     this.wasmFs.volume.fds[2].write = this.stdoutWrite.bind(this);
