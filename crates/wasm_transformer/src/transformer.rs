@@ -53,14 +53,16 @@ pub fn lower_i64_wasm_for_wasi_js(mut wasm_binary_vec: &mut Vec<u8>) -> Result<(
 fn converts() {
     // Run tests for the following strings
     let mut test_file_paths = Vec::new();
-    // test_file_paths.push("./wasm_module_examples/path_open.wasm");
-    // test_file_paths.push("./wasm_module_examples/clock_time_get.wasm");
-    // test_file_paths.push("./wasm_module_examples/matrix.wasm");
-    // test_file_paths.push("./wasm_module_examples/two-imports.wasm");
-    // test_file_paths.push("./wasm_module_examples/gettimeofday/gettimeofday.wasm");
-    // test_file_paths.push("./wasm_module_examples/qjs.wasm");
-    // test_file_paths.push("./wasm_module_examples/duk.wasm");
+    test_file_paths.push("./wasm_module_examples/path_open.wasm");
+    test_file_paths.push("./wasm_module_examples/clock_time_get.wasm");
+    test_file_paths.push("./wasm_module_examples/matrix.wasm");
+    test_file_paths.push("./wasm_module_examples/two-imports.wasm");
+    test_file_paths.push("./wasm_module_examples/gettimeofday/gettimeofday.wasm");
+    test_file_paths.push("./wasm_module_examples/qjs.wasm");
+    test_file_paths.push("./wasm_module_examples/duk.wasm");
     test_file_paths.push("./wasm_module_examples/rsign_original.wasm");
+    test_file_paths.push("./wasm_module_examples/viu.wasm");
+    // test_file_paths.push("./wasm_module_examples/clang.wasm");
 
     fs::create_dir_all("./wasm_module_examples_transformed/").unwrap();
 
