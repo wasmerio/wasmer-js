@@ -11,7 +11,10 @@ function getInt32Memory() {
   return cachegetInt32Memory;
 }
 
-let cachedTextDecoder = new TextDecoder("utf-8");
+let cachedTextDecoder = new TextDecoder("utf-8", {
+  ignoreBOM: true,
+  fatal: true
+});
 
 let cachegetUint8Memory = null;
 function getUint8Memory() {
