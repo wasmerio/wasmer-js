@@ -126,10 +126,12 @@ pub fn apply_transformations_to_wasm_binary_vec(
     // from modifying the calls, before adding the trampoline functions. Thus, we get an,
     // insertion_offset.
     let mut calls_byte_offset: isize = 0;
-    for imported_i64_function in imported_i64_functions.iter() {
-        for wasm_call_to_old_function in wasm_calls
+    let mut previous_function_body_index: usize = 0;
+    let mut function_body_acc: isize = 0;
+    for wasm_call_to_old_function in wasm_calls.iter() {
+        for imported_i64_function in imported_i64_functions
             .iter()
-            .filter(|&x| x.function_index == imported_i64_function.function_index)
+            .filter(|&x| x.function_index == wasm_call_to_old_function.function_index)
         {
             // Get the old call
             let call_index_start_position = (position_offset
@@ -170,8 +172,17 @@ pub fn apply_transformations_to_wasm_binary_vec(
             // Also, we may need to update the function body size
             // If the function signature had a smaller/larger byte_length
             if byte_length_difference != 0 {
+                if wasm_call_to_old_function.function_body_index == previous_function_body_index {
+                    function_body_acc -= byte_length_difference;
+                }
+                else {
+                    previous_function_body_index = wasm_call_to_old_function.function_body_index;
+                    // Reset the function body accumulator
+                    function_body_acc = 0;
+                }
                 let function_size_position = (position_offset
                     + calls_byte_offset
+                    + function_body_acc
                     + (wasm_call_to_old_function.function_body_position as isize))
                     as usize;
 
@@ -198,12 +209,12 @@ pub fn apply_transformations_to_wasm_binary_vec(
                 let function_size_byte_length_difference =
                     ((new_function_size_bytes.len() as isize)
                         - (function_size_byte_length as isize)) as isize;
-                calls_byte_offset += function_size_byte_length_difference;
+                calls_byte_offset += function_size_byte_length_difference + byte_length_difference;
             }
 
             // Add the byte_length_difference
-            calls_byte_offset += byte_length_difference;
         }
+        // calls_byte_offset += byte_length_difference;
     }
 
     // Add the trampoline functions to the code section
