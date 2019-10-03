@@ -5,6 +5,7 @@ use crate::generator::*;
 use crate::parser::*;
 
 use std::*;
+use std::path::{Path, PathBuf};
 
 // Function to lower i64 imports for a Wasm binary vec
 pub fn lower_i64_wasm_for_wasi_js(mut wasm_binary_vec: &mut Vec<u8>) -> Result<(), &'static str> {
@@ -59,6 +60,9 @@ fn converts() {
     test_file_paths.push("./wasm_module_examples/gettimeofday/gettimeofday.wasm");
     test_file_paths.push("./wasm_module_examples/qjs.wasm");
     test_file_paths.push("./wasm_module_examples/duk.wasm");
+    test_file_paths.push("./wasm_module_examples/rsign2.wasm");
+
+    fs::create_dir_all("./wasm_module_examples_transformed/").unwrap();
 
     for test_file_path in test_file_paths.iter() {
         console_log!(" ");
@@ -70,10 +74,7 @@ fn converts() {
 
         let mut wasm = fs::read(test_file_path).unwrap();
 
-        assert!(
-            wasmparser::validate(&wasm, None),
-            "original Wasm is not valid"
-        );
+        wasmparser::validate(&wasm, None).expect("original Wasm is not valid");
 
         console_log!(" ");
         console_log!("Original Wasm Size: {}", &wasm.len());
@@ -85,10 +86,12 @@ fn converts() {
         console_log!("New Wasm Size: {}", &wasm.len());
         console_log!(" ");
 
-        fs::write("./wasm_module_examples/test_result.wasm", &wasm).expect("Unable to write file");
+        let filename =  Path::new(test_file_path).file_name().unwrap().to_string_lossy();
+        let transformed_filename = format!("./wasm_module_examples_transformed/{}", filename);
+        fs::write(transformed_filename.clone(), &wasm).expect("Unable to write file");
 
         console_log!(" ");
-        console_log!("Wrote resulting Wasm to: ./wasm-module-examples/test_result.wasm");
+        console_log!("Wrote resulting Wasm to: {}", transformed_filename.clone());
         console_log!(" ");
 
         console_log!(" ");
@@ -115,9 +118,11 @@ fn converts() {
             }
         }
 
+        let validated = wasmparser::validate(&wasm, None);
         assert!(
-            wasmparser::validate(&wasm, None),
-            "converted Wasm is not valid"
+            !validated.is_err(),
+            "converted Wasm is not valid: {:?}",
+            validated.err()
         );
     }
 }
