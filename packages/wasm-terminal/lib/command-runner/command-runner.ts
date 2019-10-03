@@ -214,7 +214,9 @@ export default class CommandRunner {
         })
       ),
       // Error Callback
-      Comlink.proxy(this._processErrorCallback.bind(this, commandOptionIndex)),
+      Comlink.proxy(
+        this._processErrorCallback.bind(this, { commandOptionIndex })
+      ),
       // Shared Array Bufer
       sharedStdinBuffer,
       // Stdin read callback
@@ -247,7 +249,7 @@ export default class CommandRunner {
       // End Callback
       this._processEndCallback.bind(this, { commandOptionIndex }),
       // Error Callback
-      this._processErrorCallback.bind(this, commandOptionIndex)
+      this._processErrorCallback.bind(this, { commandOptionIndex })
     );
 
     return {
@@ -298,7 +300,10 @@ export default class CommandRunner {
     }
 
     // Sync our filesystem
-    this.wasmTerminalConfig.wasmFs.fromJSON(wasmFsJson);
+    if (wasmFsJson) {
+      console.log("end New wasmFsJson", wasmFsJson);
+      this.wasmTerminalConfig.wasmFs.fromJSON(wasmFsJson);
+    }
 
     if (commandOptionIndex < this.commandOptionsForProcessesToRun.length - 1) {
       // Try to spawn the next process, if we haven't already
@@ -314,12 +319,26 @@ export default class CommandRunner {
     this.spawnedProcessObjects.shift();
   }
 
-  _processErrorCallback(commandOptionIndex: number, error: string) {
+  _processErrorCallback(
+    errorCallbackConfig: { commandOptionIndex: number },
+    error: string,
+    wasmFsJson: any
+  ) {
+    const { commandOptionIndex } = errorCallbackConfig;
+
     if (this.wasmTty) {
       this.wasmTty.print(
         `Program ${this.commandOptionsForProcessesToRun[commandOptionIndex].args[0]}: ${error}\r\n`
       );
     }
+
+    // Sync our filesystem
+    if (wasmFsJson) {
+      console.log("error New wasmFsJson", wasmFsJson);
+      this.wasmTerminalConfig.wasmFs.fromJSON(wasmFsJson);
+    }
+
+    // Kill the process
     this.kill();
     this.commandEndCallback();
   }

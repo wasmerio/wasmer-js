@@ -19,7 +19,8 @@ export default class WasmFs {
     this.fromJSON({
       "/dev/stdin": "",
       "/dev/stdout": "",
-      "/dev/stderr": ""
+      "/dev/stderr": "",
+      "/hello": "hello world!"
     });
   }
 

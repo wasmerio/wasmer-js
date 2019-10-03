@@ -83,6 +83,15 @@ export default class Process {
     } catch (e) {
       let error = "Unknown Error";
 
+      // TODO: Diff the two objects and only send that back
+      const currentWasmFsJson = this.wasmFs.toJSON();
+
+      if (e.code === 0) {
+        // Command was successful, but ended early.
+        this.endCallback(currentWasmFsJson);
+        return;
+      }
+
       if (e.code !== undefined) {
         error = `exited with code: ${e.code}`;
       } else if (e.signal !== undefined) {
@@ -91,7 +100,7 @@ export default class Process {
         error = e.message;
       }
 
-      this.errorCallback(error);
+      this.errorCallback(error, currentWasmFsJson);
     }
   }
 
