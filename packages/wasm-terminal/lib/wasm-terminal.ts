@@ -1,10 +1,13 @@
 // The Wasm Terminal
 
 import { Terminal, ITerminalOptions, IBufferLine } from "xterm";
+
 // tslint:disable-next-line
 import * as fit from "xterm/lib/addons/fit/fit";
 // tslint:disable-next-line
 Terminal.applyAddon(fit);
+
+import { WebLinksAddon } from "xterm-addon-web-links";
 
 import WasmTerminalConfig from "./wasm-terminal-config";
 import WasmTty from "./wasm-tty/wasm-tty";
@@ -12,6 +15,7 @@ import WasmShell from "./wasm-shell/wasm-shell";
 
 export default class WasmTerminal {
   xterm: Terminal;
+  webLinksAddon: WebLinksAddon;
 
   wasmTerminalConfig: WasmTerminalConfig;
   wasmTty: WasmTty;
@@ -31,6 +35,10 @@ export default class WasmTerminal {
     this.pasteEvent = this.xterm.on("paste", this.onPaste);
     // tslint:disable-next-line
     this.resizeEvent = this.xterm.on("resize", this.handleTermResize);
+
+    // Load our addons
+    this.webLinksAddon = new WebLinksAddon();
+    this.xterm.loadAddon(this.webLinksAddon);
 
     this.wasmTerminalConfig = new WasmTerminalConfig(config);
 

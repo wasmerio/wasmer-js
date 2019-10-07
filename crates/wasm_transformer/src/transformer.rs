@@ -4,8 +4,8 @@ use crate::applier::*;
 use crate::generator::*;
 use crate::parser::*;
 
-use std::*;
 use std::path::{Path, PathBuf};
+use std::*;
 
 // Function to lower i64 imports for a Wasm binary vec
 pub fn lower_i64_wasm_for_wasi_js(mut wasm_binary_vec: &mut Vec<u8>) -> Result<(), &'static str> {
@@ -88,7 +88,10 @@ fn converts() {
         console_log!("New Wasm Size: {}", &wasm.len());
         console_log!(" ");
 
-        let filename =  Path::new(test_file_path).file_name().unwrap().to_string_lossy();
+        let filename = Path::new(test_file_path)
+            .file_name()
+            .unwrap()
+            .to_string_lossy();
         let transformed_filename = format!("./wasm_module_examples_transformed/{}", filename);
         fs::write(transformed_filename.clone(), &wasm).expect("Unable to write file");
 
