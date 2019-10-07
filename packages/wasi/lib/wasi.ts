@@ -734,12 +734,17 @@ class WASI {
           const startPtr = bufPtr;
           for (let i = Number(cookie); i < entries.length; i += 1) {
             const entry = entries[i];
+            let nameLength = Buffer.byteLength(entry.name);
+            if (bufPtr + 24 + nameLength >= startPtr + bufLen) {
+              // It doesn't fit in the buffer
+              break;
+            }
             this.view.setBigUint64(bufPtr, BigInt(i + 1), true);
             bufPtr += 8;
             const rstats = fs.statSync(path.resolve(stats.path, entry.name));
             this.view.setBigUint64(bufPtr, BigInt(rstats.ino), true);
             bufPtr += 8;
-            this.view.setUint32(bufPtr, Buffer.byteLength(entry.name), true);
+            this.view.setUint32(bufPtr, nameLength, true);
             bufPtr += 4;
             let filetype;
             switch (true) {
@@ -771,15 +776,20 @@ class WASI {
             this.view.setUint8(bufPtr, filetype);
             bufPtr += 1;
             bufPtr += 3; // padding
-            Buffer.from(this.memory.buffer).write(
+            let memory_buffer = Buffer.from(this.memory.buffer);
+            memory_buffer.write(
               entry.name,
-              bufPtr,
-              bufLen - bufPtr
+              bufPtr
+              // Math.min(bufPtr - startPtr - bufLen)
             );
             bufPtr += Buffer.byteLength(entry.name);
-            bufPtr += 8 % bufPtr; // padding
           }
           const bufused = bufPtr - startPtr;
+          // for (let i = 0; i < bufused; i += 1) {
+          //   let byte = this.view.getInt8(startPtr+i);
+          //   console.log(` -> ${i} ${byte}`);
+          // }
+          // console.log('-------')
           this.view.setUint32(bufusedPtr, bufused, true);
           return WASI_ESUCCESS;
         }
@@ -973,13 +983,7 @@ class WASI {
           const stats = CHECK_FD(dirfd, WASI_RIGHT_PATH_OPEN);
           fsRightsBase = BigInt(fsRightsBase);
           fsRightsInheriting = BigInt(fsRightsInheriting);
-          console.log("Stats", stats, stats.rights);
-          console.log(
-            "fsRightsBase",
-            fsRightsBase,
-            WASI_RIGHT_FD_READ,
-            WASI_RIGHT_FD_READDIR
-          );
+
           const read =
             (fsRightsBase & (WASI_RIGHT_FD_READ | WASI_RIGHT_FD_READDIR)) !==
             BigInt(0);
@@ -1000,7 +1004,8 @@ class WASI {
             noflags = fs.constants.O_WRONLY;
           }
 
-          let neededBase = WASI_RIGHT_PATH_OPEN;
+          // fsRightsBase is needed here but perhaps we should do it in neededInheriting
+          let neededBase = fsRightsBase | WASI_RIGHT_PATH_OPEN;
           let neededInheriting = fsRightsBase | fsRightsInheriting;
 
           if ((oflags & WASI_O_CREAT) !== 0) {
@@ -1051,9 +1056,6 @@ class WASI {
           ) {
             neededInheriting |= WASI_RIGHT_FD_SEEK;
           }
-          console.log("neededBase", neededBase);
-          console.log("noflags", noflags);
-          console.log("neededInheriting", neededInheriting);
           this.refreshMemory();
           const p = Buffer.from(
             this.memory.buffer,
@@ -1061,7 +1063,6 @@ class WASI {
             pathLen
           ).toString();
           const fullUnresolved = path.resolve(stats.path, p);
-          console.log("stats unresolved", p, stats.path, fullUnresolved);
           if (path.relative(stats.path, fullUnresolved).startsWith("..")) {
             return WASI_ENOTCAPABLE;
           }
@@ -1079,7 +1080,6 @@ class WASI {
             }
           }
           const realfd = fs.openSync(full, noflags);
-
           const newfd = [...this.FD_MAP.keys()].reverse()[0] + 1;
           this.FD_MAP.set(newfd, {
             real: realfd,
