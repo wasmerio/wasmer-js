@@ -174,8 +174,7 @@ pub fn apply_transformations_to_wasm_binary_vec(
             if byte_length_difference != 0 {
                 if wasm_call_to_old_function.function_body_index == previous_function_body_index {
                     function_body_acc -= byte_length_difference;
-                }
-                else {
+                } else {
                     previous_function_body_index = wasm_call_to_old_function.function_body_index;
                     // Reset the function body accumulator
                     function_body_acc = 0;
@@ -291,10 +290,9 @@ fn add_entries_to_section(
     position_offset += section_length_bytes_difference;
 
     // Number of Entries (AKA Count)
-    let number_of_entries_position = (starting_offset
-        + (section.start_position as isize)
-        + 1
-        + (section_length_bytes as isize)) as usize;
+    let number_of_entries_position =
+        (starting_offset + (section.start_position as isize) + 1 + (section_length_bytes as isize))
+            as usize;
     let (number_of_entries, number_of_entries_byte_length) = read_bytes_as_varunit(
         wasm_binary_vec
             .get(number_of_entries_position..(number_of_entries_position + 5))

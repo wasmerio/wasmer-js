@@ -51,6 +51,7 @@
     "comlink": "^4.0.2",
     "shell-parse": "0.0.2",
     "shell-quote": "^1.7.1",
-    "xterm": "^3.14.5"
+    "xterm": "^3.14.5",
+    "xterm-addon-web-links": "^0.2.1"
   }
 }
