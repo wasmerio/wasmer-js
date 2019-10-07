@@ -37,7 +37,7 @@ npm install --save @wasmer/wasi
 
 ```js
 import WASI from "@wasmer/wasi";
-import WasmFs from "@wasmer/wasmfs";
+import { WasmFs } from "@wasmer/wasmfs";
 
 // Instantiate a new WASI Instance
 const wasmFs = new WasmFs();

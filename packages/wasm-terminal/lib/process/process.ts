@@ -1,4 +1,4 @@
-import WasmFs from "@wasmer/wasmfs";
+import { WasmFs } from "@wasmer/wasmfs";
 
 import { CommandOptions } from "../command-runner/command";
 

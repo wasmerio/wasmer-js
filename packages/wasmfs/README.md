@@ -12,7 +12,7 @@ Isomorphic library to provide a sandboxed [node `fs`](https://nodejs.org/api/fs.
 
 ## Features
 
-This project heavily depends on [memfs](https://github.com/streamich/memfs) to provide the sandboxed `fs` implementation. 🙏😄
+This project forks [memfs](https://github.com/streamich/memfs) with custom fixes to work properly with the WebAssembly/WASI ecosystem.
 
 This package provides the following features:
 
@@ -32,11 +32,11 @@ npm install --save @wasmer/wasmfs
 ## Quick Start
 
 ```js
-import WasmFs from "@wasmer/wasmfs";
+import { WasmFs } from '@wasmer/wasmfs';
 
 const wasmFs = new WasmFs();
 
-wasmFs.fs.writeFileSync("/dev/stdout", "Quick Start!");
+wasmFs.fs.writeFileSync('/dev/stdout', 'Quick Start!');
 
 wasmFs.getStdOut().then(response => {
   console.log(response); // Would log: 'Quick Start!'
@@ -58,11 +58,11 @@ const wasmFs = new WasmFs();
 
 const originalWriteFileSync = wasmFs.fs.writeFileSync;
 wasmFs.fs.writeFileSync = (path, text) => {
-  console.log("File written:", path);
+  console.log('File written:', path);
   originalWriteFileSync(path, text);
 };
 
-wasmFs.fs.writeFileSync("/dev/stdout", "Quick Start!");
+wasmFs.fs.writeFileSync('/dev/stdout', 'Quick Start!');
 
 // Would log: "File written: /dev/stdout"
 ```

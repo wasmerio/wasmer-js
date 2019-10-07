@@ -1,7 +1,7 @@
 // The class for WASI Commands
 
 import WASI from "@wasmer/wasi";
-import WasmFs from "@wasmer/wasmfs";
+import { WasmFs } from "@wasmer/wasmfs";
 
 import { Command, CommandOptions } from "../command-runner/command";
 

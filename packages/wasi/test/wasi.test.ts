@@ -2,7 +2,7 @@
 import * as fs from "fs";
 
 // Import WasmFs
-import WasmFs from "../../wasmfs/lib/index";
+import { WasmFs } from "../../wasmfs";
 
 // Since we are importing the lib directly, also we need to import our
 // Node bindings. For the normal library, default bindings are provided :)
@@ -159,6 +159,25 @@ describe("WASI interaction", () => {
       WASM_UNEXISTING: NEW_VALUE
       "
     `);
+  });
+
+  it("realpathSync", async () => {
+    let realPath = wasmerFileSystem.fs.realpathSync("/");
+    console.log("realPath", realPath);
+    let realPath2 = wasmerFileSystem.fs.realpathSync("/sandbox");
+    console.log("realPath2", realPath2);
+    // let x = wasmerFileSystem.fs.realpathBase("/", "utf8");
+    // console.log("realpathBase", x);
+  });
+
+  it("openSync", async () => {
+    let fs = wasmerFileSystem.fs;
+    try {
+      fs.mkdirSync("/tmp");
+    } catch (e) {}
+    let temp = fs.mkdirSync("/tmp/heeey");
+    let openSync = fs.openSync("/tmp/heeey", fs.constants.O_DIRECTORY);
+    console.log("openSync", openSync);
   });
 
   it("converts path_open", async () => {

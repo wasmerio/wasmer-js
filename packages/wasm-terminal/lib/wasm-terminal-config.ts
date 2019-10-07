@@ -1,6 +1,6 @@
 // The configuration options passed when creating the Wasm terminal
 
-import WasmFs from "@wasmer/wasmfs";
+import { WasmFs } from "@wasmer/wasmfs";
 
 // A Custom command is a function that takes in a stdin string, and an array of argument strings,
 // And returns an stdout string, or undefined.

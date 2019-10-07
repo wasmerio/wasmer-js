@@ -1,0 +1,24 @@
+language: node_js
+os:
+  - linux
+cache:
+  yarn: true
+  directories:
+    - ~/.npm
+notifications:
+  email: false
+node_js:
+  - '11'
+  - '10'
+  - '8'
+script:
+  - yarn test
+  - yarn build
+matrix:
+  allow_failures: []
+  fast_finish: true
+after_success:
+  - yarn semantic-release
+branches:
+  except:
+    - /^v\d+\.\d+\.\d+$/

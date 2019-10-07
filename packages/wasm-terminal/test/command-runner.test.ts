@@ -1,4 +1,5 @@
 import CommandRunner from "../lib/command-runner/command-runner";
+import { WasmFs } from "@wasmer/wasmfs";
 // Need to mock process inside command runner.
 jest.mock("../lib/process/process", () => {
   return jest.fn().mockImplementation(() => {
@@ -37,11 +38,15 @@ describe("CommandRunner", () => {
   let commandRunner: any;
   let isFinishedRunningPromise: Promise<any>;
   let wasmCompileMock: any;
+  let wasmFs = new WasmFs();
 
   beforeEach(async () => {
     isFinishedRunningPromise = new Promise((resolve, reject) => {
       commandRunner = new CommandRunner(
-        { fetchCommand: () => Promise.resolve(new Uint8Array([])) },
+        {
+          fetchCommand: () => Promise.resolve(new Uint8Array([])),
+          wasmFs: wasmFs
+        },
         "cowsay hi | lolcat",
         () => {},
         () => resolve()
