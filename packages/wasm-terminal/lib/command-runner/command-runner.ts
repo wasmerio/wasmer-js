@@ -301,7 +301,6 @@ export default class CommandRunner {
 
     // Sync our filesystem
     if (wasmFsJson) {
-      console.log("end New wasmFsJson", wasmFsJson);
       this.wasmTerminalConfig.wasmFs.fromJSON(wasmFsJson);
     }
 
@@ -334,7 +333,6 @@ export default class CommandRunner {
 
     // Sync our filesystem
     if (wasmFsJson) {
-      console.log("error New wasmFsJson", wasmFsJson);
       this.wasmTerminalConfig.wasmFs.fromJSON(wasmFsJson);
     }
 

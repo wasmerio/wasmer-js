@@ -777,19 +777,10 @@ class WASI {
             bufPtr += 1;
             bufPtr += 3; // padding
             let memory_buffer = Buffer.from(this.memory.buffer);
-            memory_buffer.write(
-              entry.name,
-              bufPtr
-              // Math.min(bufPtr - startPtr - bufLen)
-            );
+            memory_buffer.write(entry.name, bufPtr);
             bufPtr += Buffer.byteLength(entry.name);
           }
           const bufused = bufPtr - startPtr;
-          // for (let i = 0; i < bufused; i += 1) {
-          //   let byte = this.view.getInt8(startPtr+i);
-          //   console.log(` -> ${i} ${byte}`);
-          // }
-          // console.log('-------')
           this.view.setUint32(bufusedPtr, bufused, true);
           return WASI_ESUCCESS;
         }
