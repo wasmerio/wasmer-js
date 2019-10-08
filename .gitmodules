@@ -1,0 +1,3 @@
+[submodule "packages/wasmfs"]
+	path = packages/wasmfs
+	url = https://github.com/wasmerio/wasmfs.git
