@@ -75,15 +75,28 @@ export default class WasmTerminal {
   }
 
   print(message: string) {
-    if (this.isOpen) {
-      this.wasmTty.print(message);
-    } else {
+    // For some reason, double new lines are not respected. Thus, fixing that here
+    message = message.replace(/\n\n/g, "\n \n");
+
+    if (!this.isOpen) {
       if (this.pendingPrintOnOpen) {
         this.pendingPrintOnOpen += message;
       } else {
         this.pendingPrintOnOpen = message;
       }
+      return;
     }
+
+    if (this.wasmShell.isPrompting) {
+      // Cancel the current prompt and restart
+      this.wasmShell.printAndRestartPrompt(() => {
+        this.wasmTty.print(message + "\n");
+        return undefined;
+      });
+      return;
+    }
+
+    this.wasmTty.print(message);
   }
 
   destroy() {
@@ -114,4 +127,11 @@ export default class WasmTerminal {
     this.wasmTty.setTermSize(cols, rows);
     this.wasmTty.setInput(this.wasmTty.getInput(), true);
   };
+
+  async runCommand(line: string) {
+    if (this.wasmShell.isPrompting()) {
+      this.wasmTty.setInput(line);
+      this.wasmShell.handleReadComplete();
+    }
+  }
 }
