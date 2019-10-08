@@ -868,7 +868,7 @@ class WASI {
           bufPtr: number
         ) => {
           const stats = CHECK_FD(fd, WASI_RIGHT_PATH_FILESTAT_GET);
-          console.log("Stats ", stats, stats.rights);
+          // console.log("Stats ", stats, stats.rights);
           if (!stats.path) {
             return WASI_EINVAL;
           }
@@ -1327,17 +1327,18 @@ class WASI {
       }
     };
 
-    Object.keys(this.wasiImport).forEach(wasiExportKey => {
-      const originalWASIExport = this.wasiImport[wasiExportKey];
-      this.wasiImport[wasiExportKey] = (...args: any[]) => {
-        console.log(
-          `Calling WASI function: ${wasiExportKey} with args ${args}`
-        );
-        let result = originalWASIExport(...args);
-        console.log(` -> Result: ${result}`);
-        return result;
-      };
-    });
+    // This is useful for debugging
+    // Object.keys(this.wasiImport).forEach(wasiExportKey => {
+    //   const originalWASIExport = this.wasiImport[wasiExportKey];
+    //   this.wasiImport[wasiExportKey] = (...args: any[]) => {
+    //     console.log(
+    //       `Calling WASI function: ${wasiExportKey} with args ${args}`
+    //     );
+    //     let result = originalWASIExport(...args);
+    //     console.log(` -> Result: ${result}`);
+    //     return result;
+    //   };
+    // });
   }
 
   refreshMemory() {
