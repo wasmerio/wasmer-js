@@ -99,6 +99,13 @@ export default class WasmTerminal {
     this.wasmTty.print(message);
   }
 
+  runCommand(line: string) {
+    if (this.wasmShell.isPrompting()) {
+      this.wasmTty.setInput(line);
+      this.wasmShell.handleReadComplete();
+    }
+  }
+
   destroy() {
     // tslint:disable-next-line
     this.xterm.off("paste", this.onPaste);
@@ -127,11 +134,4 @@ export default class WasmTerminal {
     this.wasmTty.setTermSize(cols, rows);
     this.wasmTty.setInput(this.wasmTty.getInput(), true);
   };
-
-  async runCommand(line: string) {
-    if (this.wasmShell.isPrompting()) {
-      this.wasmTty.setInput(line);
-      this.wasmShell.handleReadComplete();
-    }
-  }
 }
