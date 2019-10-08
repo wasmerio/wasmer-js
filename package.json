@@ -15,6 +15,7 @@
   "scripts": {
     "postinstall": "npx run-s lerna:bootstrap",
     "build": "npx run-s lerna:build wasm-shell:build",
+    "deploy": "npx run-s wasm-transformer:build lerna:build lerna:publish",
     "serve": "npx serve dist/ -p 8000",
     "dev": "npx run-p wasm-terminal:dev dev:watch serve",
     "dev:watch": "npx run-p dev:watch:wasi dev:watch:wasmfs dev:watch:wasm-terminal dev:watch:wasm-shell",
@@ -33,6 +34,8 @@
     "lerna:build:dev:wasi": "npx lerna run --scope @wasmer/wasi --loglevel error build:dev",
     "lerna:build:dev:wasmfs": "npx lerna run --scope @wasmer/wasmfs --loglevel error build:dev",
     "lerna:build:dev:wasm-terminal": "npx lerna run --scope @wasmer/wasm-terminal --loglevel error build:dev",
+    "lerna:publish": "npx lerna publish",
+    "wasm-transformer:build": "(cd crates/wasm_transformer && ./wasm_transformer_build.sh)",
     "wasm-terminal:dev": "npx chokidar \"crates/wasm_transformer/src/**/*\" -c \"(cd crates/wasm_transformer && ./wasm_transformer_build.sh > /dev/null)\"",
     "wasm-shell:build": "npx rollup -c examples/wasm-shell/rollup.config.js --environment PROD",
     "wasm-shell:build:dev": "npx rollup -c examples/wasm-shell/rollup.config.js --environment DEV"
