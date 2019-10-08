@@ -14,7 +14,7 @@
   "license": "MIT",
   "scripts": {
     "postinstall": "npx run-s lerna:bootstrap",
-    "build": "npx run-s wasm-transformer:build lerna:build wasm-shell:build",
+    "build": "npx run-s lerna:build wasm-shell:build",
     "deploy": "npx run-s wasm-transformer:build lerna:build lerna:publish",
     "serve": "npx serve dist/ -p 8000",
     "dev": "npx run-p wasm-terminal:dev dev:watch serve",
