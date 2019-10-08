@@ -14,7 +14,6 @@ import * as errors from './internal/errors';
 import extend = require('fast-extend');
 import util = require('util');
 import createPromisesApi from './promises';
-import { isDirective } from '@babel/types';
 
 const resolveCrossPlatform = pathModule.resolve;
 const {

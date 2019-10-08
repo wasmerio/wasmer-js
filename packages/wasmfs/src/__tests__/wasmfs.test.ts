@@ -14,7 +14,7 @@ describe('wasmfs', () => {
   });
 
   it('should be able to retrieve stdout', async () => {
-    let stdout = 'test';
+    const stdout = 'test';
     wasmfs.fs.writeFileSync('/dev/stdout', stdout);
 
     const response = await wasmfs.getStdOut();
