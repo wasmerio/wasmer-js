@@ -96,6 +96,10 @@ export default class WasmShell {
     }
   }
 
+  isPrompting() {
+    return this._active;
+  }
+
   /**
    * This function returns a command runner for the specified line
    */

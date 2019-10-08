@@ -133,7 +133,25 @@ export default class WasmTerminalComponent extends Component {
     this.wasmTerminal.destroy();
   }
 
+  printHello() {
+    this.wasmTerminal.print("hello");
+  }
+
+  runCowsayHello() {
+    this.wasmTerminal.runCommand("cowsay hello");
+  }
+
   render() {
-    return <div ref={ref => (this.container = ref)} />;
+    return (
+      <div>
+        <div>
+          <button onClick={() => this.printHello()}>Print "hello"</button>
+          <button onClick={() => this.runCowsayHello()}>
+            Run Cowsay Hello
+          </button>
+        </div>
+        <div ref={ref => (this.container = ref)} />
+      </div>
+    );
   }
 }
