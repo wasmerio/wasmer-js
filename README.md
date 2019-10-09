@@ -29,7 +29,9 @@ To get started contributing to wasmer-js, create your own fork of the [wasmer-js
 
 2. Install the dependencies with `npm install`. **NOTE:** This will run `lerna bootstrap`, and build the neccessary JS Packages.
 
-3. Run `npm run dev`, which will serve the `examples/wasm-shell` example, which can be accessed with: http://localhost:8000/examples/wasm-shell/index.html
+3. Run `npm run build`. It will bundle JS Packages into './dist' directory.
+
+4. Run `npm run dev`, which will serve the `examples/wasm-shell` example, which can be accessed with: http://localhost:8000/examples/wasm-shell/index.html
 
 To make changes to any of the sub projects, they can be tested by either: Running their local tests with `npm run test` in their respective package directory, or by running their watch for changes developement command with `npm run dev`.
 
