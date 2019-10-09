@@ -13,8 +13,11 @@ import WasmTerminalConfig from "./wasm-terminal-config";
 import WasmTty from "./wasm-tty/wasm-tty";
 import WasmShell from "./wasm-shell/wasm-shell";
 
+const MOBILE_KEYBOARD_EVENTS = ["click", "tap"];
+
 export default class WasmTerminal {
   xterm: Terminal;
+  container: HTMLElement | undefined;
   webLinksAddon: WebLinksAddon;
 
   wasmTerminalConfig: WasmTerminalConfig;
@@ -36,6 +39,9 @@ export default class WasmTerminal {
     // tslint:disable-next-line
     this.resizeEvent = this.xterm.on("resize", this.handleTermResize);
 
+    // Set up our container
+    this.container = undefined;
+
     // Load our addons
     this.webLinksAddon = new WebLinksAddon();
     this.xterm.loadAddon(this.webLinksAddon);
@@ -53,9 +59,28 @@ export default class WasmTerminal {
   }
 
   open(container: HTMLElement) {
+    // Remove any current event listeners
+    const focusHandler = this.focus.bind(this);
+    if (this.container !== undefined) {
+      MOBILE_KEYBOARD_EVENTS.forEach(eventName => {
+        // @ts-ignore
+        this.container.removeEventListener(eventName, focusHandler);
+      });
+    }
+
+    this.container = container;
+
     this.xterm.open(container);
     this.isOpen = true;
     setTimeout(() => {
+      // Fix for Mobile Browsers and their virtual keyboards
+      if (this.container !== undefined) {
+        MOBILE_KEYBOARD_EVENTS.forEach(eventName => {
+          // @ts-ignore
+          this.container.addEventListener(eventName, focusHandler);
+        });
+      }
+
       if (this.pendingPrintOnOpen) {
         this.wasmTty.print(this.pendingPrintOnOpen + "\n");
         this.pendingPrintOnOpen = "";
@@ -71,7 +96,9 @@ export default class WasmTerminal {
   }
 
   focus() {
+    this.xterm.blur();
     this.xterm.focus();
+    this.xterm.scrollToBottom();
   }
 
   print(message: string) {
