@@ -69,6 +69,11 @@ export default class Process {
     try {
       this.wasiCommand.run();
     } catch (e) {
+      if (e.code === 0) {
+        // Command was successful, but ended early.
+        this.endCallback();
+        return;
+      }
       let error = "Unknown Error";
 
       if (e.code !== undefined) {
