@@ -289,11 +289,9 @@ export default class CommandRunner {
   }
 
   _processErrorCallback(commandOptionIndex: number, error: string) {
-    if (this.wasmTty) {
-      this.wasmTty.print(
-        `Program ${this.commandOptionsForProcessesToRun[commandOptionIndex].args[0]}: ${error}\r\n`
-      );
-    }
+    console.error(
+      `${this.commandOptionsForProcessesToRun[commandOptionIndex].args[0]}: ${error}`
+    );
     this.kill();
     this.commandEndCallback();
   }
