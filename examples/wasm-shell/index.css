@@ -11,12 +11,6 @@ body,
   margin: 0px;
 }
 
-#root {
-  position: fixed;
-  left: 0;
-  bottom: 0;
-}
-
 #terminal-component {
   display: flex;
   justify-content: center;

@@ -38,6 +38,14 @@ export default class WasmTerminal {
     this.pasteEvent = this.xterm.on("paste", this.onPaste);
     // tslint:disable-next-line
     this.resizeEvent = this.xterm.on("resize", this.handleTermResize);
+    this.xterm.onKey((keyEvent: { key: string; domEvent: KeyboardEvent }) => {
+      // Fix for iOS Keyboard Jumping on space
+      if (keyEvent.key === " ") {
+        keyEvent.domEvent.preventDefault();
+        // keyEvent.domEvent.stopPropagation();
+        return false;
+      }
+    });
 
     // Set up our container
     this.container = undefined;
@@ -109,19 +117,17 @@ export default class WasmTerminal {
       return;
     }
 
-    const cursorX = this.wasmTty.getBuffer().cursorX;
+    // We don't need cursorX, since we want to start at the beginning of the terminal.
     const cursorY = this.wasmTty.getBuffer().cursorY;
     const size = this.wasmTty.getSize();
 
     const containerBoundingClientRect = this.container.getBoundingClientRect();
 
     // Find how much to scroll because of our cursor
-    const cursorOffsetX =
-      (cursorX / size.cols) * containerBoundingClientRect.width;
     const cursorOffsetY =
       (cursorY / size.rows) * containerBoundingClientRect.height;
 
-    let scrollX = containerBoundingClientRect.left + cursorOffsetX - 10;
+    let scrollX = containerBoundingClientRect.left;
     let scrollY = containerBoundingClientRect.top + cursorOffsetY + 10;
 
     if (scrollX < 0) {
