@@ -5,11 +5,7 @@ import "./index.css";
 
 class App extends Component {
   render() {
-    return (
-      <div>
-        <WasmTerminal />
-      </div>
-    );
+    return <WasmTerminal />;
   }
 }
 

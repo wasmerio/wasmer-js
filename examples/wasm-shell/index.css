@@ -1,1 +1,30 @@
 @import "../../node_modules/xterm/dist/xterm.css";
+
+html,
+body,
+#root,
+#terminal-component {
+  height: 100%;
+  width: 100%;
+
+  padding: 0px;
+  margin: 0px;
+}
+
+#root {
+  position: fixed;
+  left: 0;
+  bottom: 0;
+}
+
+#terminal-component {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+
+  flex-direction: column;
+}
+
+#terminal-container {
+  flex-grow: 1;
+}
