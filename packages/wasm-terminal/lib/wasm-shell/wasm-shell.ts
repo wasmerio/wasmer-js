@@ -466,10 +466,11 @@ export default class WasmShell {
 
         case "\x03": // CTRL+C
         case "\x1a": // CTRL+Z
-          this.wasmTty.setCursor(this.wasmTty.getInput().length);
+          const currentInput = this.wasmTty.getInput();
+          this.wasmTty.setCursor(currentInput.length);
           this.wasmTty.setInput("");
           this.wasmTty.setCursorDirectly(0);
-          this.wasmTty.print("^C\r\n");
+          this.wasmTty.print(currentInput + "^C\r\n");
           if (this.history) this.history.rewind();
 
           // Kill the command
