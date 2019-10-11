@@ -249,6 +249,13 @@ export default class WasmTTY {
   }
 
   /**
+   * Function to get the size (columns and rows)
+   */
+  getSize(): { cols: number; rows: number } {
+    return this._termSize;
+  }
+
+  /**
    * Function to return the terminal buffer
    */
   getBuffer(): IBuffer {
