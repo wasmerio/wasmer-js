@@ -77,7 +77,7 @@ describe("WasmShell", () => {
       .catch(() => {
         expect(true).toBe(true);
       });
-    wasmShell.abortRead();
+    wasmShell.rejectActiveRead();
 
     await waitForCurrentEventsOnCallStack();
   });
