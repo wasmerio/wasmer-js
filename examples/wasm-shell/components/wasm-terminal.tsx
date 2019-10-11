@@ -41,6 +41,8 @@ import sqliteUrl from "../../../crates/wasm_transformer/wasm_module_examples/sql
 // @ts-ignore
 import gettimeofdayUrl from "../../../crates/wasm_transformer/wasm_module_examples/gettimeofday/gettimeofday.wasm";
 
+import welcomeMessage from "./welcome-message";
+
 const commands = {
   a: stdinWasmUrl,
   c: clockTimeGetUrl,
@@ -107,7 +109,8 @@ export default class WasmTerminalComponent extends Component {
     if (!this.container) {
       return;
     }
-    this.wasmTerminal.print("Welcome to the wasm terminal example!");
+    this.wasmTerminal.print(welcomeMessage);
+
     this.wasmTerminal.open(this.container);
     this.wasmTerminal.fit();
     this.wasmTerminal.focus();
@@ -127,14 +130,16 @@ export default class WasmTerminalComponent extends Component {
 
   render() {
     return (
-      <div>
+      <div id="terminal-component">
         <div>
           <button onClick={() => this.printHello()}>Print "hello"</button>
           <button onClick={() => this.runCowsayHello()}>
             Run Cowsay Hello
           </button>
+          <br />
+          <br />
         </div>
-        <div ref={ref => (this.container = ref)} />
+        <div id="terminal-container" ref={ref => (this.container = ref)} />
       </div>
     );
   }
