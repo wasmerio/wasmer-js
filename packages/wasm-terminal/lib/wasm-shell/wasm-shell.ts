@@ -76,6 +76,12 @@ export default class WasmShell {
         this.commandRunner.kill();
       }
 
+      if (line === "") {
+        // Simply prompt again
+        this.prompt();
+        return;
+      }
+
       if (line === "!!") {
         // This means run the previous command
         if (this.history && this.history.entries.length > 0) {
@@ -155,9 +161,26 @@ export default class WasmShell {
   }
 
   /**
+   * Resolve a pending read operation
+   * (Will resolve an empty string)
+   */
+  resolveActiveRead() {
+    // Abort the read if we were reading
+    if (this._activePrompt && this._activePrompt.resolve) {
+      this._activePrompt.resolve("");
+      this._activePrompt = undefined;
+    }
+    if (this._activeCharPrompt && this._activeCharPrompt.resolve) {
+      this._activeCharPrompt.resolve("");
+      this._activeCharPrompt = undefined;
+    }
+    this._active = false;
+  }
+
+  /**
    * Abort a pending read operation
    */
-  abortRead(reason = "aborted") {
+  rejectActiveRead(reason = "aborted") {
     if (this._activePrompt || this._activeCharPrompt) {
       this.wasmTty.print("\r\n");
     }
@@ -443,18 +466,22 @@ export default class WasmShell {
 
         case "\x03": // CTRL+C
         case "\x1a": // CTRL+Z
-          this.wasmTty.setCursor(this.wasmTty.getInput().length);
+          const currentInput = this.wasmTty.getInput();
+          this.wasmTty.setCursor(currentInput.length);
           this.wasmTty.setInput("");
           this.wasmTty.setCursorDirectly(0);
-          this.wasmTty.print("^C\r\n");
+          this.wasmTty.print(currentInput + "^C\r\n");
           if (this.history) this.history.rewind();
-          this._activePrompt = undefined;
 
           // Kill the command
           if (this.commandRunner) {
             this.commandRunner.kill();
             this.commandRunner = undefined;
           }
+
+          // If we are prompting, then we want to cancel the current read
+          this.resolveActiveRead();
+
           break;
 
         case "\x05": // CTRL+E
