@@ -1,8 +1,10 @@
 {
   "name": "wasm-transformer",
-  "version": "0.3.0",
+  "version": "0.2.0",
   "description": "Library to run transformations on WebAssembly binaries. 🦀♻️",
-  "main": "index.js",
+  "main": "dist/index.cjs.js",
+  "module": "dist/index.esm.js",
+  "browser": "dist/index.iife.js",
   "scripts": {
     "build": "npx rollup -c --environment PROD"
   },
