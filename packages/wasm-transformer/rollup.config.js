@@ -4,7 +4,6 @@ import resolve from "rollup-plugin-node-resolve";
 import commonjs from "rollup-plugin-commonjs";
 import builtins from "rollup-plugin-node-builtins";
 import globals from "rollup-plugin-node-globals";
-import typescript from "rollup-plugin-typescript2";
 import json from "rollup-plugin-json";
 import replace from "rollup-plugin-replace";
 import compiler from "@ampproject/rollup-plugin-closure-compiler";
@@ -38,6 +37,14 @@ const replaceInlineOptions = {
   }
 };
 
+// Need to replace this line for commonjs, as the import.meta object doesn't exist in node
+const replaceWASIJsTransformerOptions = {
+  delimiters: ["", ""],
+  values: {
+    "module = import.meta.url.replace": "// Replace by rollup"
+  }
+};
+
 const inlineUrlPlugin = url({
   limit: 1000000000000 * 1024, // Always inline
   include: ["**/*.wasm"],
@@ -45,6 +52,7 @@ const inlineUrlPlugin = url({
 });
 
 const plugins = [
+  replace(replaceWASIJsTransformerOptions),
   resolve({ preferBuiltins: true }),
   commonjs(),
   globals(),
@@ -54,19 +62,71 @@ const plugins = [
   process.env.PROD ? bundleSize() : undefined
 ];
 
-const libBundles = [
+const inlinedBrowserPlugins = [
+  replace(replaceInlineOptions),
+  replace(replaceBrowserOptions),
+  inlineUrlPlugin,
+  ...plugins
+];
+
+const prodBrowserPlugins = [replace(replaceBrowserOptions), ...plugins];
+
+const inlinedBundles = [
   {
     input: "./lib/browser.js",
     output: {
-      file: pkg.module,
+      file: "dist/wasm-transformer.inlined.esm.js",
       format: "esm",
       sourcemap: sourcemapOption
     },
     watch: {
       clearScreen: false
     },
-    plugins: [replace(replaceBrowserOptions), ...plugins]
+    plugins: inlinedBrowserPlugins
+  },
+  {
+    input: "./lib/browser.js",
+    output: {
+      file: "dist/wasm-transformer.inlined.iife.js",
+      format: "iife",
+      name: "WasmTransformer",
+      sourcemap: sourcemapOption
+    },
+    watch: {
+      clearScreen: false
+    },
+    plugins: inlinedBrowserPlugins
   }
 ];
+
+const prodBundles = [
+  {
+    input: "./lib/browser.js",
+    output: {
+      file: "dist/wasm-transformer.prod.esm.js",
+      format: "esm",
+      sourcemap: sourcemapOption
+    },
+    watch: {
+      clearScreen: false
+    },
+    plugins: prodBrowserPlugins
+  },
+  {
+    input: "./lib/browser.js",
+    output: {
+      file: "dist/wasm-transformer.prod.iife.js",
+      format: "iife",
+      name: "WasmTransformer",
+      sourcemap: sourcemapOption
+    },
+    watch: {
+      clearScreen: false
+    },
+    plugins: prodBrowserPlugins
+  }
+];
+
+const libBundles = [...inlinedBundles, ...prodBundles];
 
 export default libBundles;

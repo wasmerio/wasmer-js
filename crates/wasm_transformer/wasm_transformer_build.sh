@@ -42,8 +42,8 @@ echo "Moving pkg to wasm-transformer"
 echo "============================================="
 echo " "
 
-cp -r pkg/ ../../packages/wasm-transformer/web
-rm ../../packages/wasm-transformer/web/.gitignore || true
+cp -r pkg/ ../../packages/wasm-transformer/wasm-pack/web
+rm ../../packages/wasm-transformer/wasm-pack/web/.gitignore || true
 
 echo " "
 echo "============================================="
@@ -61,8 +61,8 @@ echo "Moving pkg to wasm-transformer"
 echo "============================================="
 echo " "
 
-cp -r pkg/ ../../packages/wasm-transformer/node
-rm ../../packages/wasm-transformer/node/.gitignore || true
+cp -r pkg/ ../../packages/wasm-transformer/wasm-pack/node
+rm ../../packages/wasm-transformer/wasm-pack/node/.gitignore || true
 
 echo " "
 echo "============================================="
@@ -80,8 +80,8 @@ echo "Moving pkg to wasm-transformer"
 echo "============================================="
 echo " "
 
-cp -r pkg/ ../../packages/wasm-transformer/bundler
-rm ../../packages/wasm-transformer/bundler/.gitignore || true
+cp -r pkg/ ../../packages/wasm-transformer/wasm-pack/bundler
+rm ../../packages/wasm-transformer/wasm-pack/bundler/.gitignore || true
 
 echo " "
 echo "============================================="
