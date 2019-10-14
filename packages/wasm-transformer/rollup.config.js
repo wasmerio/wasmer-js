@@ -58,7 +58,8 @@ const plugins = [
   globals(),
   builtins(),
   json(),
-  process.env.PROD ? compiler() : undefined,
+  // Closure Compiler does not like the wasm-pack output
+  // process.env.PROD ? compiler() : undefined,
   process.env.PROD ? bundleSize() : undefined
 ];
 

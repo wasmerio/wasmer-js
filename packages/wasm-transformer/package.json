@@ -5,6 +5,12 @@
   "main": "dist/wasm-pack/node/wasm_transformer.js",
   "module": "dist/wasm-transformer.inlined.esm.js",
   "browser": "dist/wasm-transformer.inlined.iife.js",
+  "files": [
+    "dist",
+    "package.json",
+    "../../LICENSE",
+    "README.md"
+  ],
   "scripts": {
     "build": "npx run-s build:prod build:cpy:wasm-pack build:cpy:wasm build:move:wasm",
     "build:prod": "npx rollup -c --environment PROD",
