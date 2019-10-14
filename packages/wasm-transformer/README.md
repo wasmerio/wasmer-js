@@ -2,15 +2,13 @@
 
 Library to run transformations on WebAssembly binaries. 🦀♻️
 
+**This README covers the instructions for installing, using, and contributing to the `wasm-transformer` Javascript package. [The `wasm_transformer` Rust crate is available here](../../packages/wasm-transformer).**
+
 ## Table of Contents
 
 - [Features](#features)
 - [Installation](#installation)
-  - [Rust](#rust)
-  - [Javascript](#javascript)
 - [Quick Start](#quick-start)
-  - [Rust](#rust-1)
-  - [Javascript](#javascript-1)
 - [Reference API](#reference-api)
 - [Contributing](#contributing)
   - [Guidelines](#guidelines)
@@ -30,42 +28,32 @@ This project depends on [wasmparser](https://github.com/yurydelendik/wasmparser.
 
 ## Installation
 
-### Rust
-
-```
-# Cargo.toml
-[dependencies]
-wasm_transformer = "LATEST_VERSION_HERE"
-```
-
-### Javascript
-
 ```
 npm install --save @wasmer/wasm-transformer
 ```
 
 ## Quick Start
 
-### Rust
+For a larger example, see the [wasm-terminal](../../packages/wasm-terminal) package.
 
-For a larger example, see the simple [wasm_transformer_cli](../../examples/wasm_transformer_cli).
+### Node Usage
 
-```rust
-use wasm_transformer::*;
+```js
+const wasmTransformer = require("@wasmer/wasm-transformer");
 
-// Some Code here
+// Read in the input Wasm file
+const wasmBuffer = fs.readFileSync("./my-wasm-file.wasm");
 
-// Read in a Wasm file as a Vec<u8>
-let mut Wasm = fs::read(wasm_file_path).unwrap();
-// Add trampoline functions to lower the i64 imports in the Wasm file
-let lowered_wasm = wasm_transformer::lower_i64_imports(wasm);
-// Write back out the new Wasm file
-fs::write("./out.wasm", &lowered_wasm).expect("Unable to write file");
+// Transform the binary
+const wasmBinary = new Uint8Array(wasmBuffer);
+const loweredBinary = wasmTransformer.lowerI64Imports(wasmBinary);
+
+// Do something with loweredBinary
 ```
 
-### Javascript
+### Inlined (Development) Browser Usage
 
-For a larger example, see the [wasm-terminal](../../packages/wasm-terminal) package.
+The default import of `@wasmer/wasm-transformer` points to the inlined development bundle. This bundle **has it's wasm file from the `wasm_transformer` crate as a Base64 encoded URL in the bundle.** This is done for convience and developer experience. **Production applications that are being used by every day users should be using the production bundles instead**.
 
 ```js
 import wasmTransformerInit, { lowerI64Imports } from "@wasmer/wasm-transformer";
@@ -77,9 +65,36 @@ const fetchAndTransformWasmBinary = async () => {
   const originalWasmBinary = new Uint8Array(originalWasmBinaryBuffer);
 
   // Initialize our wasm-transformer
+  await wasmTransformerInit();
+
+  // Transform the binary, by running the lower_i64_imports from the wasm-transformer
+  const transformedBinary = lowerI64Imports(originalWasmBinary);
+
+  // Compile the transformed binary
+  const transformedWasmModule = await WebAssembly.compile(transformedBinary);
+  return transformedWasmModule;
+};
+```
+
+### Production Browser Usage
+
+Production bundles do not have the `wasm_transformer` rust crate `.wasm` inlined. Thus, it must be manually passed in.
+
+```js
+import wasmTransformerInit, {
+  lowerI64Imports
+} from "@wasmer/wasm-transformer/wasm-transformer.prod.esm.js";
+
+const fetchAndTransformWasmBinary = async () => {
+  // Get the original Wasm binary
+  const fetchedOriginalWasmBinary = await fetch("/original-wasm-module.wasm");
+  const originalWasmBinaryBuffer = await fetchedOriginalWasmBinary.arrayBuffer();
+  const originalWasmBinary = new Uint8Array(originalWasmBinaryBuffer);
+
+  // Initialize our wasm-transformer
   await wasmTransformerInit(
-    "node_modules/@wasmer/wasm-transformer/wasm_transformer_bg.wasm"
-  ); // IMPORTANT: This URL points to wherever the wasm_transformer_bg.wasm is hosted
+    "node_modules/@wasmer/wasm-transformer/wasm-transformer.wasm"
+  ); // IMPORTANT: This URL points to wherever the wasm-transformer.wasm is hosted
 
   // Transform the binary, by running the lower_i64_imports from the wasm-transformer
   const transformedBinary = lowerI64Imports(originalWasmBinary);
@@ -92,13 +107,19 @@ const fetchAndTransformWasmBinary = async () => {
 
 ## Reference API
 
-`version()`
+**Default Export** - `wasmTransformerInit(passWasmUrlIfNotInlined: string): Promise`
 
-Returns the version of the crate/package
+Initialzation function exported by `wasm-pack build`. If we are using a non-inlined bundle (production) Takes in a URL to where the `wasm-transformer.wasm` is hosted.
 
 ---
 
-`lower_i64_imports(mut wasm_binary: Vec<u8>) -> Vec<u8>`
+`version()`
+
+Returns the version of the package.
+
+---
+
+`lowerI64Imports(wasmBinaryWithI64Imports: Uint8Array): Uint8Array`
 
 Inserts trampoline functions for imports that have i64 params or returns. This is useful for running Wasm modules in browsers that [do not support JavaScript BigInt -> Wasm i64 integration](https://github.com/WebAssembly/proposals/issues/7). Especially in the case for [i64 WASI Imports](https://github.com/CraneStation/wasmtime/blob/master/docs/WASI-api.md#clock_time_get).
 
@@ -114,16 +135,8 @@ Contributions of any kind are welcome! 👍
 
 To get started using the project:
 
-- Install the latest Nightly version of [Rust](https://www.rust-lang.org/tools/install) (which includes cargo).
+- Set up the [`wasm_transformer` rust crate](../../crates/wasm_transformer)
 
-- Install the latest version of [wasm-pack](https://github.com/rustwasm/wasm-pack).
+- Install the latest LTS version of Node.js (which includes `npm` and `npx`). An easy way to do so is with nvm. (Mac and Linux: [here](https://github.com/creationix/nvm), Windows: [here](https://github.com/coreybutler/nvm-windows)).
 
-- [OPTIONAL]: For updating the `wasm-transformer` npm package, please also install the latest LTS version of Node.js (which includes `npm` and `npx`). An easy way to do so is with nvm. (Mac and Linux: [here](https://github.com/creationix/nvm), Windows: [here](https://github.com/coreybutler/nvm-windows)).
-
-- To test and build the project, run the `wasm_transformer_build.sh` script. Or, feel free to [look through the script](./wasm_transformer_build.sh) to see the documented commands for performing their respective actions individually. The script performs:
-
-- Running Clippy
-
-- Running tests
-
-- Building the project, moving output into the correct directories.
+- `npm run build`.
