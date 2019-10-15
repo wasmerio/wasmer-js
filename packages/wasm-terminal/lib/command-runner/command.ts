@@ -2,12 +2,18 @@
 
 import { Duplex } from "stream";
 
-export type CommandOptions = {
+interface CommandOptions {
   args: string[];
   env: { [key: string]: string };
-  module?: WebAssembly.Module;
-  callback?: Function;
-};
+}
+
+export interface WasmCommandOptions extends CommandOptions {
+  module: WebAssembly.Module;
+}
+
+export interface CallbackCommandOptions extends CommandOptions {
+  callback: Function;
+}
 
 export class Command {
   args: string[];

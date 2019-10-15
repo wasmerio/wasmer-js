@@ -1,11 +1,14 @@
 import WASI from "@wasmer/wasi";
 
-import { CommandOptions } from "../command-runner/command";
+import {
+  WasmCommandOptions,
+  CallbackCommandOptions
+} from "../command-runner/command";
 
 import WASICommand from "./wasi-command";
 
 export default class Process {
-  commandOptions: CommandOptions;
+  commandOptions: WasmCommandOptions | CallbackCommandOptions;
   dataCallback: Function;
   endCallback: Function;
   errorCallback: Function;
@@ -16,7 +19,7 @@ export default class Process {
   callbackCommand?: any;
 
   constructor(
-    commandOptions: CommandOptions,
+    commandOptions: WasmCommandOptions | CallbackCommandOptions,
     dataCallback: Function,
     endCallback: Function,
     errorCallback: Function,
@@ -33,14 +36,14 @@ export default class Process {
       sharedStdin = new Int32Array(sharedStdinBuffer);
     }
 
-    if (commandOptions.module) {
+    if ((commandOptions as WasmCommandOptions).module) {
       this.wasiCommand = new WASICommand(
-        commandOptions,
+        commandOptions as WasmCommandOptions,
         sharedStdin,
         startStdinReadCallback
       );
     } else {
-      this.callbackCommand = commandOptions.callback;
+      this.callbackCommand = (commandOptions as CallbackCommandOptions).callback;
     }
   }
 

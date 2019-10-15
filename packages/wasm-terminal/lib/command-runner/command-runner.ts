@@ -4,7 +4,7 @@ import * as Comlink from "../../node_modules/comlink/src/comlink";
 import parse from "shell-parse";
 
 import Process from "../process/process";
-import { CommandOptions } from "./command";
+import { WasmCommandOptions, CallbackCommandOptions } from "./command";
 
 import WasmTerminalConfig from "../wasm-terminal-config";
 
@@ -343,9 +343,9 @@ export default class CommandRunner {
     ast: any,
     wasmTerminalConfig: WasmTerminalConfig,
     wasmTty?: WasmTty
-  ): Promise<Array<CommandOptions>> {
+  ): Promise<Array<WasmCommandOptions | CallbackCommandOptions>> {
     // The array of command options we are returning
-    let commandOptions: Array<CommandOptions> = [];
+    let commandOptions: Array<WasmCommandOptions | CallbackCommandOptions> = [];
 
     let commandName = ast.command.value;
     let commandArgs = ast.args.map((arg: any) => arg.value);
@@ -390,18 +390,22 @@ export default class CommandRunner {
       // Compile the Wasm Module
       const wasmModule = await WebAssembly.compile(response);
 
-      commandOptions.unshift({
+      const wasmCommandOptions: WasmCommandOptions = {
         args,
         env,
         module: wasmModule
-      });
+      };
+
+      commandOptions.unshift(wasmCommandOptions);
     } else {
-      commandOptions.unshift({
+      const callbackCommandOptions: CallbackCommandOptions = {
         args,
         env,
         // @ts-ignore
         callback: response
-      });
+      };
+
+      commandOptions.unshift(callbackCommandOptions);
     }
 
     return commandOptions;

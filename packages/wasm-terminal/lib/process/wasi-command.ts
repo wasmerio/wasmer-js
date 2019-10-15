@@ -3,7 +3,7 @@
 import WASI from "@wasmer/wasi";
 import WasmFs from "@wasmer/wasmfs";
 
-import { Command, CommandOptions } from "../command-runner/command";
+import { Command, WasmCommandOptions } from "../command-runner/command";
 
 import { Duplex, PassThrough } from "stream";
 
@@ -62,7 +62,7 @@ export default class WASICommand extends Command {
   stdoutCallback?: Function;
 
   constructor(
-    options: CommandOptions,
+    options: WasmCommandOptions,
     sharedStdin?: Int32Array,
     startStdinReadCallback?: Function
   ) {
