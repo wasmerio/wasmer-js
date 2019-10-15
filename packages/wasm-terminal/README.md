@@ -9,6 +9,8 @@ A terminal-like component for the browser, that fetches and runs Wasm modules in
 - [Features](#features)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
+  - [Unoptimized](#unoptimized)
+  - [Optimized](#optimized)
 - [Wasm Terminal Reference API](#wasm-terminal-reference-api)
   - [WasmTerminal](#wasmterminal)
   - [fetchCommandFromWAPM](#fetchcommandfromwapm)
@@ -97,6 +99,8 @@ wasmTerminal.focus();
 // wasmTerminal.destroy();
 ```
 
+**NOTE:** Remember to include the CSS file mentioned at the beginning of the "Quick Start" section.
+
 ### Optimized
 
 Optimized bundles, for both `@wasmer/wasm-terminal` and `@wasmer/wasm-transfoormer`, prioritize performance. For examples, assets required by the library must be passed in manually.
@@ -153,6 +157,8 @@ wasmTerminal.focus();
 // Later, when we are done with the terminal, let's destroy it
 // wasmTerminal.destroy();
 ```
+
+**NOTE:** Remember to include the CSS file mentioned at the beginning of the "Quick Start" section.
 
 ## Wasm Terminal Reference API
 
