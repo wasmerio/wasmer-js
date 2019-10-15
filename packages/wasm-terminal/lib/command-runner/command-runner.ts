@@ -10,6 +10,11 @@ import WasmTerminalConfig from "../wasm-terminal-config";
 
 import WasmTty from "../wasm-tty/wasm-tty";
 
+/*ROLLUP_REPLACE_INLINE
+// @ts-ignore
+import processWorkerInlinedUrl from "../../dist/workers/process.worker.js";
+ROLLUP_REPLACE_INLINE*/
+
 let processWorkerBlobUrl: string | undefined;
 
 export default class CommandRunner {
@@ -184,9 +189,14 @@ export default class CommandRunner {
       throw new Error("Terminal Config missing the Process Worker URL");
     }
 
+    let processWorkerUrl = this.wasmTerminalConfig.processWorkerUrl;
+    /*ROLLUP_REPLACE_INLINE
+    processWorkerUrl = processWorkerInlinedUrl;
+    ROLLUP_REPLACE_INLINE*/
+
     // Generate our process
     const workerBlobUrl = await this._getBlobUrlForProcessWorker(
-      this.wasmTerminalConfig.processWorkerUrl,
+      processWorkerUrl,
       this.wasmTty
     );
     const processWorker = new Worker(workerBlobUrl);

@@ -32,6 +32,14 @@ export default class WasmTerminalConfig {
       );
     }
 
+    /*ROLLUP_REPLACE_INLINE
+    if (config.processWorkerUrl) {
+      console.warn(
+        "The unoptimized bundle of wasm-terminal is currently being used. The process worker does not need to be passed, as it is already inlined into the bundle. If you would like to pass in the process worker url and improve performance, please use the optimized bundle. Instructions can be found in the documentation."
+      );
+    }
+    ROLLUP_REPLACE_INLINE*/
+
     // Assign our values
     this.fetchCommand = config.fetchCommand;
     this.processWorkerUrl = config.processWorkerUrl;

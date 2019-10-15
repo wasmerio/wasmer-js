@@ -82,6 +82,7 @@ const unoptimizedBundles = [
       file: "dist/unoptimized/wasm-transformer.iife.js",
       format: "iife",
       name: "WasmTransformer",
+      exports: "named",
       sourcemap: sourcemapOption
     },
     watch: {
@@ -110,6 +111,7 @@ const optimizedBundles = [
       file: "dist/optimized/wasm-transformer.iife.js",
       format: "iife",
       name: "WasmTransformer",
+      exports: "named",
       sourcemap: sourcemapOption
     },
     watch: {
