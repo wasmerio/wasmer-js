@@ -12,7 +12,7 @@ import wasmInit, {
   // @ts-ignore
   lowerI64Imports
   // @ts-ignore
-} from "../../../packages/wasm-transformer/dist/wasm-transformer.prod.esm.js";
+} from "../../../packages/wasm-transformer/dist/optimized/wasm-transformer.esm.js";
 // @ts-ignore
 import wasmTransformerWasmUrl from "../../../packages/wasm-transformer/dist/wasm-transformer.wasm";
 
