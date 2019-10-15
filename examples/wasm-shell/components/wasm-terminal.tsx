@@ -64,7 +64,11 @@ const commands = {
 };
 
 let didInitWasmTransformer = false;
-const fetchCommandHandler = async (commandName: string) => {
+const fetchCommandHandler = async (
+  commandName: string,
+  commandArgs?: Array<string>,
+  envEntries?: any[][]
+) => {
   const customCommand = (commands as any)[commandName];
   let wasmBinary = undefined;
 
@@ -77,7 +81,11 @@ const fetchCommandHandler = async (commandName: string) => {
       return customCommand;
     }
   } else {
-    wasmBinary = await fetchCommandFromWAPM(commandName);
+    wasmBinary = await fetchCommandFromWAPM(
+      commandName,
+      commandArgs,
+      envEntries
+    );
   }
 
   if (!didInitWasmTransformer) {
