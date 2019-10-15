@@ -39,15 +39,79 @@ npm install --save @wasmer/wasm-terminal
 
 ## Quick Start
 
-**Javascript**
+First, We must also include the `[xterm](https://github.com/xtermjs/xterm.js/).css`. For example:
+
+```html
+<!-- This includes the external stylesheet. NOTE: The path should point to wherever you are hosting the wasm-terminal output. -->
+<link
+  rel="stylesheet"
+  type="text/css"
+  href="./node_modules/@wasmer/wasm-terminal/dist/xterm/xterm.css"
+/>
+```
+
+Then, we can choose to use the unoptimized (default) or optimizied JavaScript bundles.
+
+### Unoptimized
+
+The default import of `@wasmer/wasm-terminal` and `@wasmer/wasm-transformer` points to the unoptimized bundle. This bundle does things such as inlining assets. This is done for convenience and developer experience. However, there are use cases where we you might don't want to use the inlined Wasm (for example, when working with [PWAs](https://developers.google.com/web/progressive-web-apps)) For that case, you should be using the `@wasmer/wasm-terminal/dist/optimized/...` and `@wasmer/wasm-transformer/dist/optimized/...` version.
 
 ```javascript
 import WasmTerminal, { fetchCommandFromWAPM } from "@wasmer/wasm-terminal";
-import wasmInit, { lowerI64Imports } from "@wasmer/wasm-transformer";
+import { lowerI64Imports } from "@wasmer/wasm-transformer";
+
+// Let's write handler for the fetchCommand property of the WasmTerminal Config.
+const fetchCommandHandler = async commandName => {
+  // Let's return a "CallbackCommand" if our command matches a special name
+  if (commandName === "callback-command") {
+    const callbackCommand = async (args, stdin) => {
+      return `Callback Command Working! Args: ${args}, stdin: ${stdin}`;
+    };
+    return callbackCommand;
+  }
+
+  // Let's fetch a wasm Binary from WAPM for the command name.
+  const wasmBinary = await fetchCommandFromWAPM(commandName);
+
+  // lower i64 imports from Wasi Modules, so that most Wasi modules
+  // Can run in a Javascript context.
+  return await lowerI64Imports(wasmBinary);
+};
+
+// Let's create our Wasm Terminal
+const wasmTerminal = new WasmTerminal({
+  // Function that is run whenever a command is fetched
+  fetchCommand: fetchCommandHandler
+});
+
+// Let's print out our initial message
+wasmTerminal.print("Hello World!");
+
+// Let's bind our Wasm terminal to it's container
+const containerElement = document.querySelector("#root");
+wasmTerminal.open(containerElement);
+wasmTerminal.fit();
+wasmTerminal.focus();
+
+// Later, when we are done with the terminal, let's destroy it
+// wasmTerminal.destroy();
+```
+
+### Optimized
+
+Optimized bundles, for both `@wasmer/wasm-terminal` and `@wasmer/wasm-transfoormer`, prioritize performance. For examples, assets required by the library must be passed in manually.
+
+```javascript
+import WasmTerminal, {
+  fetchCommandFromWAPM
+} from "@wasmer/wasm-terminal/dist/optimized/wasm-terminal.esm";
+import wasmInit, {
+  lowerI64Imports
+} from "@wasmer/wasm-transformer/dist/optimizied/wasm-transformer.esm";
 
 // URL for where the wasm-transformer wasm file is located. This is probably different depending on your bundler.
 const wasmTransformerWasmUrl =
-  "./node_modules/@wasmer/wasm-transformer/wasm_transformer_bg.wasm";
+  "./node_modules/@wasmer/wasm-transformer/wasm-transformer.wasm";
 
 // Let's write handler for the fetchCommand property of the WasmTerminal Config.
 const fetchCommandHandler = async commandName => {
@@ -90,19 +154,6 @@ wasmTerminal.focus();
 // wasmTerminal.destroy();
 ```
 
-**Css**
-
-We must also include the `[xterm](https://github.com/xtermjs/xterm.js/).css`. For example:
-
-```html
-<!-- This includes the external stylesheet. NOTE: The path should point to wherever you are hosting the wasm-terminal output. -->
-<link
-  rel="stylesheet"
-  type="text/css"
-  href="./node_modules/@wasmer/wasm-terminal/dist/xterm/xterm.css"
-/>
-```
-
 ## Wasm Terminal Reference API
 
 ### WasmTerminal
@@ -119,7 +170,7 @@ The [WasmTerminalConfig](./lib/wasm-terminal-config.ts) can be described as the 
   // It takes in the name of the command being run, and expects a Uint8Array of a Wasm Binary, or a
   // CallbackCommand (see the api below) to be returned.
   fetchCommand: (commandName: string) => Promise<Uint8Array | CallbackCommand>
-  // URL to the /node_modules/wasm-terminal/workers/process.worker.js . This is used by the shell to
+  // Only for Optimized Bundles: URL to the /node_modules/wasm-terminal/workers/process.worker.js . This is used by the shell to
   // to spawn web workers in Comlink, for features such as piping, /dev/stdin reading, and general performance enhancements.
   processWorkerUrl?: string;
 }
