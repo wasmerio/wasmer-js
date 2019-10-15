@@ -29,14 +29,6 @@ const replaceBrowserOptions = {
   }
 };
 
-const replaceInlineOptions = {
-  delimiters: ["", ""],
-  values: {
-    "/*ROLLUP_REPLACE_INLINE": "",
-    "ROLLUP_REPLACE_INLINE*/": ""
-  }
-};
-
 // Need to replace this line for commonjs, as the import.meta object doesn't exist in node
 const replaceWASIJsTransformerOptions = {
   delimiters: ["", ""],
@@ -63,32 +55,31 @@ const plugins = [
   process.env.PROD ? bundleSize() : undefined
 ];
 
-const inlinedBrowserPlugins = [
-  replace(replaceInlineOptions),
+const unoptimizedBrowserPlugins = [
   replace(replaceBrowserOptions),
   inlineUrlPlugin,
   ...plugins
 ];
 
-const prodBrowserPlugins = [replace(replaceBrowserOptions), ...plugins];
+const optimizedBrowserPlugins = [replace(replaceBrowserOptions), ...plugins];
 
-const inlinedBundles = [
+const unoptimizedBundles = [
   {
-    input: "./lib/browser.js",
+    input: "./lib/unoptimized.js",
     output: {
-      file: "dist/wasm-transformer.inlined.esm.js",
+      file: "dist/unoptimized/wasm-transformer.esm.js",
       format: "esm",
       sourcemap: sourcemapOption
     },
     watch: {
       clearScreen: false
     },
-    plugins: inlinedBrowserPlugins
+    plugins: unoptimizedBrowserPlugins
   },
   {
-    input: "./lib/browser.js",
+    input: "./lib/unoptimized.js",
     output: {
-      file: "dist/wasm-transformer.inlined.iife.js",
+      file: "dist/unoptimized/wasm-transformer.iife.js",
       format: "iife",
       name: "WasmTransformer",
       sourcemap: sourcemapOption
@@ -96,27 +87,27 @@ const inlinedBundles = [
     watch: {
       clearScreen: false
     },
-    plugins: inlinedBrowserPlugins
+    plugins: unoptimizedBrowserPlugins
   }
 ];
 
-const prodBundles = [
+const optimizedBundles = [
   {
-    input: "./lib/browser.js",
+    input: "./lib/optimized.js",
     output: {
-      file: "dist/wasm-transformer.prod.esm.js",
+      file: "dist/optimized/wasm-transformer.esm.js",
       format: "esm",
       sourcemap: sourcemapOption
     },
     watch: {
       clearScreen: false
     },
-    plugins: prodBrowserPlugins
+    plugins: optimizedBrowserPlugins
   },
   {
-    input: "./lib/browser.js",
+    input: "./lib/optimized.js",
     output: {
-      file: "dist/wasm-transformer.prod.iife.js",
+      file: "dist/optimized/wasm-transformer.iife.js",
       format: "iife",
       name: "WasmTransformer",
       sourcemap: sourcemapOption
@@ -124,10 +115,10 @@ const prodBundles = [
     watch: {
       clearScreen: false
     },
-    plugins: prodBrowserPlugins
+    plugins: optimizedBrowserPlugins
   }
 ];
 
-const libBundles = [...inlinedBundles, ...prodBundles];
+const libBundles = [...unoptimizedBundles, ...optimizedBundles];
 
 export default libBundles;

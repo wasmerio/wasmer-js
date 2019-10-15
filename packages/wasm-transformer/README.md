@@ -9,7 +9,13 @@ Library to run transformations on WebAssembly binaries. 🦀♻️
 - [Features](#features)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
+  - [Node](#node)
+  - [Unoptimized Browser](#unoptimized-browser)
+  - [Optimized Browser](#optimized-browser)
 - [Reference API](#reference-api)
+  - [Node](#node-1)
+  - [Unoptimized Browser](#unoptimized-browser-1)
+  - [Optimized Browser](#optimized-browser-1)
 - [Contributing](#contributing)
   - [Guidelines](#guidelines)
   - [Building the project](#building-the-project)
@@ -36,7 +42,7 @@ npm install --save @wasmer/wasm-transformer
 
 For a larger example, see the [wasm-terminal](../../packages/wasm-terminal) package.
 
-### Node Usage
+### Node
 
 ```js
 const wasmTransformer = require("@wasmer/wasm-transformer");
@@ -51,12 +57,12 @@ const loweredBinary = wasmTransformer.lowerI64Imports(wasmBinary);
 // Do something with loweredBinary
 ```
 
-### Inlined (Development) Browser Usage
+### Unoptimized Browser
 
-The default import of `@wasmer/wasm-transformer` points to the inlined development bundle. This bundle **has it's wasm file from the `wasm_transformer` crate as a Base64 encoded URL in the bundle.** This is done for convience and developer experience. **Production applications that are being used by every day users should be using the production bundles instead**.
+The default import of `@wasmer/wasm-transformer` points to the unoptimized bundle. This bundle **has the wasm file from the `wasm_transformer` crate as a Base64 encoded URL in the bundle.** This is done for convenience and developer experience. However, there are use cases where we you might don't want to use the inlined Wasm (for example, when working with [PWAs](https://developers.google.com/web/progressive-web-apps)) For that case, you should be using the `@wasmer/wasm-transformer/dist/optimized` version.
 
 ```js
-import wasmTransformerInit, { lowerI64Imports } from "@wasmer/wasm-transformer";
+import { lowerI64Imports } from "@wasmer/wasm-transformer";
 
 const fetchAndTransformWasmBinary = async () => {
   // Get the original Wasm binary
@@ -64,11 +70,8 @@ const fetchAndTransformWasmBinary = async () => {
   const originalWasmBinaryBuffer = await fetchedOriginalWasmBinary.arrayBuffer();
   const originalWasmBinary = new Uint8Array(originalWasmBinaryBuffer);
 
-  // Initialize our wasm-transformer
-  await wasmTransformerInit();
-
   // Transform the binary, by running the lower_i64_imports from the wasm-transformer
-  const transformedBinary = lowerI64Imports(originalWasmBinary);
+  const transformedBinary = await lowerI64Imports(originalWasmBinary);
 
   // Compile the transformed binary
   const transformedWasmModule = await WebAssembly.compile(transformedBinary);
@@ -76,14 +79,15 @@ const fetchAndTransformWasmBinary = async () => {
 };
 ```
 
-### Production Browser Usage
+### Optimized Browser
 
-Production bundles do not have the `wasm_transformer` rust crate `.wasm` inlined. Thus, it must be manually passed in.
+Optimized bundles do not have the `wasm_transformer` rust crate `.wasm` inlined. Thus, it must be manually passed in.
 
 ```js
-import wasmTransformerInit, {
+import {
+  wasmTransformerInit
   lowerI64Imports
-} from "@wasmer/wasm-transformer/wasm-transformer.prod.esm.js";
+} from "@wasmer/wasm-transformer/optimized/wasm-transformer.esm.js";
 
 const fetchAndTransformWasmBinary = async () => {
   // Get the original Wasm binary
@@ -107,9 +111,35 @@ const fetchAndTransformWasmBinary = async () => {
 
 ## Reference API
 
-**Default Export** - `wasmTransformerInit(passWasmUrlIfNotInlined: string): Promise`
+### Node
 
-Initialzation function exported by `wasm-pack build`. If we are using a non-inlined bundle (production) Takes in a URL to where the `wasm-transformer.wasm` is hosted.
+`version()`
+
+Returns the version of the package.
+
+---
+
+`lowerI64Imports(wasmBinaryWithI64Imports: Uint8Array): Uint8Array`
+
+Inserts trampoline functions for imports that have i64 params or returns. This is useful for running Wasm modules in JS runtimes that [do not support JavaScript BigInt -> Wasm i64 integration](https://github.com/WebAssembly/proposals/issues/7). Especially in the case for [i64 WASI Imports](https://github.com/CraneStation/wasmtime/blob/master/docs/WASI-api.md#clock_time_get). Returns the lowered wasm binary as a Uint8Array.
+
+### Unoptimized Browser
+
+`version(): Promise<string>`
+
+Returns a promise that resolves the version of the package.
+
+---
+
+`lowerI64Imports(wasmBinaryWithI64Imports: Uint8Array): Promise<Uint8Array>`
+
+Inserts trampoline functions for imports that have i64 params or returns. This is useful for running Wasm modules in JS runtimes that [do not support JavaScript BigInt -> Wasm i64 integration](https://github.com/WebAssembly/proposals/issues/7). Especially in the case for [i64 WASI Imports](https://github.com/CraneStation/wasmtime/blob/master/docs/WASI-api.md#clock_time_get). Returns a promise the resolves the lowered wasm binary as a Uint8Array.
+
+### Optimized Browser
+
+`wasmTransformerInit(wasmUrl: string): Promise`
+
+Initialzation function exported by `wasm-pack build`. This takes in a URL to where the `node_modules/@wasmer/wasm-transformer/wasm-transformer.wasm` is hosted.
 
 ---
 
@@ -121,7 +151,7 @@ Returns the version of the package.
 
 `lowerI64Imports(wasmBinaryWithI64Imports: Uint8Array): Uint8Array`
 
-Inserts trampoline functions for imports that have i64 params or returns. This is useful for running Wasm modules in browsers that [do not support JavaScript BigInt -> Wasm i64 integration](https://github.com/WebAssembly/proposals/issues/7). Especially in the case for [i64 WASI Imports](https://github.com/CraneStation/wasmtime/blob/master/docs/WASI-api.md#clock_time_get).
+Inserts trampoline functions for imports that have i64 params or returns. This is useful for running Wasm modules in browsers that [do not support JavaScript BigInt -> Wasm i64 integration](https://github.com/WebAssembly/proposals/issues/7). Especially in the case for [i64 WASI Imports](https://github.com/CraneStation/wasmtime/blob/master/docs/WASI-api.md#clock_time_get). Returns the lowered wasm binary as a Uint8Array.
 
 ## Contributing
 

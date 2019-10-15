@@ -3,8 +3,8 @@
   "version": "0.2.0",
   "description": "Library to run transformations on WebAssembly binaries. 🦀♻️",
   "main": "dist/wasm-pack/node/wasm_transformer.js",
-  "module": "dist/wasm-transformer.inlined.esm.js",
-  "browser": "dist/wasm-transformer.inlined.iife.js",
+  "module": "dist/unoptimized/wasm-transformer.esm.js",
+  "browser": "dist/unoptimized/wasm-transformer.iife.js",
   "files": [
     "dist",
     "package.json",
