@@ -42,8 +42,8 @@ echo "Moving pkg to wasm-transformer"
 echo "============================================="
 echo " "
 
-cp -r pkg/ ../../packages/wasm-transformer
-rm ../../packages/wasm-transformer/.gitignore || true
+cp -r pkg/ ../../packages/wasm-transformer/wasm-pack/web
+rm ../../packages/wasm-transformer/wasm-pack/web/.gitignore || true
 
 echo " "
 echo "============================================="
@@ -57,14 +57,31 @@ npx json -I -f pkg/package.json -e 'this.publishConfig={"access": "public"}'
 
 echo " "
 echo "============================================="
-echo "Moving pkg to node stubbed"
+echo "Moving pkg to wasm-transformer"
 echo "============================================="
 echo " "
 
-cp -r pkg/ ../../examples/node-stubbed/wasm-transformer
-rm ../../examples/node-stubbed/wasm-transformer/.gitignore || true
-rm ../../examples/node-stubbed/wasm-transformer/README.md || true
+cp -r pkg/ ../../packages/wasm-transformer/wasm-pack/node
+rm ../../packages/wasm-transformer/wasm-pack/node/.gitignore || true
 
+echo " "
+echo "============================================="
+echo "Compiling Wasm for bundler"
+echo "============================================="
+echo " "
+
+wasm-pack build --target bundler
+npx json -I -f pkg/package.json -e 'this.name="@wasmer/wasm-transformer"'
+npx json -I -f pkg/package.json -e 'this.publishConfig={"access": "public"}'
+
+echo " "
+echo "============================================="
+echo "Moving pkg to wasm-transformer"
+echo "============================================="
+echo " "
+
+cp -r pkg/ ../../packages/wasm-transformer/wasm-pack/bundler
+rm ../../packages/wasm-transformer/wasm-pack/bundler/.gitignore || true
 
 echo " "
 echo "============================================="

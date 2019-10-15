@@ -11,9 +11,10 @@ import WasmTerminal, {
 import wasmInit, {
   // @ts-ignore
   lowerI64Imports
-} from "../../../packages/wasm-transformer/wasm_transformer.js";
+  // @ts-ignore
+} from "../../../packages/wasm-transformer/dist/optimized/wasm-transformer.esm.js";
 // @ts-ignore
-import wasmTransformerWasmUrl from "../../../packages/wasm-transformer/wasm_transformer_bg.wasm";
+import wasmTransformerWasmUrl from "../../../packages/wasm-transformer/dist/wasm-transformer.wasm";
 
 // Require Wasm terminal URLs
 // @ts-ignore

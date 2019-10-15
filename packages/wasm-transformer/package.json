@@ -1,18 +1,36 @@
 {
-  "name": "@wasmer/wasm-transformer",
-  "collaborators": [
-    "Aaron Turner <aaron@aaronthedev.com>"
-  ],
+  "name": "wasm-transformer",
   "version": "0.2.0",
+  "description": "Library to run transformations on WebAssembly binaries. 🦀♻️",
+  "main": "dist/wasm-pack/node/wasm_transformer.js",
+  "module": "dist/unoptimized/wasm-transformer.esm.js",
+  "browser": "dist/unoptimized/wasm-transformer.iife.js",
   "files": [
-    "wasm_transformer_bg.wasm",
-    "wasm_transformer.js",
-    "wasm_transformer.d.ts"
+    "dist",
+    "package.json",
+    "../../LICENSE",
+    "README.md"
   ],
-  "module": "wasm_transformer.js",
-  "types": "wasm_transformer.d.ts",
-  "sideEffects": "false",
-  "publishConfig": {
-    "access": "public"
+  "scripts": {
+    "build": "npx run-s build:prod build:cpy:wasm-pack build:cpy:wasm build:move:wasm",
+    "build:prod": "npx rollup -c --environment PROD",
+    "build:dev": "npx rollup -c --environment DEV",
+    "build:cpy:wasm-pack": "npx cpy 'wasm-pack/**/*' 'dist' --parents",
+    "build:cpy:wasm": "npx cpy 'wasm-pack/web/wasm_transformer_bg.wasm' 'dist'",
+    "build:move:wasm": "mv dist/wasm_transformer_bg.wasm dist/wasm-transformer.wasm"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wasmerio/wasmer-js.git"
+  },
+  "author": "Aaron Turner",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/wasmerio/wasmer-js/issues"
+  },
+  "homepage": "https://github.com/wasmerio/wasmer-js#readme",
+  "devDependencies": {
+    "cpy-cli": "^2.0.0",
+    "npm-run-all": "^4.1.5"
   }
 }
