@@ -4,6 +4,7 @@ import resolve from "rollup-plugin-node-resolve";
 import commonjs from "rollup-plugin-commonjs";
 import builtins from "rollup-plugin-node-builtins";
 import globals from "rollup-plugin-node-globals";
+import typescript from "rollup-plugin-typescript2";
 import json from "rollup-plugin-json";
 import replace from "rollup-plugin-replace";
 import compiler from "@ampproject/rollup-plugin-closure-compiler";
@@ -12,6 +13,13 @@ import url from "rollup-plugin-url";
 import pkg from "./package.json";
 
 const sourcemapOption = process.env.PROD ? undefined : "inline";
+
+let typescriptPluginOptions = {
+  tsconfig: "../../tsconfig.json",
+  exclude: ["./test/**/*"],
+  clean: process.env.PROD ? true : false,
+  objectHashIgnoreUnknownHack: true
+};
 
 const replaceNodeOptions = {
   delimiters: ["", ""],
@@ -46,11 +54,11 @@ const inlineUrlPlugin = url({
 const plugins = [
   replace(replaceWASIJsTransformerOptions),
   resolve({ preferBuiltins: true }),
+  typescript(typescriptPluginOptions),
   commonjs(),
   globals(),
   builtins(),
   json(),
-  // Closure Compiler does not like the wasm-pack output
   // process.env.PROD ? compiler() : undefined,
   process.env.PROD ? bundleSize() : undefined
 ];
@@ -65,7 +73,7 @@ const optimizedBrowserPlugins = [replace(replaceBrowserOptions), ...plugins];
 
 const unoptimizedBundles = [
   {
-    input: "./lib/unoptimized.js",
+    input: "./lib/unoptimized.ts",
     output: {
       file: "dist/unoptimized/wasm-transformer.esm.js",
       format: "esm",
@@ -77,7 +85,7 @@ const unoptimizedBundles = [
     plugins: unoptimizedBrowserPlugins
   },
   {
-    input: "./lib/unoptimized.js",
+    input: "./lib/unoptimized.ts",
     output: {
       file: "dist/unoptimized/wasm-transformer.iife.js",
       format: "iife",
@@ -94,7 +102,7 @@ const unoptimizedBundles = [
 
 const optimizedBundles = [
   {
-    input: "./lib/optimized.js",
+    input: "./lib/optimized.ts",
     output: {
       file: "dist/optimized/wasm-transformer.esm.js",
       format: "esm",
@@ -106,7 +114,7 @@ const optimizedBundles = [
     plugins: optimizedBrowserPlugins
   },
   {
-    input: "./lib/optimized.js",
+    input: "./lib/optimized.ts",
     output: {
       file: "dist/optimized/wasm-transformer.iife.js",
       format: "iife",
