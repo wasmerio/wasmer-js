@@ -995,7 +995,7 @@ class WASI {
           }
 
           // fsRightsBase is needed here but perhaps we should do it in neededInheriting
-          let neededBase = WASI_RIGHT_PATH_OPEN;
+          let neededBase = fsRightsBase | WASI_RIGHT_PATH_OPEN;
           let neededInheriting = fsRightsBase | fsRightsInheriting;
 
           if ((oflags & WASI_O_CREAT) !== 0) {
