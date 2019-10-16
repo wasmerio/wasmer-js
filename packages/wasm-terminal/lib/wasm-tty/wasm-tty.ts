@@ -145,6 +145,26 @@ export default class WasmTTY {
   }
 
   /**
+   * Prints a status message on the current line. Meant to be used with clearStatus()
+   */
+  printStatus(message: string) {
+    // Save the cursor position
+    this.print("\u001b[s");
+    this.print(message);
+  }
+
+  /**
+   * Clears the current status on the line, meant to be run after printStatus
+   */
+  clearStatus() {
+    // Restore the cursor position
+    this.print("\u001b[u");
+    // Clear from cursor to end of screen
+    this.print("\u001b[1000D");
+    this.print("\u001b[0J");
+  }
+
+  /**
    * Apply prompts to the given input
    */
   applyPrompts(input: string): string {

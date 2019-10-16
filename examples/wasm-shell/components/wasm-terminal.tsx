@@ -41,6 +41,10 @@ import clangUrl from "../../../crates/wasm_transformer/wasm_module_examples/clan
 import sqliteUrl from "../../../crates/wasm_transformer/wasm_module_examples/sqlite.wasm";
 // @ts-ignore
 import gettimeofdayUrl from "../../../crates/wasm_transformer/wasm_module_examples/gettimeofday/gettimeofday.wasm";
+// @ts-ignore
+import rsignUrl from "../../../crates/wasm_transformer/wasm_module_examples/rsign.wasm";
+// @ts-ignore
+import uutilsUrl from "../../../crates/wasm_transformer/wasm_module_examples/uutils.wasm";
 
 import welcomeMessage from "./welcome-message";
 

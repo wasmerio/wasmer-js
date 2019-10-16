@@ -1,5 +1,7 @@
 import WasmShell from "../lib/wasm-shell/wasm-shell";
 import WasmTTY from "../lib/wasm-tty/wasm-tty";
+import { WasmFs } from "@wasmer/wasmfs";
+
 // Need to mock process inside command runner.
 jest.mock("../lib/process/process", () => {
   return jest.fn().mockImplementation(() => {
@@ -17,6 +19,7 @@ describe("WasmShell", () => {
   let wasmTty: WasmTTY;
   let runCommandMock: any;
   let runCommandCompleted: any;
+  let wasmFs: WasmFs;
 
   beforeEach(async () => {
     const xterm = {
@@ -25,11 +28,13 @@ describe("WasmShell", () => {
     };
     // @ts-ignore
     wasmTty = new WasmTTY(xterm);
+    wasmFs = new WasmFs();
 
     wasmShell = new WasmShell(
       // Terminal Config
       {
-        fetchCommand: () => Promise.resolve(new Uint8Array())
+        fetchCommand: () => Promise.resolve(new Uint8Array()),
+        wasmFs
       },
       wasmTty
     );
