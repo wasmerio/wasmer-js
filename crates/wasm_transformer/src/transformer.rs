@@ -100,7 +100,7 @@ fn converts() {
         console_log!(" ");
 
         console_log!(" ");
-        console_log!("Convert Back to Wat for descriptive errors (if there is one)");
+        console_log!("Outputting errors (if there are some)");
         console_log!(" ");
 
         let transformed_wat = wabt::wasm2wat(wasm.to_vec());
@@ -108,7 +108,7 @@ fn converts() {
         match transformed_wat {
             Err(e) => {
                 console_log!(" ");
-                console_log!("Test File Path: {:?}", test_file_path);
+                console_log!("wasm2wat Error:");
                 console_log!(" ");
                 console_log!("{:?}", e);
                 console_log!(" ");
@@ -126,7 +126,7 @@ fn converts() {
         let validated = wasmparser::validate(&wasm, None);
         assert!(
             !validated.is_err(),
-            "converted Wasm is not valid: {:?}",
+            "Converted Wasm is not valid (Error with Hex values): {:X?}",
             validated.err()
         );
     }
