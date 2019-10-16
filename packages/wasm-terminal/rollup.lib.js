@@ -9,6 +9,7 @@ import typescript from "rollup-plugin-typescript2";
 import json from "rollup-plugin-json";
 import copy from "rollup-plugin-copy";
 import compiler from "@ampproject/rollup-plugin-closure-compiler";
+import url from "rollup-plugin-url";
 import bundleSize from "rollup-plugin-bundle-size";
 import pkg from "./package.json";
 
@@ -29,16 +30,21 @@ const replaceWASIJsTransformerOptions = {
   }
 };
 
-const replaceBrowserOptions = {
+const replaceInlineOptions = {
   delimiters: ["", ""],
   values: {
-    "/*ROLLUP_REPLACE_BROWSER": "",
-    "ROLLUP_REPLACE_BROWSER*/": ""
+    "/*ROLLUP_REPLACE_INLINE": "",
+    "ROLLUP_REPLACE_INLINE*/": ""
   }
 };
 
+const inlineUrlPlugin = url({
+  limit: 1000000000000 * 1024, // Always inline
+  include: ["**/*.worker.js"],
+  emitFiles: true
+});
+
 let plugins = [
-  replace(replaceBrowserOptions),
   replace(replaceWASIJsTransformerOptions),
   typescript(typescriptPluginOptions),
   resolve({
@@ -58,11 +64,46 @@ let plugins = [
   process.env.PROD ? bundleSize() : undefined
 ];
 
-const libBundles = [
+const unoptimizedPlugins = [
+  replace(replaceInlineOptions),
+  inlineUrlPlugin,
+  ...plugins
+];
+
+const unoptimizedBundles = [
   {
     input: "./lib/index.ts",
     output: {
-      file: pkg.module,
+      file: "dist/unoptimized/wasm-terminal.esm.js",
+      format: "esm",
+      sourcemap: sourcemapOption
+    },
+    watch: {
+      clearScreen: false
+    },
+    plugins: unoptimizedPlugins
+  },
+  {
+    input: "./lib/index.ts",
+    output: {
+      file: "dist/unoptimized/wasm-terminal.iife.js",
+      format: "iife",
+      sourcemap: sourcemapOption,
+      name: "WasmTerminal",
+      exports: "named"
+    },
+    watch: {
+      clearScreen: false
+    },
+    plugins: unoptimizedPlugins
+  }
+];
+
+const optimizedBundles = [
+  {
+    input: "./lib/index.ts",
+    output: {
+      file: "dist/optimized/wasm-terminal.esm.js",
       format: "esm",
       sourcemap: sourcemapOption
     },
@@ -74,7 +115,7 @@ const libBundles = [
   {
     input: "./lib/index.ts",
     output: {
-      file: pkg.browser,
+      file: "dist/optimized/wasm-terminal.iife.js",
       format: "iife",
       sourcemap: sourcemapOption,
       name: "WasmTerminal",
@@ -86,5 +127,7 @@ const libBundles = [
     plugins: plugins
   }
 ];
+
+const libBundles = [...unoptimizedBundles, ...optimizedBundles];
 
 export default libBundles;

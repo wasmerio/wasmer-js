@@ -5,7 +5,7 @@ import WasmTerminal, {
   // @ts-ignore
   fetchCommandFromWAPM
   // @ts-ignore
-} from "../../../packages/wasm-terminal/dist/index.esm";
+} from "../../../packages/wasm-terminal/dist/optimized/wasm-terminal.esm";
 
 // @ts-ignore
 import wasmInit, {
