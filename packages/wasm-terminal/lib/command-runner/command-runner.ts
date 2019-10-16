@@ -4,7 +4,7 @@ import * as Comlink from "../../node_modules/comlink/src/comlink";
 import parse from "shell-parse";
 
 import Process from "../process/process";
-import { CommandOptions } from "./command";
+import CommandOptions from "../command/command-options";
 
 import WasmTerminalConfig from "../wasm-terminal-config";
 
@@ -112,6 +112,10 @@ export default class CommandRunner {
 
   _addStdinToSharedStdin(data: Uint8Array, processObjectIndex: number) {
     // Pass along the stdin to the shared object
+
+    if (!this.spawnedProcessObjects[processObjectIndex]) {
+      return;
+    }
 
     const sharedStdin = this.spawnedProcessObjects[processObjectIndex]
       .sharedStdin;

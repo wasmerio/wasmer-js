@@ -1,0 +1,27 @@
+// The class for WASI Commands
+
+import WASI from "@wasmer/wasi";
+import WasmFs from "@wasmer/wasmfs";
+
+import Command from "./command";
+import CommandOptions from "./command-options";
+
+export default class CallbackCommand extends Command {
+  callback: Function;
+
+  constructor(options: CommandOptions) {
+    super(options);
+
+    if (!options.callback) {
+      throw new Error(
+        "The Command Options provided are not for a Callback Command"
+      );
+    }
+
+    this.callback = options.callback;
+  }
+
+  run(stdin?: string) {
+    return this.callback(this.args, stdin);
+  }
+}

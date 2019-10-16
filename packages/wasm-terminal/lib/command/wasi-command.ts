@@ -3,7 +3,8 @@
 import WASI from "@wasmer/wasi";
 import { WasmFs } from "@wasmer/wasmfs";
 
-import { Command, CommandOptions } from "../command-runner/command";
+import Command from "./command";
+import CommandOptions from "./command-options";
 
 import { Duplex, PassThrough } from "stream";
 
@@ -48,7 +49,7 @@ const cleanStdout = (stdout: string) => {
 
 export default class WASICommand extends Command {
   wasi: WASI;
-  promisedInstance: Promise<WebAssembly.Instance>;
+  instantiateReponsePromise: Promise<WebAssembly.Instance>;
   instance: WebAssembly.Instance | undefined;
   wasmFs: WasmFs;
 
@@ -100,7 +101,7 @@ export default class WASICommand extends Command {
       throw new Error("Did not find a WebAssembly.Module for the WASI Command");
     }
 
-    this.promisedInstance = WebAssembly.instantiate(options.module, {
+    this.instantiateReponsePromise = WebAssembly.instantiate(options.module, {
       wasi_unstable: this.wasi.wasiImport
     });
   }
@@ -109,8 +110,7 @@ export default class WASICommand extends Command {
     stdoutCallback?: Function,
     pipedStdinData?: Uint8Array
   ): Promise<Duplex> {
-    let instance = await this.promisedInstance;
-    this.instance = instance;
+    this.instance = await this.instantiateReponsePromise;
     let stdoutRead = this.wasmFs.fs.createReadStream("/dev/stdout");
     let stderrRead = this.wasmFs.fs.createReadStream("/dev/stderr");
 
