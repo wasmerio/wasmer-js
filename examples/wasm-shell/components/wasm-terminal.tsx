@@ -59,8 +59,8 @@ const commands = {
   arg: argtestUrl,
   clang: clangUrl,
   sqlite: sqliteUrl,
-  rsign:
-    "https://registry-cdn.wapm.io/contents/jedisct1/rsign2/0.5.4/rsign.wasm",
+  rsign: rsignUrl,
+  uutils: uutilsUrl,
   callback: (args: string[], stdin: string) => {
     return Promise.resolve(
       `Callback Command Working! Args: ${args}, stdin: ${stdin}`

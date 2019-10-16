@@ -39,6 +39,8 @@ export default class WasmFsService {
     assert(fdOut === 1, `invalid handle for stdout: ${fdOut}`);
     assert(fdIn === 0, `invalid handle for stdin: ${fdIn}`);
 
+    console.log(fsJson);
+
     this.fs = createFsFromVolume(this.volume);
   }
 

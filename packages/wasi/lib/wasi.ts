@@ -734,13 +734,11 @@ class WASI {
           const startPtr = bufPtr;
           for (let i = Number(cookie); i < entries.length; i += 1) {
             const entry = entries[i];
-
             let nameLength = Buffer.byteLength(entry.name);
             if (bufPtr + 24 + nameLength >= startPtr + bufLen) {
               // It doesn't fit in the buffer
               break;
             }
-
             this.view.setBigUint64(bufPtr, BigInt(i + 1), true);
             bufPtr += 8;
             const rstats = fs.statSync(path.resolve(stats.path, entry.name));

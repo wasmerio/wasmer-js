@@ -80,11 +80,6 @@ export default class Process {
     try {
       this.wasiCommand.run();
     } catch (e) {
-      if (e.code === 0) {
-        // Command was successful, but ended early.
-        this.endCallback();
-        return;
-      }
       let error = "Unknown Error";
 
       // TODO: Diff the two objects and only send that back
@@ -125,7 +120,6 @@ export default class Process {
       );
       const stdoutAsTypedArray = new TextEncoder().encode(stdout + "\n");
       this.dataCallback(stdoutAsTypedArray);
-
       // TODO: Diff the two objects and only send that back
       const currentWasmFsJson = this.wasmFs.toJSON();
       this.endCallback(currentWasmFsJson);
