@@ -124,10 +124,15 @@ fn converts() {
         }
 
         let validated = wasmparser::validate(&wasm, None);
-        assert!(
-            !validated.is_err(),
-            "Converted Wasm is not valid (Error with Hex values): {:X?}",
-            validated.err()
-        );
+
+        if validated.is_err() {
+            console_log!(" ");
+            console_log!("wasmparser::validate Error (as Hex Values):");
+            console_log!(" ");
+            console_log!("{:X?}", validated.err());
+            console_log!(" ");
+        }
+
+        assert!(!validated.is_err(), "Validation Assertion Failed.");
     }
 }
