@@ -63,7 +63,7 @@ describe("CommandRunner", () => {
         Promise.resolve({
           process: {
             start: () => {
-              commandRunner._processEndCallback(commandOptionIndex);
+              commandRunner._processEndCallback({ commandOptionIndex });
             }
           }
         })
