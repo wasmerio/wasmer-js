@@ -1,5 +1,7 @@
 // The configuration options passed when creating the Wasm terminal
 
+import { WasmFs } from "@wasmer/wasmfs";
+
 // A Custom command is a function that takes in a stdin string, and an array of argument strings,
 // And returns an stdout string, or undefined.
 export type CallbackCommand = (
@@ -14,6 +16,8 @@ type FetchCommandFunction = (
 export default class WasmTerminalConfig {
   fetchCommand: FetchCommandFunction;
   processWorkerUrl?: string;
+
+  wasmFs: WasmFs;
 
   constructor(config: any) {
     if (!config) {
@@ -43,5 +47,11 @@ export default class WasmTerminalConfig {
     // Assign our values
     this.fetchCommand = config.fetchCommand;
     this.processWorkerUrl = config.processWorkerUrl;
+
+    if (config.wasmFs) {
+      this.wasmFs = config.wasmFs;
+    } else {
+      this.wasmFs = new WasmFs();
+    }
   }
 }

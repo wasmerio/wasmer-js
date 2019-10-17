@@ -32,6 +32,8 @@ export default class WasmTerminal {
   pendingPrintOnOpen: string;
 
   constructor(config: any) {
+    this.wasmTerminalConfig = new WasmTerminalConfig(config);
+
     // Create our xterm element
     this.xterm = new Terminal();
     // tslint:disable-next-line

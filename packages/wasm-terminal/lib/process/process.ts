@@ -1,4 +1,4 @@
-import WASI from "@wasmer/wasi";
+import { WasmFs } from "@wasmer/wasmfs";
 
 import CommandOptions from "../command/command-options";
 import Command from "../command/command";
@@ -7,6 +7,8 @@ import CallbackCommand from "../command/callback-command";
 
 export default class Process {
   commandOptions: CommandOptions;
+  wasmFs: WasmFs;
+  originalWasmFsJson: any;
   dataCallback: Function;
   endCallback: Function;
   errorCallback: Function;
@@ -17,6 +19,7 @@ export default class Process {
 
   constructor(
     commandOptions: CommandOptions,
+    wasmFsJson: any,
     dataCallback: Function,
     endCallback: Function,
     errorCallback: Function,
@@ -24,6 +27,11 @@ export default class Process {
     startStdinReadCallback?: Function
   ) {
     this.commandOptions = commandOptions;
+
+    this.wasmFs = new WasmFs();
+    this.wasmFs.fromJSON(wasmFsJson);
+    this.originalWasmFsJson = wasmFsJson;
+
     this.dataCallback = dataCallback;
     this.endCallback = endCallback;
     this.errorCallback = errorCallback;
@@ -36,6 +44,7 @@ export default class Process {
     if (commandOptions.module) {
       this.command = new WASICommand(
         commandOptions,
+        this.wasmFs,
         sharedStdin,
         startStdinReadCallback
       );
@@ -59,18 +68,24 @@ export default class Process {
     );
 
     commandStream.on("end", () => {
-      this.endCallback();
+      // TODO: Diff the two objects and only send that back
+      const currentWasmFsJson = this.wasmFs.toJSON();
+      this.endCallback(currentWasmFsJson);
     });
 
     try {
       this.command.run();
     } catch (e) {
+      let error = "Unknown Error";
+
+      // TODO: Diff the two objects and only send that back
+      const currentWasmFsJson = this.wasmFs.toJSON();
+
       if (e.code === 0) {
         // Command was successful, but ended early.
-        this.endCallback();
+        this.endCallback(currentWasmFsJson);
         return;
       }
-      let error = "Unknown Error";
 
       if (e.code !== undefined) {
         error = `exited with code: ${e.code}`;
@@ -80,7 +95,7 @@ export default class Process {
         error = e.message;
       }
 
-      this.errorCallback(error);
+      this.errorCallback(error, currentWasmFsJson);
     }
   }
 
@@ -94,7 +109,9 @@ export default class Process {
       const stdout = await this.command.run(stdin);
       const stdoutAsTypedArray = new TextEncoder().encode(stdout + "\n");
       this.dataCallback(stdoutAsTypedArray);
-      this.endCallback();
+      // TODO: Diff the two objects and only send that back
+      const currentWasmFsJson = this.wasmFs.toJSON();
+      this.endCallback(currentWasmFsJson);
     } catch (e) {
       this.errorCallback("There was an error running the callback command");
     }

@@ -734,12 +734,17 @@ class WASI {
           const startPtr = bufPtr;
           for (let i = Number(cookie); i < entries.length; i += 1) {
             const entry = entries[i];
+            let nameLength = Buffer.byteLength(entry.name);
+            if (bufPtr + 24 + nameLength >= startPtr + bufLen) {
+              // It doesn't fit in the buffer
+              break;
+            }
             this.view.setBigUint64(bufPtr, BigInt(i + 1), true);
             bufPtr += 8;
             const rstats = fs.statSync(path.resolve(stats.path, entry.name));
             this.view.setBigUint64(bufPtr, BigInt(rstats.ino), true);
             bufPtr += 8;
-            this.view.setUint32(bufPtr, Buffer.byteLength(entry.name), true);
+            this.view.setUint32(bufPtr, nameLength, true);
             bufPtr += 4;
             let filetype;
             switch (true) {
@@ -771,13 +776,9 @@ class WASI {
             this.view.setUint8(bufPtr, filetype);
             bufPtr += 1;
             bufPtr += 3; // padding
-            Buffer.from(this.memory.buffer).write(
-              entry.name,
-              bufPtr,
-              bufLen - bufPtr
-            );
+            let memory_buffer = Buffer.from(this.memory.buffer);
+            memory_buffer.write(entry.name, bufPtr);
             bufPtr += Buffer.byteLength(entry.name);
-            bufPtr += 8 % bufPtr; // padding
           }
           const bufused = bufPtr - startPtr;
           this.view.setUint32(bufusedPtr, bufused, true);
@@ -964,12 +965,14 @@ class WASI {
           pathPtr: number,
           pathLen: number,
           oflags: number,
-          fsRightsBase: BigIntPolyfillType,
-          fsRightsInheriting: BigIntPolyfillType,
+          fsRightsBase: BigIntPolyfillType | number,
+          fsRightsInheriting: BigIntPolyfillType | number,
           fsFlags: number,
           fd: number
         ) => {
           const stats = CHECK_FD(dirfd, WASI_RIGHT_PATH_OPEN);
+          fsRightsBase = BigInt(fsRightsBase);
+          fsRightsInheriting = BigInt(fsRightsInheriting);
 
           const read =
             (fsRightsBase & (WASI_RIGHT_FD_READ | WASI_RIGHT_FD_READDIR)) !==
@@ -991,7 +994,8 @@ class WASI {
             noflags = fs.constants.O_WRONLY;
           }
 
-          let neededBase = WASI_RIGHT_PATH_OPEN;
+          // fsRightsBase is needed here but perhaps we should do it in neededInheriting
+          let neededBase = fsRightsBase | WASI_RIGHT_PATH_OPEN;
           let neededInheriting = fsRightsBase | fsRightsInheriting;
 
           if ((oflags & WASI_O_CREAT) !== 0) {

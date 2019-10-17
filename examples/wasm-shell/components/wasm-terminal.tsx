@@ -41,6 +41,10 @@ import clangUrl from "../../../crates/wasm_transformer/wasm_module_examples/clan
 import sqliteUrl from "../../../crates/wasm_transformer/wasm_module_examples/sqlite.wasm";
 // @ts-ignore
 import gettimeofdayUrl from "../../../crates/wasm_transformer/wasm_module_examples/gettimeofday/gettimeofday.wasm";
+// @ts-ignore
+import rsignUrl from "../../../crates/wasm_transformer/wasm_module_examples/rsign.wasm";
+// @ts-ignore
+import uutilsUrl from "../../../crates/wasm_transformer/wasm_module_examples/uutils.wasm";
 
 import welcomeMessage from "./welcome-message";
 
@@ -55,8 +59,8 @@ const commands = {
   arg: argtestUrl,
   clang: clangUrl,
   sqlite: sqliteUrl,
-  rsign:
-    "https://registry-cdn.wapm.io/contents/jedisct1/rsign2/0.5.4/rsign.wasm",
+  rsign: rsignUrl,
+  uutils: uutilsUrl,
   callback: (args: string[], stdin: string) => {
     return Promise.resolve(
       `Callback Command Working! Args: ${args}, stdin: ${stdin}`

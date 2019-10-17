@@ -44,6 +44,6 @@
   },
   "homepage": "https://github.com/wasmerio/wasmer-js/tree/master/packages/wasmfs",
   "dependencies": {
-    "memfs": "^2.15.5"
+    "memfs": "git+https://github.com/torch2424/memfs.git#wasmfs-fixes"
   }
 }
