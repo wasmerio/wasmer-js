@@ -2,10 +2,8 @@
 // Dataview workaround at ./dataview.ts
 
 // Add Big int depending on the environment
-let exportedBigInt = Number;
-let globalThis: any = {
-  BigInt: {}
-};
+// @ts-ignore
+let exportedBigInt: BigInt = Number;
 /*ROLLUP_REPLACE_NODE
 globalThis = global;
 ROLLUP_REPLACE_NODE*/
@@ -13,8 +11,9 @@ ROLLUP_REPLACE_NODE*/
 globalThis = self;
 ROLLUP_REPLACE_BROWSER*/
 if (globalThis.BigInt) {
+  // @ts-ignore
   exportedBigInt = globalThis.BigInt;
 }
-
-export const BigIntPolyfill: any = exportedBigInt;
-export type BigIntPolyfillType = any;
+// @ts-ignore
+export const BigIntPolyfill: typeof BigInt = exportedBigInt;
+export type BigIntPolyfillType = bigint;
