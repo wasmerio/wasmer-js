@@ -34,7 +34,7 @@ const plugins = [
 
 const workerBundles = [
   {
-    input: "./workers/process.worker.ts",
+    input: "./lib/workers/process.worker.ts",
     output: [
       {
         file: "dist/workers/process.worker.js",
