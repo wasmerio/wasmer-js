@@ -61,7 +61,6 @@
     "jest": "^24.8.0",
     "lerna": "^3.16.4",
     "local-echo": "^0.2.0",
-    "memfs": "git+https://github.com/torch2424/memfs.git#wasmfs-fixes",
     "minimist": "^1.2.0",
     "mkdirp": "^0.5.1",
     "npm-run-all": "^4.1.5",
