@@ -161,6 +161,24 @@ describe("WASI interaction", () => {
     `);
   });
 
+  it("realpathSync", async () => {
+    let realPath = wasmerFileSystem.fs.realpathSync("/");
+    console.log("realPath", realPath);
+    let realPath2 = wasmerFileSystem.fs.realpathSync("/sandbox");
+    console.log("realPath2", realPath2);
+    // let x = wasmerFileSystem.fs.realpathBase("/", "utf8");
+  });
+
+  it("openSync", async () => {
+    let fs = wasmerFileSystem.fs;
+    try {
+      fs.mkdirSync("/tmp");
+    } catch (e) {}
+    let temp = fs.mkdirSync("/tmp/heeey");
+    let openSync = fs.openSync("/tmp/heeey", fs.constants.O_DIRECTORY);
+    console.log("openSync", openSync);
+  });
+
   it("converts path_open", async () => {
     let originalBuffer = fs.readFileSync("test/rs/sandbox_file_ok.wasm");
     bytesConverter(originalBuffer);

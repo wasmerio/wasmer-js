@@ -1,9 +1,9 @@
 const fs = require("fs");
 const { spy } = require("spyfs");
 const sinon = require("sinon");
-const { WASI } = require("../../dist/index.cjs.js");
-const wasmTransformer = require("./wasm_transformer");
-const WasmerFileSystem = require("../../dist/examples/file-system/file-system.cjs.js");
+const WASI = require("../../packages/wasi/dist/index.cjs.js");
+const wasmTransformer = require("../../packages/wasm-transformer");
+const WasmerFileSystem = require("../../packages/wasmfs/dist/index.cjs.js");
 const argv = require("minimist")(process.argv.slice(2));
 const chalk = require("chalk");
 var readline = require("readline");
@@ -107,7 +107,7 @@ const wasmBuffer = fs.readFileSync(argv._[0]);
 
 // Transform the binary
 let wasmBinary = new Uint8Array(wasmBuffer);
-wasmBinary = wasmTransformer.lower_i64_imports(wasmBinary);
+wasmBinary = wasmTransformer.lowerI64Imports(wasmBinary);
 
 const asyncTask = async () => {
   const response = await WebAssembly.instantiate(wasmBinary, {

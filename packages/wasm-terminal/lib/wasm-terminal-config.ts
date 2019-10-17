@@ -1,5 +1,7 @@
 // The configuration options passed when creating the Wasm terminal
 
+import { WasmFs } from "@wasmer/wasmfs";
+
 // A Custom command is a function that takes in a stdin string, and an array of argument strings,
 // And returns an stdout string, or undefined.
 export type CallbackCommand = (
@@ -16,6 +18,8 @@ type FetchCommandFunction = (
 export default class WasmTerminalConfig {
   fetchCommand: FetchCommandFunction;
   processWorkerUrl?: string;
+
+  wasmFs: WasmFs;
 
   constructor(config: any) {
     if (!config) {
@@ -34,8 +38,22 @@ export default class WasmTerminalConfig {
       );
     }
 
+    /*ROLLUP_REPLACE_INLINE
+    if (config.processWorkerUrl) {
+      console.warn(
+        "The unoptimized bundle of wasm-terminal is currently being used. The process worker does not need to be passed, as it is already inlined into the bundle. If you would like to pass in the process worker url and improve performance, please use the optimized bundle. Instructions can be found in the documentation."
+      );
+    }
+    ROLLUP_REPLACE_INLINE*/
+
     // Assign our values
     this.fetchCommand = config.fetchCommand;
     this.processWorkerUrl = config.processWorkerUrl;
+
+    if (config.wasmFs) {
+      this.wasmFs = config.wasmFs;
+    } else {
+      this.wasmFs = new WasmFs();
+    }
   }
 }

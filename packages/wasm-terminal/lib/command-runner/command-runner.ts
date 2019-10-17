@@ -4,11 +4,16 @@ import * as Comlink from "../../node_modules/comlink/src/comlink";
 import parse from "shell-parse";
 
 import Process from "../process/process";
-import { CommandOptions } from "./command";
+import CommandOptions from "../command/command-options";
 
 import WasmTerminalConfig from "../wasm-terminal-config";
 
 import WasmTty from "../wasm-tty/wasm-tty";
+
+/*ROLLUP_REPLACE_INLINE
+// @ts-ignore
+import processWorkerInlinedUrl from "../../dist/workers/process.worker.js";
+ROLLUP_REPLACE_INLINE*/
 
 let processWorkerBlobUrl: string | undefined;
 
@@ -108,6 +113,10 @@ export default class CommandRunner {
   _addStdinToSharedStdin(data: Uint8Array, processObjectIndex: number) {
     // Pass along the stdin to the shared object
 
+    if (!this.spawnedProcessObjects[processObjectIndex]) {
+      return;
+    }
+
     const sharedStdin = this.spawnedProcessObjects[processObjectIndex]
       .sharedStdin;
     let startingIndex = 1;
@@ -184,9 +193,14 @@ export default class CommandRunner {
       throw new Error("Terminal Config missing the Process Worker URL");
     }
 
+    let processWorkerUrl = this.wasmTerminalConfig.processWorkerUrl;
+    /*ROLLUP_REPLACE_INLINE
+    processWorkerUrl = processWorkerInlinedUrl;
+    ROLLUP_REPLACE_INLINE*/
+
     // Generate our process
     const workerBlobUrl = await this._getBlobUrlForProcessWorker(
-      this.wasmTerminalConfig.processWorkerUrl,
+      processWorkerUrl,
       this.wasmTty
     );
     const processWorker = new Worker(workerBlobUrl);
@@ -195,17 +209,28 @@ export default class CommandRunner {
     // Genrate our shared buffer
     const sharedStdinBuffer = new SharedArrayBuffer(8192);
 
+    // Get our filesystem state
+    const wasmFsJson = this.wasmTerminalConfig.wasmFs.toJSON();
+
     // @ts-ignore
     const process: any = await new processComlink(
+      // Command Options
       this.commandOptionsForProcessesToRun[commandOptionIndex],
+      // WasmFs File System JSON
+      wasmFsJson,
       // Data Callback
       Comlink.proxy(this._processDataCallback.bind(this, commandOptionIndex)),
       // End Callback
       Comlink.proxy(
-        this._processEndCallback.bind(this, commandOptionIndex, processWorker)
+        this._processEndCallback.bind(this, {
+          commandOptionIndex,
+          processWorker
+        })
       ),
       // Error Callback
-      Comlink.proxy(this._processErrorCallback.bind(this, commandOptionIndex)),
+      Comlink.proxy(
+        this._processErrorCallback.bind(this, { commandOptionIndex })
+      ),
       // Shared Array Bufer
       sharedStdinBuffer,
       // Stdin read callback
@@ -225,14 +250,20 @@ export default class CommandRunner {
   }
 
   async _spawnProcessAsService(commandOptionIndex: number) {
+    // Get our filesystem state
+    const wasmFsJson = this.wasmTerminalConfig.wasmFs.toJSON();
+
     const process = new Process(
+      // Command Options
       this.commandOptionsForProcessesToRun[commandOptionIndex],
+      // WasmFs File System JSON
+      wasmFsJson,
       // Data Callback
       this._processDataCallback.bind(this, commandOptionIndex),
       // End Callback
-      this._processEndCallback.bind(this, commandOptionIndex),
+      this._processEndCallback.bind(this, { commandOptionIndex }),
       // Error Callback
-      this._processErrorCallback.bind(this, commandOptionIndex)
+      this._processErrorCallback.bind(this, { commandOptionIndex })
     );
 
     return {
@@ -268,10 +299,23 @@ export default class CommandRunner {
     }
   }
 
-  _processEndCallback(commandOptionIndex: number, processWorker?: Worker) {
+  _processEndCallback(
+    endCallbackConfig: {
+      commandOptionIndex: number;
+      processWorker?: Worker;
+    },
+    wasmFsJson: any
+  ) {
+    const { commandOptionIndex, processWorker } = endCallbackConfig;
+
     if (processWorker) {
       // Terminate our worker
       processWorker.terminate();
+    }
+
+    // Sync our filesystem
+    if (wasmFsJson) {
+      this.wasmTerminalConfig.wasmFs.fromJSON(wasmFsJson);
     }
 
     if (commandOptionIndex < this.commandOptionsForProcessesToRun.length - 1) {
@@ -288,10 +332,23 @@ export default class CommandRunner {
     this.spawnedProcessObjects.shift();
   }
 
-  _processErrorCallback(commandOptionIndex: number, error: string) {
+  _processErrorCallback(
+    errorCallbackConfig: { commandOptionIndex: number },
+    error: string,
+    wasmFsJson: any
+  ) {
+    const { commandOptionIndex } = errorCallbackConfig;
+
     console.error(
       `${this.commandOptionsForProcessesToRun[commandOptionIndex].args[0]}: ${error}`
     );
+
+    // Sync our filesystem
+    if (wasmFsJson) {
+      this.wasmTerminalConfig.wasmFs.fromJSON(wasmFsJson);
+    }
+
+    // Kill the process
     this.kill();
     this.commandEndCallback();
   }
@@ -312,9 +369,7 @@ export default class CommandRunner {
     }
 
     if (wasmTty) {
-      // Save the cursor position
-      wasmTty.print("\u001b[s");
-      wasmTty.print(
+      wasmTty.printStatus(
         "[INFO] Downloading the process Web Worker (This happens once)..."
       );
     }
@@ -326,11 +381,7 @@ export default class CommandRunner {
     ]).then(responses => responses[0]);
 
     if (wasmTty) {
-      // Restore the cursor position
-      wasmTty.print("\u001b[u");
-      // Clear from cursor to end of screen
-      wasmTty.print("\u001b[1000D");
-      wasmTty.print("\u001b[0J");
+      wasmTty.clearStatus();
     }
 
     // Create the worker blob and URL
@@ -386,11 +437,19 @@ export default class CommandRunner {
     // Add a Wasm module command
     await redirectTask();
 
+    // Fetch the command
+    if (wasmTty) {
+      wasmTty.printStatus(`[INFO] Fetching the command ${commandName} ...`);
+    }
     const response = await wasmTerminalConfig.fetchCommand(
       commandName,
       commandArgs,
       envEntries
     );
+    if (wasmTty) {
+      wasmTty.clearStatus();
+    }
+
     if (response instanceof Uint8Array) {
       // Compile the Wasm Module
       const wasmModule = await WebAssembly.compile(response);

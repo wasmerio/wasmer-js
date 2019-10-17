@@ -1,5 +1,6 @@
 import WasmShell from "../lib/wasm-shell/wasm-shell";
 import WasmTTY from "../lib/wasm-tty/wasm-tty";
+
 // Need to mock process inside command runner.
 jest.mock("../lib/process/process", () => {
   return jest.fn().mockImplementation(() => {
@@ -11,6 +12,8 @@ const waitForCurrentEventsOnCallStack = () =>
   new Promise(resolve => {
     setTimeout(() => resolve());
   });
+
+const wasmFsMock = {};
 
 describe("WasmShell", () => {
   let wasmShell: WasmShell;
@@ -29,7 +32,9 @@ describe("WasmShell", () => {
     wasmShell = new WasmShell(
       // Terminal Config
       {
-        fetchCommand: () => Promise.resolve(new Uint8Array())
+        fetchCommand: () => Promise.resolve(new Uint8Array()),
+        // @ts-ignore
+        wasmFs: wasmFsMock
       },
       wasmTty
     );
