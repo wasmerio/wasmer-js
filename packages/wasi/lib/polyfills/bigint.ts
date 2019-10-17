@@ -4,8 +4,7 @@
 // Add Big int depending on the environment
 // @ts-ignore
 let exportedBigInt: BigInt = Number;
-var globalThis: any =
-  typeof globalThis !== "undefined" ? globalThis : undefined;
+var globalThis: any = typeof globalThis !== "undefined" ? globalThis : {};
 /*ROLLUP_REPLACE_NODE
 globalThis = global;
 ROLLUP_REPLACE_NODE*/
