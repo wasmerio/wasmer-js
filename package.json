@@ -14,16 +14,9 @@
   "license": "MIT",
   "scripts": {
     "postinstall": "npx run-s lerna:bootstrap",
-    "build": "npx run-s lerna:build wasm-shell:build",
-    "build:dev": "npx run-s lerna:build:dev wasm-shell:build:dev",
+    "build": "npm run lerna:build",
     "deploy": "npx run-s wasm-transformer:build lerna:build lerna:publish",
     "serve": "npx serve dist/ -p 8000",
-    "dev": "npx run-p wasm-terminal:dev dev:watch serve",
-    "dev:watch": "npx run-p dev:watch:wasi dev:watch:wasmfs dev:watch:wasm-terminal dev:watch:wasm-shell",
-    "dev:watch:wasi": "npx chokidar \"packages/wasi/lib/**/*\" -c \"npx run-s lerna:build:dev:wasi lerna:build:dev:wasm-terminal wasm-shell:build:dev\" packages/wasi/lib",
-    "dev:watch:wasmfs": "npx chokidar \"packages/wasmfs/lib/**/*\" -c \"npx run-s lerna:build:dev:wasmfs lerna:build:dev:wasm-terminal wasm-shell:build:dev\"",
-    "dev:watch:wasm-terminal": "npx chokidar \"packages/wasm-terminal/lib/**/*\" -c \"npx run-s lerna:build:dev:wasm-terminal wasm-shell:build:dev\"",
-    "dev:watch:wasm-shell": "npx chokidar \"examples/wasm-shell/**/*\" -c \"npx run-s wasm-shell:build:dev\"",
     "test": "npx lerna run test",
     "lint": "npx run-s lint:js lint:ts:tslint lint:ts:preetier",
     "lint:js": "npx prettier --write packages/**/rollup.*.js",
@@ -36,10 +29,7 @@
     "lerna:build:dev:wasmfs": "npx lerna run --scope @wasmer/wasmfs --loglevel error build:dev",
     "lerna:build:dev:wasm-terminal": "npx lerna run --scope @wasmer/wasm-terminal --loglevel error build:dev",
     "lerna:publish": "npx lerna publish",
-    "wasm-transformer:build": "(cd crates/wasm_transformer && ./wasm_transformer_build.sh)",
-    "wasm-terminal:dev": "npx chokidar \"crates/wasm_transformer/src/**/*\" -c \"(cd crates/wasm_transformer && ./wasm_transformer_build.sh > /dev/null)\"",
-    "wasm-shell:build": "npx rollup -c examples/wasm-shell/rollup.config.js --environment PROD",
-    "wasm-shell:build:dev": "npx rollup -c examples/wasm-shell/rollup.config.js --environment DEV"
+    "wasm-transformer:build": "(cd crates/wasm_transformer && ./wasm_transformer_build.sh)"
   },
   "husky": {
     "hooks": {
@@ -71,6 +61,7 @@
     "pretty-quick": "^1.11.1",
     "rimraf": "^2.6.3",
     "rollup": "^1.17.0",
+    "rollup-plugin-alias": "^2.0.1",
     "rollup-plugin-bundle-size": "^1.0.3",
     "rollup-plugin-commonjs": "^10.0.1",
     "rollup-plugin-copy": "^3.1.0",
