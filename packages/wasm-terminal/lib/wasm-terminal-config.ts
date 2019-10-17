@@ -10,7 +10,9 @@ export type CallbackCommand = (
 ) => Promise<string>;
 
 type FetchCommandFunction = (
-  commandName: string
+  commandName: string,
+  commandArgs?: Array<string>,
+  envEntries?: any[][]
 ) => Promise<Uint8Array | CallbackCommand>;
 
 export default class WasmTerminalConfig {

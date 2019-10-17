@@ -436,14 +436,20 @@ export default class CommandRunner {
 
     // Add a Wasm module command
     await redirectTask();
+
     // Fetch the command
     if (wasmTty) {
       wasmTty.printStatus(`[INFO] Fetching the command ${commandName} ...`);
     }
-    const response = await wasmTerminalConfig.fetchCommand(commandName);
+    const response = await wasmTerminalConfig.fetchCommand(
+      commandName,
+      commandArgs,
+      envEntries
+    );
     if (wasmTty) {
       wasmTty.clearStatus();
     }
+
     if (response instanceof Uint8Array) {
       // Compile the Wasm Module
       const wasmModule = await WebAssembly.compile(response);
