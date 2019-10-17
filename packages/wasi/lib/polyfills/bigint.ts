@@ -1,20 +1,8 @@
 // A very simple workaround for Big int. Works in conjunction with our custom
 // Dataview workaround at ./dataview.ts
 
-// Add Big int depending on the environment
+var commonjsGlobal = typeof globalThis !== "undefined" ? globalThis : {};
+
 // @ts-ignore
-let exportedBigInt: BigInt = Number;
-var globalThis: any = typeof globalThis !== "undefined" ? globalThis : {};
-/*ROLLUP_REPLACE_NODE
-globalThis = global;
-ROLLUP_REPLACE_NODE*/
-/*ROLLUP_REPLACE_BROWSER
-globalThis = self;
-ROLLUP_REPLACE_BROWSER*/
-if (globalThis.BigInt) {
-  // @ts-ignore
-  exportedBigInt = globalThis.BigInt;
-}
-// @ts-ignore
-export const BigIntPolyfill: typeof BigInt = exportedBigInt;
+export const BigIntPolyfill: typeof BigInt = commonjsGlobal.BigInt || Number;
 export type BigIntPolyfillType = bigint;

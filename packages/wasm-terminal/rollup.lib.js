@@ -11,6 +11,7 @@ import copy from "rollup-plugin-copy";
 import compiler from "@ampproject/rollup-plugin-closure-compiler";
 import url from "rollup-plugin-url";
 import bundleSize from "rollup-plugin-bundle-size";
+import alias from "rollup-plugin-alias";
 import pkg from "./package.json";
 
 const sourcemapOption = process.env.PROD ? undefined : "inline";
@@ -46,6 +47,17 @@ const inlineUrlPlugin = url({
 
 let plugins = [
   replace(replaceWASIJsTransformerOptions),
+  // Including comlink from source:
+  // https://github.com/GoogleChromeLabs/comlink/issues/366
+  alias({
+    resolve: [".js", ".ts"],
+    entries: [
+      {
+        find: "comlink",
+        replacement: `${__dirname}/node_modules/comlink/src/comlink`
+      }
+    ]
+  }),
   typescript(typescriptPluginOptions),
   resolve({
     preferBuiltins: true
