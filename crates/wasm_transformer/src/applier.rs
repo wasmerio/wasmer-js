@@ -210,10 +210,7 @@ pub fn apply_transformations_to_wasm_binary_vec(
                         - (function_size_byte_length as isize)) as isize;
                 calls_byte_offset += function_size_byte_length_difference + byte_length_difference;
             }
-
-            // Add the byte_length_difference
         }
-        // calls_byte_offset += byte_length_difference;
     }
 
     // Add the trampoline functions to the code section
@@ -262,11 +259,6 @@ fn add_entries_to_section(
     // Section size
     let section_length_position =
         (starting_offset + (section.start_position as isize) + 1) as usize;
-    // let (section_length, section_length_bytes) = read_bytes_as_varunit(
-    //     wasm_binary_vec
-    //         .get(section_length_position..(section_length_position + 5))
-    //         .unwrap(),
-    // )?;
     let section_length = section.size;
     let section_length_bytes = section.size_byte_length;
 
