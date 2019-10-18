@@ -19,7 +19,7 @@
   "homepage": "https://github.com/wasmerio/wasmer-js/tree/master/examples/wasm-shell",
   "alias": {
     "@wasmer/wasm-terminal": "../../packages/wasm-terminal/lib",
-    "@wasmer/wasm-transformer": "../../packages/wasm-transformer/dist",
+    "@wasmer/wasm-transformer": "../../packages/wasm-transformer/dist/unoptimized/wasm-transformer.esm.js",
     "@wasmer/wasi": "../../packages/wasi/lib",
     "@wasmer/wasmfs": "../../packages/wasmfs/lib"
   },
