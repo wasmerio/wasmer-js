@@ -25,15 +25,39 @@ For additional contribution guidelines, please see our [CONTRIBUTING.md](./CONTR
 
 To get started contributing to wasmer-js, create your own fork of the [wasmer-js repository](https://github.com/wasmerio/wasmer-js) by clicking "Fork" in the Web UI.
 
-1. Download / Clone your fork to a local repository. Navigate into the project directory.
+```bash
+npm install
+```
 
-2. Install the dependencies with `npm install`. **NOTE:** This will run `lerna bootstrap`, and build the neccessary JS Packages.
+> **NOTE:** This will run `lerna bootstrap`, and build the neccessary JS Packages.
 
-3. Run `npm run build`. It will bundle JS Packages into './dist' directory.
+#### Development
 
-4. Run `npm run dev`, which will serve the `examples/wasm-shell` example, which can be accessed with: http://localhost:8000/examples/wasm-shell/index.html
+To start development mode, you can run the `dev` command:
 
-To make changes to any of the sub projects, they can be tested by either: Running their local tests with `npm run test` in their respective package directory, or by running their watch for changes developement command with `npm run dev`.
+```bash
+npm run dev
+```
+
+This will serve the `examples/wasm-shell` example, which can be accessed with: http://localhost:1234/
+
+#### Building the project
+
+To build all the packages in the project, you can run the `build` command:
+
+```bash
+npm run build
+```
+
+This will bundle JS Packages into `./dist` directory.
+
+### Tests
+
+To make changes to any of the sub projects, they can be tested by either: Running their local tests with `npm run test` in their respective package directory, or running it the root:
+
+```bash
+npm run test
+```
 
 ### Using Lerna
 

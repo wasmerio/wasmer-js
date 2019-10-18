@@ -15,6 +15,7 @@
   "scripts": {
     "postinstall": "npx run-s lerna:bootstrap",
     "build": "npm run lerna:build",
+    "dev": "npm run lerna:build:wasm-transformer && parcel examples/wasm-shell/index.html",
     "deploy": "npx run-s wasm-transformer:build lerna:build lerna:publish",
     "serve": "npx serve dist/ -p 8000",
     "test": "npx lerna run test",
@@ -24,6 +25,7 @@
     "lint:ts:preetier": "npx prettier --write packages/**/*.ts",
     "lerna:bootstrap": "npx lerna bootstrap",
     "lerna:build": "npx lerna run build",
+    "lerna:build:wasm-transformer": "npx lerna run --scope @wasmer/wasm-transformer build",
     "lerna:build:dev": "npx lerna run --loglevel error build:dev",
     "lerna:build:dev:wasi": "npx lerna run --scope @wasmer/wasi --loglevel error build:dev",
     "lerna:build:dev:wasmfs": "npx lerna run --scope @wasmer/wasmfs --loglevel error build:dev",

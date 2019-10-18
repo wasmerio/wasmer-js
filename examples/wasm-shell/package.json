@@ -4,6 +4,7 @@
   "description": "A Preact demo for the wasmer js shell packages",
   "main": "index.tsx",
   "scripts": {
+    "start": "parcel index.html",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -15,5 +16,19 @@
   "bugs": {
     "url": "https://github.com/wasmerio/wasmer-js/issues"
   },
-  "homepage": "https://github.com/wasmerio/wasmer-js/tree/master/examples/wasm-shell"
+  "homepage": "https://github.com/wasmerio/wasmer-js/tree/master/examples/wasm-shell",
+  "alias": {
+    "@wasmer/wasm-terminal": "../../packages/wasm-terminal/lib",
+    "@wasmer/wasm-transformer": "../../packages/wasm-transformer/dist",
+    "@wasmer/wasi": "../../packages/wasi/lib",
+    "@wasmer/wasmfs": "../../packages/wasmfs/lib"
+  },
+  "devDependencies": {
+    "parcel-bundler": "^1.12.4",
+    "typescript": "^3.6.4"
+  },
+  "dependencies": {
+    "preact": "^10.0.1",
+    "xterm": "^3.14.5"
+  }
 }

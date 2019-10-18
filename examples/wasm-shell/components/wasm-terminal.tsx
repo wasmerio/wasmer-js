@@ -5,62 +5,56 @@ import WasmTerminal, {
   // @ts-ignore
   fetchCommandFromWAPM
   // @ts-ignore
-} from "../../../packages/wasm-terminal/dist/optimized/wasm-terminal.esm";
+} from "@wasmer/wasm-terminal";
 
+import WASI from "@wasmer/wasi";
+import BrowserWASIBindings from "@wasmer/wasi/bindings/browser";
 // @ts-ignore
-import wasmInit, {
-  // @ts-ignore
-  lowerI64Imports
-  // @ts-ignore
-} from "../../../packages/wasm-transformer/dist/optimized/wasm-transformer.esm.js";
-// @ts-ignore
-import wasmTransformerWasmUrl from "../../../packages/wasm-transformer/dist/wasm-transformer.wasm";
-
-// Require Wasm terminal URLs
-// @ts-ignore
-import processWorkerUrl from "../../../packages/wasm-terminal/dist/workers/process.worker.js";
+import { lowerI64Imports } from "@wasmer/wasm-transformer/unoptimized/wasm-transformer.esm.js";
 
 // Additional Command URLs
 // @ts-ignore
-import stdinWasmUrl from "../../../crates/wasm_transformer/wasm_module_examples/stdin.wasm";
-// @ts-ignore
-import clockTimeGetUrl from "../../../crates/wasm_transformer/wasm_module_examples/clock_time_get.wasm";
-// @ts-ignore
-import pathOpenGetUrl from "../../../crates/wasm_transformer/wasm_module_examples/path_open.wasm";
-// @ts-ignore
-import twoImportsUrl from "../../../crates/wasm_transformer/wasm_module_examples/two-imports.wasm";
-// @ts-ignore
-import quickJsUrl from "../../../crates/wasm_transformer/wasm_module_examples/qjs.wasm";
-// @ts-ignore
-import dukTapeUrl from "../../../crates/wasm_transformer/wasm_module_examples/duk.wasm";
-// @ts-ignore
-import argtestUrl from "../../../crates/wasm_transformer/wasm_module_examples/argtest.wasm";
-// @ts-ignore
-import clangUrl from "../../../crates/wasm_transformer/wasm_module_examples/clang.wasm";
-// @ts-ignore
-import sqliteUrl from "../../../crates/wasm_transformer/wasm_module_examples/sqlite.wasm";
-// @ts-ignore
-import gettimeofdayUrl from "../../../crates/wasm_transformer/wasm_module_examples/gettimeofday/gettimeofday.wasm";
-// @ts-ignore
-import rsignUrl from "../../../crates/wasm_transformer/wasm_module_examples/rsign.wasm";
-// @ts-ignore
-import uutilsUrl from "../../../crates/wasm_transformer/wasm_module_examples/uutils.wasm";
+// import stdinWasmUrl from "../../../crates/wasm_transformer/wasm_module_examples/stdin.wasm";
+// // @ts-ignore
+// import clockTimeGetUrl from "../../../crates/wasm_transformer/wasm_module_examples/clock_time_get.wasm";
+// // @ts-ignore
+// import pathOpenGetUrl from "../../../crates/wasm_transformer/wasm_module_examples/path_open.wasm";
+// // @ts-ignore
+// import twoImportsUrl from "../../../crates/wasm_transformer/wasm_module_examples/two-imports.wasm";
+// // @ts-ignore
+// import quickJsUrl from "../../../crates/wasm_transformer/wasm_module_examples/qjs.wasm";
+// // @ts-ignore
+// import dukTapeUrl from "../../../crates/wasm_transformer/wasm_module_examples/duk.wasm";
+// // @ts-ignore
+// import argtestUrl from "../../../crates/wasm_transformer/wasm_module_examples/argtest.wasm";
+// // @ts-ignore
+// import clangUrl from "../../../crates/wasm_transformer/wasm_module_examples/clang.wasm";
+// // @ts-ignore
+// import sqliteUrl from "../../../crates/wasm_transformer/wasm_module_examples/sqlite.wasm";
+// // @ts-ignore
+// import gettimeofdayUrl from "../../../crates/wasm_transformer/wasm_module_examples/gettimeofday/gettimeofday.wasm";
+// // @ts-ignore
+// import rsignUrl from "../../../crates/wasm_transformer/wasm_module_examples/rsign.wasm";
+// // @ts-ignore
+// import uutilsUrl from "../../../crates/wasm_transformer/wasm_module_examples/uutils.wasm";
 
 import welcomeMessage from "./welcome-message";
 
+WASI.defaultBindings = BrowserWASIBindings;
+
 const commands = {
-  a: stdinWasmUrl,
-  c: clockTimeGetUrl,
-  p: pathOpenGetUrl,
-  g: gettimeofdayUrl,
-  qjs: quickJsUrl,
-  duk: dukTapeUrl,
-  two: twoImportsUrl,
-  arg: argtestUrl,
-  clang: clangUrl,
-  sqlite: sqliteUrl,
-  rsign: rsignUrl,
-  uutils: uutilsUrl,
+  // a: stdinWasmUrl,
+  // c: clockTimeGetUrl,
+  // p: pathOpenGetUrl,
+  // g: gettimeofdayUrl,
+  // qjs: quickJsUrl,
+  // duk: dukTapeUrl,
+  // two: twoImportsUrl,
+  // arg: argtestUrl,
+  // clang: clangUrl,
+  // sqlite: sqliteUrl,
+  // rsign: rsignUrl,
+  // uutils: uutilsUrl,
   callback: (args: string[], stdin: string) => {
     return Promise.resolve(
       `Callback Command Working! Args: ${args}, stdin: ${stdin}`
@@ -94,16 +88,17 @@ const fetchCommandHandler = async (
   }
 
   if (!didInitWasmTransformer) {
-    await wasmInit(wasmTransformerWasmUrl);
     didInitWasmTransformer = true;
   }
 
-  return lowerI64Imports(wasmBinary);
+  return await lowerI64Imports(wasmBinary);
 };
 
 /**
  * A simple preact wrapper around the Wasm Terminal
  */
+const processWorkerUrl = document.getElementById("worker").src;
+
 export default class WasmTerminalComponent extends Component {
   container: HTMLElement | null;
   wasmTerminal: WasmTerminal;
