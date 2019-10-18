@@ -3,19 +3,19 @@
 <!-- [![Greenkeeper badge](https://badges.greenkeeper.io/wasmerio/wasmer-js.svg)](https://greenkeeper.io/) -->
 <!-- [![Coveralls](https://img.shields.io/coveralls/wasmerio/wasmer-js.svg)](https://coveralls.io/github/wasmerio/wasmer-js)  -->
 
-Wasmer-JS is the mono-repo of multiple JavaScript packages enabling easy use of [WebAssembly](https://webassembly.org) Modules in Node and the Browser.
+Wasmer-JS is a mono-repo of multiple JavaScript packages enabling easy use of [WebAssembly](https://webassembly.org) Modules in Node and the Browser.
 
-- [`@wasmer/wasi`](./packages/wasi) - WASI Implementation for Node and Browsers.
+- [`@wasmer/wasi`](./packages/wasi) - WebAssembly WASI implementation for Node and browsers.
 
-- [`@wasmer/wasmfs`](./packages/wasmfs) - WASI/Wasm FileSystem to be used in browsers, or for sandboxing in Node.
+- [`@wasmer/wasmfs`](./packages/wasmfs) - WASI/Wasm FileSystem.
 
-- [`@wasmer/wasm-transformer`](./packages/wasm-transformer) - the Javascript interface for the [`wasm_transformer` crate](./crates/wasm_transformer)
+- [`@wasmer/wasm-transformer`](./packages/wasm-transformer) - the JS interface for the [`wasm_transformer` crate](./crates/wasm_transformer)
 
-- [`@wasmer/wasm-terminal`](./packages/wasm-terminal) - A terminal/shell for interacting with WASI/Wasm Modules that runs in the browser.
+- [`@wasmer/wasm-terminal`](./packages/wasm-terminal) - A browser terminal/shell for interacting with WASI/Wasm Modules. It powers [WebAssembly.sh](https://webassembly.sh/).
 
-## Quick Start
+## Development
 
-To get started contributing to wasmer-js, create your own fork of the [wasmer-js repository](https://github.com/wasmerio/wasmer-js) by clicking "Fork" in the Web UI.
+Contributing into Wasmer-JS it's very easy, just clone the repo and run:
 
 ```bash
 npm install
@@ -31,6 +31,8 @@ npm run dev
 
 This will serve the `examples/wasm-shell` example, which can be accessed with: http://localhost:1234/
 
+![Wasm Terminal Demo Gif](./packages/wasm-terminal/assets/wasm-terminal-demo.gif)
+
 ## Building the project
 
 To build all the packages in the project, you can run the `build` command:
@@ -40,10 +42,6 @@ npm run build
 ```
 
 This will bundle JS Packages into `./dist` directory.
-
-**Wasm Terminal Example**
-
-![Wasm Terminal Demo Gif](./packages/wasm-terminal/assets/wasm-terminal-demo.gif)
 
 ## Tests
 
