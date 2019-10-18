@@ -3,7 +3,7 @@
 <!-- [![Greenkeeper badge](https://badges.greenkeeper.io/wasmerio/wasmer-js.svg)](https://greenkeeper.io/) -->
 <!-- [![Coveralls](https://img.shields.io/coveralls/wasmerio/wasmer-js.svg)](https://coveralls.io/github/wasmerio/wasmer-js)  -->
 
-Monorepo of multiple JavaScript packages enabling easy use of [WebAssembly](https://webassembly.org) Modules in Node and the Browser.
+Wasmer-JS is the mono-repo of multiple JavaScript packages enabling easy use of [WebAssembly](https://webassembly.org) Modules in Node and the Browser.
 
 - [`@wasmer/wasi`](./packages/wasi) - WASI Implementation for Node and Browsers.
 
@@ -13,15 +13,7 @@ Monorepo of multiple JavaScript packages enabling easy use of [WebAssembly](http
 
 - [`@wasmer/wasm-terminal`](./packages/wasm-terminal) - A terminal/shell for interacting with WASI/Wasm Modules that runs in the browser.
 
-**Wasm Terminal Example**
-
-![Wasm Terminal Demo Gif](./packages/wasm-terminal/assets/wasm-terminal-demo.gif)
-
-## Contributing
-
-For additional contribution guidelines, please see our [CONTRIBUTING.md](./CONTRIBUTING.md) and our [Code of Conduct](./code-of-conduct.md).
-
-### Quick Start
+## Quick Start
 
 To get started contributing to wasmer-js, create your own fork of the [wasmer-js repository](https://github.com/wasmerio/wasmer-js) by clicking "Fork" in the Web UI.
 
@@ -29,11 +21,9 @@ To get started contributing to wasmer-js, create your own fork of the [wasmer-js
 npm install
 ```
 
-> **NOTE:** This will run `lerna bootstrap`, and build the neccessary JS Packages.
+> **NOTE:** This will run `lerna bootstrap`, and bootstrap the JS Packages.
 
-#### Development
-
-To start development mode, you can run the `dev` command:
+To start **development mode**, you can run the `dev` command:
 
 ```bash
 npm run dev
@@ -41,7 +31,7 @@ npm run dev
 
 This will serve the `examples/wasm-shell` example, which can be accessed with: http://localhost:1234/
 
-#### Building the project
+## Building the project
 
 To build all the packages in the project, you can run the `build` command:
 
@@ -51,13 +41,21 @@ npm run build
 
 This will bundle JS Packages into `./dist` directory.
 
-### Tests
+**Wasm Terminal Example**
+
+![Wasm Terminal Demo Gif](./packages/wasm-terminal/assets/wasm-terminal-demo.gif)
+
+## Tests
 
 To make changes to any of the sub projects, they can be tested by either: Running their local tests with `npm run test` in their respective package directory, or running it the root:
 
 ```bash
 npm run test
 ```
+
+## Contributing
+
+For additional contribution guidelines, please see our [CONTRIBUTING.md](./CONTRIBUTING.md) and our [Code of Conduct](./code-of-conduct.md).
 
 ### Using Lerna
 
