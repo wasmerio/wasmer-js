@@ -1232,7 +1232,7 @@ class WASI {
               const absolute = subclockflags === 1;
 
               let e = WASI_ESUCCESS;
-              const n = now(clockid);
+              const n = BigInt(now(clockid));
               if (n === null) {
                 e = WASI_EINVAL;
               } else {
