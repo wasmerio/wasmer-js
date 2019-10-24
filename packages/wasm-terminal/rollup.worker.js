@@ -27,7 +27,7 @@ const plugins = [
     entries: [
       {
         find: "comlink",
-        replacement: `../node_modules/comlink/src/comlink`
+        replacement: `${__dirname}/node_modules/comlink/src/comlink`
       }
     ]
   }),

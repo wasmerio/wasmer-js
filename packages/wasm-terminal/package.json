@@ -54,5 +54,8 @@
     "xterm-addon-fit": "^0.2.1",
     "xterm-addon-web-links": "^0.2.1",
     "xterm-addon-webgl": "^0.2.1"
+  },
+  "devDependencies": {
+    "rollup-plugin-node-builtins": "git+https://github.com/torch2424/rollup-plugin-node-builtins.git"
   }
 }
