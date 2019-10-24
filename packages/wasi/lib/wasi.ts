@@ -130,7 +130,8 @@ import {
   WASI_STDOUT_FILENO,
   WASI_STDERR_FILENO,
   ERROR_MAP,
-  SIGNAL_MAP
+  SIGNAL_MAP,
+  WASI_ENOENT
 } from "./constants";
 
 const msToNs = (ms: number) => {
@@ -421,6 +422,7 @@ class WASI {
 
     const CHECK_FD = (fd: number, rights: BigIntPolyfillType) => {
       const stats = stat(this, fd);
+      // console.log(`CHECK_FD: stats.real: ${stats.real}, stats.path:`, stats.path);
       if (rights !== BigInt(0) && (stats.rights.base & rights) === BigInt(0)) {
         throw WASI_EPERM;
       }
@@ -1071,7 +1073,6 @@ class WASI {
             }
           }
           const realfd = fs.openSync(full, noflags);
-
           const newfd = [...this.FD_MAP.keys()].reverse()[0] + 1;
           this.FD_MAP.set(newfd, {
             real: realfd,
@@ -1318,6 +1319,28 @@ class WASI {
         return WASI_ENOSYS;
       }
     };
+    // Wrap each of the imports with a recoverable WASI error
+    Object.keys(this.wasiImport).forEach((key: string) => {
+      const prevImport = this.wasiImport[key];
+      this.wasiImport[key] = function(...args: any[]) {
+        // console.log(`wasiImport called: ${key} (${args})`);
+        try {
+          let result = prevImport(...args);
+          // console.log(` => ${result}`);
+          return result;
+        } catch (e) {
+          console.log(`Catched error: ${e}`);
+          switch (e.code) {
+            case undefined:
+              throw e;
+            case "ENOENT":
+              return WASI_ENOENT;
+            default:
+              return WASI_ENOSYS;
+          }
+        }
+      };
+    });
   }
 
   refreshMemory() {
