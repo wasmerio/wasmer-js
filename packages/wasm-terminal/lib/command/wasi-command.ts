@@ -1,5 +1,4 @@
 // The class for WASI Commands
-
 import WASI from "@wasmer/wasi";
 import { WasmFs } from "@wasmer/wasmfs";
 
@@ -74,9 +73,12 @@ export default class WASICommand extends Command {
 
     // Bind our stdinRead / stdoutWrite
     this.wasmFs = wasmFs;
-    this.wasmFs.volume.fds[0].read = this.stdinRead.bind(this);
-    this.wasmFs.volume.fds[1].write = this.stdoutWrite.bind(this);
-    this.wasmFs.volume.fds[2].write = this.stdoutWrite.bind(this);
+    this.wasmFs.volume.fds[0].node.read = this.stdinRead.bind(this);
+    this.wasmFs.volume.fds[1].node.write = this.stdoutWrite.bind(this);
+    this.wasmFs.volume.fds[2].node.write = this.stdoutWrite.bind(this);
+    const ttyFd = this.wasmFs.volume.openSync("/dev/tty", "w+");
+    this.wasmFs.volume.fds[ttyFd].node.read = this.stdinRead.bind(this);
+    this.wasmFs.volume.fds[ttyFd].node.write = this.stdoutWrite.bind(this);
 
     this.sharedStdin = sharedStdin;
     this.startStdinReadCallback = startStdinReadCallback;

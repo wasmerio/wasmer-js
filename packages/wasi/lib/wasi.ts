@@ -130,7 +130,11 @@ import {
   WASI_STDOUT_FILENO,
   WASI_STDERR_FILENO,
   ERROR_MAP,
-  SIGNAL_MAP
+  SIGNAL_MAP,
+  WASI_ENOENT,
+  WASI_WHENCE_CUR,
+  WASI_WHENCE_END,
+  WASI_WHENCE_SET
 } from "./constants";
 
 const msToNs = (ms: number) => {
@@ -250,6 +254,7 @@ interface Rights {
 
 interface File {
   real: number;
+  offset: bigint;
   filetype?: any;
   rights: Rights;
   path?: any;
@@ -349,6 +354,7 @@ class WASI {
         {
           real: 0,
           filetype: undefined,
+          offset: BigInt(0),
           rights: {
             base: RIGHTS_REGULAR_FILE_BASE,
             inheriting: BigInt(0)
@@ -361,6 +367,7 @@ class WASI {
         {
           real: 1,
           filetype: undefined,
+          offset: BigInt(0),
           rights: {
             base: RIGHTS_REGULAR_FILE_BASE,
             inheriting: BigInt(0)
@@ -373,6 +380,7 @@ class WASI {
         {
           real: 2,
           filetype: undefined,
+          offset: BigInt(0),
           rights: {
             base: RIGHTS_REGULAR_FILE_BASE,
             inheriting: BigInt(0)
@@ -391,6 +399,7 @@ class WASI {
       this.FD_MAP.set(newfd, {
         real,
         filetype: WASI_FILETYPE_DIRECTORY,
+        offset: BigInt(0),
         rights: {
           base: RIGHTS_DIRECTORY_BASE,
           inheriting: RIGHTS_DIRECTORY_INHERITING
@@ -421,6 +430,7 @@ class WASI {
 
     const CHECK_FD = (fd: number, rights: BigIntPolyfillType) => {
       const stats = stat(this, fd);
+      // console.log(`CHECK_FD: stats.real: ${stats.real}, stats.path:`, stats.path);
       if (rights !== BigInt(0) && (stats.rights.base & rights) === BigInt(0)) {
         throw WASI_EPERM;
       }
@@ -708,7 +718,12 @@ class WASI {
           outer: for (const iov of getiovs(iovs, iovsLen)) {
             let r = 0;
             while (r < iov.byteLength) {
-              const rr = fs.readSync(stats.real, iov, r, iov.byteLength - r);
+              const rr = fs.readSync(
+                stats.real,
+                iov,
+                r,
+                BigInt(iov.byteLength - r) + stats.offset
+              );
               r += rr;
               read += rr;
               if (rr === 0) {
@@ -716,6 +731,7 @@ class WASI {
               }
             }
           }
+          stats.offset += BigInt(read);
           this.view.setUint32(nread, read, true);
           return WASI_ESUCCESS;
         }
@@ -794,24 +810,28 @@ class WASI {
         return WASI_ESUCCESS;
       }),
       fd_seek: wrap(
-        (fd: number, offset: number, whence: number, newOffsetPtr: number) => {
+        (
+          fd: number,
+          offset: number | bigint,
+          whence: number,
+          newOffsetPtr: number
+        ) => {
           const stats = CHECK_FD(fd, WASI_RIGHT_FD_SEEK);
-          // TODO: Why?
-          // Refreshing memory here either way
           this.refreshMemory();
-          throw new Error("fd_seek to be implemented (without binding)");
-
-          // const newOffset = binding.seek(stats.real, offset, {
-          //  [WASI_WHENCE_CUR]: binding.SEEK_CUR,
-          //  [WASI_WHENCE_END]: binding.SEEK_END,
-          //  [WASI_WHENCE_SET]: binding.SEEK_SET,
-          // }[whence]);
-          // if (typeof newOffset === 'number') { // errno
-          // throw newOffset;
-          // }
-          // this.refreshMemory();
-          // this.view.setBigUint64(newOffsetPtr, newOffset, true);
-          // return WASI_ESUCCESS;
+          switch (whence) {
+            case WASI_WHENCE_CUR:
+              stats.offset = stats.offset + BigInt(offset);
+              break;
+            case WASI_WHENCE_END:
+              const { size } = fs.fstatSync(stats.real);
+              stats.offset = BigInt(size) + BigInt(offset);
+              break;
+            case WASI_WHENCE_SET:
+              stats.offset = BigInt(offset);
+              break;
+          }
+          this.view.setBigUint64(newOffsetPtr, stats.offset, true);
+          return WASI_ESUCCESS;
         }
       ),
       fd_tell: wrap((fd: number, offsetPtr: number) => {
@@ -1071,11 +1091,11 @@ class WASI {
             }
           }
           const realfd = fs.openSync(full, noflags);
-
           const newfd = [...this.FD_MAP.keys()].reverse()[0] + 1;
           this.FD_MAP.set(newfd, {
             real: realfd,
             filetype: undefined,
+            offset: BigInt(0),
             rights: {
               base: neededBase,
               inheriting: neededInheriting
@@ -1318,6 +1338,26 @@ class WASI {
         return WASI_ENOSYS;
       }
     };
+    // Wrap each of the imports with a recoverable WASI error
+    Object.keys(this.wasiImport).forEach((key: string) => {
+      const prevImport = this.wasiImport[key];
+      this.wasiImport[key] = function(...args: any[]) {
+        // console.log(`wasiImport called: ${key} (${args})`);
+        try {
+          let result = prevImport(...args);
+          // console.log(` => ${result}`);
+          return result;
+        } catch (e) {
+          console.log(`Catched error: ${e}`);
+          switch (e.code) {
+            default:
+              throw e;
+            case "ENOENT":
+              return WASI_ENOENT;
+          }
+        }
+      };
+    });
   }
 
   refreshMemory() {

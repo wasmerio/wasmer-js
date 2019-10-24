@@ -1,6 +1,7 @@
 // An alternative fs for the browser and testing
 import { createFsFromVolume, IFs } from "memfs";
 import { Volume } from "memfs/lib/volume";
+import "./node_sync_emit";
 
 const assert = (cond: boolean, message: string) => {
   if (!cond) {
