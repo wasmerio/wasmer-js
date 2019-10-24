@@ -4,22 +4,30 @@
 # https://docs.microsoft.com/azure/devops/pipelines/languages/javascript
 
 trigger:
-- master
+  - master
 
 pool:
-  vmImage: 'ubuntu-latest'
+  vmImage: "ubuntu-latest"
+  # variables:
+  #   npm_config_cache: $(Pipeline.Workspace)/.npm
 
 steps:
-- task: NodeTool@0
-  inputs:
-    versionSpec: '10.x'
-  displayName: 'Install Node.js'
+  - task: NodeTool@0
+    inputs:
+      versionSpec: "12.x"
+    displayName: "Install Node.js"
 
-- script: |
-    npm install
-    npm run build
-  displayName: 'npm install and build'
+  # - task: CacheBeta@0
+  #   inputs:
+  #     key: npm | $(Agent.OS) | package-lock.json
+  #     path: $(npm_config_cache)
+  #   displayName: Cache npm
 
-- script: |
-    npm test
-  displayName: 'npm test'
+  - script: |
+      npm install
+      npm run build
+    displayName: "npm install and build"
+
+  - script: |
+      npm test
+    displayName: "npm test"

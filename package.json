@@ -92,7 +92,12 @@
     "typescript": "^3.5.3",
     "url": "^0.11.0",
     "watch": "^1.0.2",
-    "xterm": "^3.14.5"
+    "xterm": "^4.1.0"
   },
-  "dependencies": {}
+  "dependencies": {
+    "@wasmer/wasi": "file:packages/wasi",
+    "@wasmer/wasmfs": "file:packages/wasmfs",
+    "@wasmer/wasm-transformer": "file:packages/wasm-transformer",
+    "@wasmer/wasm-terminal": "file:packages/wasm-terminal"
+  }
 }

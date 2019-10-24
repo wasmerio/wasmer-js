@@ -1,4 +1,4 @@
-import { IBuffer, IBufferLine } from "xterm";
+import { IBufferLine } from "xterm";
 
 import {
   ActiveCharPrompt,

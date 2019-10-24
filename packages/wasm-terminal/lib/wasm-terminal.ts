@@ -1,13 +1,9 @@
 // The Wasm Terminal
-
-import { Terminal, ITerminalOptions, IBufferLine } from "xterm";
-
-// tslint:disable-next-line
-import * as fit from "xterm/lib/addons/fit/fit";
-// tslint:disable-next-line
-Terminal.applyAddon(fit);
-
+import * as xterm from "xterm";
+const Terminal = xterm.Terminal;
+import { FitAddon } from "xterm-addon-fit";
 import { WebLinksAddon } from "xterm-addon-web-links";
+// import { WebglAddon } from 'xterm-addon-webgl';
 
 import WasmTerminalConfig from "./wasm-terminal-config";
 import WasmTty from "./wasm-tty/wasm-tty";
@@ -16,9 +12,10 @@ import WasmShell from "./wasm-shell/wasm-shell";
 const MOBILE_KEYBOARD_EVENTS = ["click", "tap"];
 
 export default class WasmTerminal {
-  xterm: Terminal;
+  xterm: any;
   container: HTMLElement | undefined;
   webLinksAddon: WebLinksAddon;
+  fitAddon: FitAddon;
 
   wasmTerminalConfig: WasmTerminalConfig;
   wasmTty: WasmTty;
@@ -35,11 +32,13 @@ export default class WasmTerminal {
     this.wasmTerminalConfig = new WasmTerminalConfig(config);
 
     // Create our xterm element
-    this.xterm = new Terminal();
+    this.xterm = new Terminal({
+      // rendererType: 'dom'
+    });
     // tslint:disable-next-line
-    this.pasteEvent = this.xterm.on("paste", this.onPaste);
+    // this.pasteEvent = this.xterm.on("paste", this.onPaste);
     // tslint:disable-next-line
-    this.resizeEvent = this.xterm.on("resize", this.handleTermResize);
+    this.resizeEvent = this.xterm.onResize(this.handleTermResize);
     this.xterm.onKey((keyEvent: { key: string; domEvent: KeyboardEvent }) => {
       // Fix for iOS Keyboard Jumping on space
       if (keyEvent.key === " ") {
@@ -54,6 +53,8 @@ export default class WasmTerminal {
 
     // Load our addons
     this.webLinksAddon = new WebLinksAddon();
+    this.fitAddon = new FitAddon();
+    this.xterm.loadAddon(this.fitAddon);
     this.xterm.loadAddon(this.webLinksAddon);
 
     this.wasmTerminalConfig = new WasmTerminalConfig(config);
@@ -62,7 +63,7 @@ export default class WasmTerminal {
     this.wasmTty = new WasmTty(this.xterm);
     this.wasmShell = new WasmShell(this.wasmTerminalConfig, this.wasmTty);
     // tslint:disable-next-line
-    this.dataEvent = this.xterm.on("data", this.wasmShell.handleTermData);
+    this.dataEvent = this.xterm.onData(this.wasmShell.handleTermData);
 
     this.isOpen = false;
     this.pendingPrintOnOpen = "";
@@ -81,6 +82,7 @@ export default class WasmTerminal {
     this.container = container;
 
     this.xterm.open(container);
+    // this.xterm.loadAddon(new WebglAddon());
     this.isOpen = true;
     setTimeout(() => {
       // Fix for Mobile Browsers and their virtual keyboards
@@ -102,7 +104,7 @@ export default class WasmTerminal {
   }
 
   fit() {
-    (this.xterm as any).fit();
+    this.fitAddon.fit();
   }
 
   focus() {
@@ -142,7 +144,7 @@ export default class WasmTerminal {
     window.scrollTo(scrollX, scrollY);
   }
 
-  print(message: string) {
+  print(message: string, sync?: boolean) {
     // For some reason, double new lines are not respected. Thus, fixing that here
     message = message.replace(/\n\n/g, "\n \n");
 
@@ -158,13 +160,13 @@ export default class WasmTerminal {
     if (this.wasmShell.isPrompting) {
       // Cancel the current prompt and restart
       this.wasmShell.printAndRestartPrompt(() => {
-        this.wasmTty.print(message + "\n");
+        this.wasmTty.print(message + "\n", sync);
         return undefined;
       });
       return;
     }
 
-    this.wasmTty.print(message);
+    this.wasmTty.print(message, sync);
   }
 
   runCommand(line: string) {
@@ -175,13 +177,7 @@ export default class WasmTerminal {
   }
 
   destroy() {
-    // tslint:disable-next-line
-    this.xterm.off("paste", this.onPaste);
-    // tslint:disable-next-line
-    this.xterm.off("resize", this.handleTermResize);
-    // tslint:disable-next-line
-    this.xterm.off("data", this.wasmShell.handleTermData);
-    this.xterm.destroy();
+    this.xterm.dispose();
     delete this.xterm;
   }
 

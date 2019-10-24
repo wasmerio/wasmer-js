@@ -69,7 +69,7 @@ let plugins = [
   // Copy over some assets for running the wasm terminal
   copy({
     targets: [
-      { src: "./node_modules/xterm/dist/xterm.css", dest: "dist/xterm/" }
+      { src: "./node_modules/xterm/css/xterm.css", dest: "dist/xterm/" }
     ]
   }),
   process.env.PROD ? compiler() : undefined,
