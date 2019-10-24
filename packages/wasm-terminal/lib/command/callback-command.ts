@@ -1,11 +1,7 @@
-// The class for WASI Commands
-
-import WASI from "@wasmer/wasi";
-import WasmFs from "@wasmer/wasmfs";
-
 import Command from "./command";
 import CommandOptions from "./command-options";
 
+// The class for WASI Commands
 export default class CallbackCommand extends Command {
   callback: Function;
 

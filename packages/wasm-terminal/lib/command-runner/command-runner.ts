@@ -219,7 +219,12 @@ export default class CommandRunner {
       // WasmFs File System JSON
       wasmFsJson,
       // Data Callback
-      Comlink.proxy(this._processDataCallback.bind(this, commandOptionIndex)),
+      Comlink.proxy(
+        this._processDataCallback.bind(this, {
+          commandOptionIndex,
+          sync: false
+        })
+      ),
       // End Callback
       Comlink.proxy(
         this._processEndCallback.bind(this, {
@@ -259,7 +264,7 @@ export default class CommandRunner {
       // WasmFs File System JSON
       wasmFsJson,
       // Data Callback
-      this._processDataCallback.bind(this, commandOptionIndex),
+      this._processDataCallback.bind(this, { commandOptionIndex, sync: true }),
       // End Callback
       this._processEndCallback.bind(this, { commandOptionIndex }),
       // Error Callback
@@ -271,7 +276,10 @@ export default class CommandRunner {
     };
   }
 
-  _processDataCallback(commandOptionIndex: number, data: Uint8Array) {
+  _processDataCallback(
+    { commandOptionIndex, sync }: { commandOptionIndex: number; sync: boolean },
+    data: Uint8Array
+  ) {
     if (!this.isRunning) return;
 
     if (commandOptionIndex < this.commandOptionsForProcessesToRun.length - 1) {
@@ -294,7 +302,7 @@ export default class CommandRunner {
       // Write the output to our terminal
       let dataString = new TextDecoder("utf-8").decode(data);
       if (this.wasmTty) {
-        this.wasmTty.print(dataString);
+        this.wasmTty.print(dataString, sync);
       }
     }
   }
