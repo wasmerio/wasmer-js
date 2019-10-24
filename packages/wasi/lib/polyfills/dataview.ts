@@ -12,10 +12,26 @@ if (!exportedDataView.prototype.setBigUint64) {
     value: BigIntPolyfillType,
     littleEndian: boolean | undefined
   ) {
-    let lowWord = value;
-    let highWord = 0;
-    this.setUint32(littleEndian ? 0 : 4, lowWord, littleEndian);
-    this.setUint32(littleEndian ? 4 : 0, highWord, littleEndian);
+    let lowWord;
+    let highWord;
+
+    if (value < 2 ** 32) {
+      lowWord = value;
+      highWord = 0;
+    } else {
+      var bigNumberAsBinaryStr = value.toString(2);
+      // Convert the above binary str to 64 bit (actually 52 bit will work) by padding zeros in the left
+      var bigNumberAsBinaryStr2 = "";
+      for (var i = 0; i < 64 - bigNumberAsBinaryStr.length; i++) {
+        bigNumberAsBinaryStr2 += "0";
+      }
+      bigNumberAsBinaryStr2 += bigNumberAsBinaryStr;
+      lowWord = parseInt(bigNumberAsBinaryStr2.substring(0, 32), 2);
+      highWord = parseInt(bigNumberAsBinaryStr2.substring(32), 2);
+    }
+
+    this.setUint32(byteOffset + (littleEndian ? 0 : 4), lowWord, littleEndian);
+    this.setUint32(byteOffset + (littleEndian ? 4 : 0), highWord, littleEndian);
   };
 }
 
