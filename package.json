@@ -13,7 +13,7 @@
   },
   "license": "MIT",
   "scripts": {
-    "postinstall": "npx run-s lerna:bootstrap",
+    "postinstall": "npx run-s lerna:bootstrap lerna:install",
     "build": "npm run lerna:build",
     "dev": "npm run lerna:build:wasm-transformer && parcel examples/wasm-shell/index.html",
     "deploy": "npx run-s wasm-transformer:build lerna:build lerna:publish",
@@ -23,6 +23,7 @@
     "lint:js": "npx prettier --write packages/**/rollup.*.js",
     "lint:ts:tslint": "npx tslint --project tsconfig.json -t codeFrame 'packages/**/*.ts'",
     "lint:ts:preetier": "npx prettier --write packages/**/*.ts",
+    "lerna:install": "npx lerna exec npm install",
     "lerna:bootstrap": "npx lerna bootstrap",
     "lerna:build": "npx lerna run build",
     "lerna:build:wasm-transformer": "npx lerna run --scope @wasmer/wasm-transformer build",
@@ -30,7 +31,7 @@
     "lerna:build:dev:wasi": "npx lerna run --scope @wasmer/wasi --loglevel error build:dev",
     "lerna:build:dev:wasmfs": "npx lerna run --scope @wasmer/wasmfs --loglevel error build:dev",
     "lerna:build:dev:wasm-terminal": "npx lerna run --scope @wasmer/wasm-terminal --loglevel error build:dev",
-    "lerna:publish": "npx lerna publish",
+    "lerna:publish": "npx lerna publish --force-publish",
     "wasm-transformer:build": "(cd crates/wasm_transformer && ./wasm_transformer_build.sh)"
   },
   "husky": {
