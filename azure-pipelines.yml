@@ -8,9 +8,8 @@ trigger:
 
 pool:
   vmImage: "ubuntu-latest"
-
-  variables:
-    npm_config_cache: $(Pipeline.Workspace)/.npm
+  # variables:
+  #   npm_config_cache: $(Pipeline.Workspace)/.npm
 
 steps:
   - task: NodeTool@0
@@ -18,11 +17,11 @@ steps:
       versionSpec: "12.x"
     displayName: "Install Node.js"
 
-  - task: CacheBeta@0
-    inputs:
-      key: npm | $(Agent.OS) | package-lock.json
-      path: $(npm_config_cache)
-    displayName: Cache npm
+  # - task: CacheBeta@0
+  #   inputs:
+  #     key: npm | $(Agent.OS) | package-lock.json
+  #     path: $(npm_config_cache)
+  #   displayName: Cache npm
 
   - script: |
       npm install
