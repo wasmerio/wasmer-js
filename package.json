@@ -13,7 +13,7 @@
   },
   "license": "MIT",
   "scripts": {
-    "postinstall": "npx run-s lerna:bootstrap lerna:install lerna:link",
+    "postinstall": "npx run-s lerna:bootstrap lerna:install lerna:install:wasmfs lerna:link",
     "build": "npm run lerna:build",
     "dev": "npm run lerna:build:wasm-transformer && npx parcel examples/wasm-shell/index.html",
     "deploy": "npx run-s wasm-transformer:build lerna:build lerna:publish",
@@ -25,6 +25,7 @@
     "lint:ts:preetier": "npx prettier --write packages/**/*.ts",
     "lerna:bootstrap": "npx lerna bootstrap --force-local",
     "lerna:install": "npx lerna exec npm install",
+    "lerna:install:wasmfs": "npx lerna exec npm install --scope=@wasmer/wasmfs",
     "lerna:link": "npx lerna link",
     "lerna:build": "npx lerna run build",
     "lerna:build:wasm-transformer": "npx lerna run --scope @wasmer/wasm-transformer build",
