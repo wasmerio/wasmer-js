@@ -13,7 +13,7 @@
   },
   "license": "MIT",
   "scripts": {
-    "postinstall": "npx run-s lerna:bootstrap lerna:install",
+    "postinstall": "npx run-s lerna:bootstrap",
     "build": "npm run lerna:build",
     "dev": "npm run lerna:build:wasm-transformer && parcel examples/wasm-shell/index.html",
     "deploy": "npx run-s wasm-transformer:build lerna:build lerna:publish",
@@ -23,7 +23,6 @@
     "lint:js": "npx prettier --write packages/**/rollup.*.js",
     "lint:ts:tslint": "npx tslint --project tsconfig.json -t codeFrame 'packages/**/*.ts'",
     "lint:ts:preetier": "npx prettier --write packages/**/*.ts",
-    "lerna:install": "npx lerna exec npm install",
     "lerna:bootstrap": "npx lerna bootstrap",
     "lerna:build": "npx lerna run build",
     "lerna:build:wasm-transformer": "npx lerna run --scope @wasmer/wasm-transformer build",
