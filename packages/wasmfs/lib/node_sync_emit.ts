@@ -1,4 +1,4 @@
-import { Node } from "memfs/src/node";
+import { Node } from "memfs/lib/node";
 
 // Make emit synchronous
 Node.prototype.emit = function(
