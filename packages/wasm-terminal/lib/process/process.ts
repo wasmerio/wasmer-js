@@ -68,9 +68,12 @@ export default class Process {
     );
 
     commandStream.on("end", () => {
-      // TODO: Diff the two objects and only send that back
-      const currentWasmFsJson = this.wasmFs.toJSON();
-      this.endCallback(currentWasmFsJson);
+      // Set timeout to allow any lingering data callback to be launched out
+      setTimeout(() => {
+        // TODO: Diff the two objects and only send that back
+        const currentWasmFsJson = this.wasmFs.toJSON();
+        this.endCallback(currentWasmFsJson);
+      }, 100);
     });
 
     try {
@@ -83,7 +86,11 @@ export default class Process {
 
       if (e.code === 0) {
         // Command was successful, but ended early.
-        this.endCallback(currentWasmFsJson);
+
+        // Set timeout to allow any lingering data callback to be launched out
+        setTimeout(() => {
+          this.endCallback(currentWasmFsJson);
+        }, 100);
         return;
       }
 
