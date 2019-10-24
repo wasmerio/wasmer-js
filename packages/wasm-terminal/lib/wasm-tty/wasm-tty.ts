@@ -1,4 +1,4 @@
-import { Terminal, IBuffer, IBufferLine } from "xterm";
+import { Terminal, IBuffer } from "xterm";
 import { countLines, offsetToColRow } from "./tty-utils";
 import { ActiveCharPrompt, ActivePrompt } from "../wasm-shell/shell-utils";
 
@@ -110,9 +110,21 @@ export default class WasmTTY {
   /**
    * Prints a message and properly handles new-lines
    */
-  print(message: string) {
-    const normInput = message.replace(/[\r\n]+/g, "\n");
-    this.xterm.write(normInput.replace(/\n/g, "\r\n"));
+  print(message: string, sync?: boolean) {
+    const normInput = message.replace(/[\r\n]+/g, "\n").replace(/\n/g, "\r\n");
+    if (sync) {
+      // We write it synchronously via hacking a bit on xterm
+
+      //@ts-ignore
+      this.xterm._core.writeSync(normInput);
+      //@ts-ignore
+      this.xterm._core._renderService._renderer._runOperation(renderer =>
+        renderer.onGridChanged(0, this.xterm.rows - 1)
+      );
+    } else {
+      //@ts-ignore
+      this.xterm.write(normInput);
+    }
   }
 
   /**

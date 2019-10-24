@@ -56,10 +56,10 @@ export default class WASICommand extends Command {
   sharedStdin?: Int32Array;
   startStdinReadCallback?: Function;
   pipedStdin: string;
+  stdinPrompt: string = "";
 
   readStdinCounter: number;
 
-  stdoutLog: string;
   stdoutCallback?: Function;
 
   constructor(
@@ -82,8 +82,6 @@ export default class WASICommand extends Command {
     this.startStdinReadCallback = startStdinReadCallback;
     this.readStdinCounter = 0;
     this.pipedStdin = "";
-
-    this.stdoutLog = "";
 
     this.wasi = new WASI({
       preopenDirectories: {
@@ -144,11 +142,12 @@ export default class WASICommand extends Command {
     if (this.stdoutCallback) {
       this.stdoutCallback(stdoutBuffer);
     }
-
-    // Record all of our stdout to show in the prompt
-    let dataString = new TextDecoder("utf-8").decode(stdoutBuffer);
-    this.stdoutLog += dataString;
-
+    let dataLines = new TextDecoder("utf-8").decode(stdoutBuffer).split("\n");
+    if (dataLines.length > 0) {
+      this.stdinPrompt = cleanStdout(dataLines[dataLines.length - 1]);
+    } else {
+      this.stdinPrompt = "";
+    }
     return stdoutBuffer.length;
   }
 
@@ -188,17 +187,21 @@ export default class WASICommand extends Command {
       responseStdin = new TextDecoder("utf-8").decode(newStdinData);
     } else {
       responseStdin = prompt(
-        this.stdoutLog.length > 0
-          ? cleanStdout(this.stdoutLog)
-          : "Please enter text for stdin:"
+        `Please enter text for stdin:\n${this.stdinPrompt}`
       );
       if (responseStdin === null) {
+        if (this.stdoutCallback) {
+          this.stdoutCallback(new TextEncoder().encode("\n"));
+        }
         const userError = new Error("Process killed by user");
         (userError as any).user = true;
         throw userError;
         return -1;
       }
       responseStdin += "\n";
+      if (this.stdoutCallback) {
+        this.stdoutCallback(new TextEncoder().encode(responseStdin));
+      }
     }
 
     // First check for errors

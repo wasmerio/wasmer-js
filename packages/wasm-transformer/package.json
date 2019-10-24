@@ -13,12 +13,11 @@
     "README.md"
   ],
   "scripts": {
-    "build": "npx run-s build:prod build:cpy:wasm-pack build:cpy:wasm build:move:wasm",
+    "build": "npx run-s build:prod build:copy:wasm-pack build:copy:wasm",
     "build:prod": "npx rollup -c --environment PROD",
     "build:dev": "npx rollup -c --environment DEV",
-    "build:cpy:wasm-pack": "npx cpy 'wasm-pack/**/*' 'dist' --parents",
-    "build:cpy:wasm": "npx cpy 'wasm-pack/web/wasm_transformer_bg.wasm' 'dist'",
-    "build:move:wasm": "mv dist/wasm_transformer_bg.wasm dist/wasm-transformer.wasm"
+    "build:copy:wasm-pack": "cp -R wasm-pack dist",
+    "build:copy:wasm": "cp wasm-pack/web/wasm_transformer_bg.wasm dist/wasm-transformer.wasm"
   },
   "repository": {
     "type": "git",
@@ -31,7 +30,6 @@
   },
   "homepage": "https://github.com/wasmerio/wasmer-js#readme",
   "devDependencies": {
-    "cpy-cli": "^2.0.0",
     "npm-run-all": "^4.1.5"
   }
 }

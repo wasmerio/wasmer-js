@@ -13,12 +13,12 @@
   ],
   "scripts": {
     "build": "npm run build:prod",
-    "build:prod": "npx rollup -c --environment LIB,WORKER,PROD",
-    "build:dev": "npx rollup -c --environment LIB,WORKER,DEV",
-    "dev": "npx watch \"npm run build:dev\" lib",
-    "test": "npx jest --config jest.config.js",
-    "test:watch": "npx jest --config jest.config.js --watchAll",
-    "docs": "npx typedoc lib/ --out docs --target es6 --theme minimal --mode file"
+    "build:prod": "rollup -c --environment LIB,WORKER,PROD",
+    "build:dev": "rollup -c --environment LIB,WORKER,DEV",
+    "dev": "watch \"npm run build:dev\" lib",
+    "test": "jest --config jest.config.js",
+    "test:watch": "jest --config jest.config.js --watchAll",
+    "docs": "typedoc lib/ --out docs --target es6 --theme minimal --mode file"
   },
   "repository": {
     "type": "git",
@@ -45,13 +45,15 @@
   },
   "homepage": "https://github.com/wasmerio/wasmer-js/tree/master/packages/wasm-terminal",
   "dependencies": {
-    "@wasmer/wasi": "^0.2.0",
-    "@wasmer/wasm-transformer": "^0.1.0",
-    "@wasmer/wasmfs": "^0.2.0",
+    "@wasmer/wasi": "file:../wasi",
+    "@wasmer/wasm-transformer": "file:../wasm-transformer",
+    "@wasmer/wasmfs": "file:../wasmfs",
     "comlink": "^4.0.2",
     "shell-parse": "0.0.2",
     "shell-quote": "^1.7.1",
-    "xterm": "^3.14.5",
-    "xterm-addon-web-links": "^0.2.1"
+    "xterm": "^4.1.0",
+    "xterm-addon-fit": "^0.2.1",
+    "xterm-addon-web-links": "^0.2.1",
+    "xterm-addon-webgl": "^0.2.1"
   }
 }
