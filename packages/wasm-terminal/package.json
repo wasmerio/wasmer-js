@@ -45,15 +45,17 @@
   },
   "homepage": "https://github.com/wasmerio/wasmer-js/tree/master/packages/wasm-terminal",
   "dependencies": {
-    "@wasmer/wasi": "file:../wasi",
-    "@wasmer/wasm-transformer": "file:../wasm-transformer",
-    "@wasmer/wasmfs": "file:../wasmfs",
-    "comlink": "^4.0.2",
+    "@wasmer/wasi": "^0.2.0",
+    "@wasmer/wasmfs": "^0.2.0",
+    "comlink": "^4.0.5",
     "shell-parse": "0.0.2",
     "shell-quote": "^1.7.1",
     "xterm": "^4.1.0",
     "xterm-addon-fit": "^0.2.1",
     "xterm-addon-web-links": "^0.2.1",
     "xterm-addon-webgl": "^0.2.1"
+  },
+  "devDependencies": {
+    "rollup-plugin-node-builtins": "git+https://github.com/torch2424/rollup-plugin-node-builtins.git"
   }
 }

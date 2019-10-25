@@ -9,7 +9,6 @@ import json from "rollup-plugin-json";
 import compiler from "@ampproject/rollup-plugin-closure-compiler";
 import bundleSize from "rollup-plugin-bundle-size";
 import alias from "rollup-plugin-alias";
-import pkg from "./package.json";
 
 const sourcemapOption = process.env.PROD ? undefined : "inline";
 
