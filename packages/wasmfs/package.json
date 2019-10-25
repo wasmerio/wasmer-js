@@ -1,6 +1,6 @@
 {
   "name": "@wasmer/wasmfs",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Isomorphic library to provide a sandboxed node fs implementation for Node and Browsers. 📂",
   "main": "dist/index.cjs.js",
   "module": "dist/index.esm.js",
