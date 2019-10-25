@@ -50,5 +50,6 @@
     "buffer-es6": "^4.9.3",
     "path-browserify": "^1.0.0",
     "randomfill": "^1.0.4"
-  }
+  },
+  "gitHead": "151a09b8713b3b8b4653bba9ada6eca3eec752c5"
 }
