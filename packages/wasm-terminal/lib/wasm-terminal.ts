@@ -1,5 +1,5 @@
 // The Wasm Terminal
-import * as xterm from "xterm";
+import xterm from "xterm";
 const Terminal = xterm.Terminal;
 import { FitAddon } from "xterm-addon-fit";
 import { WebLinksAddon } from "xterm-addon-web-links";
