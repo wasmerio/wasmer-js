@@ -24,7 +24,7 @@ const msleep = n => {
 };
 
 // Set up our file system (NOTE: We could use node's fs normally for this case)
-const wasmerFs = new WasmerFileSystem();
+const wasmerFs = new WasmerFileSystem.default();
 //stdin reading
 let stdinReadCounter = 0;
 const stdinRead = (stdinBuffer, offset, length, position) => {
