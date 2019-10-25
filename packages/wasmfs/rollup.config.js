@@ -2,18 +2,15 @@
 
 import resolve from "rollup-plugin-node-resolve";
 import commonjs from "rollup-plugin-commonjs";
-import builtins from "rollup-plugin-node-builtins";
 import globals from "rollup-plugin-node-globals";
 import typescript from "rollup-plugin-typescript2";
 import json from "rollup-plugin-json";
 import compiler from "@ampproject/rollup-plugin-closure-compiler";
 import bundleSize from "rollup-plugin-bundle-size";
+import builtins from "rollup-plugin-node-builtins";
 import pkg from "./package.json";
 
 const sourcemapOption = process.env.PROD ? undefined : "inline";
-
-const fs = require("fs");
-const mkdirp = require("mkdirp");
 
 let typescriptPluginOptions = {
   tsconfig: "../../tsconfig.json",

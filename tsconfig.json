@@ -1,12 +1,8 @@
 {
-  "include": [
-    "**/node_modules/comlink/**/*",
-    "**/node_modules/comlink/**/*",
-    "3p-modules.d.ts"
-  ],
+  "include": ["**/node_modules/comlink/**/*", "3p-modules.d.ts"],
   "compilerOptions": {
-    "moduleResolution": "node",
     "target": "es5",
+    "moduleResolution": "node",
     "lib": ["esnext", "dom"],
     "strict": true,
     "sourceMap": true,
