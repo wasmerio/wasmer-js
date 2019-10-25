@@ -5,7 +5,7 @@
   "main": "dist/wasm-pack/node/wasm_transformer.js",
   "module": "dist/unoptimized/wasm-transformer.esm.js",
   "browser": "dist/unoptimized/wasm-transformer.iife.js",
-  "typings": "dist/unoptimized/packages/wasm-transformer/lib/unoptimized.d.ts",
+  "typings": "dist/unoptimized/wasm-transformer/lib/unoptimized.d.ts",
   "files": [
     "dist",
     "package.json",

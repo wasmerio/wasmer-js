@@ -2,6 +2,7 @@
 
 import resolve from "rollup-plugin-node-resolve";
 import commonjs from "rollup-plugin-commonjs";
+import builtins from "rollup-plugin-node-builtins";
 import globals from "rollup-plugin-node-globals";
 import typescript from "rollup-plugin-typescript2";
 import json from "rollup-plugin-json";
@@ -27,6 +28,7 @@ let plugins = [
   }),
   commonjs(),
   globals(),
+  builtins(),
   json(),
   process.env.PROD ? compiler() : undefined,
   process.env.PROD ? bundleSize() : undefined

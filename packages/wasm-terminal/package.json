@@ -4,7 +4,7 @@
   "description": "A terminal-like component for the browser, that fetches and runs Wasm modules in the context of a shell. 🐚",
   "module": "dist/unoptimized/wasm-terminal.esm.js",
   "browser": "dist/unoptimized/wasm-terminal.iife.js",
-  "typings": "dist/packages/wasm-terminal/lib/index.d.ts",
+  "typings": "dist/wasm-terminal/lib/index.d.ts",
   "files": [
     "dist",
     "package.json",
@@ -54,8 +54,5 @@
     "xterm-addon-fit": "^0.2.1",
     "xterm-addon-web-links": "^0.2.1",
     "xterm-addon-webgl": "^0.2.1"
-  },
-  "devDependencies": {
-    "rollup-plugin-node-builtins": "git+https://github.com/torch2424/rollup-plugin-node-builtins.git"
   }
 }

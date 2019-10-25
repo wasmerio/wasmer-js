@@ -3,7 +3,7 @@ const { spy } = require("spyfs");
 const sinon = require("sinon");
 const WASI = require("../../packages/wasi/dist/index.cjs.js");
 const wasmTransformer = require("../../packages/wasm-transformer");
-const WasmerFileSystem = require("../../packages/wasmfs/dist/index.cjs.js");
+const { WasmFs } = require("../../packages/wasmfs/dist/index.cjs.js");
 const argv = require("minimist")(process.argv.slice(2));
 const chalk = require("chalk");
 var readline = require("readline");
@@ -24,7 +24,7 @@ const msleep = n => {
 };
 
 // Set up our file system (NOTE: We could use node's fs normally for this case)
-const wasmerFs = new WasmerFileSystem();
+const wasmerFs = new WasmFs();
 //stdin reading
 let stdinReadCounter = 0;
 const stdinRead = (stdinBuffer, offset, length, position) => {
