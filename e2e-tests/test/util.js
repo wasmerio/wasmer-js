@@ -4,16 +4,30 @@ const rollup = require("rollup");
 const resolve = require("rollup-plugin-node-resolve");
 const commonjs = require("rollup-plugin-commonjs");
 
-const rebundleOutput = async (originalBundle, bundleFormat, bundleName) => {
+const rebundleOutput = async (
+  originalBundle,
+  bundleFormat,
+  bundleName,
+  optionalImportString,
+  optionalExportString
+) => {
+  if (!optionalImportString) {
+    optionalImportString = "import defaultExport from './bundle.js';";
+  }
+  if (!optionalExportString) {
+    optionalExportString = "export default defaultExport";
+  }
+
   // Create a simple bundle that imports our bundle
   mkdirp.sync("./tmp-output");
   fs.writeFileSync("./tmp-output/bundle.js", originalBundle);
   fs.writeFileSync(
     "./tmp-output/index.js",
     `
-    import defaultExport from './bundle.js';
+
+    ${optionalImportString}
     console.log('Temp Bundle!');
-    export default defaultExport;
+    ${optionalExportString};
   `
   );
 
