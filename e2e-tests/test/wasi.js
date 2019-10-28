@@ -67,10 +67,4 @@ describe("@wasmer/wasi", function() {
 
     await testBrowserBundle(bundle);
   });
-
-  it("Should timeout", () => {
-    return new Promise(resolve => {
-      // Never resolve
-    });
-  });
 });
