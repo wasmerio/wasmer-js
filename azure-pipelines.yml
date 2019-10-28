@@ -29,5 +29,12 @@ steps:
     displayName: "npm install and build"
 
   - script: |
+      cd e2e-tests
+      npm install
+      npm run test
+      cd ..
+    displayName: "End to End (E2E) Tests"
+
+  - script: |
       npm test
     displayName: "npm test"
