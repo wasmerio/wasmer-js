@@ -67,4 +67,8 @@ describe("@wasmer/wasi", function() {
 
     await testBrowserBundle(bundle);
   });
+
+  it("Should fail", () => {
+    assert.equal(true, false);
+  });
 });
