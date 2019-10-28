@@ -1,0 +1,11 @@
+{
+  "scripts": {
+    "test": "npx mocha --exit"
+  },
+  "devDependencies": {
+    "mkdirp": "^0.5.1",
+    "mocha": "^6.2.2",
+    "puppeteer": "^2.0.0",
+    "require-from-string": "^2.0.2"
+  }
+}
