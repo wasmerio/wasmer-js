@@ -30,10 +30,10 @@ steps:
 
   - script: |
       cd e2e-tests
-      npm installl
+      npm install
       npm run test
       cd ..
-    displayName: "End to end Tests"
+    displayName: "End to End (E2E) Tests"
 
   - script: |
       npm test
