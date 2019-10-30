@@ -538,8 +538,12 @@ export default class WASIDefault {
         this.view.setUint8(bufPtr, stats.filetype); // FILETYPE u8
         this.view.setUint16(bufPtr + 2, 0, true); // FDFLAG u16
         this.view.setUint16(bufPtr + 4, 0, true); // FDFLAG u16
-        this.view.setBigUint64(bufPtr + 8, stats.rights.base, true); // u64
-        this.view.setBigUint64(bufPtr + 8 + 8, stats.rights.inheriting, true); // u64
+        this.view.setBigUint64(bufPtr + 8, BigInt(stats.rights.base), true); // u64
+        this.view.setBigUint64(
+          bufPtr + 8 + 8,
+          BigInt(stats.rights.inheriting),
+          true
+        ); // u64
         return WASI_ESUCCESS;
       }),
       fd_fdstat_set_flags: wrap((fd: number, flags: number) => {
