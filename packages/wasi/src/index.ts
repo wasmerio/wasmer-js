@@ -254,7 +254,7 @@ interface Rights {
 
 interface File {
   real: number;
-  offset: bigint;
+  offset?: bigint;
   filetype?: any;
   rights: Rights;
   path?: any;
@@ -354,7 +354,7 @@ export default class WASIDefault {
         {
           real: 0,
           filetype: undefined,
-          offset: BigInt(0),
+          // offset: BigInt(0),
           rights: {
             base: RIGHTS_REGULAR_FILE_BASE,
             inheriting: BigInt(0)
@@ -367,7 +367,7 @@ export default class WASIDefault {
         {
           real: 1,
           filetype: undefined,
-          offset: BigInt(0),
+          // offset: BigInt(0),
           rights: {
             base: RIGHTS_REGULAR_FILE_BASE,
             inheriting: BigInt(0)
@@ -380,7 +380,7 @@ export default class WASIDefault {
         {
           real: 2,
           filetype: undefined,
-          offset: BigInt(0),
+          // offset: BigInt(0),
           rights: {
             base: RIGHTS_REGULAR_FILE_BASE,
             inheriting: BigInt(0)
@@ -399,7 +399,7 @@ export default class WASIDefault {
       this.FD_MAP.set(newfd, {
         real,
         filetype: WASI_FILETYPE_DIRECTORY,
-        offset: BigInt(0),
+        // offset: BigInt(0),
         rights: {
           base: RIGHTS_DIRECTORY_BASE,
           inheriting: RIGHTS_DIRECTORY_INHERITING
@@ -724,7 +724,10 @@ export default class WASIDefault {
             let r = 0;
             while (r < iov.byteLength) {
               let length = iov.byteLength - r;
-              let position = IS_STDIN ? undefined : Number(stats.offset);
+              let position =
+                IS_STDIN || stats.offset === undefined
+                  ? null
+                  : Number(stats.offset);
               let rr = fs.readSync(
                 stats.real, // fd
                 iov, // buffer
@@ -732,6 +735,10 @@ export default class WASIDefault {
                 length, // length
                 position // position
               );
+              if (!IS_STDIN) {
+                stats.offset =
+                  (stats.offset ? stats.offset : BigInt(0)) + BigInt(rr);
+              }
               r += rr;
               read += rr;
               // If we don't read anything, or we receive less than requested
@@ -741,9 +748,6 @@ export default class WASIDefault {
             }
           }
           // We should not modify the offset of stdin
-          if (!IS_STDIN) {
-            stats.offset += BigInt(read);
-          }
           this.view.setUint32(nread, read, true);
           return WASI_ESUCCESS;
         }
@@ -832,7 +836,8 @@ export default class WASIDefault {
           this.refreshMemory();
           switch (whence) {
             case WASI_WHENCE_CUR:
-              stats.offset = stats.offset + BigInt(offset);
+              stats.offset =
+                (stats.offset ? stats.offset : BigInt(0)) + BigInt(offset);
               break;
             case WASI_WHENCE_END:
               const { size } = fs.fstatSync(stats.real);
