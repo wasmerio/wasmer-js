@@ -3,7 +3,7 @@ const fs = require("fs");
 const { isatty: isTTY } = require("tty");
 const path = require("path");
 
-import { WASIBindings } from "../wasi";
+import { WASIBindings } from "../index";
 import { BigIntPolyfillType } from "../polyfills/bigint";
 import getBigIntHrtime from "../polyfills/hrtime.bigint";
 
