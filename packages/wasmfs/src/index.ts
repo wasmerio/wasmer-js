@@ -9,7 +9,7 @@ const assert = (cond: boolean, message: string) => {
   }
 };
 
-export default class WasmFsService {
+export default class WasmFs {
   volume: Volume;
   fs: IFs;
 
@@ -50,4 +50,4 @@ export default class WasmFsService {
   }
 }
 
-export class WasmFs extends WasmFsService {}
+export { WasmFs };

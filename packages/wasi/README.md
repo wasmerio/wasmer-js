@@ -36,8 +36,8 @@ npm install --save @wasmer/wasi
 **This quick start is for browsers. For node, WasmFs is not required**
 
 ```js
-import WASI from "@wasmer/wasi";
-import WasmFs from "@wasmer/wasmfs";
+import { WASI } from "@wasmer/wasi";
+import { WasmFs } from "@wasmer/wasmfs";
 
 // Instantiate a new WASI Instance
 const wasmFs = new WasmFs();

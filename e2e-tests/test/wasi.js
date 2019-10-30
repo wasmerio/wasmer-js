@@ -25,12 +25,19 @@ const testBrowserBundle = async bundleString => {
 
   const response = await page.evaluate(`
       ${bundleString}
+      
+      let WASIConstructor;
+      if (WASI.default) {
+        WASIConstructor = WASI.default;
+      } else {
+        WASIConstructor = WASI;
+      }
 
-      const wasi = new WASI({
+      const wasi = new WASIConstructor({
         args: [],
         env: {},
         bindings: {
-          ...WASI.defaultBindings
+          ...WASIConstructor.defaultBindings
         }
       });
 

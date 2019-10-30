@@ -2,7 +2,7 @@
 import * as fs from "fs";
 
 // Import WasmFs
-import WasmFs from "../../wasmfs/src/index";
+import { WasmFs } from "../../wasmfs/src/index";
 
 // Since we are importing the lib directly, also we need to import our
 // Node bindings. For the normal library, default bindings are provided :)
@@ -14,7 +14,7 @@ bigIntPolyfill.BigIntPolyfill = global.Number;
 if ((global as any).BigInt) {
   bigIntPolyfill.BigIntPolyfill = (global as any).BigInt;
 }
-import WASI from "../src";
+import { WASI } from "../src";
 import WASINodeBindings from "../src/bindings/node";
 
 const bytesConverter = (buffer: Buffer): Buffer => {
