@@ -5,7 +5,7 @@
   "author": "Wasmer Engineering Team <engineering@wasmer.io>",
   "license": "MIT",
   "bin": {
-    "wasmer-js": "./bin/run"
+    "wasmer-js": "./bin/wasmer-js"
   },
   "dependencies": {
     "@oclif/command": "^1.5.19",
