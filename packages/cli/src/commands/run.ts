@@ -1,6 +1,6 @@
 import { Command, flags } from "@oclif/command";
-import { WASI } from "@wasmer/wasi";
 import nodeBindings from "@wasmer/wasi/lib/bindings/node";
+import { WASI } from "@wasmer/wasi";
 import { lowerI64Imports } from "@wasmer/wasm-transformer";
 import * as fs from "fs";
 
