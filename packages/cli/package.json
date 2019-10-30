@@ -1,8 +1,9 @@
 {
   "name": "@wasmer/cli",
   "description": "The CLI for executing Wasmer-JS",
-  "version": "0.0.1",
-  "author": "Syrus Akbary",
+  "version": "0.3.2",
+  "author": "Wasmer Engineering Team <engineering@wasmer.io>",
+  "license": "MIT",
   "bin": {
     "wasmer-js": "./bin/run"
   },
@@ -42,7 +43,6 @@
   "keywords": [
     "oclif"
   ],
-  "license": "MIT",
   "main": "lib/index.js",
   "oclif": {
     "commands": "./lib/commands",
