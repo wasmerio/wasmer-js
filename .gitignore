@@ -20,3 +20,4 @@ compiled
 docs
 /examples/wasm-shell/dist
 /dist
+oclif.manifest.json
