@@ -22,11 +22,11 @@ describe("hrtime Polyfill", () => {
     // Wait for a second
     await waitForTime(1000);
     diffTime = hrtime() - start;
-    expect(diffTime > 1.0e9 && diffTime < 1.3e9).toBeTruthy();
+    expect(diffTime > 0.9e9 && diffTime < 1.4e9).toBeTruthy();
 
     // Wait an additoonal half a second
     await waitForTime(500);
     diffTime = hrtime() - start;
-    expect(diffTime > 1.5e9 && diffTime < 1.8e9).toBeTruthy();
+    expect(diffTime > 1.4e9 && diffTime < 1.9e9).toBeTruthy();
   });
 });

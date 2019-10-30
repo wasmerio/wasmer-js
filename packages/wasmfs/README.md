@@ -32,7 +32,7 @@ npm install --save @wasmer/wasmfs
 ## Quick Start
 
 ```js
-import WasmFs from "@wasmer/wasmfs";
+import { WasmFs } from "@wasmer/wasmfs";
 
 const wasmFs = new WasmFs();
 

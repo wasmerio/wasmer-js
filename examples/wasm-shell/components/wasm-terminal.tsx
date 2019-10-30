@@ -7,7 +7,7 @@ import WasmTerminal, {
   // @ts-ignore
 } from "@wasmer/wasm-terminal";
 
-import WASI from "@wasmer/wasi";
+import { WASI } from "@wasmer/wasi";
 import BrowserWASIBindings from "@wasmer/wasi/bindings/browser";
 // @ts-ignore
 import { lowerI64Imports } from "@wasmer/wasm-transformer";
