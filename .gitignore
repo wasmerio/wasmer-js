@@ -19,3 +19,4 @@ compiled
 .rpt2_cache
 docs
 /examples/wasm-shell/dist
+/dist
