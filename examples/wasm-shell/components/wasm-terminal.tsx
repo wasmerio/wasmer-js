@@ -59,7 +59,8 @@ const fetchCommandHandler = async (
 /**
  * A simple preact wrapper around the Wasm Terminal
  */
-const processWorkerUrl = document.getElementById("worker").src;
+const processWorkerUrl = (document.getElementById("worker") as HTMLImageElement)
+  .src;
 
 export default class WasmTerminalComponent extends Component {
   container: HTMLElement | null;

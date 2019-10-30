@@ -73,9 +73,9 @@ const optimizedBrowserPlugins = [replace(replaceBrowserOptions), ...plugins];
 
 const unoptimizedBundles = [
   {
-    input: "./lib/unoptimized.ts",
+    input: "./src/unoptimized.ts",
     output: {
-      file: "dist/unoptimized/wasm-transformer.esm.js",
+      file: "lib/unoptimized/wasm-transformer.esm.js",
       format: "esm",
       sourcemap: sourcemapOption
     },
@@ -85,9 +85,9 @@ const unoptimizedBundles = [
     plugins: unoptimizedBrowserPlugins
   },
   {
-    input: "./lib/unoptimized.ts",
+    input: "./src/unoptimized.ts",
     output: {
-      file: "dist/unoptimized/wasm-transformer.iife.js",
+      file: "lib/unoptimized/wasm-transformer.iife.js",
       format: "iife",
       name: "WasmTransformer",
       exports: "named",
@@ -102,9 +102,9 @@ const unoptimizedBundles = [
 
 const optimizedBundles = [
   {
-    input: "./lib/optimized.ts",
+    input: "./src/optimized.ts",
     output: {
-      file: "dist/optimized/wasm-transformer.esm.js",
+      file: "lib/optimized/wasm-transformer.esm.js",
       format: "esm",
       sourcemap: sourcemapOption
     },
@@ -114,9 +114,9 @@ const optimizedBundles = [
     plugins: optimizedBrowserPlugins
   },
   {
-    input: "./lib/optimized.ts",
+    input: "./src/optimized.ts",
     output: {
-      file: "dist/optimized/wasm-transformer.iife.js",
+      file: "lib/optimized/wasm-transformer.iife.js",
       format: "iife",
       name: "WasmTransformer",
       exports: "named",

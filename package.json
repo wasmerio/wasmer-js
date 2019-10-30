@@ -15,9 +15,10 @@
   "scripts": {
     "postinstall": "npx run-s lerna:bootstrap lerna:install lerna:install:wasmfs lerna:link",
     "build": "npm run lerna:build",
-    "dev": "npm run lerna:build:wasm-transformer && npx parcel examples/wasm-shell/index.html",
+    "cli": "./packages/cli/bin/run",
+    "dev": "npx run-s lerna:build:wasm-transformer dev:serve",
+    "dev:serve": "parcel examples/wasm-shell/index.html",
     "deploy": "npx run-s wasm-transformer:build lerna:build lerna:publish",
-    "serve": "npx serve dist/ -p 8000",
     "test": "npx lerna run test --stream",
     "lint": "npx run-s lint:js lint:ts:tslint lint:ts:preetier",
     "lint:js": "npx prettier --write packages/**/rollup.*.js",

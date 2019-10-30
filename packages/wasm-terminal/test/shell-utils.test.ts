@@ -1,4 +1,4 @@
-import * as ShellUtils from "../lib/wasm-shell/shell-utils";
+import * as ShellUtils from "../src/wasm-shell/shell-utils";
 
 describe("ShellUtils", () => {
   describe("wordBoundaries", () => {

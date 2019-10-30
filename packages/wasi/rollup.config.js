@@ -49,7 +49,7 @@ const plugins = [
 
 const libBundles = [
   {
-    input: "./lib/index.ts",
+    input: "./src/index.ts",
     output: {
       file: pkg.module,
       format: "esm",
@@ -61,7 +61,7 @@ const libBundles = [
     plugins: [replace(replaceBrowserOptions), ...plugins]
   },
   {
-    input: "./lib/index.ts",
+    input: "./src/index.ts",
     output: {
       file: pkg.browser,
       format: "iife",
@@ -74,7 +74,7 @@ const libBundles = [
     plugins: [replace(replaceBrowserOptions), ...plugins]
   },
   {
-    input: "./lib/index.ts",
+    input: "./src/index.ts",
     output: {
       file: pkg.main,
       format: "cjs",

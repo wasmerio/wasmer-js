@@ -1,4 +1,4 @@
-import ShellHistory from "../lib/wasm-shell/shell-history";
+import ShellHistory from "../src/wasm-shell/shell-history";
 
 describe("ShellHistory", () => {
   let shellHistory: ShellHistory;

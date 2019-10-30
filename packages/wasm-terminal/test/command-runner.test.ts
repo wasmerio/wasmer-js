@@ -1,7 +1,7 @@
-import CommandRunner from "../lib/command-runner/command-runner";
+import CommandRunner from "../src/command-runner/command-runner";
 
 // Need to mock process inside command runner.
-jest.mock("../lib/process/process", () => {
+jest.mock("../src/process/process", () => {
   return jest.fn().mockImplementation(() => {
     return { mock: () => {} };
   });

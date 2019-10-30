@@ -59,7 +59,7 @@ const loweredBinary = wasmTransformer.lowerI64Imports(wasmBinary);
 
 ### Unoptimized Browser
 
-The default import of `@wasmer/wasm-transformer` points to the unoptimized bundle. This bundle **has the wasm file from the `wasm_transformer` crate as a Base64 encoded URL in the bundle.** This is done for convenience and developer experience. However, there are use cases where we you might don't want to use the inlined Wasm (for example, when working with [PWAs](https://developers.google.com/web/progressive-web-apps)) For that case, you should be using the `@wasmer/wasm-transformer/dist/optimized` version.
+The default import of `@wasmer/wasm-transformer` points to the unoptimized bundle. This bundle **has the wasm file from the `wasm_transformer` crate as a Base64 encoded URL in the bundle.** This is done for convenience and developer experience. However, there are use cases where we you might don't want to use the inlined Wasm (for example, when working with [PWAs](https://developers.google.com/web/progressive-web-apps)) For that case, you should be using the `@wasmer/wasm-transformer/lib/optimized` version.
 
 ```js
 import { lowerI64Imports } from "@wasmer/wasm-transformer";

@@ -68,9 +68,7 @@ let plugins = [
   json(),
   // Copy over some assets for running the wasm terminal
   copy({
-    targets: [
-      { src: "./node_modules/xterm/css/xterm.css", dest: "dist/xterm/" }
-    ]
+    targets: [{ src: "./node_modules/xterm/css/xterm.css", dest: "lib/xterm/" }]
   }),
   process.env.PROD ? compiler() : undefined,
   process.env.PROD ? bundleSize() : undefined
@@ -84,9 +82,9 @@ const unoptimizedPlugins = [
 
 const unoptimizedBundles = [
   {
-    input: "./lib/index.ts",
+    input: "./src/index.ts",
     output: {
-      file: "dist/unoptimized/wasm-terminal.esm.js",
+      file: "lib/unoptimized/wasm-terminal.esm.js",
       format: "esm",
       sourcemap: sourcemapOption
     },
@@ -96,9 +94,9 @@ const unoptimizedBundles = [
     plugins: unoptimizedPlugins
   },
   {
-    input: "./lib/index.ts",
+    input: "./src/index.ts",
     output: {
-      file: "dist/unoptimized/wasm-terminal.iife.js",
+      file: "lib/unoptimized/wasm-terminal.iife.js",
       format: "iife",
       sourcemap: sourcemapOption,
       name: "WasmTerminal",
@@ -113,9 +111,9 @@ const unoptimizedBundles = [
 
 const optimizedBundles = [
   {
-    input: "./lib/index.ts",
+    input: "./src/index.ts",
     output: {
-      file: "dist/optimized/wasm-terminal.esm.js",
+      file: "lib/optimized/wasm-terminal.esm.js",
       format: "esm",
       sourcemap: sourcemapOption
     },
@@ -125,9 +123,9 @@ const optimizedBundles = [
     plugins: plugins
   },
   {
-    input: "./lib/index.ts",
+    input: "./src/index.ts",
     output: {
-      file: "dist/optimized/wasm-terminal.iife.js",
+      file: "lib/optimized/wasm-terminal.iife.js",
       format: "iife",
       sourcemap: sourcemapOption,
       name: "WasmTerminal",

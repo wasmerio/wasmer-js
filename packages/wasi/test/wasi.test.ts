@@ -2,20 +2,20 @@
 import * as fs from "fs";
 
 // Import WasmFs
-import WasmFs from "../../wasmfs/lib/index";
+import WasmFs from "../../wasmfs/src/index";
 
 // Since we are importing the lib directly, also we need to import our
 // Node bindings. For the normal library, default bindings are provided :)
 // Also, here we are using the "memfs" file system example that way we don't
 // create any actual files on our machine
-jest.mock("../lib/polyfills/bigint");
-const bigIntPolyfill = require("../lib/polyfills/bigint");
+jest.mock("../src/polyfills/bigint");
+const bigIntPolyfill = require("../src/polyfills/bigint");
 bigIntPolyfill.BigIntPolyfill = global.Number;
 if ((global as any).BigInt) {
   bigIntPolyfill.BigIntPolyfill = (global as any).BigInt;
 }
-import WASI from "../lib";
-import WASINodeBindings from "../lib/bindings/node";
+import WASI from "../src";
+import WASINodeBindings from "../src/bindings/node";
 
 const bytesConverter = (buffer: Buffer): Buffer => {
   // Help debugging: https://webassembly.github.io/wabt/demo/wat2wasm/index.html

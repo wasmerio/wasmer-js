@@ -1,5 +1,7 @@
+// @ts-ignore
 import * as randomfill from "randomfill";
 import hrtime from "../polyfills/browser-hrtime";
+// @ts-ignore
 import path from "path-browserify";
 
 import { WASIBindings, WASIExitError, WASIKillError } from "../wasi";
@@ -13,6 +15,7 @@ const bindings: WASIBindings = {
   kill: (signal: string) => {
     throw new WASIKillError(signal);
   },
+  // @ts-ignore
   randomFillSync: randomfill.randomFillSync,
   isTTY: () => true,
   path: path,

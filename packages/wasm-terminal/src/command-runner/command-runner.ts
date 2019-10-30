@@ -12,7 +12,7 @@ import WasmTty from "../wasm-tty/wasm-tty";
 
 /*ROLLUP_REPLACE_INLINE
 // @ts-ignore
-import processWorkerInlinedUrl from "../../dist/workers/process.worker.js";
+import processWorkerInlinedUrl from "../../lib/workers/process.worker.js";
 ROLLUP_REPLACE_INLINE*/
 
 let processWorkerBlobUrl: string | undefined;

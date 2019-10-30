@@ -3,7 +3,7 @@
 report.*
 **/test_result.wat
 **/test_result.wasm
-**/dist
+**/lib
 
 # Node
 node_modules
@@ -13,8 +13,9 @@ coverage
 *.log
 .vscode
 .idea
-dist
+lib
 compiled
 .awcache
 .rpt2_cache
 docs
+/examples/wasm-shell/dist
