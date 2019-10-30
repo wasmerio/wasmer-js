@@ -2,22 +2,19 @@
   "name": "@wasmer/wasm-transformer",
   "version": "0.3.2",
   "description": "Library to run transformations on WebAssembly binaries. 🦀♻️",
-  "main": "dist/wasm-pack/node/wasm_transformer.js",
-  "module": "dist/unoptimized/wasm-transformer.esm.js",
-  "browser": "dist/unoptimized/wasm-transformer.iife.js",
-  "typings": "dist/unoptimized/wasm-transformer/lib/unoptimized.d.ts",
+  "main": "lib/wasm-pack/node/wasm_transformer.js",
+  "module": "lib/unoptimized/wasm-transformer.esm.js",
+  "browser": "lib/unoptimized/wasm-transformer.iife.js",
+  "typings": "lib/unoptimized/wasm-transformer/src/unoptimized.d.ts",
   "files": [
-    "dist",
-    "package.json",
-    "../../LICENSE",
-    "README.md"
+    "lib"
   ],
   "scripts": {
     "build": "npx run-s build:prod build:copy:wasm-pack build:copy:wasm",
     "build:prod": "npx rollup -c --environment PROD",
     "build:dev": "npx rollup -c --environment DEV",
-    "build:copy:wasm-pack": "cp -R wasm-pack dist",
-    "build:copy:wasm": "cp wasm-pack/web/wasm_transformer_bg.wasm dist/wasm-transformer.wasm"
+    "build:copy:wasm-pack": "cp -R wasm-pack lib",
+    "build:copy:wasm": "cp wasm-pack/web/wasm_transformer_bg.wasm lib/wasm-transformer.wasm"
   },
   "repository": {
     "type": "git",

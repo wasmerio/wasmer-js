@@ -1,4 +1,4 @@
-import WasmTTY from "../lib/wasm-tty/wasm-tty";
+import WasmTTY from "../src/wasm-tty/wasm-tty";
 
 describe("WasmTty", () => {
   let wasmTty: WasmTTY;

@@ -2,23 +2,20 @@
   "name": "@wasmer/wasm-terminal",
   "version": "0.3.2",
   "description": "A terminal-like component for the browser, that fetches and runs Wasm modules in the context of a shell. 🐚",
-  "module": "dist/unoptimized/wasm-terminal.esm.js",
-  "browser": "dist/unoptimized/wasm-terminal.iife.js",
-  "typings": "dist/wasm-terminal/lib/index.d.ts",
+  "module": "lib/unoptimized/wasm-terminal.esm.js",
+  "browser": "lib/unoptimized/wasm-terminal.iife.js",
+  "typings": "lib/wasm-terminal/src/index.d.ts",
   "files": [
-    "dist",
-    "package.json",
-    "../../LICENSE",
-    "README.md"
+    "lib"
   ],
   "scripts": {
     "build": "npm run build:prod",
     "build:prod": "rollup -c --environment LIB,WORKER,PROD",
     "build:dev": "rollup -c --environment LIB,WORKER,DEV",
-    "dev": "watch \"npm run build:dev\" lib",
+    "dev": "watch \"npm run build:dev\" src",
     "test": "jest --config jest.config.js",
     "test:watch": "jest --config jest.config.js --watchAll",
-    "docs": "typedoc lib/ --out docs --target es6 --theme minimal --mode file"
+    "docs": "typedoc src/ --out docs --target es6 --theme minimal --mode file"
   },
   "repository": {
     "type": "git",
@@ -38,7 +35,7 @@
     "dom",
     "browser"
   ],
-  "author": "Aaron Turner",
+  "author": "Wasmer Engineering Team <engineering@wasmer.io>",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/wasmerio/wasmer-js/issues"

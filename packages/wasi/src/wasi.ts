@@ -714,24 +714,32 @@ class WASI {
       fd_read: wrap(
         (fd: number, iovs: number, iovsLen: number, nread: number) => {
           const stats = CHECK_FD(fd, WASI_RIGHT_FD_READ);
+          const IS_STDIN = stats.real === 0;
           let read = 0;
           outer: for (const iov of getiovs(iovs, iovsLen)) {
             let r = 0;
             while (r < iov.byteLength) {
-              const rr = fs.readSync(
-                stats.real,
-                iov,
-                r,
-                BigInt(iov.byteLength - r) + stats.offset
+              let length = iov.byteLength - r;
+              let position = IS_STDIN ? undefined : Number(stats.offset);
+              let rr = fs.readSync(
+                stats.real, // fd
+                iov, // buffer
+                r, // offset
+                length, // length
+                position // position
               );
               r += rr;
               read += rr;
-              if (rr === 0) {
+              // If we don't read anything, or we receive less than requested
+              if (rr === 0 || rr < length) {
                 break outer;
               }
             }
           }
-          stats.offset += BigInt(read);
+          // We should not modify the offset of stdin
+          if (!IS_STDIN) {
+            stats.offset += BigInt(read);
+          }
           this.view.setUint32(nread, read, true);
           return WASI_ESUCCESS;
         }
@@ -1342,10 +1350,10 @@ class WASI {
     Object.keys(this.wasiImport).forEach((key: string) => {
       const prevImport = this.wasiImport[key];
       this.wasiImport[key] = function(...args: any[]) {
-        // console.log(`wasiImport called: ${key} (${args})`);
+        // console.log(`WASI: wasiImport called: ${key} (${args})`);
         try {
           let result = prevImport(...args);
-          // console.log(` => ${result}`);
+          // console.log(`WASI:  => ${result}`);
           return result;
         } catch (e) {
           console.log(`Catched error: ${e}`);

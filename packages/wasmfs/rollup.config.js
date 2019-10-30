@@ -33,7 +33,7 @@ let plugins = [
 
 const fileSystemBundles = [
   {
-    input: "lib/index.ts",
+    input: "src/index.ts",
     output: [
       {
         file: pkg.main,

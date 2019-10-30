@@ -1,5 +1,5 @@
-import { BigIntPolyfillType } from "../lib/polyfills/bigint";
-import getBigIntHrtime from "../lib/polyfills/hrtime.bigint";
+import { BigIntPolyfillType } from "../src/polyfills/bigint";
+import getBigIntHrtime from "../src/polyfills/hrtime.bigint";
 
 let hrtime: (time?: [number, number]) => BigIntPolyfillType = getBigIntHrtime(
   process.hrtime

@@ -1,9 +1,9 @@
 const fs = require("fs");
 const { spy } = require("spyfs");
 const sinon = require("sinon");
-const WASI = require("../../packages/wasi/dist/index.cjs.js");
+const WASI = require("../../packages/wasi/lib/index.cjs.js");
 const wasmTransformer = require("../../packages/wasm-transformer");
-const { WasmFs } = require("../../packages/wasmfs/dist/index.cjs.js");
+const { WasmFs } = require("../../packages/wasmfs/lib/index.cjs.js");
 const argv = require("minimist")(process.argv.slice(2));
 const chalk = require("chalk");
 var readline = require("readline");

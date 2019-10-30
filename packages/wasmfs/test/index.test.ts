@@ -1,4 +1,4 @@
-import WasmFs from "../lib/index";
+import WasmFs from "../src/index";
 
 describe("wasmfs", () => {
   let wasmfs: WasmFs;

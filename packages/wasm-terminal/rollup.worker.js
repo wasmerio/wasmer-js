@@ -45,10 +45,10 @@ const plugins = [
 
 const workerBundles = [
   {
-    input: "./lib/workers/process.worker.ts",
+    input: "./src/workers/process.worker.ts",
     output: [
       {
-        file: "dist/workers/process.worker.js",
+        file: "lib/workers/process.worker.js",
         format: "iife",
         sourcemap: sourcemapOption,
         name: "Process"

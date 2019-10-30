@@ -2,24 +2,21 @@
   "name": "@wasmer/wasmfs",
   "version": "0.3.2",
   "description": "Isomorphic library to provide a sandboxed node fs implementation for Node and Browsers. 📂",
-  "main": "dist/index.cjs.js",
-  "module": "dist/index.esm.js",
-  "browser": "dist/index.iife.js",
-  "typings": "dist/wasmfs/lib/index.d.ts",
+  "main": "lib/index.cjs.js",
+  "module": "lib/index.esm.js",
+  "browser": "lib/index.iife.js",
+  "typings": "lib/wasmfs/src/index.d.ts",
   "files": [
-    "dist",
-    "package.json",
-    "../../LICENSE",
-    "README.md"
+    "lib"
   ],
   "scripts": {
     "build": "npm run build:prod",
     "build:prod": "npx rollup -c --environment PROD",
     "build:dev": "npx rollup -c --environment DEV",
-    "dev": "npx watch \"npm run build:dev\" lib",
+    "dev": "npx watch \"npm run build:dev\" src",
     "test": "npx jest --config jest.config.js",
     "test:watch": "npx jest --config jest.config.js --watch",
-    "docs": "npx typedoc lib/ --out docs --target es6 --theme minimal --mode file"
+    "docs": "npx typedoc src/ --out docs --target es6 --theme minimal --mode file"
   },
   "repository": {
     "type": "git",
@@ -37,7 +34,7 @@
     "wapm",
     "wasmer"
   ],
-  "author": "Aaron Turner",
+  "author": "Wasmer Engineering Team <engineering@wasmer.io>",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/wasmerio/wasmer-js/issues"

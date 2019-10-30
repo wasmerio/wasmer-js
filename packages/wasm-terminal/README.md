@@ -48,7 +48,7 @@ First, We must also include the `[xterm](https://github.com/xtermjs/xterm.js/).c
 <link
   rel="stylesheet"
   type="text/css"
-  href="./node_modules/@wasmer/wasm-terminal/dist/xterm/xterm.css"
+  href="./node_modules/@wasmer/wasm-terminal/lib/xterm/xterm.css"
 />
 ```
 
@@ -56,7 +56,7 @@ Then, we can choose to use the unoptimized (default) or optimizied JavaScript bu
 
 ### Unoptimized
 
-The default import of `@wasmer/wasm-terminal` and `@wasmer/wasm-transformer` points to the unoptimized bundle. This bundle does things such as inlining assets. This is done for convenience and developer experience. However, there are use cases where we you might don't want to use the inlined Wasm (for example, when working with [PWAs](https://developers.google.com/web/progressive-web-apps)) For that case, you should be using the `@wasmer/wasm-terminal/dist/optimized/...` and `@wasmer/wasm-transformer/dist/optimized/...` version.
+The default import of `@wasmer/wasm-terminal` and `@wasmer/wasm-transformer` points to the unoptimized bundle. This bundle does things such as inlining assets. This is done for convenience and developer experience. However, there are use cases where we you might don't want to use the inlined Wasm (for example, when working with [PWAs](https://developers.google.com/web/progressive-web-apps)) For that case, you should be using the `@wasmer/wasm-terminal/lib/optimized/...` and `@wasmer/wasm-transformer/lib/optimized/...` version.
 
 ```javascript
 import WasmTerminal, { fetchCommandFromWAPM } from "@wasmer/wasm-terminal";
@@ -108,10 +108,10 @@ Optimized bundles, for both `@wasmer/wasm-terminal` and `@wasmer/wasm-transfoorm
 ```javascript
 import WasmTerminal, {
   fetchCommandFromWAPM
-} from "@wasmer/wasm-terminal/dist/optimized/wasm-terminal.esm";
+} from "@wasmer/wasm-terminal/lib/optimized/wasm-terminal.esm";
 import wasmInit, {
   lowerI64Imports
-} from "@wasmer/wasm-transformer/dist/optimizied/wasm-transformer.esm";
+} from "@wasmer/wasm-transformer/lib/optimizied/wasm-transformer.esm";
 
 // URL for where the wasm-transformer wasm file is located. This is probably different depending on your bundler.
 const wasmTransformerWasmUrl =

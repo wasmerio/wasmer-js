@@ -44,7 +44,7 @@ const testBrowserBundle = async bundleString => {
 
 describe("@wasmer/wasi", function() {
   it("should handle cjs bundle", async () => {
-    const bundlePath = "../packages/wasi/dist/index.cjs.js";
+    const bundlePath = "../packages/wasi/lib/index.cjs.js";
     const bundle = fs.readFileSync(bundlePath, "utf8");
 
     const newBundle = await rebundleOutput(bundle, "cjs", "WASI");
@@ -53,7 +53,7 @@ describe("@wasmer/wasi", function() {
   });
 
   it("should handle esm bundle", async () => {
-    const bundlePath = "../packages/wasi/dist/index.esm.js";
+    const bundlePath = "../packages/wasi/lib/index.esm.js";
     const bundle = fs.readFileSync(bundlePath, "utf8");
 
     const newBundle = await rebundleOutput(bundle, "iife", "WASI");
@@ -62,7 +62,7 @@ describe("@wasmer/wasi", function() {
   });
 
   it("should handle iife bundle", async () => {
-    const bundlePath = "../packages/wasi/dist/index.iife.js";
+    const bundlePath = "../packages/wasi/lib/index.iife.js";
     const bundle = fs.readFileSync(bundlePath, "utf8");
 
     await testBrowserBundle(bundle);

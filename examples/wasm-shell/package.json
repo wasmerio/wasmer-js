@@ -11,24 +11,24 @@
     "type": "git",
     "url": "git+https://github.com/wasmerio/wasmer-js.git"
   },
-  "author": "Aaron Turner",
+  "author": "Wasmer Engineering Team <engineering@wasmer.io>",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/wasmerio/wasmer-js/issues"
   },
   "homepage": "https://github.com/wasmerio/wasmer-js/tree/master/examples/wasm-shell",
-  "alias": {
-    "@wasmer/wasm-terminal": "../../packages/wasm-terminal/lib",
-    "@wasmer/wasm-transformer": "../../packages/wasm-transformer/dist/unoptimized/wasm-transformer.esm.js",
-    "@wasmer/wasi": "../../packages/wasi/lib",
-    "@wasmer/wasmfs": "../../packages/wasmfs/lib"
-  },
   "devDependencies": {
     "parcel-bundler": "^1.12.4",
     "typescript": "^3.6.4"
   },
+  "alias": {
+    "@wasmer/wasm-terminal": "../../packages/wasm-terminal/src",
+    "@wasmer/wasi": "../../packages/wasi/src",
+    "@wasmer/wasm-transformer": "../../packages/wasm-transformer/lib/unoptimized/wasm-transformer.esm.js",
+    "@wasmer/wasmfs": "../../packages/wasmfs/src"
+  },
   "dependencies": {
     "preact": "^10.0.1",
-    "xterm": "^3.14.5"
+    "xterm": "^4.1.0"
   }
 }

@@ -34,7 +34,7 @@ const testBrowserBundle = async bundleString => {
 describe("@wasmer/wasm-transformer", function() {
   it("should handle esm bundle", async () => {
     const bundlePath =
-      "../packages/wasm-terminal/dist/unoptimized/wasm-terminal.esm.js";
+      "../packages/wasm-terminal/lib/unoptimized/wasm-terminal.esm.js";
     const bundle = fs.readFileSync(bundlePath, "utf8");
 
     const newBundle = await rebundleOutput(bundle, "iife", "WasmTerminal");
@@ -44,7 +44,7 @@ describe("@wasmer/wasm-transformer", function() {
 
   it("should handle iife bundle", async () => {
     const bundlePath =
-      "../packages/wasm-terminal/dist/unoptimized/wasm-terminal.iife.js";
+      "../packages/wasm-terminal/lib/unoptimized/wasm-terminal.iife.js";
     const bundle = fs.readFileSync(bundlePath, "utf8");
 
     await testBrowserBundle(bundle);
