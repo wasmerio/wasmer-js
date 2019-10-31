@@ -8,6 +8,7 @@ The CLI for executing Wasmer-JS
 
 <!-- toc -->
 
+- [@wasmer/cli](#wasmercli)
 - [Usage](#usage)
 - [Commands](#commands)
   <!-- tocstop -->
@@ -21,7 +22,7 @@ $ npm install -g @wasmer/cli
 $ wasmer-js COMMAND
 running command...
 $ wasmer-js (-v|--version|version)
-@wasmer/cli/0.0.1 darwin-x64 node-v12.6.0
+@wasmer/cli/0.3.2 darwin-x64 node-v12.6.0
 $ wasmer-js --help [COMMAND]
 USAGE
   $ wasmer-js COMMAND
@@ -71,6 +72,6 @@ EXAMPLE
   hello world
 ```
 
-_See code: [src/commands/run.ts](https://github.com/wasmerio/wasmer-js/blob/v0.0.1/src/commands/run.ts)_
+_See code: [src/commands/run.ts](https://github.com/wasmerio/wasmer-js/blob/v0.3.2/src/commands/run.ts)_
 
 <!-- commandsstop -->
