@@ -14,6 +14,17 @@ const testNodeBundle = async bundleString => {
 
   wasmFs.fs.writeFileSync("/dev/stdout", message);
 
+  const BASE64_IMG =
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+  const expectedBinary = new Uint8Array(new Buffer(BASE64_IMG, "base64"));
+  wasmFs.fs.mkdirSync("/tmp/", { recursive: true });
+  wasmFs.volume.writeFileSync("/tmp/test.png", expectedBinary);
+
+  console.log(wasmFs.toJSON()["/tmp/test.png"]);
+  if (wasmFs.toJSON()["/tmp/test.png"] !== BASE64_IMG) {
+    throw new Error("Serialization doesn't work");
+  }
+
   const stdout = await wasmFs.getStdOut();
 
   assert.equal(stdout, message);
@@ -37,6 +48,14 @@ const testBrowserBundle = async bundleString => {
 
       wasmFs.fs.writeFileSync("/dev/stdout", message);
 
+      const BASE64_IMG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+      const expectedBinary = Uint8Array.from(atob(BASE64_IMG), c => c.charCodeAt(0));
+      wasmFs.fs.mkdirSync("/tmp/", { recursive: true });
+      wasmFs.volume.writeFileSync("/tmp/test.png", expectedBinary);
+      
+      if (wasmFs.toJSON()["/tmp/test.png"] !== BASE64_IMG) {
+        throw new Error("Serialization doesn't work");
+      }
       wasmFs !== undefined;
     `);
 
