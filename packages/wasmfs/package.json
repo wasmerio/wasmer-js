@@ -43,5 +43,5 @@
   "dependencies": {
     "memfs": "git+https://github.com/torch2424/memfs.git#wasmfs-fixes"
   },
-  "gitHead": "151a09b8713b3b8b4653bba9ada6eca3eec752c5"
+  "gitHead": "53a31001f187edf4a5940fc0d1a022ae0a2ea37e"
 }
