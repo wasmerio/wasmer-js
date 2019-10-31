@@ -17,14 +17,23 @@ const testNodeBundle = async bundleString => {
   const BASE64_IMG =
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
   const expectedBinary = new Uint8Array(new Buffer(BASE64_IMG, "base64"));
-  wasmFs.fs.mkdirSync("/tmp/", { recursive: true });
-  wasmFs.volume.writeFileSync("/tmp/test.png", expectedBinary);
+  wasmFs.volume.writeFileSync("/img.png", expectedBinary);
 
-  console.log(wasmFs.toJSON()["/tmp/test.png"]);
-  if (wasmFs.toJSON()["/tmp/test.png"] !== BASE64_IMG) {
-    throw new Error("Serialization doesn't work");
+  // Serialize to JSON
+  const jsonData = wasmFs.toJSON();
+
+  // Create a new FS from the serialized JSON
+  const newFs = new WasmFs();
+  newFs.fromJSON(jsonData);
+
+  // Assert both files are equal
+  let buf = wasmFs.volume.readFileSync("/img.png");
+  let buf2 = newFs.volume.readFileSync("/img.png");
+
+  // console.log(buf, buf2, buf == buf2);
+  if (JSON.stringify(buf) != JSON.stringify(buf2)) {
+    throw new Error("Buffers differ");
   }
-
   const stdout = await wasmFs.getStdOut();
 
   assert.equal(stdout, message);
@@ -37,24 +46,31 @@ const testBrowserBundle = async bundleString => {
   const response = await page.evaluate(`
       ${bundleString}
 
-      let wasmFs;
-      if (WasmFs.default) {
-        wasmFs = new WasmFs.default();
-      } else {
-        wasmFs = new WasmFs();
-      }
+      let WasmFSConstructor = WasmFs.default?WasmFs.default:WasmFs;
+
+      let wasmFs = new WasmFSConstructor();
 
       const message = "Quick Start!";
 
       wasmFs.fs.writeFileSync("/dev/stdout", message);
 
-      const BASE64_IMG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
-      const expectedBinary = Uint8Array.from(atob(BASE64_IMG), c => c.charCodeAt(0));
-      wasmFs.fs.mkdirSync("/tmp/", { recursive: true });
-      wasmFs.volume.writeFileSync("/tmp/test.png", expectedBinary);
-      
-      if (wasmFs.toJSON()["/tmp/test.png"] !== BASE64_IMG) {
-        throw new Error("Serialization doesn't work");
+      const TINY_PNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+      const contents = Uint8Array.from(atob(TINY_PNG), c => c.charCodeAt(0));
+      wasmFs.volume.writeFileSync("/img.png", contents);
+
+      // Serialize to JSON
+      const jsonData = wasmFs.toJSON();
+
+      // Create a new FS from the serialized JSON
+      const newFs = new WasmFSConstructor();
+      newFs.fromJSON(jsonData);
+
+      // Assert both files are equal
+      let buf = wasmFs.volume.readFileSync("/img.png");
+      let buf2 = newFs.volume.readFileSync("/img.png");
+
+      if (JSON.stringify(buf) != JSON.stringify(buf2)) {
+        throw new Error("Buffers differ");
       }
       wasmFs !== undefined;
     `);

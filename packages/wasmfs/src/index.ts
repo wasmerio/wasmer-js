@@ -49,7 +49,7 @@ export default class WasmFsDefault {
       if (node.isFile()) {
         let filename = child.getPath();
         if (path) filename = relative(path, filename);
-        json[filename] = node.getString(encoding);
+        json[filename] = node.getBuffer();
       } else if (node.isDirectory()) {
         this._toJSON(child, json, path);
       }
@@ -96,15 +96,16 @@ export default class WasmFsDefault {
     const sep = "/";
     for (let filename in json) {
       const data = json[filename];
-
-      if (typeof data === "string") {
+      const isDir = Object.getPrototypeOf(data) === null;
+      // const isDir = typeof data === "string" || ((data as any) instanceof Buffer && data !== null);
+      if (!isDir) {
         const steps = filenameToSteps(filename);
         if (steps.length > 1) {
           const dirname = sep + steps.slice(0, steps.length - 1).join(sep);
           // @ts-ignore
           vol.mkdirpBase(dirname, 0o777);
         }
-        vol.writeFileSync(filename, data, { encoding: encoding });
+        vol.writeFileSync(filename, data as any);
       } else {
         // @ts-ignore
         vol.mkdirpBase(filename, 0o777);
