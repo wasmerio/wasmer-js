@@ -110,7 +110,7 @@ export default class WasmTerminalComponent extends Component {
   }
 
   runViu() {
-    this.wasmTerminal.runCommand("viu /img.png");
+    this.wasmTerminal.runCommand("viu /tiny.png");
   }
 
   render() {
