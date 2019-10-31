@@ -19,3 +19,5 @@ compiled
 .rpt2_cache
 docs
 /examples/wasm-shell/dist
+/dist
+oclif.manifest.json
