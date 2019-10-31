@@ -3,6 +3,8 @@
     "test": "npx mocha --exit --timeout 5000"
   },
   "devDependencies": {
+    "atob": "^2.1.2",
+    "btoa": "^1.2.1",
     "mkdirp": "^0.5.1",
     "mocha": "^6.2.2",
     "puppeteer": "^2.0.0",
