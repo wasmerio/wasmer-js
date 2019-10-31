@@ -7,6 +7,8 @@ Wasmer-JS is a mono-repo of multiple JavaScript packages enabling easy use of [W
 
 - [`@wasmer/wasi`](./packages/wasi) - WebAssembly WASI implementation for Node and browsers.
 
+- [`@wasmer/cli`](./packages/cli) - WebAssembly WASI CLI for Node.js (`wasmer-js`)
+
 - [`@wasmer/wasmfs`](./packages/wasmfs) - WASI/Wasm FileSystem.
 
 - [`@wasmer/wasm-transformer`](./packages/wasm-transformer) - the JS interface for the [`wasm_transformer` crate](./crates/wasm_transformer)
