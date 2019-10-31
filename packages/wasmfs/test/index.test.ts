@@ -23,7 +23,7 @@ describe("wasmfs", () => {
 
   it("realpathSync", async () => {
     let realPath = wasmfs.fs.realpathSync("/");
-    console.log("realPath", realPath);
+    // console.log("realPath", realPath);
     // let realPath2 = wasmfs.fs.realpathSync("/sandbox");
     // console.log("realPath2", realPath2);
     // let x = wasmerFileSystem.fs.realpathBase("/", "utf8");
@@ -36,6 +36,27 @@ describe("wasmfs", () => {
     } catch (e) {}
     let temp = fs.mkdirSync("/tmp/heeey");
     let openSync = fs.openSync("/tmp/heeey", fs.constants.O_DIRECTORY);
-    console.log("openSync", openSync);
+    // console.log("openSync", openSync);
+  });
+
+  it("serialize/deserialzie binaries", async () => {
+    let fs = wasmfs.fs;
+    const TINY_PNG =
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+    const deser = new Buffer(TINY_PNG, "base64");
+    const contents = Uint8Array.from(deser);
+    wasmfs.volume.writeFileSync("/img.png", contents);
+
+    // Serialize to JSON
+    const jsonData = wasmfs.toJSON();
+
+    // Create a new FS from the serialized JSON
+    const newFs = new WasmFs();
+    newFs.fromJSON(jsonData);
+
+    // Assert both files are equal
+    let buf = wasmfs.volume.readFileSync("/img.png");
+    let buf2 = newFs.volume.readFileSync("/img.png");
+    expect(buf).toEqual(buf2);
   });
 });
