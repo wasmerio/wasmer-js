@@ -36,6 +36,8 @@ const testNodeBundle = async bundleString => {
   const savedBinary = Uint8Array.from(savedArray);
 
   // Stuff breaks here
+  // This is because:
+  // https://stackoverflow.com/a/30106551
   const decoder = new TextDecoder("utf8");
   const decoded = decoder.decode(savedBinary);
   const b64encoded = btoa(decoded);
