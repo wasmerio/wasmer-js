@@ -13,6 +13,7 @@ import BrowserWASIBindings from "@wasmer/wasi/bindings/browser";
 import { lowerI64Imports } from "@wasmer/wasm-transformer";
 
 import welcomeMessage from "./welcome-message";
+import { WasmFs } from "@wasmer/wasmfs";
 
 WASI.defaultBindings = BrowserWASIBindings;
 
@@ -65,13 +66,22 @@ const processWorkerUrl = (document.getElementById("worker") as HTMLImageElement)
 export default class WasmTerminalComponent extends Component {
   container: HTMLElement | null;
   wasmTerminal: WasmTerminal;
+  wasmFs: WasmFs;
 
   constructor() {
     super();
+    this.wasmFs = new WasmFs();
     this.wasmTerminal = new WasmTerminal({
       fetchCommand: fetchCommandHandler,
-      processWorkerUrl
+      processWorkerUrl,
+      wasmFs: this.wasmFs
     });
+
+    const TINY_PNG =
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+    const deser = new Buffer(TINY_PNG, "base64");
+    const contents = Uint8Array.from(deser);
+    this.wasmFs.volume.writeFileSync("/tiny.png", contents);
 
     this.container = null;
   }
@@ -99,6 +109,10 @@ export default class WasmTerminalComponent extends Component {
     this.wasmTerminal.runCommand("cowsay hello");
   }
 
+  runViu() {
+    this.wasmTerminal.runCommand("viu /img.png");
+  }
+
   render() {
     return (
       <div id="terminal-component">
@@ -107,6 +121,7 @@ export default class WasmTerminalComponent extends Component {
           <button onClick={() => this.runCowsayHello()}>
             Run Cowsay Hello
           </button>
+          <button onClick={() => this.runViu()}>Run Viu</button>
           <br />
           <br />
         </div>

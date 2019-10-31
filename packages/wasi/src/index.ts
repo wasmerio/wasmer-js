@@ -1112,7 +1112,7 @@ export default class WASIDefault {
           this.FD_MAP.set(newfd, {
             real: realfd,
             filetype: undefined,
-            offset: BigInt(0),
+            // offset: BigInt(0),
             rights: {
               base: neededBase,
               inheriting: neededInheriting
