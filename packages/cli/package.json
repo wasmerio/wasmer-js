@@ -43,6 +43,9 @@
   "keywords": [
     "oclif"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "main": "lib/index.js",
   "oclif": {
     "commands": "./lib/commands",
