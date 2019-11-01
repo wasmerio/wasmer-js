@@ -89,7 +89,7 @@ export default class WasmFsDefault {
     const sep = "/";
     for (let filename in json) {
       const data = json[filename];
-      const isDir = data ? Object.getPrototypeOf(data) === null : true;
+      const isDir = data ? Object.getPrototypeOf(data) === null : false;
       // const isDir = typeof data === "string" || ((data as any) instanceof Buffer && data !== null);
       if (!isDir) {
         const steps = filenameToSteps(filename);
@@ -98,7 +98,7 @@ export default class WasmFsDefault {
           // @ts-ignore
           vol.mkdirpBase(dirname, 0o777);
         }
-        vol.writeFileSync(filename, data as any);
+        vol.writeFileSync(filename, (data as any) || "");
       } else {
         // @ts-ignore
         vol.mkdirpBase(filename, 0o777);
