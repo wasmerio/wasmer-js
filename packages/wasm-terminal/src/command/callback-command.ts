@@ -1,7 +1,6 @@
 import Command from "./command";
 import CommandOptions from "./command-options";
 import { WasmFs } from "@wasmer/wasmfs";
-import { Duplex } from "stream";
 
 // The class for WASI Commands
 export default class CallbackCommand extends Command {
