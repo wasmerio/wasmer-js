@@ -7,22 +7,16 @@ import CommandOptions from "./command-options";
 
 export default class WASICommand extends Command {
   wasi: WASI;
-  wasmFs: WasmFs;
-  module: WebAssembly.Module;
 
-  constructor(options: CommandOptions, wasmFs: WasmFs) {
+  constructor(options: CommandOptions) {
     super(options);
-
-    // Bind our stdinRead / stdoutWrite
-    this.wasmFs = wasmFs;
 
     if (!options.module) {
       throw new Error("Did not find a WebAssembly.Module for the WASI Command");
     }
-    this.module = options.module;
   }
 
-  async run() {
+  async run(wasmFs: WasmFs) {
     const wasi = new WASI({
       preopenDirectories: {
         "/": "/"
@@ -31,11 +25,11 @@ export default class WASICommand extends Command {
       args: this.options.args,
       bindings: {
         ...WASI.defaultBindings,
-        fs: this.wasmFs.fs
+        fs: wasmFs.fs
       }
     });
 
-    let instance = await WebAssembly.instantiate(this.module, {
+    let instance = await WebAssembly.instantiate(this.options.module, {
       wasi_unstable: wasi.wasiImport
     });
     wasi.start(instance);

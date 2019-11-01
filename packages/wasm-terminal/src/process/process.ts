@@ -73,9 +73,9 @@ export default class Process {
     }
 
     if (commandOptions.module) {
-      this.command = new WASICommand(commandOptions, this.wasmFs);
+      this.command = new WASICommand(commandOptions);
     } else {
-      this.command = new CallbackCommand(commandOptions, this.wasmFs);
+      this.command = new CallbackCommand(commandOptions);
     }
 
     this.wasmFs.volume.fds[0].node.read = this.stdinRead.bind(this);
@@ -102,7 +102,7 @@ export default class Process {
       if (pipedStdinData) {
         this.pipedStdin = new TextDecoder("utf-8").decode(pipedStdinData);
       }
-      await this.command.run();
+      await this.command.run(this.wasmFs);
       end();
     } catch (e) {
       if (e.code === 0) {
