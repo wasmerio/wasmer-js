@@ -27,9 +27,12 @@ export default class WASICommand extends Command {
       }
     });
 
-    let instance = await WebAssembly.instantiate(this.options.module, {
-      wasi_unstable: wasi.wasiImport
-    });
+    let instance = await WebAssembly.instantiate(
+      this.options.module as WebAssembly.Module,
+      {
+        wasi_unstable: wasi.wasiImport
+      }
+    );
     wasi.start(instance);
   }
 }
