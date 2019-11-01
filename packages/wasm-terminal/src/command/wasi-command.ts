@@ -6,8 +6,6 @@ import Command from "./command";
 import CommandOptions from "./command-options";
 
 export default class WASICommand extends Command {
-  wasi: WASI;
-
   constructor(options: CommandOptions) {
     super(options);
 
