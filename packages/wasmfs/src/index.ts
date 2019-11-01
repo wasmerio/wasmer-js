@@ -89,7 +89,7 @@ export default class WasmFsDefault {
     const sep = "/";
     for (let filename in json) {
       const data = json[filename];
-      const isDir = Object.getPrototypeOf(data) === null;
+      const isDir = data ? Object.getPrototypeOf(data) === null : true;
       // const isDir = typeof data === "string" || ((data as any) instanceof Buffer && data !== null);
       if (!isDir) {
         const steps = filenameToSteps(filename);
