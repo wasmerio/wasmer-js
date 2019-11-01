@@ -18,9 +18,11 @@ import { WasmFs } from "@wasmer/wasmfs";
 WASI.defaultBindings = BrowserWASIBindings;
 
 const commands = {
-  callback: (args: string[], stdin: string) => {
+  callback: (options: any, wasmFs: any) => {
+    let myArr = new Uint8Array(1024);
+    let stdin = wasmFs.fs.readSync(0, myArr, 0, 1024, 0);
     return Promise.resolve(
-      `Callback Command Working! Args: ${args}, stdin: ${stdin}`
+      `Callback Command Working! Options: ${options}, stdin: ${myArr}`
     );
   }
 };

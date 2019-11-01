@@ -23,10 +23,12 @@ export default class CallbackCommand extends Command {
   async run(wasmFs: WasmFs) {
     // let myArr = new Uint8Array(1024);
     // let pipedStdinData = this.wasmFs.fs.readSync(0, myArr, 0, 1024, 0);
-    let str = await Promise.resolve(this.callback(this.options.args));
-    wasmFs.fs.writeFileSync(
-      "/dev/stdout",
-      new TextEncoder().encode(str + "\n")
-    );
+    let str = await Promise.resolve(this.callback(this.options, wasmFs));
+    if (typeof str == "string") {
+      wasmFs.fs.writeFileSync(
+        "/dev/stdout",
+        new TextEncoder().encode(str + "\n")
+      );
+    }
   }
 }
