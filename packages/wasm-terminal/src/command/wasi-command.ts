@@ -16,28 +16,28 @@ export default class WASICommand extends Command {
     // Bind our stdinRead / stdoutWrite
     this.wasmFs = wasmFs;
 
-    this.wasi = new WASI({
-      preopenDirectories: {
-        "/": "/"
-      },
-      env: options.env,
-      args: options.args,
-      bindings: {
-        ...WASI.defaultBindings,
-        fs: this.wasmFs.fs
-      }
-    });
-
     if (!options.module) {
       throw new Error("Did not find a WebAssembly.Module for the WASI Command");
     }
     this.module = options.module;
   }
 
-  async run(pipedStdinData?: Uint8Array, stdoutCallback?: Function) {
-    let instance = await WebAssembly.instantiate(this.module, {
-      wasi_unstable: this.wasi.wasiImport
+  async run() {
+    const wasi = new WASI({
+      preopenDirectories: {
+        "/": "/"
+      },
+      env: this.options.env,
+      args: this.options.args,
+      bindings: {
+        ...WASI.defaultBindings,
+        fs: this.wasmFs.fs
+      }
     });
-    this.wasi.start(instance);
+
+    let instance = await WebAssembly.instantiate(this.module, {
+      wasi_unstable: wasi.wasiImport
+    });
+    wasi.start(instance);
   }
 }

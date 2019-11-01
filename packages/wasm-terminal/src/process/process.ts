@@ -46,8 +46,6 @@ export default class Process {
 
   readStdinCounter: number;
 
-  stdoutCallback?: Function;
-
   command: Command;
 
   constructor(
@@ -101,11 +99,10 @@ export default class Process {
     };
 
     try {
-      this.stdoutCallback = this.dataCallback;
       if (pipedStdinData) {
         this.pipedStdin = new TextDecoder("utf-8").decode(pipedStdinData);
       }
-      await this.command.run(pipedStdinData, this.dataCallback);
+      await this.command.run();
       end();
     } catch (e) {
       if (e.code === 0) {
@@ -135,8 +132,8 @@ export default class Process {
     length: number = stdoutBuffer.byteLength,
     position?: number
   ) {
-    if (this.stdoutCallback) {
-      this.stdoutCallback(stdoutBuffer);
+    if (this.dataCallback) {
+      this.dataCallback(stdoutBuffer);
     }
     let dataLines = new TextDecoder("utf-8").decode(stdoutBuffer).split("\n");
     if (dataLines.length > 0) {
@@ -186,8 +183,8 @@ export default class Process {
         `Please enter text for stdin:\n${this.stdinPrompt}`
       );
       if (responseStdin === null) {
-        if (this.stdoutCallback) {
-          this.stdoutCallback(new TextEncoder().encode("\n"));
+        if (this.dataCallback) {
+          this.dataCallback(new TextEncoder().encode("\n"));
         }
         const userError = new Error("Process killed by user");
         (userError as any).user = true;
@@ -195,8 +192,8 @@ export default class Process {
         return -1;
       }
       responseStdin += "\n";
-      if (this.stdoutCallback) {
-        this.stdoutCallback(new TextEncoder().encode(responseStdin));
+      if (this.dataCallback) {
+        this.dataCallback(new TextEncoder().encode(responseStdin));
       }
     }
 

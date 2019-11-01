@@ -1,14 +1,12 @@
 import CommandOptions from "./command-options";
 
 export default class Command {
-  args: string[];
-  env: { [key: string]: string };
+  options: CommandOptions;
 
-  constructor({ args, env }: CommandOptions) {
-    this.args = args;
-    this.env = env;
+  constructor(options: CommandOptions) {
+    this.options = options;
   }
-  async run(pipedStdinData?: Uint8Array, stdoutCallback?: Function) {
+  async run() {
     throw new Error("run not implemented by the Command subclass");
   }
 }

@@ -22,8 +22,13 @@ export default class CallbackCommand extends Command {
     this.callback = options.callback;
   }
 
-  async run(pipedStdinData?: Uint8Array, stdoutCallback?: Function) {
-    let str = await Promise.resolve(this.callback(this.args, pipedStdinData));
-    stdoutCallback(new TextEncoder().encode(str + "\n"));
+  async run() {
+    // let myArr = new Uint8Array(1024);
+    // let pipedStdinData = this.wasmFs.fs.readSync(0, myArr, 0, 1024, 0);
+    let str = await Promise.resolve(this.callback(this.options.args));
+    this.wasmFs.fs.writeFileSync(
+      "/dev/stdout",
+      new TextEncoder().encode(str + "\n")
+    );
   }
 }
