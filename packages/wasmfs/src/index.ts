@@ -8,7 +8,6 @@ import {
   pathToFilename
 } from "memfs/lib/volume";
 import { Link } from "memfs/lib/node";
-import { TEncoding } from "memfs/lib/encoding";
 
 import { relative } from "path";
 import "./node_sync_emit";
@@ -33,12 +32,7 @@ export default class WasmFsDefault {
     });
   }
 
-  private _toJSON(
-    link: Link,
-    json: any = {},
-    path?: string,
-    encoding?: TEncoding
-  ): DirectoryJSON {
+  private _toJSON(link: Link, json: any = {}, path?: string): DirectoryJSON {
     let isEmpty = true;
 
     for (const name in link.children) {
@@ -69,8 +63,7 @@ export default class WasmFsDefault {
   toJSON(
     paths?: TFilePath | TFilePath[],
     json: any = {},
-    isRelative = false,
-    encoding: TEncoding = "base64"
+    isRelative = false
   ): DirectoryJSON {
     const links: Link[] = [];
 
@@ -88,11 +81,11 @@ export default class WasmFsDefault {
 
     if (!links.length) return json;
     for (const link of links)
-      this._toJSON(link, json, isRelative ? link.getPath() : "", encoding);
+      this._toJSON(link, json, isRelative ? link.getPath() : "");
     return json;
   }
 
-  fromJSONFixed(vol: Volume, json: DirectoryJSON, encoding?: TEncoding) {
+  fromJSONFixed(vol: Volume, json: DirectoryJSON) {
     const sep = "/";
     for (let filename in json) {
       const data = json[filename];
@@ -113,9 +106,9 @@ export default class WasmFsDefault {
     }
   }
 
-  fromJSON(fsJson: any, encoding: TEncoding = "base64") {
+  fromJSON(fsJson: any) {
     this.volume = new Volume();
-    this.fromJSONFixed(this.volume, fsJson, encoding);
+    this.fromJSONFixed(this.volume, fsJson);
     // @ts-ignore
     this.fs = createFsFromVolume(this.volume);
     this.volume.releasedFds = [0, 1, 2];
