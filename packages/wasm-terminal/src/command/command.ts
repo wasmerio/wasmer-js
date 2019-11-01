@@ -1,4 +1,3 @@
-import { Duplex } from "stream";
 import CommandOptions from "./command-options";
 
 export default class Command {
@@ -9,14 +8,7 @@ export default class Command {
     this.args = args;
     this.env = env;
   }
-  run(stdin?: string) {
-    throw new Error("Not implemented by the Command subclass");
+  async run(pipedStdinData?: Uint8Array, stdoutCallback?: Function) {
+    throw new Error("run not implemented by the Command subclass");
   }
-  instantiate(
-    stdoutCallback?: Function,
-    pipedStdinData?: Uint8Array
-  ): Promise<Duplex> {
-    throw new Error("Not implemented by the Command subclass");
-  }
-  async kill() {}
 }

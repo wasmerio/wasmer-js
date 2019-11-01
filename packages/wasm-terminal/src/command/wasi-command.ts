@@ -5,21 +5,6 @@ import { WasmFs } from "@wasmer/wasmfs";
 import Command from "./command";
 import CommandOptions from "./command-options";
 
-import { Duplex, PassThrough } from "stream";
-
-const merge = (...streams: Duplex[]) => {
-  let pass = new PassThrough();
-  let waiting = streams.length;
-  for (let stream of streams) {
-    pass = stream.pipe(
-      pass,
-      { end: false }
-    );
-    stream.once("end", () => --waiting === 0 && pass.emit("end"));
-  }
-  return pass;
-};
-
 /**
 
  This function removes the ansi escape characters
@@ -69,8 +54,6 @@ export default class WASICommand extends Command {
   ) {
     super(options);
 
-    this.wasmFs = new WasmFs();
-
     // Bind our stdinRead / stdoutWrite
     this.wasmFs = wasmFs;
     this.wasmFs.volume.fds[0].node.read = this.stdinRead.bind(this);
@@ -106,29 +89,16 @@ export default class WASICommand extends Command {
     });
   }
 
-  async instantiate(
-    stdoutCallback?: Function,
-    pipedStdinData?: Uint8Array
-  ): Promise<Duplex> {
+  async run(pipedStdinData?: Uint8Array, stdoutCallback?: Function) {
     this.instance = await this.instantiateReponsePromise;
-    let stdoutRead = this.wasmFs.fs.createReadStream("/dev/stdout");
-    let stderrRead = this.wasmFs.fs.createReadStream("/dev/stderr");
+    // let stdoutRead = this.wasmFs.fs.createReadStream("/dev/stdout");
+    // let stderrRead = this.wasmFs.fs.createReadStream("/dev/stderr");
 
     this.stdoutCallback = stdoutCallback;
-
     if (pipedStdinData) {
       this.pipedStdin = new TextDecoder("utf-8").decode(pipedStdinData);
     }
 
-    // We join the stdout and stderr together
-    let stream = merge(
-      (stdoutRead as unknown) as Duplex,
-      (stderrRead as unknown) as Duplex
-    );
-    return stream;
-  }
-
-  run() {
     if (!this.instance) {
       throw new Error("You need to call instantiate first.");
     }
@@ -172,7 +142,7 @@ export default class WASICommand extends Command {
 
     let responseStdin: string | null = null;
     if (this.pipedStdin) {
-      responseStdin = this.pipedStdin + "\n";
+      responseStdin = this.pipedStdin;
       this.pipedStdin = "";
       this.readStdinCounter++;
     } else if (this.sharedStdin && this.startStdinReadCallback) {

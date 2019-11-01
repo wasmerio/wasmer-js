@@ -49,50 +49,29 @@ export default class Process {
         startStdinReadCallback
       );
     } else {
-      this.command = new CallbackCommand(commandOptions);
+      this.command = new CallbackCommand(commandOptions, this.wasmFs);
     }
   }
 
   async start(pipedStdinData?: Uint8Array) {
-    if (this.command instanceof WASICommand) {
-      await this.startWASICommand(pipedStdinData);
-    } else if (this.command instanceof CallbackCommand) {
-      await this.startCallbackCommand(pipedStdinData);
-    }
-  }
-
-  async startWASICommand(pipedStdinData?: Uint8Array) {
-    const commandStream = await this.command.instantiate(
-      this.dataCallback,
-      pipedStdinData
-    );
-
-    commandStream.on("end", () => {
-      // Set timeout to allow any lingering data callback to be launched out
+    const end = () => {
       setTimeout(() => {
-        // TODO: Diff the two objects and only send that back
-        const currentWasmFsJson = this.wasmFs.toJSON();
-        this.endCallback(currentWasmFsJson);
-      }, 100);
-    });
+        this.endCallback(this.wasmFs.toJSON());
+      }, 50);
+    };
 
     try {
-      this.command.run();
+      await this.command.run(pipedStdinData, this.dataCallback);
+      end();
     } catch (e) {
-      let error = "Unknown Error";
-
-      // TODO: Diff the two objects and only send that back
-      const currentWasmFsJson = this.wasmFs.toJSON();
-
       if (e.code === 0) {
         // Command was successful, but ended early.
-
+        end();
         // Set timeout to allow any lingering data callback to be launched out
-        setTimeout(() => {
-          this.endCallback(currentWasmFsJson);
-        }, 100);
         return;
       }
+
+      let error = "Unknown Error";
 
       if (e.code !== undefined) {
         error = `exited with code: ${e.code}`;
@@ -101,26 +80,8 @@ export default class Process {
       } else if (e.user !== undefined) {
         error = e.message;
       }
-
-      this.errorCallback(error, currentWasmFsJson);
-    }
-  }
-
-  async startCallbackCommand(pipedStdinData?: Uint8Array) {
-    let stdin = "";
-    if (pipedStdinData) {
-      stdin = new TextDecoder("utf-8").decode(pipedStdinData);
-    }
-
-    try {
-      const stdout = await this.command.run(stdin);
-      const stdoutAsTypedArray = new TextEncoder().encode(stdout + "\n");
-      this.dataCallback(stdoutAsTypedArray);
-      // TODO: Diff the two objects and only send that back
-      const currentWasmFsJson = this.wasmFs.toJSON();
-      this.endCallback(currentWasmFsJson);
-    } catch (e) {
-      this.errorCallback("There was an error running the callback command");
+      console.error(e);
+      this.errorCallback(error, this.wasmFs.toJSON());
     }
   }
 }
