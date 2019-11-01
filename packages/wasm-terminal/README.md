@@ -66,8 +66,8 @@ import { lowerI64Imports } from "@wasmer/wasm-transformer";
 const fetchCommandHandler = async commandName => {
   // Let's return a "CallbackCommand" if our command matches a special name
   if (commandName === "callback-command") {
-    const callbackCommand = async (args, stdin) => {
-      return `Callback Command Working! Args: ${args}, stdin: ${stdin}`;
+    const callbackCommand = async (options, wasmFs) => {
+      return `Callback Command Working! Options: ${options}, fs: ${wasmFs}`;
     };
     return callbackCommand;
   }
@@ -121,8 +121,8 @@ const wasmTransformerWasmUrl =
 const fetchCommandHandler = async commandName => {
   // Let's return a "CallbackCommand" if our command matches a special name
   if (commandName === "callback-command") {
-    const callbackCommand = async (args, stdin) => {
-      return `Callback Command Working! Args: ${args}, stdin: ${stdin}`;
+    const callbackCommand = async (options, wasmFs) => {
+      return `Callback Command Working! Options: ${options}, fs: ${wasmFs}`;
     };
     return callbackCommand;
   }
@@ -190,9 +190,9 @@ CallbackCommands are functions that can be returned in the `fetchCommand` config
 
 ```typescript
 export type CallbackCommand = (
-  args: string[],
-  stdin: string
-) => Promise<string | undefined>;
+  options: CommandOptions,
+  wasmFs: WasmFs
+) => Promise<string | undefined> | string | undefined;
 ```
 
 ---
