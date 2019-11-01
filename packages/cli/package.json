@@ -1,7 +1,7 @@
 {
   "name": "@wasmer/cli",
   "description": "The CLI for executing Wasmer-JS",
-  "version": "0.4.4",
+  "version": "0.4.5",
   "author": "Wasmer Engineering Team <engineering@wasmer.io>",
   "license": "MIT",
   "bin": {
@@ -11,8 +11,8 @@
     "@oclif/command": "^1.5.19",
     "@oclif/config": "^1.13.3",
     "@oclif/plugin-help": "^2.2.1",
-    "@wasmer/wasi": "^0.4.4",
-    "@wasmer/wasm-transformer": "^0.4.4",
+    "@wasmer/wasi": "^0.4.5",
+    "@wasmer/wasm-transformer": "^0.4.5",
     "tslib": "^1.10.0"
   },
   "devDependencies": {
