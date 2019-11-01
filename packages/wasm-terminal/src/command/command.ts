@@ -1,22 +1,13 @@
-import { Duplex } from "stream";
+import { WasmFs } from "@wasmer/wasmfs";
 import CommandOptions from "./command-options";
 
 export default class Command {
-  args: string[];
-  env: { [key: string]: string };
+  options: CommandOptions;
 
-  constructor({ args, env }: CommandOptions) {
-    this.args = args;
-    this.env = env;
+  constructor(options: CommandOptions) {
+    this.options = options;
   }
-  run(stdin?: string) {
-    throw new Error("Not implemented by the Command subclass");
+  async run(wasmFs: WasmFs) {
+    throw new Error("run not implemented by the Command subclass");
   }
-  instantiate(
-    stdoutCallback?: Function,
-    pipedStdinData?: Uint8Array
-  ): Promise<Duplex> {
-    throw new Error("Not implemented by the Command subclass");
-  }
-  async kill() {}
 }

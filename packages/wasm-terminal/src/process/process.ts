@@ -5,6 +5,32 @@ import Command from "../command/command";
 import WASICommand from "../command/wasi-command";
 import CallbackCommand from "../command/callback-command";
 
+/**
+
+ This function removes the ansi escape characters
+ (normally used for printing colors and so)
+ Inspired by: https://github.com/chalk/ansi-regex/blob/master/index.js
+
+MIT License
+
+Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+const cleanStdout = (stdout: string) => {
+  const pattern = [
+    "[\\u001B\\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[-a-zA-Z\\d\\/#&.:=?%@~_]*)*)?\\u0007)",
+    "(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PR-TZcf-ntqry=><~]))"
+  ].join("|");
+
+  const regexPattern = new RegExp(pattern, "g");
+  return stdout.replace(regexPattern, "");
+};
+
 export default class Process {
   commandOptions: CommandOptions;
   wasmFs: WasmFs;
@@ -14,6 +40,11 @@ export default class Process {
   errorCallback: Function;
   sharedStdin?: Int32Array;
   startStdinReadCallback?: Function;
+
+  pipedStdin: string;
+  stdinPrompt: string = "";
+
+  readStdinCounter: number;
 
   command: Command;
 
@@ -42,57 +73,46 @@ export default class Process {
     }
 
     if (commandOptions.module) {
-      this.command = new WASICommand(
-        commandOptions,
-        this.wasmFs,
-        sharedStdin,
-        startStdinReadCallback
-      );
+      this.command = new WASICommand(commandOptions);
     } else {
       this.command = new CallbackCommand(commandOptions);
     }
+
+    this.wasmFs.volume.fds[0].node.read = this.stdinRead.bind(this);
+    this.wasmFs.volume.fds[1].node.write = this.stdoutWrite.bind(this);
+    this.wasmFs.volume.fds[2].node.write = this.stdoutWrite.bind(this);
+    const ttyFd = this.wasmFs.volume.openSync("/dev/tty", "w+");
+    this.wasmFs.volume.fds[ttyFd].node.read = this.stdinRead.bind(this);
+    this.wasmFs.volume.fds[ttyFd].node.write = this.stdoutWrite.bind(this);
+
+    this.sharedStdin = sharedStdin;
+    this.startStdinReadCallback = startStdinReadCallback;
+    this.readStdinCounter = 0;
+    this.pipedStdin = "";
   }
 
   async start(pipedStdinData?: Uint8Array) {
-    if (this.command instanceof WASICommand) {
-      await this.startWASICommand(pipedStdinData);
-    } else if (this.command instanceof CallbackCommand) {
-      await this.startCallbackCommand(pipedStdinData);
-    }
-  }
-
-  async startWASICommand(pipedStdinData?: Uint8Array) {
-    const commandStream = await this.command.instantiate(
-      this.dataCallback,
-      pipedStdinData
-    );
-
-    commandStream.on("end", () => {
-      // Set timeout to allow any lingering data callback to be launched out
+    const end = () => {
       setTimeout(() => {
-        // TODO: Diff the two objects and only send that back
-        const currentWasmFsJson = this.wasmFs.toJSON();
-        this.endCallback(currentWasmFsJson);
-      }, 100);
-    });
+        this.endCallback(this.wasmFs.toJSON());
+      }, 50);
+    };
 
     try {
-      this.command.run();
+      if (pipedStdinData) {
+        this.pipedStdin = new TextDecoder("utf-8").decode(pipedStdinData);
+      }
+      await this.command.run(this.wasmFs);
+      end();
     } catch (e) {
-      let error = "Unknown Error";
-
-      // TODO: Diff the two objects and only send that back
-      const currentWasmFsJson = this.wasmFs.toJSON();
-
       if (e.code === 0) {
         // Command was successful, but ended early.
-
+        end();
         // Set timeout to allow any lingering data callback to be launched out
-        setTimeout(() => {
-          this.endCallback(currentWasmFsJson);
-        }, 100);
         return;
       }
+
+      let error = "Unknown Error";
 
       if (e.code !== undefined) {
         error = `exited with code: ${e.code}`;
@@ -101,26 +121,93 @@ export default class Process {
       } else if (e.user !== undefined) {
         error = e.message;
       }
-
-      this.errorCallback(error, currentWasmFsJson);
+      console.error(e);
+      this.errorCallback(error, this.wasmFs.toJSON());
     }
   }
 
-  async startCallbackCommand(pipedStdinData?: Uint8Array) {
-    let stdin = "";
-    if (pipedStdinData) {
-      stdin = new TextDecoder("utf-8").decode(pipedStdinData);
+  stdoutWrite(
+    stdoutBuffer: Buffer | Uint8Array,
+    offset: number = 0,
+    length: number = stdoutBuffer.byteLength,
+    position?: number
+  ) {
+    if (this.dataCallback) {
+      this.dataCallback(stdoutBuffer);
+    }
+    let dataLines = new TextDecoder("utf-8").decode(stdoutBuffer).split("\n");
+    if (dataLines.length > 0) {
+      this.stdinPrompt = cleanStdout(dataLines[dataLines.length - 1]);
+    } else {
+      this.stdinPrompt = "";
+    }
+    return stdoutBuffer.length;
+  }
+
+  // Handle read of stdin, similar to C read
+  // https://linux.die.net/man/2/read
+  // This is the bottom of the "layers stack". This is the outer binding.
+  // This is the the thing that returns -1 because it is the actual file system,
+  // but it is up to WASI lib  (wasi.ts) to find out why this error'd
+  stdinRead(
+    stdinBuffer: Buffer | Uint8Array,
+    offset: number = 0,
+    length: number = stdinBuffer.byteLength,
+    position?: number
+  ) {
+    if (this.readStdinCounter > 0) {
+      this.readStdinCounter--;
+      return 0;
+    }
+    this.readStdinCounter = 1;
+
+    let responseStdin: string | null = null;
+    if (this.pipedStdin) {
+      responseStdin = this.pipedStdin;
+      this.pipedStdin = "";
+      this.readStdinCounter++;
+    } else if (this.sharedStdin && this.startStdinReadCallback) {
+      this.startStdinReadCallback();
+      Atomics.wait(this.sharedStdin, 0, -1);
+
+      // Grab the of elements
+      const numberOfElements = this.sharedStdin[0];
+      this.sharedStdin[0] = -1;
+      const newStdinData = new Uint8Array(numberOfElements);
+      for (let i = 0; i < numberOfElements; i++) {
+        newStdinData[i] = this.sharedStdin[1 + i];
+      }
+      responseStdin = new TextDecoder("utf-8").decode(newStdinData);
+    } else {
+      responseStdin = prompt(
+        `Please enter text for stdin:\n${this.stdinPrompt}`
+      );
+      if (responseStdin === null) {
+        if (this.dataCallback) {
+          this.dataCallback(new TextEncoder().encode("\n"));
+        }
+        const userError = new Error("Process killed by user");
+        (userError as any).user = true;
+        throw userError;
+        return -1;
+      }
+      responseStdin += "\n";
+      if (this.dataCallback) {
+        this.dataCallback(new TextEncoder().encode(responseStdin));
+      }
     }
 
-    try {
-      const stdout = await this.command.run(stdin);
-      const stdoutAsTypedArray = new TextEncoder().encode(stdout + "\n");
-      this.dataCallback(stdoutAsTypedArray);
-      // TODO: Diff the two objects and only send that back
-      const currentWasmFsJson = this.wasmFs.toJSON();
-      this.endCallback(currentWasmFsJson);
-    } catch (e) {
-      this.errorCallback("There was an error running the callback command");
+    // First check for errors
+    if (!responseStdin) {
+      return 0;
     }
+
+    const buffer = new TextEncoder().encode(responseStdin);
+    for (let x = 0; x < buffer.length; ++x) {
+      stdinBuffer[x] = buffer[x];
+    }
+
+    // Return the current stdin
+    return buffer.length;
   }
 }
