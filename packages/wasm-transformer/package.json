@@ -4,7 +4,7 @@
   "description": "Library to run transformations on WebAssembly binaries. 🦀♻️",
   "main": "lib/wasm-pack/node/wasm_transformer.js",
   "module": "lib/unoptimized/wasm-transformer.esm.js",
-  "browser": "lib/unoptimized/wasm-transformer.iife.js",
+  "iife": "lib/unoptimized/wasm-transformer.iife.js",
   "typings": "lib/unoptimized/wasm-transformer/src/unoptimized.d.ts",
   "files": [
     "lib"
