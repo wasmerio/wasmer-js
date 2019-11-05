@@ -4,7 +4,7 @@
   "description": "Isomorphic Javascript library for interacting with WASI Modules in Node.js and the Browser. 📚",
   "main": "lib/index.cjs.js",
   "module": "lib/index.esm.js",
-  "browser": "lib/index.iife.js",
+  "iife": "lib/index.iife.js",
   "typings": "lib/wasi/src/index.d.ts",
   "files": [
     "lib"

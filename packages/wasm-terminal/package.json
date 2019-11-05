@@ -3,7 +3,7 @@
   "version": "0.4.5",
   "description": "A terminal-like component for the browser, that fetches and runs Wasm modules in the context of a shell. 🐚",
   "module": "lib/unoptimized/wasm-terminal.esm.js",
-  "browser": "lib/unoptimized/wasm-terminal.iife.js",
+  "iife": "lib/unoptimized/wasm-terminal.iife.js",
   "typings": "lib/wasm-terminal/src/index.d.ts",
   "files": [
     "lib"
