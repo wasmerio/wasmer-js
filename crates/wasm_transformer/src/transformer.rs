@@ -62,6 +62,7 @@ fn converts() {
     test_file_paths.push("./wasm_module_examples/duk.wasm");
     test_file_paths.push("./wasm_module_examples/rsign_original.wasm");
     test_file_paths.push("./wasm_module_examples/viu.wasm");
+    test_file_paths.push("./wasm_module_examples/busy.wasm");
     // test_file_paths.push("./wasm_module_examples/clang.wasm");
 
     fs::create_dir_all("./wasm_module_examples_transformed/").unwrap();
