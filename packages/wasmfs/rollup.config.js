@@ -46,7 +46,7 @@ const fileSystemBundles = [
         sourcemap: sourcemapOption
       },
       {
-        file: pkg.browser,
+        file: pkg.iife,
         format: "iife",
         sourcemap: sourcemapOption,
         name: "WasmFs"

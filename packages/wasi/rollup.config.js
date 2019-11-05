@@ -63,7 +63,7 @@ const libBundles = [
   {
     input: "./src/index.ts",
     output: {
-      file: pkg.browser,
+      file: pkg.iife,
       format: "iife",
       sourcemap: sourcemapOption,
       name: "WASI"
