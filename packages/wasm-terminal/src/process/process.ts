@@ -156,11 +156,10 @@ export default class Process {
     length: number = stdinBuffer.byteLength,
     position?: number
   ) {
-    if (this.readStdinCounter > 0) {
-      this.readStdinCounter--;
+    if (this.readStdinCounter % 2 !== 0) {
+      this.readStdinCounter++;
       return 0;
     }
-    this.readStdinCounter = 1;
 
     let responseStdin: string | null = null;
     if (this.pipedStdin) {
