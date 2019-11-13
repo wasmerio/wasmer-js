@@ -1,4 +1,5 @@
 import { WasmFs } from "@wasmer/wasmfs";
+import { WASIExitError } from "@wasmer/wasi";
 
 import CommandOptions from "../command/command-options";
 import Command from "../command/command";
@@ -105,8 +106,8 @@ export default class Process {
       await this.command.run(this.wasmFs);
       end();
     } catch (e) {
-      if (e.code === 0) {
-        // Command was successful, but ended early.
+      if (e instanceof WASIExitError) {
+        const exitCode = e.code;
         end();
         // Set timeout to allow any lingering data callback to be launched out
         return;

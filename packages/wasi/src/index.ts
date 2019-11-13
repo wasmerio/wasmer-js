@@ -148,12 +148,11 @@ const wrap = <T extends Function>(f: T) => (...args: any[]) => {
   try {
     return f(...args);
   } catch (e) {
-    if (typeof e === "number") {
-      return e;
+    // If it's a WASI error, we return it directly
+    if (e instanceof WASIError) {
+      return e.errno;
     }
-    if (e && e.errno) {
-      return ERROR_MAP[e.code] || WASI_EINVAL;
-    }
+    // Otherwise we let the error bubble up
     throw e;
   }
 };
@@ -161,7 +160,7 @@ const wrap = <T extends Function>(f: T) => (...args: any[]) => {
 const stat = (wasi: WASI, fd: number): File => {
   const entry = wasi.FD_MAP.get(fd);
   if (!entry) {
-    throw WASI_EBADF;
+    throw new WASIError(WASI_EBADF);
   }
   if (entry.filetype === undefined) {
     const stats = wasi.bindings.fs.fstatSync(entry.real);
@@ -299,6 +298,17 @@ export type WASIConfig = {
   bindings?: WASIBindings;
 };
 
+export class WASIError extends Error {
+  errno: number;
+  constructor(errno: string | number) {
+    super();
+    if (typeof errno === "string") {
+      errno = ERROR_MAP[errno] || WASI_EINVAL;
+    }
+    this.errno = errno;
+  }
+}
+
 export class WASIExitError extends Error {
   code: number | null;
   constructor(code: number | null) {
@@ -432,7 +442,7 @@ export default class WASIDefault {
       const stats = stat(this, fd);
       // console.log(`CHECK_FD: stats.real: ${stats.real}, stats.path:`, stats.path);
       if (rights !== BigInt(0) && (stats.rights.base & rights) === BigInt(0)) {
-        throw WASI_EPERM;
+        throw new WASIError(WASI_EPERM);
       }
       return stats;
     };
@@ -1355,26 +1365,21 @@ export default class WASIDefault {
         return WASI_ENOSYS;
       }
     };
-    // Wrap each of the imports with a recoverable WASI error
-    Object.keys(this.wasiImport).forEach((key: string) => {
-      const prevImport = this.wasiImport[key];
-      this.wasiImport[key] = function(...args: any[]) {
-        // console.log(`WASI: wasiImport called: ${key} (${args})`);
-        try {
-          let result = prevImport(...args);
-          // console.log(`WASI:  => ${result}`);
-          return result;
-        } catch (e) {
-          console.log(`Catched error: ${e}`);
-          switch (e.code) {
-            default:
-              throw e;
-            case "ENOENT":
-              return WASI_ENOENT;
-          }
-        }
-      };
-    });
+    // Wrap each of the imports to show the calls in the console
+    // Object.keys(this.wasiImport).forEach((key: string) => {
+    //   const prevImport = this.wasiImport[key];
+    //   this.wasiImport[key] = function(...args: any[]) {
+    //     console.log(`WASI: wasiImport called: ${key} (${args})`);
+    //     try {
+    //       let result = prevImport(...args);
+    //       console.log(`WASI:  => ${result}`);
+    //       return result;
+    //     } catch (e) {
+    //       console.log(`Catched error: ${e}`);
+    //       throw e;
+    //     }
+    //   };
+    // });
   }
 
   refreshMemory() {
