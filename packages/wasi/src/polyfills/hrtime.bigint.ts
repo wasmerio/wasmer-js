@@ -6,10 +6,8 @@ import { BigIntPolyfillType } from "./bigint";
 const NS_PER_SEC: number = 1e9;
 
 const getBigIntHrtime = (nativeHrtime: Function) => {
-  const baseTime: [number, number] = nativeHrtime();
   return (time?: [number, number]) => {
-    const diff = nativeHrtime(time || baseTime);
-
+    const diff = nativeHrtime(time);
     // Return the time
     return ((diff[0] * NS_PER_SEC + diff[1]) as unknown) as BigIntPolyfillType;
   };
