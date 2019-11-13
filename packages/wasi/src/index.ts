@@ -148,6 +148,10 @@ const wrap = <T extends Function>(f: T) => (...args: any[]) => {
   try {
     return f(...args);
   } catch (e) {
+    // If it's an error from the fs
+    if (e && e.code && typeof e.code === "string") {
+      return ERROR_MAP[e.code] || WASI_EINVAL;
+    }
     // If it's a WASI error, we return it directly
     if (e instanceof WASIError) {
       return e.errno;
@@ -300,11 +304,8 @@ export type WASIConfig = {
 
 export class WASIError extends Error {
   errno: number;
-  constructor(errno: string | number) {
+  constructor(errno: number) {
     super();
-    if (typeof errno === "string") {
-      errno = ERROR_MAP[errno] || WASI_EINVAL;
-    }
     this.errno = errno;
   }
 }
