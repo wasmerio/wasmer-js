@@ -18,6 +18,5 @@ export default function hrtime(previousTimestamp: any) {
     }
   }
   // Return our seconds tuple
-
   return [seconds, nanoseconds];
 }
