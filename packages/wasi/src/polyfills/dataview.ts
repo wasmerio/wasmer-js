@@ -1,7 +1,7 @@
 // A very simple workaround for Big int. Works in conjunction with our custom
 // BigInt workaround at ./bigint.ts
 
-import { BigIntPolyfillType } from "./bigint";
+import { BigIntPolyfill as BigInt, BigIntPolyfillType } from "./bigint";
 
 let exportedDataView: any = DataView;
 
@@ -37,16 +37,15 @@ if (!exportedDataView.prototype.setBigUint64) {
   exportedDataView.prototype.getBigUint64 = function(
     byteOffset: number,
     littleEndian: boolean | undefined
-  ): number {
+  ) {
     let lowWord = this.getUint32(
       byteOffset + (littleEndian ? 0 : 4),
       littleEndian
     );
-    let highWord = this.setUint32(
+    let highWord = this.getUint32(
       byteOffset + (littleEndian ? 4 : 0),
       littleEndian
     );
-
     var lowWordAsBinaryStr = lowWord.toString(2);
     var highWordAsBinaryStr = lowWord.toString(2);
     // Convert the above binary str to 64 bit (actually 52 bit will work) by padding zeros in the left
@@ -55,7 +54,7 @@ if (!exportedDataView.prototype.setBigUint64) {
       lowWordAsBinaryStrPadded += "0";
     }
     lowWordAsBinaryStrPadded += lowWordAsBinaryStr;
-    return parseInt(highWordAsBinaryStr + lowWordAsBinaryStr);
+    return BigInt("0b" + highWordAsBinaryStr + lowWordAsBinaryStrPadded);
   };
 }
 
