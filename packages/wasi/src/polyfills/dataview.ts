@@ -26,8 +26,8 @@ if (!exportedDataView.prototype.setBigUint64) {
         bigNumberAsBinaryStr2 += "0";
       }
       bigNumberAsBinaryStr2 += bigNumberAsBinaryStr;
-      lowWord = parseInt(bigNumberAsBinaryStr2.substring(0, 32), 2);
-      highWord = parseInt(bigNumberAsBinaryStr2.substring(32), 2);
+      highWord = parseInt(bigNumberAsBinaryStr2.substring(0, 32), 2);
+      lowWord = parseInt(bigNumberAsBinaryStr2.substring(32), 2);
     }
 
     this.setUint32(byteOffset + (littleEndian ? 0 : 4), lowWord, littleEndian);
