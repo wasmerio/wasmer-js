@@ -12,8 +12,8 @@ describe("dataview Polyfill", () => {
       DataViewPolyfillType
     } = require("../src/polyfills/dataview");
     let buffer = new DataViewPolyfill(new ArrayBuffer(16));
-    const val = BigInt(2 ** 32 + 1);
+    const val = BigInt(2 ** 32 + 999666);
     buffer.setBigUint64(0, val, true);
-    expect(buffer.getBigUint64(0, true)).toEqual(val);
+    expect(buffer.getBigUint64(0, true).toString()).toEqual(val.toString());
   });
 });

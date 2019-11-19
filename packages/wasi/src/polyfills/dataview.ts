@@ -47,7 +47,7 @@ if (!exportedDataView.prototype.setBigUint64) {
       littleEndian
     );
     var lowWordAsBinaryStr = lowWord.toString(2);
-    var highWordAsBinaryStr = lowWord.toString(2);
+    var highWordAsBinaryStr = highWord.toString(2);
     // Convert the above binary str to 64 bit (actually 52 bit will work) by padding zeros in the left
     var lowWordAsBinaryStrPadded = "";
     for (var i = 0; i < 32 - lowWordAsBinaryStr.length; i++) {
