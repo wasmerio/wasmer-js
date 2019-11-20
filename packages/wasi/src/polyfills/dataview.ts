@@ -37,7 +37,7 @@ if (!exportedDataView.prototype.setBigUint64) {
   exportedDataView.prototype.getBigUint64 = function(
     byteOffset: number,
     littleEndian: boolean | undefined
-  ) {
+  ): BigInt {
     let lowWord = this.getUint32(
       byteOffset + (littleEndian ? 0 : 4),
       littleEndian
