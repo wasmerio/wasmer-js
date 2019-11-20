@@ -206,7 +206,7 @@ export default class CommandRunner {
     const processWorker = new Worker(workerBlobUrl);
     const processComlink = Comlink.wrap(processWorker);
 
-    // Genrate our shared buffer
+    // Generate our shared buffer
     const sharedStdinBuffer = new SharedArrayBuffer(8192);
 
     // Get our filesystem state
@@ -249,6 +249,7 @@ export default class CommandRunner {
 
     return {
       process,
+      commandOptionIndex,
       worker: processWorker,
       sharedStdin: sharedStdin
     };
@@ -272,7 +273,8 @@ export default class CommandRunner {
     );
 
     return {
-      process
+      process,
+      commandOptionIndex
     };
   }
 
@@ -285,8 +287,15 @@ export default class CommandRunner {
     if (commandOptionIndex < this.commandOptionsForProcessesToRun.length - 1) {
       // Pass along to the next spawned process
       if (
+        // Ensure we can use shared array buffer,
+        // And We have more than one proccess spawned,
+        // And we are not the last spawned process we are trying to premptively write to
+        // The last && fixes a race condition from:
+        // https://github.com/wasmerio/wasmer-js/issues/160
         this.supportsSharedArrayBuffer &&
-        this.spawnedProcessObjects.length > 1
+        this.spawnedProcessObjects.length > 1 &&
+        this.spawnedProcessObjects[this.spawnedProcessObjects.length - 1]
+          .commandOptionIndex > commandOptionIndex
       ) {
         // Send the output to stdin since we are being piped
         this._addStdinToSharedStdin(data, 1);
