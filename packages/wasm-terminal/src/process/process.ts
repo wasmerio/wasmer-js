@@ -114,16 +114,20 @@ export default class Process {
       }
 
       let error = "Unknown Error";
+      let isUserError = e.user !== undefined;
 
       if (e.code !== undefined) {
         error = `exited with code: ${e.code}`;
       } else if (e.signal !== undefined) {
         error = `killed with signal: ${e.signal}`;
       } else if (e.user !== undefined) {
-        error = e.message;
+        // Don't Error, just end the process
+        end();
+        return;
       }
+
       console.error(e);
-      this.errorCallback(error, this.wasmFs.toJSON());
+      this.errorCallback(error, this.wasmFs.toJSON(), e.user !== undefined);
     }
   }
 

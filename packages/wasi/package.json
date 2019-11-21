@@ -11,15 +11,15 @@
   ],
   "scripts": {
     "precompile": "cd test/rs && make all",
-    "build": "npx run-s build:clean build:ts build:prod",
+    "build": "run-s build:clean build:ts build:prod",
     "build:clean": "rm -rf lib",
     "build:ts": "tsc -b",
-    "build:prod": "npx rollup -c --environment PROD",
-    "build:dev": "npx rollup -c --environment DEV",
-    "dev": "npx watch \"npm run build:dev\" src",
-    "test": "npx jest --config jest.config.js",
-    "test:watch": "npx jest --config jest.config.js --watch",
-    "docs": "npx typedoc src/ --out docs --target es6 --theme minimal --mode file"
+    "build:prod": "rollup -c --environment PROD",
+    "build:dev": "rollup -c --environment DEV",
+    "dev": "watch \"npm run build:dev\" src",
+    "test": "jest --config jest.config.js",
+    "test:watch": "jest --config jest.config.js --watch",
+    "docs": "typedoc src/ --out docs --target es6 --theme minimal --mode file"
   },
   "repository": {
     "type": "git",
@@ -51,11 +51,15 @@
     "randomfill": "^1.0.4"
   },
   "devDependencies": {
+    "jest": "^24.9.0",
     "npm-run-all": "^4.1.5",
+    "rollup": "^1.27.3",
     "ts-node": "^8.4.1",
     "tslint": "^5.20.0",
     "tslint-config-prettier": "^1.18.0",
-    "typescript": "^3.6.4"
+    "typedoc": "^0.15.2",
+    "typescript": "^3.6.4",
+    "watch": "^1.0.2"
   },
   "gitHead": "889c22135c81610ddecbb696f8ef24f7ecaf5db7"
 }
