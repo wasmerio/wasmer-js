@@ -28,7 +28,8 @@ hello world
     const preopenDirectories: { [key: string]: string } = {};
     if (flags.dir) {
       flags.dir.forEach(dir => {
-        preopenDirectories[dir] = dir;
+        let [wasm, host] = dir.split("::");
+        preopenDirectories[wasm] = host || wasm;
       });
     }
     let wasiArgs = this.argv.filter((arg: string) => {
