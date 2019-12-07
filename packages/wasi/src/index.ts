@@ -693,8 +693,14 @@ export default class WASIDefault {
           getiovs(iovs, iovsLen).forEach(iov => {
             let w = 0;
             while (w < iov.byteLength) {
-              // console.log("FD WRITE", stats.real, iov, w, iov.byteLength - w, 0);
-              w += fs.writeSync(stats.real, iov, w, iov.byteLength - w);
+              // console.log("FD WRITE", stats.real, iov, w, iov.byteLength - w, stats.offset);
+              w += fs.writeSync(
+                stats.real,
+                iov,
+                w,
+                iov.byteLength - w,
+                stats.offset ? Number(stats.offset) : null
+              );
             }
             written += w;
           });
