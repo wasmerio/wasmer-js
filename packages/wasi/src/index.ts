@@ -1363,7 +1363,8 @@ export default class WASIDefault {
       },
       sched_yield() {
         // Single threaded environment
-        return WASI_ENOSYS;
+        // This is a no-op in JS
+        return WASI_ESUCCESS;
       },
       sock_recv() {
         return WASI_ENOSYS;
