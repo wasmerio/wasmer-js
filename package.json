@@ -15,7 +15,7 @@
   "scripts": {
     "postinstall": "run-s lerna:bootstrap lerna:install lerna:install:wasmfs lerna:link",
     "build": "npm run lerna:build",
-    "cli": "./packages/cli/bin/run",
+    "cli": "./packages/cli/bin/wasmer-js",
     "dev": "run-s lerna:build:wasm-transformer dev:serve",
     "dev:serve": "parcel examples/wasm-shell/index.html",
     "deploy": "run-s wasm-transformer:build lerna:build lerna:publish",

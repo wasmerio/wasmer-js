@@ -693,8 +693,14 @@ export default class WASIDefault {
           getiovs(iovs, iovsLen).forEach(iov => {
             let w = 0;
             while (w < iov.byteLength) {
-              // console.log("FD WRITE", stats.real, iov, w, iov.byteLength - w, 0);
-              w += fs.writeSync(stats.real, iov, w, iov.byteLength - w);
+              // console.log("FD WRITE", stats.real, iov, w, iov.byteLength - w, stats.offset);
+              w += fs.writeSync(
+                stats.real,
+                iov,
+                w,
+                iov.byteLength - w,
+                stats.offset ? Number(stats.offset) : null
+              );
             }
             written += w;
           });
@@ -781,10 +787,6 @@ export default class WASIDefault {
           for (let i = Number(cookie); i < entries.length; i += 1) {
             const entry = entries[i];
             let nameLength = Buffer.byteLength(entry.name);
-            if (bufPtr + 24 + nameLength >= startPtr + bufLen) {
-              // It doesn't fit in the buffer
-              break;
-            }
             this.view.setBigUint64(bufPtr, BigInt(i + 1), true);
             bufPtr += 8;
             const rstats = fs.statSync(path.resolve(stats.path, entry.name));
@@ -822,6 +824,10 @@ export default class WASIDefault {
             this.view.setUint8(bufPtr, filetype);
             bufPtr += 1;
             bufPtr += 3; // padding
+            if (bufPtr + nameLength >= startPtr + bufLen) {
+              // It doesn't fit in the buffer
+              break;
+            }
             let memory_buffer = Buffer.from(this.memory.buffer);
             memory_buffer.write(entry.name, bufPtr);
             bufPtr += Buffer.byteLength(entry.name);
@@ -1357,7 +1363,8 @@ export default class WASIDefault {
       },
       sched_yield() {
         // Single threaded environment
-        return WASI_ENOSYS;
+        // This is a no-op in JS
+        return WASI_ESUCCESS;
       },
       sock_recv() {
         return WASI_ENOSYS;
