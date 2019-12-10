@@ -18,8 +18,8 @@ hello world
 
   public static flags = {
     dir: flags.string({ multiple: true }),
-    mapdir: flags.string({ multiple: true }),
-    help: flags.help({ char: "h" })
+    help: flags.help({ char: "h" }),
+    mapdir: flags.string({ multiple: true })
   };
 
   public static args = [{ name: "file" }];
