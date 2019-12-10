@@ -18,7 +18,8 @@ hello world
 
   public static flags = {
     dir: flags.string({ multiple: true }),
-    help: flags.help({ char: "h" })
+    help: flags.help({ char: "h" }),
+    mapdir: flags.string({ multiple: true })
   };
 
   public static args = [{ name: "file" }];
@@ -29,6 +30,17 @@ hello world
     if (flags.dir) {
       flags.dir.forEach(dir => {
         preopenDirectories[dir] = dir;
+      });
+    }
+    if (flags.mapdir) {
+      flags.mapdir.forEach(dir => {
+        const [wasm, host] = dir.split(":");
+        if (!wasm || !host) {
+          this.error(
+            "Options to --mapdir= need to be in the format wasmDir:hostDir"
+          );
+        }
+        preopenDirectories[wasm] = host;
       });
     }
     let wasiArgs = this.argv.filter((arg: string) => {
