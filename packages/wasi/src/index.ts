@@ -295,8 +295,15 @@ export type WASIBindings = {
 export type WASIArgs = string[];
 export type WASIEnv = { [key: string]: string | undefined };
 export type WASIPreopenedDirs = { [key: string]: string };
-export type WASIConfig = {
+export type WASIConfigOld = {
+  // preopenDirectories is deprecated in favour of preopens
   preopenDirectories?: WASIPreopenedDirs;
+  env?: WASIEnv;
+  args?: WASIArgs;
+  bindings?: WASIBindings;
+};
+export type WASIConfig = {
+  preopens?: WASIPreopenedDirs;
   env?: WASIEnv;
   args?: WASIArgs;
   bindings?: WASIBindings;
@@ -337,12 +344,16 @@ export default class WASIDefault {
   bindings: WASIBindings;
   static defaultBindings: WASIBindings = defaultBindings;
 
-  constructor(wasiConfig?: WASIConfig) {
-    // Destructur our wasiConfig
-    let preopenDirectories: WASIPreopenedDirs = {};
-    if (wasiConfig && wasiConfig.preopenDirectories) {
-      preopenDirectories = wasiConfig.preopenDirectories;
+  constructor(wasiConfig?: WASIConfigOld | WASIConfig) {
+    // Destructure our wasiConfig
+    let preopens: WASIPreopenedDirs = {};
+    if (wasiConfig && (wasiConfig as WASIConfig).preopens) {
+      preopens = (wasiConfig as WASIConfig).preopens as WASIPreopenedDirs;
+    } else if (wasiConfig && (wasiConfig as WASIConfigOld).preopenDirectories) {
+      preopens = (wasiConfig as WASIConfigOld)
+        .preopenDirectories as WASIPreopenedDirs;
     }
+
     let env: WASIEnv = {};
     if (wasiConfig && wasiConfig.env) {
       env = wasiConfig.env;
@@ -407,7 +418,7 @@ export default class WASIDefault {
     let fs = this.bindings.fs;
     let path = this.bindings.path;
 
-    for (const [k, v] of Object.entries(preopenDirectories)) {
+    for (const [k, v] of Object.entries(preopens)) {
       const real = fs.openSync(v, fs.constants.O_RDONLY);
       const newfd = [...this.FD_MAP.keys()].reverse()[0] + 1;
       this.FD_MAP.set(newfd, {

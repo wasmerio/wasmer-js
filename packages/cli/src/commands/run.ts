@@ -26,10 +26,10 @@ hello world
 
   public async run() {
     const { args, flags } = this.parse(Run);
-    const preopenDirectories: { [key: string]: string } = {};
+    const preopens: { [key: string]: string } = {};
     if (flags.dir) {
       flags.dir.forEach(dir => {
-        preopenDirectories[dir] = dir;
+        preopens[dir] = dir;
       });
     }
     if (flags.mapdir) {
@@ -40,7 +40,7 @@ hello world
             "Options to --mapdir= need to be in the format wasmDir:hostDir"
           );
         }
-        preopenDirectories[wasm] = host;
+        preopens[wasm] = host;
       });
     }
     let wasiArgs = this.argv.filter((arg: string) => {
@@ -64,7 +64,7 @@ hello world
         fs
       },
       env: {},
-      preopenDirectories
+      preopens
     });
 
     const wasmBytes = fs.readFileSync(args.file);

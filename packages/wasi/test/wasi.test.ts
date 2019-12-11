@@ -71,7 +71,7 @@ const instantiateWASI = async (
   env: { [key: string]: string } = {}
 ) => {
   let wasi = new WASI({
-    preopenDirectories: {
+    preopens: {
       "/sandbox": "/sandbox"
     },
     env: env,
