@@ -22,7 +22,7 @@ $ npm install -g @wasmer/cli
 $ wasmer-js COMMAND
 running command...
 $ wasmer-js (-v|--version|version)
-@wasmer/cli/0.5.1 darwin-x64 node-v10.16.3
+@wasmer/cli/0.5.1 darwin-x64 node-v12.6.0
 $ wasmer-js --help [COMMAND]
 USAGE
   $ wasmer-js COMMAND
@@ -64,8 +64,9 @@ USAGE
   $ wasmer-js run [FILE]
 
 OPTIONS
-  -h, --help  show CLI help
+  -h, --help       show CLI help
   --dir=dir
+  --mapdir=mapdir
 
 EXAMPLE
   $ wasmer-js run hello.wasm
