@@ -84,7 +84,7 @@ The Config object is is as follows:
 ```js
 let myWASIInstance = new WASI({
   // OPTIONAL: The pre-opened dirctories
-  preopenDirectories: {},
+  preopens: {},
 
   // OPTIONAL: The environment vars
   env: {},
@@ -137,7 +137,7 @@ The [default bindings](./lib/bindings) for the environment that are set on the `
 const myFs = require("fs");
 
 let wasi = new WASI({
-  preopenDirectories: {},
+  preopens: {},
   env: {},
   args: [],
   bindings: {

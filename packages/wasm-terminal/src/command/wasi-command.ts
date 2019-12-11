@@ -16,7 +16,7 @@ export default class WASICommand extends Command {
 
   async run(wasmFs: WasmFs) {
     const wasi = new WASI({
-      preopenDirectories: {
+      preopens: {
         "/": "/"
       },
       env: this.options.env,
