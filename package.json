@@ -13,7 +13,7 @@
   },
   "license": "MIT",
   "scripts": {
-    "postinstall": "run-s lerna:bootstrap lerna:install lerna:install:wasmfs lerna:link",
+    "postinstall": "run-s lerna:bootstrap lerna:install:wasmfs lerna:link",
     "build": "npm run lerna:build",
     "cli": "./packages/cli/bin/wasmer-js",
     "dev": "run-s lerna:build:wasm-transformer dev:serve",
@@ -54,7 +54,7 @@
     "deasync": "^0.1.15",
     "husky": "^3.0.2",
     "jest": "^24.8.0",
-    "lerna": "^3.19.0",
+    "lerna": "3.16.4",
     "local-echo": "^0.2.0",
     "minimist": "^1.2.0",
     "mkdirp": "^0.5.1",
@@ -101,6 +101,8 @@
     "@wasmer/wasi": "file:packages/wasi",
     "@wasmer/wasmfs": "file:packages/wasmfs",
     "@wasmer/wasm-transformer": "file:packages/wasm-transformer",
-    "@wasmer/wasm-terminal": "file:packages/wasm-terminal"
+    "@wasmer/wasm-terminal": "file:packages/wasm-terminal",
+    "@wasmer/cli": "file:packages/cli",
+    "@wasmer/io-devices": "file:packages/io-devices"
   }
 }

@@ -42,6 +42,7 @@
   },
   "homepage": "https://github.com/wasmerio/wasmer-js/tree/master/packages/wasm-terminal",
   "dependencies": {
+    "@wasmer/io-devices": "^0.5.1",
     "@wasmer/wasi": "^0.5.1",
     "@wasmer/wasmfs": "^0.5.1",
     "comlink": "^4.0.5",
