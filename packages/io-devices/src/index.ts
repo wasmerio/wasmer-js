@@ -7,7 +7,7 @@ const BUFFER_INDEX_DISPLAY =
   "sys/class/graphics/wasmerfb0/buffer_index_display";
 const INPUT = "/dev/input";
 
-export default class WasmFsIoDevicesDefault {
+export default class IoDevicesDefault {
   wasmFs: WasmFs;
 
   constructor(wasmFs: WasmFs) {
@@ -36,5 +36,5 @@ export default class WasmFsIoDevicesDefault {
   eventListenerClick(event: MouseEvent): void {}
 }
 
-export const WasmFsIoDevices = WasmFsIoDevicesDefault;
-export type WasmFsIoDevices = WasmFsIoDevicesDefault;
+export const IoDevices = IoDevicesDefault;
+export type IoDevices = IoDevicesDefault;

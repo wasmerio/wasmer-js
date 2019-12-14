@@ -1,4 +1,5 @@
 import { WasmFs } from "@wasmer/wasmfs";
+import { IoDevices } from "@wasmer/io-devices";
 import { WASIExitError } from "@wasmer/wasi";
 
 import CommandOptions from "../command/command-options";
@@ -35,6 +36,7 @@ const cleanStdout = (stdout: string) => {
 export default class Process {
   commandOptions: CommandOptions;
   wasmFs: WasmFs;
+  ioDevices: IoDevices;
   originalWasmFsJson: any;
   dataCallback: Function;
   endCallback: Function;
@@ -63,6 +65,8 @@ export default class Process {
     this.wasmFs = new WasmFs();
     this.wasmFs.fromJSON(wasmFsJson);
     this.originalWasmFsJson = wasmFsJson;
+
+    this.ioDevices = new IoDevices(this.wasmFs);
 
     this.dataCallback = dataCallback;
     this.endCallback = endCallback;
