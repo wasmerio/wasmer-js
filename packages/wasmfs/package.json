@@ -5,7 +5,7 @@
   "main": "lib/index.cjs.js",
   "module": "lib/index.esm.js",
   "iife": "lib/index.iife.js",
-  "typings": "lib/wasmfs/src/index.d.ts",
+  "typings": "lib/packages/wasmfs/src/index.d.ts",
   "files": [
     "lib"
   ],
@@ -43,11 +43,5 @@
   "dependencies": {
     "memfs": "git+https://github.com/torch2424/memfs.git#wasmfs-fixes"
   },
-  "gitHead": "889c22135c81610ddecbb696f8ef24f7ecaf5db7",
-  "devDependencies": {
-    "jest": "^24.9.0",
-    "rollup": "^1.27.3",
-    "typedoc": "^0.15.2",
-    "watch": "^1.0.2"
-  }
+  "gitHead": "889c22135c81610ddecbb696f8ef24f7ecaf5db7"
 }

@@ -402,7 +402,7 @@ export default class CommandRunner {
     }
 
     // Create the worker blob and URL
-    const workerBlob = new Blob([workerString]);
+    const workerBlob = new Blob([workerString as any]);
     processWorkerBlobUrl = window.URL.createObjectURL(workerBlob);
     return processWorkerBlobUrl;
   }

@@ -53,7 +53,7 @@ OPTIONS
   --all  see all commands in CLI
 ```
 
-_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v2.2.1/src/commands/help.ts)_
+_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v2.2.3/src/commands/help.ts)_
 
 ## `wasmer-js run [FILE]`
 
@@ -73,6 +73,6 @@ EXAMPLE
   hello world
 ```
 
-_See code: [src/commands/run.ts](https://github.com/wasmerio/wasmer-js/blob/v0.5.1/src/commands/run.ts)_
+_See code: [lib/commands/run.js](https://github.com/wasmerio/wasmer-js/blob/v0.5.1/lib/commands/run.js)_
 
 <!-- commandsstop -->

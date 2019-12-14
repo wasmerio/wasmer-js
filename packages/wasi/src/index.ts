@@ -1431,7 +1431,7 @@ export default class WASIDefault {
 
     this.setMemory(memory);
     if (exports._start) {
-      exports._start();
+      (exports as any)._start();
     }
   }
 }
