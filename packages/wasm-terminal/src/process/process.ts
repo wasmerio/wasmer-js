@@ -102,6 +102,8 @@ export default class Process {
 
   async start(pipedStdinData?: Uint8Array) {
     const end = () => {
+      // Close the window
+      this.ioDeviceWindow.resizeTo(0, 0);
       setTimeout(() => {
         this.endCallback(this.wasmFs.toJSON());
       }, 50);

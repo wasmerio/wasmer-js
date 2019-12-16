@@ -1,14 +1,16 @@
 // Class for interfacing with IO Devices on the main thread (window access).
 
+import { IoDevices } from "@wasmer/io-devices";
+
 export default class IoDeviceWindow {
+  ioDevices: IoDevices | undefined;
+
   popupWindow: Window;
   popupCanvas: HTMLCanvasElement;
   popupCanvasContext: CanvasRenderingContext2D;
   popupImageData: any;
 
-  resizeWindow(windowX: string, windowY: string): void {
-    const width = parseInt(windowX, 10);
-    const height = parseInt(windowY, 10);
+  resizeWindow(width: number, height: number): void {
     if (width > 0 && height > 0) {
       if (this.popupWindow) {
         this.popupWindow.resizeTo(width, height);
@@ -23,7 +25,7 @@ export default class IoDeviceWindow {
         this.popupWindow = window.open(
           "about:blank",
           "WasmerExperimentalFramebuffer",
-          `width=${windowX},height=${windowY}`
+          `width=${width},height=${height}`
         );
 
         // Add our html and canvas and stuff
@@ -88,14 +90,24 @@ export default class IoDeviceWindow {
     }
   }
 
+  setIoDevice(ioDevices: IoDevices): void {
+    this.ioDevices = ioDevices;
+
+    this.ioDevices.setWindowSizeCallback(() => {
+      const windowSize = this.ioDevices.getWindowSize();
+      this.resizeWindow(windowSize[0], windowSize[1]);
+    });
+
+    this.ioDevices.setBufferIndexDisplayCallback(() => {
+      const rgbaArray = this.ioDevices.getFrameBuffer();
+      this.drawRgbaArrayToFrameBuffer(rgbaArray);
+    });
+  }
+
   drawRgbaArrayToFrameBuffer(rgbaArray: Uint8Array): void {
     console.log(this.popupImageData.data);
     this.popupImageData.data.set(rgbaArray);
   }
-
-  getInputAsBytes(): Array<number> {}
-
-  clearInput(): void {}
 
   _eventListenerKeydown(event: KeyboardEvent): void {
     console.log(event);
