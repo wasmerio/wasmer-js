@@ -10,6 +10,8 @@ import WasmTerminalConfig from "../wasm-terminal-config";
 
 import WasmTty from "../wasm-tty/wasm-tty";
 
+import IoDeviceWindow from "../io-device-window/io-device-window";
+
 /*ROLLUP_REPLACE_INLINE
 // @ts-ignore
 import processWorkerInlinedUrl from "../../lib/workers/process.worker.js";
@@ -212,6 +214,9 @@ export default class CommandRunner {
     // Get our filesystem state
     const wasmFsJson = this.wasmTerminalConfig.wasmFs.toJSON();
 
+    // Create our Io Device Window
+    const ioDeviceWindow = new IoDeviceWindow();
+
     // @ts-ignore
     const process: any = await new processComlink(
       // Command Options
@@ -236,6 +241,8 @@ export default class CommandRunner {
       Comlink.proxy(
         this._processErrorCallback.bind(this, { commandOptionIndex })
       ),
+      // Io Device Window
+      Comlink.proxy(ioDeviceWindow),
       // Shared Array Bufer
       sharedStdinBuffer,
       // Stdin read callback
@@ -259,6 +266,9 @@ export default class CommandRunner {
     // Get our filesystem state
     const wasmFsJson = this.wasmTerminalConfig.wasmFs.toJSON();
 
+    // Create our Io Device Window
+    const ioDeviceWindow = new IoDeviceWindow();
+
     const process = new Process(
       // Command Options
       this.commandOptionsForProcessesToRun[commandOptionIndex],
@@ -269,7 +279,9 @@ export default class CommandRunner {
       // End Callback
       this._processEndCallback.bind(this, { commandOptionIndex }),
       // Error Callback
-      this._processErrorCallback.bind(this, { commandOptionIndex })
+      this._processErrorCallback.bind(this, { commandOptionIndex }),
+      // Io Device Window
+      ioDeviceWindow
     );
 
     return {

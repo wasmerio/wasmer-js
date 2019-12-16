@@ -6,6 +6,7 @@ import CommandOptions from "../command/command-options";
 import Command from "../command/command";
 import WASICommand from "../command/wasi-command";
 import CallbackCommand from "../command/callback-command";
+import IoDeviceWindow from "../io-device-window/io-device-window";
 
 /**
 
@@ -41,6 +42,7 @@ export default class Process {
   dataCallback: Function;
   endCallback: Function;
   errorCallback: Function;
+  ioDeviceWindow: IoDeviceWindow;
   sharedStdin?: Int32Array;
   startStdinReadCallback?: Function;
 
@@ -57,6 +59,7 @@ export default class Process {
     dataCallback: Function,
     endCallback: Function,
     errorCallback: Function,
+    ioDeviceWindow: IoDeviceWindow,
     sharedStdinBuffer?: SharedArrayBuffer,
     startStdinReadCallback?: Function
   ) {
@@ -67,6 +70,7 @@ export default class Process {
     this.originalWasmFsJson = wasmFsJson;
 
     this.ioDevices = new IoDevices(this.wasmFs);
+    this.ioDeviceWindow = ioDeviceWindow;
 
     this.dataCallback = dataCallback;
     this.endCallback = endCallback;
