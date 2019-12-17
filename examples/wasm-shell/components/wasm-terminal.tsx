@@ -26,8 +26,11 @@ const commands = {
     );
   }
 };
+// TODO: Fix the wasm transformer so it can handle the original file
+commands["wasmboy"] = "./wasmboy-wasmer-pre-lowered.wasm";
+const wasmboyRom = "./tobutobugirl/tobutobugirl.gb";
+commands["io-as-debug"] = "./io-as-debug.wasm";
 
-let didInitWasmTransformer = false;
 const fetchCommandHandler = async (
   commandName: string,
   commandArgs?: Array<string>,
@@ -50,10 +53,6 @@ const fetchCommandHandler = async (
       commandArgs,
       envEntries
     );
-  }
-
-  if (!didInitWasmTransformer) {
-    didInitWasmTransformer = true;
   }
 
   return await lowerI64Imports(wasmBinary);
@@ -85,6 +84,15 @@ export default class WasmTerminalComponent extends Component {
     const contents = Uint8Array.from(deser);
     this.wasmFs.volume.writeFileSync("/tiny.png", contents);
 
+    // Kick off fetching and adding the wasmboy rom
+    const wasmboyTask = async () => {
+      const response = await fetch(wasmboyRom);
+      const buffer = await response.arrayBuffer();
+      const binary = new Uint8Array(buffer);
+      this.wasmFs.volume.writeFileSync("/rom.gb", binary);
+    };
+    wasmboyTask();
+
     this.container = null;
   }
 
@@ -115,6 +123,14 @@ export default class WasmTerminalComponent extends Component {
     this.wasmTerminal.runCommand("viu /tiny.png");
   }
 
+  runIoDevicesDebug() {
+    this.wasmTerminal.runCommand("io-as-debug");
+  }
+
+  runWasmBoy() {
+    this.wasmTerminal.runCommand("wasmboy /rom.gb");
+  }
+
   render() {
     return (
       <div id="terminal-component">
@@ -124,6 +140,10 @@ export default class WasmTerminalComponent extends Component {
             Run Cowsay Hello
           </button>
           <button onClick={() => this.runViu()}>Run Viu</button>
+          <button onClick={() => this.runIoDevicesDebug()}>
+            Run IO Devices Debug
+          </button>
+          <button onClick={() => this.runWasmBoy()}>Run WasmBoy</button>
           <br />
           <br />
         </div>

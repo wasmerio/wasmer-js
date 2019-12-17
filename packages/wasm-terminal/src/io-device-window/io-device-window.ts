@@ -94,11 +94,13 @@ export default class IoDeviceWindow {
     this.ioDevices = ioDevices;
 
     this.ioDevices.setWindowSizeCallback(() => {
+      console.log("Window Size Callback!");
       const windowSize = this.ioDevices.getWindowSize();
       this.resizeWindow(windowSize[0], windowSize[1]);
     });
 
     this.ioDevices.setBufferIndexDisplayCallback(() => {
+      console.log("BUffer index callback!");
       const rgbaArray = this.ioDevices.getFrameBuffer();
       this.drawRgbaArrayToFrameBuffer(rgbaArray);
     });

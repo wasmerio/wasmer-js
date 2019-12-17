@@ -31,20 +31,60 @@ export default class IoDevicesDefault {
     this.bufferIndexDisplayCallback = () => {};
 
     // Open our directories and get their file descriptors
-    this.fdFrameBuffer = this.wasmFs.fs.openSync(FRAME_BUFFER, "r");
-    this.fdWindowSize = this.wasmFs.fs.openSync(FRAME_BUFFER, "r");
-    this.fdBufferIndexDisplay = this.wasmFs.fs.openSync(FRAME_BUFFER, "r");
-    this.fdInput = this.wasmFs.fs.openSync(FRAME_BUFFER, "w");
+    this.fdFrameBuffer = this.wasmFs.fs.openSync(FRAME_BUFFER, "w+");
+    this.fdWindowSize = this.wasmFs.fs.openSync(FRAME_BUFFER, "w+");
+    this.fdBufferIndexDisplay = this.wasmFs.fs.openSync(FRAME_BUFFER, "w+");
+    this.fdInput = this.wasmFs.fs.openSync(FRAME_BUFFER, "w+");
+
+    console.log(Object.keys(this.wasmFs.toJSON()));
+    console.log(this);
+    console.log(this.wasmFs.volume.fds);
+    console.log(Object.keys(this.wasmFs.volume.fds));
+    console.log(Object.keys(this.wasmFs.volume.fds[this.fdWindowSize]));
+    console.log(
+      "yooo",
+      this.wasmFs.volume.fds[this.fdWindowSize].node.read.toString()
+    );
 
     // Set up our read / write handlers
-    this.wasmFs.volume.fds[this.fdInput].node.read = this._clearInput.bind(
-      this,
-      this.wasmFs.volume.fds[this.fdInput].node.read
-    ) as any;
-    this.wasmFs.volume.fds[this.fdWindowSize].node.write = this
-      .windowSizeCallback as any;
-    this.wasmFs.volume.fds[this.fdBufferIndexDisplay].node.write = this
-      .bufferIndexDisplayCallback as any;
+    const context = this;
+    // @ts-ignore
+    this.wasmFs.volume.fds[this.fdInput].node.read = function() {
+      console.log("supppp");
+      // @ts-ignore
+      const args = Array.prototype.slice(arguments);
+      context.wasmFs.volume.fds[context.fdInput].node.read.apply(
+        context.wasmFs.volume.fds[context.fdInput].node,
+        args as any
+      );
+      context._clearInput();
+    };
+    // TODO: Functions are not being called? :(
+    // @ts-ignore
+    this.wasmFs.volume.fds[this.fdWindowSize].node.read = () =>
+      console.log("yoooo");
+    // @ts-ignore
+    this.wasmFs.volume.fds[this.fdWindowSize].node.write = function() {
+      console.log("Yoooo");
+      // @ts-ignore
+      const args = Array.prototype.slice(arguments);
+      context.wasmFs.volume.fds[context.fdInput].node.read.apply(
+        context.wasmFs.volume.fds[context.fdInput].node,
+        args as any
+      );
+      context.windowSizeCallback();
+    };
+    // @ts-ignore
+    this.wasmFs.volume.fds[this.fdBufferIndexDisplay].node.write = function() {
+      console.log("asjdhasdk");
+      // @ts-ignore
+      const args = Array.prototype.slice(arguments);
+      context.wasmFs.volume.fds[context.fdInput].node.read.apply(
+        context.wasmFs.volume.fds[context.fdInput].node,
+        args as any
+      );
+      context.bufferIndexDisplayCallback();
+    };
   }
 
   getFrameBuffer(): Uint8Array {
@@ -71,10 +111,8 @@ export default class IoDevicesDefault {
 
   setInput(): void {}
 
-  _clearInput(originalRead: Function): void {
+  _clearInput(): void {
     console.log("Cleared input!");
-    const args = Array.prototype.slice.call(arguments);
-    return originalRead.apply(null, args.slice(1));
   }
 }
 

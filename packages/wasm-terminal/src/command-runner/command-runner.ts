@@ -481,6 +481,7 @@ export default class CommandRunner {
 
     if (response instanceof Uint8Array) {
       // Compile the Wasm Module
+      console.log(response);
       const wasmModule = await WebAssembly.compile(response);
 
       commandOptions.unshift({
