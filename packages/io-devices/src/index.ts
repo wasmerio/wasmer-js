@@ -49,12 +49,13 @@ export default class IoDevicesDefault {
 
     // Set up our read / write handlers
     const context = this;
+    const originalInputRead = this.wasmFs.volume.fds[this.fdInput].node.read;
     // @ts-ignore
     this.wasmFs.volume.fds[this.fdInput].node.read = function() {
       console.log("supppp");
       // @ts-ignore
       const args = Array.prototype.slice(arguments);
-      context.wasmFs.volume.fds[context.fdInput].node.read.apply(
+      originalInputRead.apply(
         context.wasmFs.volume.fds[context.fdInput].node,
         args as any
       );
@@ -63,24 +64,30 @@ export default class IoDevicesDefault {
     // TODO: Functions are not being called? :(
     // @ts-ignore
     this.wasmFs.volume.fds[this.fdWindowSize].node.read = () =>
+      // @ts-ignore
       console.log("yoooo");
+    const originalWindowSizeWrite = this.wasmFs.volume.fds[this.fdWindowSize]
+      .node.write;
     // @ts-ignore
     this.wasmFs.volume.fds[this.fdWindowSize].node.write = function() {
       console.log("Yoooo");
       // @ts-ignore
       const args = Array.prototype.slice(arguments);
-      context.wasmFs.volume.fds[context.fdInput].node.read.apply(
+      originalWindowSizeWrite.apply(
         context.wasmFs.volume.fds[context.fdInput].node,
         args as any
       );
       context.windowSizeCallback();
     };
+    const originalBufferIndexDisplayWrite = this.wasmFs.volume.fds[
+      this.fdBufferIndexDisplay
+    ].node.write;
     // @ts-ignore
     this.wasmFs.volume.fds[this.fdBufferIndexDisplay].node.write = function() {
       console.log("asjdhasdk");
       // @ts-ignore
       const args = Array.prototype.slice(arguments);
-      context.wasmFs.volume.fds[context.fdInput].node.read.apply(
+      originalBufferIndexDisplayWrite.apply(
         context.wasmFs.volume.fds[context.fdInput].node,
         args as any
       );
