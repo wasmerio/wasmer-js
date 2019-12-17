@@ -36,6 +36,7 @@ export default class IoDevicesDefault {
     this.fdBufferIndexDisplay = this.wasmFs.fs.openSync(FRAME_BUFFER, "w+");
     this.fdInput = this.wasmFs.fs.openSync(FRAME_BUFFER, "w+");
 
+    // TODO: Remove this test codeu
     console.log(Object.keys(this.wasmFs.toJSON()));
     console.log(this);
     console.log(this.wasmFs.volume.fds);
