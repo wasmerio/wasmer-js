@@ -38,26 +38,27 @@ export default class IoDevicesDefault {
 
     // Set up our read / write handlers
     this.wasmFs.volume.fds[this.fdInput].node.read = this._clearInput.bind(
-      this
-    );
-    this.wasmFs.volume.fds[
-      this.fdWindowSize
-    ].node.write = this.windowSizeCallback;
-    this.wasmFs.volume.fds[
-      this.fdBufferIndexDisplay
-    ].node.write = this.bufferIndexDisplayCallback;
+      this,
+      this.wasmFs.volume.fds[this.fdInput].node.read
+    ) as any;
+    this.wasmFs.volume.fds[this.fdWindowSize].node.write = this
+      .windowSizeCallback as any;
+    this.wasmFs.volume.fds[this.fdBufferIndexDisplay].node.write = this
+      .bufferIndexDisplayCallback as any;
   }
 
   getFrameBuffer(): Uint8Array {
-    const buffer = this.wasmFs.readFileSync(FRAME_BUFFER);
+    const buffer = this.wasmFs.fs.readFileSync(FRAME_BUFFER);
     console.log(buffer);
-    return new Uint8Array(buffer);
+    return new Uint8Array();
   }
 
   getWindowSize(): Array<number> {
-    const windowSize = this.wasmFs.readFileSync(WINDOW_SIZE, "utf8");
+    const windowSizeBuffer = this.wasmFs.fs.readFileSync(WINDOW_SIZE);
+    console.log(windowSizeBuffer);
+    const windowSize = new TextDecoder("utf-8").decode(windowSizeBuffer as any);
     const splitWindowSize = windowSize.split("x");
-    return [splitWindowSize[0], splitWindowSize[1]];
+    return [parseInt(splitWindowSize[0], 10), parseInt(splitWindowSize[1], 10)];
   }
 
   setWindowSizeCallback(windowSizeCallback: Function): void {
@@ -70,7 +71,11 @@ export default class IoDevicesDefault {
 
   setInput(): void {}
 
-  _clearInput(): void {}
+  _clearInput(originalRead: Function): void {
+    console.log("Cleared input!");
+    const args = Array.prototype.slice.call(arguments);
+    return originalRead.apply(null, args.slice(1));
+  }
 }
 
 export const IoDevices = IoDevicesDefault;
