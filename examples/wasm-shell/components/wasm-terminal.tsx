@@ -27,7 +27,7 @@ const commands = {
   }
 };
 // TODO: Fix the wasm transformer so it can handle the original file
-commands["wasmboy"] = "./wasmboy-wasmer-pre-lowered.wasm";
+commands["wasmboy"] = "./wasmboy-wasmer.wasm";
 const wasmboyRom = "./tobutobugirl/tobutobugirl.gb";
 commands["io-as-debug"] = "./io-as-debug.wasm";
 

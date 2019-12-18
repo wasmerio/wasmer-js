@@ -282,9 +282,10 @@ fn add_entries_to_section(
     position_offset += section_length_bytes_difference;
 
     // Number of Entries (AKA Count)
-    let number_of_entries_position =
-        (starting_offset + (section.start_position as isize) + 1 + (new_section_length_bytes_length as isize))
-            as usize;
+    let number_of_entries_position = (starting_offset
+        + (section.start_position as isize)
+        + 1
+        + (new_section_length_bytes_length as isize)) as usize;
     let (number_of_entries, number_of_entries_byte_length) = read_bytes_as_varunit(
         wasm_binary_vec
             .get(number_of_entries_position..(number_of_entries_position + 5))
