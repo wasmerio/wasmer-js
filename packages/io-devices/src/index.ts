@@ -27,6 +27,7 @@ export default class IoDevicesDefault {
     wasmFsJSON[INPUT] = "";
     this.wasmFs.fromJSON(wasmFsJSON);
 
+    // TODO: Check why this isn't being called?
     this.windowSizeCallback = () => {};
     this.bufferIndexDisplayCallback = () => {};
 
