@@ -72,6 +72,18 @@ export default class Process {
     this.ioDevices = new IoDevices(this.wasmFs);
     this.ioDeviceWindow = ioDeviceWindow;
 
+    // Set up our callbacks for our Io Devices Window
+    this.ioDevices.setWindowSizeCallback(() => {
+      console.log("Window Size Callback!");
+      const windowSize = this.ioDevices.getWindowSize();
+      this.ioDeviceWindow.resizeWindow(windowSize[0], windowSize[1]);
+    });
+    this.ioDevices.setBufferIndexDisplayCallback(() => {
+      console.log("Buffer index callback!");
+      const rgbaArray = this.ioDevices.getFrameBuffer();
+      this.ioDeviceWindow.drawRgbaArrayToFrameBuffer(rgbaArray);
+    });
+
     this.dataCallback = dataCallback;
     this.endCallback = endCallback;
     this.errorCallback = errorCallback;
@@ -103,7 +115,7 @@ export default class Process {
   async start(pipedStdinData?: Uint8Array) {
     const end = () => {
       // Close the window
-      this.ioDeviceWindow.resizeTo(0, 0);
+      this.ioDeviceWindow.resizeWindow(0, 0);
       setTimeout(() => {
         this.endCallback(this.wasmFs.toJSON());
       }, 50);

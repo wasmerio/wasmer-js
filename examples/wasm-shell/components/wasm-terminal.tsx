@@ -30,6 +30,7 @@ const commands = {
 commands["wasmboy"] = "./wasmboy-wasmer.wasm";
 const wasmboyRom = "./tobutobugirl/tobutobugirl.gb";
 commands["io-as-debug"] = "./io-as-debug.wasm";
+commands["optimized"] = "./optimized.wasm";
 
 const fetchCommandHandler = async (
   commandName: string,
@@ -89,7 +90,7 @@ export default class WasmTerminalComponent extends Component {
       const response = await fetch(wasmboyRom);
       const buffer = await response.arrayBuffer();
       const binary = new Uint8Array(buffer);
-      this.wasmFs.volume.writeFileSync("/rom.gb", binary);
+      // this.wasmFs.volume.writeFileSync("/rom.gb", binary);
     };
     wasmboyTask();
 

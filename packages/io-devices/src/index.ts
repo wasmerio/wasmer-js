@@ -27,22 +27,27 @@ export default class IoDevicesDefault {
     wasmFsJSON[INPUT] = "";
     this.wasmFs.fromJSON(wasmFsJSON);
 
-    // TODO: Check why this isn't being called?
     this.windowSizeCallback = () => {};
     this.bufferIndexDisplayCallback = () => {};
 
     // Open our directories and get their file descriptors
     this.fdFrameBuffer = this.wasmFs.volume.openSync(FRAME_BUFFER, "w+");
-    this.fdWindowSize = this.wasmFs.volume.openSync(WINDOW_SIZE, "w+");
     this.fdBufferIndexDisplay = this.wasmFs.volume.openSync(
       BUFFER_INDEX_DISPLAY,
       "w+"
     );
+    this.fdWindowSize = this.wasmFs.fs.openSync(WINDOW_SIZE, "w+");
     this.fdInput = this.wasmFs.volume.openSync(INPUT, "w+");
+
+    // Input works, but window size and fb do not?
+    console.log(this.wasmFs.volume.fds);
+    console.log(this.wasmFs.volume.fds[this.fdWindowSize].link.getName());
+    console.log(this.fdWindowSize);
 
     // Set up our read / write handlers
     const context = this;
     const originalInputRead = this.wasmFs.volume.fds[this.fdInput].node.read;
+    console.log("read", originalInputRead.toString());
     // @ts-ignore
     this.wasmFs.volume.fds[this.fdInput].node.read = function() {
       // @ts-ignore
@@ -56,12 +61,18 @@ export default class IoDevicesDefault {
     };
     const originalWindowSizeWrite = this.wasmFs.volume.fds[this.fdWindowSize]
       .node.write;
+    console.log("write", originalWindowSizeWrite.toString());
+    console.log(
+      "can write",
+      this.wasmFs.volume.fds[this.fdWindowSize].node.canWrite()
+    );
     // @ts-ignore
-    this.wasmFs.volume.fds[this.fdWindowSize].node.write = function() {
+    this.wasmFs.volume.fds[this.fdWindowSize].write = function() {
+      console.log("Window size write!");
       // @ts-ignore
       const args = Array.prototype.slice.call(arguments);
       const response = originalWindowSizeWrite.apply(
-        context.wasmFs.volume.fds[context.fdInput].node,
+        context.wasmFs.volume.fds[context.fdWindowSize].node,
         args as any
       );
       context.windowSizeCallback();
@@ -72,10 +83,11 @@ export default class IoDevicesDefault {
     ].node.write;
     // @ts-ignore
     this.wasmFs.volume.fds[this.fdBufferIndexDisplay].node.write = function() {
+      console.log("Buffer Write!");
       // @ts-ignore
       const args = Array.prototype.slice.call(arguments);
       const response = originalBufferIndexDisplayWrite.apply(
-        context.wasmFs.volume.fds[context.fdInput].node,
+        context.wasmFs.volume.fds[context.fdBufferIndexDisplay].node,
         args as any
       );
       context.bufferIndexDisplayCallback();
@@ -105,7 +117,9 @@ export default class IoDevicesDefault {
 
   setInput(): void {}
 
-  _clearInput(): void {}
+  _clearInput(): void {
+    console.log(JSON.stringify(this.wasmFs.toJSON()));
+  }
 }
 
 export const IoDevices = IoDevicesDefault;

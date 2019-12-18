@@ -5,9 +5,12 @@ import { IoDevices } from "@wasmer/io-devices";
 export default class IoDeviceWindow {
   ioDevices: IoDevices | undefined;
 
-  popupWindow: Window;
-  popupCanvas: HTMLCanvasElement;
-  popupCanvasContext: CanvasRenderingContext2D;
+  // popupWindow: Window | undefined;
+  // popupCanvas: HTMLCanvasElement | undefined;
+  // popupCanvasContext: CanvasRenderingContext2D | undefined;
+  popupWindow: any;
+  popupCanvas: any;
+  popupCanvasContext: any;
   popupImageData: any;
 
   resizeWindow(width: number, height: number): void {
@@ -90,24 +93,7 @@ export default class IoDeviceWindow {
     }
   }
 
-  setIoDevice(ioDevices: IoDevices): void {
-    this.ioDevices = ioDevices;
-
-    this.ioDevices.setWindowSizeCallback(() => {
-      console.log("Window Size Callback!");
-      const windowSize = this.ioDevices.getWindowSize();
-      this.resizeWindow(windowSize[0], windowSize[1]);
-    });
-
-    this.ioDevices.setBufferIndexDisplayCallback(() => {
-      console.log("BUffer index callback!");
-      const rgbaArray = this.ioDevices.getFrameBuffer();
-      this.drawRgbaArrayToFrameBuffer(rgbaArray);
-    });
-  }
-
   drawRgbaArrayToFrameBuffer(rgbaArray: Uint8Array): void {
-    console.log(this.popupImageData.data);
     this.popupImageData.data.set(rgbaArray);
   }
 
