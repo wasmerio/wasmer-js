@@ -3,6 +3,7 @@
 use crate::applier::*;
 use crate::generator::*;
 use crate::parser::*;
+use crate::utils::*;
 
 use std::path::{Path, PathBuf};
 use std::*;
@@ -63,9 +64,17 @@ fn converts() {
     test_file_paths.push("./wasm_module_examples/rsign_original.wasm");
     test_file_paths.push("./wasm_module_examples/viu.wasm");
     test_file_paths.push("./wasm_module_examples/busy.wasm");
+    test_file_paths.push("./wasm_module_examples/io-as-debug.wasm");
+    test_file_paths.push("./wasm_module_examples/wasmboy-wasmer.wasm");
     // test_file_paths.push("./wasm_module_examples/clang.wasm");
 
     fs::create_dir_all("./wasm_module_examples_transformed/").unwrap();
+
+    // Test varuint
+    let (value, _) = read_bytes_as_varunit(&[0x38, 0xB6]).unwrap();
+    console_log!("0x38B6 {:x}", value);
+    let (value_again, _) = read_bytes_as_varunit(&[0xC8, 0xB3]).unwrap();
+    console_log!("0xC8B3 {:x}", value_again);
 
     for test_file_path in test_file_paths.iter() {
         console_log!(" ");

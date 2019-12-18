@@ -294,6 +294,73 @@ pub fn parse_wasm_vec(wasm_binary_vec: &mut Vec<u8>) -> ParsedWasmInfo {
         }
     }
 
+    // NOTE: Start Section is not required for WASI,
+    // but if this section exists, wasm parser will give the incorrect start and end position
+    // And will affect the next section as well (usually Code). Thus, we need to increase start sections's
+    // end_position, and the next section's start_position. And then, for the next section, it will
+    // get the same data as the start section, thus we need to essentially re-fill out the next section
+    let start_section_index_option = wasm_sections
+        .iter()
+        .position(|&x| x.code == WasmSectionCode::Start);
+    if let Some(start_section_index) = start_section_index_option {
+        if start_section_index < wasm_sections.len() - 1 {
+            // Split here so we can mutably borrow twice
+            let (section_split_start, section_split_section_after_start) =
+                wasm_sections.split_at_mut(start_section_index + 1);
+            let start_section = &mut section_split_start[section_split_start.len() - 1];
+            let section_after_start_section = &mut section_split_section_after_start[0];
+
+            // Make sure we are matching this edge case
+            if (start_section.start_position == start_section.end_position
+                && start_section.end_position == section_after_start_section.start_position)
+            {
+                // Fix the start section sizing
+                // Calculate the size of the start section in bytes
+                let mut start_section_byte_size: usize = 1; // +1 for the section code
+                                                            // Section size
+                let (start_size, start_size_byte_length) = read_bytes_as_varunit(
+                    wasm_binary_vec
+                        .get((start_section.start_position + 1)..(start_section.start_position + 5))
+                        .unwrap(),
+                )
+                .unwrap();
+                start_section_byte_size += (start_size as usize + start_size_byte_length) as usize;
+
+                start_section.end_position += start_section_byte_size as usize;
+                let section_after_start_section = &mut section_split_section_after_start[0];
+                section_after_start_section.start_position = start_section.end_position as usize;
+
+                // Fix the next section's size, size_byte_length, count, and count_byte_length
+                let (section_after_size, section_after_size_byte_length) = read_bytes_as_varunit(
+                    wasm_binary_vec
+                        .get(
+                            (section_after_start_section.start_position + 1)
+                                ..(section_after_start_section.start_position + 5),
+                        )
+                        .unwrap(),
+                )
+                .unwrap();
+                let (section_after_count, section_after_count_byte_length) = read_bytes_as_varunit(
+                    wasm_binary_vec
+                        .get(
+                            (section_after_start_section.start_position
+                                + 1
+                                + section_after_size_byte_length)
+                                ..(section_after_start_section.start_position
+                                    + 5
+                                    + section_after_size_byte_length),
+                        )
+                        .unwrap(),
+                )
+                .unwrap();
+                section_after_start_section.size = section_after_size;
+                section_after_start_section.size_byte_length = section_after_size_byte_length;
+                section_after_start_section.count = section_after_count;
+                section_after_start_section.count_byte_length = section_after_count_byte_length;
+            }
+        }
+    }
+
     ParsedWasmInfo {
         wasm_type_signatures,
         wasm_sections,
