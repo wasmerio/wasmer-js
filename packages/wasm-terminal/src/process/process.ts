@@ -74,12 +74,10 @@ export default class Process {
 
     // Set up our callbacks for our Io Devices Window
     this.ioDevices.setWindowSizeCallback(() => {
-      console.log("Window Size Callback!");
       const windowSize = this.ioDevices.getWindowSize();
       this.ioDeviceWindow.resizeWindow(windowSize[0], windowSize[1]);
     });
     this.ioDevices.setBufferIndexDisplayCallback(() => {
-      console.log("Buffer index callback!");
       const rgbaArray = this.ioDevices.getFrameBuffer();
       this.ioDeviceWindow.drawRgbaArrayToFrameBuffer(rgbaArray);
     });

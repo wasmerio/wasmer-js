@@ -41,26 +41,26 @@ export default class IoDevicesDefault {
 
     // Set up our read / write handlers
     const context = this;
-    const originalInputRead = this.wasmFs.volume.fds[this.fdInput].read;
+    const originalInputRead = this.wasmFs.volume.fds[this.fdInput].node.read;
     // @ts-ignore
-    this.wasmFs.volume.fds[this.fdInput].read = function() {
+    this.wasmFs.volume.fds[this.fdInput].node.read = function() {
       // @ts-ignore
       const args = Array.prototype.slice.call(arguments);
       const response = originalInputRead.apply(
-        context.wasmFs.volume.fds[context.fdInput],
+        context.wasmFs.volume.fds[context.fdInput].node,
         args as any
       );
       context._clearInput();
       return response;
     };
     const originalWindowSizeWrite = this.wasmFs.volume.fds[this.fdWindowSize]
-      .write;
+      .node.write;
     // @ts-ignore
-    this.wasmFs.volume.fds[this.fdWindowSize].write = function() {
+    this.wasmFs.volume.fds[this.fdWindowSize].node.write = function() {
       // @ts-ignore
       const args = Array.prototype.slice.call(arguments);
       const response = originalWindowSizeWrite.apply(
-        context.wasmFs.volume.fds[context.fdWindowSize],
+        context.wasmFs.volume.fds[context.fdWindowSize].node,
         args as any
       );
       context.windowSizeCallback();
@@ -68,9 +68,9 @@ export default class IoDevicesDefault {
     };
     const originalBufferIndexDisplayWrite = this.wasmFs.volume.fds[
       this.fdBufferIndexDisplay
-    ].write;
+    ].node.write;
     // @ts-ignore
-    this.wasmFs.volume.fds[this.fdBufferIndexDisplay].write = function() {
+    this.wasmFs.volume.fds[this.fdBufferIndexDisplay].node.write = function() {
       // @ts-ignore
       const args = Array.prototype.slice.call(arguments);
       const response = originalBufferIndexDisplayWrite.apply(
@@ -83,8 +83,12 @@ export default class IoDevicesDefault {
   }
 
   getFrameBuffer(): Uint8Array {
-    const buffer = this.wasmFs.fs.readFileSync(FRAME_BUFFER);
-    return new Uint8Array();
+    const buffer: Uint8Array = this.wasmFs.fs.readFileSync(
+      FRAME_BUFFER
+    ) as Uint8Array;
+    // TODO: This will clear everything, but file still grows
+    this.wasmFs.fs.writeFileSync(FRAME_BUFFER, buffer);
+    return buffer;
   }
 
   getWindowSize(): Array<number> {

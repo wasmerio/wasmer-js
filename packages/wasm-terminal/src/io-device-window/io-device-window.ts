@@ -93,7 +93,10 @@ export default class IoDeviceWindow {
   }
 
   drawRgbaArrayToFrameBuffer(rgbaArray: Uint8Array): void {
-    this.popupImageData.data.set(rgbaArray);
+    if (this.popupCanvas && this.popupCanvasContext && this.popupImageData) {
+      this.popupImageData.data.set(rgbaArray);
+      this.popupCanvasContext.putImageData(this.popupImageData, 0, 0);
+    }
   }
 
   _eventListenerKeydown(event: KeyboardEvent): void {
