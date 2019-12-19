@@ -67,7 +67,7 @@ export default class IoDevicesDefault {
       this.wasmFs.volume.fds[this.fdWindowSize].node.canWrite()
     );
     // @ts-ignore
-    this.wasmFs.volume.fds[this.fdWindowSize].write = function() {
+    this.wasmFs.volume.fds[this.fdWindowSize].node.write = function() {
       console.log("Window size write!");
       // @ts-ignore
       const args = Array.prototype.slice.call(arguments);
