@@ -5,9 +5,9 @@ import { IoDevices } from "@wasmer/io-devices";
 export default class IoDeviceWindow {
   ioDevices: IoDevices | undefined;
 
-  popupWindow: Window | undefined;
-  popupCanvas: HTMLCanvasElement | undefined;
-  popupCanvasContext: CanvasRenderingContext2D | undefined;
+  popupWindow: Window | undefined | null;
+  popupCanvas: HTMLCanvasElement | undefined | null;
+  popupCanvasContext: CanvasRenderingContext2D | undefined | null;
   popupImageData: any;
 
   resizeWindow(width: number, height: number): void {
@@ -26,7 +26,7 @@ export default class IoDeviceWindow {
           "about:blank",
           "WasmerExperimentalFramebuffer",
           `width=${width},height=${height}`
-        );
+        ) as Window;
 
         // Add our html and canvas and stuff
         this.popupWindow.document.body.innerHTML = `
@@ -55,8 +55,10 @@ export default class IoDeviceWindow {
         this.popupCanvas = this.popupWindow.document.querySelector(
           "#io-device-framebuffer"
         ) as HTMLCanvasElement;
-        this.popupCanvasContext = this.popupCanvas.getContext("2d");
-        this.popupImageData = this.popupCanvas.getImageData(
+        this.popupCanvasContext = this.popupCanvas.getContext(
+          "2d"
+        ) as CanvasRenderingContext2D;
+        this.popupImageData = this.popupCanvasContext.getImageData(
           0,
           0,
           width,
