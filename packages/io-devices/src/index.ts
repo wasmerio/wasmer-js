@@ -39,40 +39,28 @@ export default class IoDevicesDefault {
     this.fdWindowSize = this.wasmFs.fs.openSync(WINDOW_SIZE, "w+");
     this.fdInput = this.wasmFs.volume.openSync(INPUT, "w+");
 
-    // Input works, but window size and fb do not?
-    console.log(this.wasmFs.volume.fds);
-    console.log(this.wasmFs.volume.fds[this.fdWindowSize].link.getName());
-    console.log(this.fdWindowSize);
-
     // Set up our read / write handlers
     const context = this;
-    const originalInputRead = this.wasmFs.volume.fds[this.fdInput].node.read;
-    console.log("read", originalInputRead.toString());
+    const originalInputRead = this.wasmFs.volume.fds[this.fdInput].read;
     // @ts-ignore
-    this.wasmFs.volume.fds[this.fdInput].node.read = function() {
+    this.wasmFs.volume.fds[this.fdInput].read = function() {
       // @ts-ignore
       const args = Array.prototype.slice.call(arguments);
       const response = originalInputRead.apply(
-        context.wasmFs.volume.fds[context.fdInput].node,
+        context.wasmFs.volume.fds[context.fdInput],
         args as any
       );
       context._clearInput();
       return response;
     };
     const originalWindowSizeWrite = this.wasmFs.volume.fds[this.fdWindowSize]
-      .node.write;
-    console.log("write", originalWindowSizeWrite.toString());
-    console.log(
-      "can write",
-      this.wasmFs.volume.fds[this.fdWindowSize].node.canWrite()
-    );
+      .write;
     // @ts-ignore
     this.wasmFs.volume.fds[this.fdWindowSize].write = function() {
-      console.log("Window size write!");
       // @ts-ignore
       const args = Array.prototype.slice.call(arguments);
       const response = originalWindowSizeWrite.apply(
-        context.wasmFs.volume.fds[context.fdWindowSize].node,
+        context.wasmFs.volume.fds[context.fdWindowSize],
         args as any
       );
       context.windowSizeCallback();
@@ -80,10 +68,9 @@ export default class IoDevicesDefault {
     };
     const originalBufferIndexDisplayWrite = this.wasmFs.volume.fds[
       this.fdBufferIndexDisplay
-    ].node.write;
+    ].write;
     // @ts-ignore
-    this.wasmFs.volume.fds[this.fdBufferIndexDisplay].node.write = function() {
-      console.log("Buffer Write!");
+    this.wasmFs.volume.fds[this.fdBufferIndexDisplay].write = function() {
       // @ts-ignore
       const args = Array.prototype.slice.call(arguments);
       const response = originalBufferIndexDisplayWrite.apply(
@@ -117,9 +104,7 @@ export default class IoDevicesDefault {
 
   setInput(): void {}
 
-  _clearInput(): void {
-    console.log(JSON.stringify(this.wasmFs.toJSON()));
-  }
+  _clearInput(): void {}
 }
 
 export const IoDevices = IoDevicesDefault;

@@ -5,19 +5,16 @@ import { IoDevices } from "@wasmer/io-devices";
 export default class IoDeviceWindow {
   ioDevices: IoDevices | undefined;
 
-  // popupWindow: Window | undefined;
-  // popupCanvas: HTMLCanvasElement | undefined;
-  // popupCanvasContext: CanvasRenderingContext2D | undefined;
-  popupWindow: any;
-  popupCanvas: any;
-  popupCanvasContext: any;
+  popupWindow: Window | undefined;
+  popupCanvas: HTMLCanvasElement | undefined;
+  popupCanvasContext: CanvasRenderingContext2D | undefined;
   popupImageData: any;
 
   resizeWindow(width: number, height: number): void {
     if (width > 0 && height > 0) {
-      if (this.popupWindow) {
+      if (this.popupWindow && this.popupCanvas && this.popupCanvasContext) {
         this.popupWindow.resizeTo(width, height);
-        this.popupImageData = this.popupCanvas.getImageData(
+        this.popupImageData = this.popupCanvasContext.getImageData(
           0,
           0,
           width,

@@ -700,8 +700,6 @@ export default class WASIDefault {
       fd_write: wrap(
         (fd: number, iovs: number, iovsLen: number, nwritten: number) => {
           const stats = CHECK_FD(fd, WASI_RIGHT_FD_WRITE);
-          console.log("fd_write fd:", fd);
-          console.log("fd_write stats:", stats);
           let written = 0;
           getiovs(iovs, iovsLen).forEach(iov => {
             let w = 0;

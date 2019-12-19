@@ -90,7 +90,7 @@ export default class WasmTerminalComponent extends Component {
       const response = await fetch(wasmboyRom);
       const buffer = await response.arrayBuffer();
       const binary = new Uint8Array(buffer);
-      // this.wasmFs.volume.writeFileSync("/rom.gb", binary);
+      this.wasmFs.volume.writeFileSync("/rom.gb", binary);
     };
     wasmboyTask();
 
