@@ -86,8 +86,6 @@ export default class IoDevicesDefault {
     const buffer: Uint8Array = this.wasmFs.fs.readFileSync(
       FRAME_BUFFER
     ) as Uint8Array;
-    // TODO: This will clear everything, but file still grows
-    this.wasmFs.fs.writeFileSync(FRAME_BUFFER, buffer);
     return buffer;
   }
 

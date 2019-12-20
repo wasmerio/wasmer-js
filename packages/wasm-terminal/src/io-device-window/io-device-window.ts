@@ -8,12 +8,15 @@ export default class IoDeviceWindow {
   popupWindow: Window | undefined | null;
   popupCanvas: HTMLCanvasElement | undefined | null;
   popupCanvasContext: CanvasRenderingContext2D | undefined | null;
+  popupContainerElement: HTMLElement | undefined | null;
   popupImageData: any;
 
   resizeWindow(width: number, height: number): void {
     if (width > 0 && height > 0) {
       if (this.popupWindow && this.popupCanvas && this.popupCanvasContext) {
         this.popupWindow.resizeTo(width, height);
+        this.popupContainerElement.style.width = `${width}px`;
+        this.popupContainerElement.style.height = `${height}px`;
         this.popupImageData = this.popupCanvasContext.getImageData(
           0,
           0,
@@ -25,19 +28,38 @@ export default class IoDeviceWindow {
         this.popupWindow = window.open(
           "about:blank",
           "WasmerExperimentalFramebuffer",
-          `width=${width},height=${height}`
+          `width=${width}px,height=${height}px`
         ) as Window;
 
         // Add our html and canvas and stuff
         this.popupWindow.document.body.innerHTML = `
           <style>
-            #io-device-framebuffer {
-              position: fixed;
+            body {
+              display: flex;
+              flex-direction: column;
+              justify-content: center;
+              align-items: center;
+
+              margin: 0px;
+            }
+
+            .container {
+              position: relative;
+              top: 0;
+              left: 0;
+              flex: 1;
+            }
+
+            #io-device-framebuffer-container {
+              position: absolute;
               top: 0;
               left: 0;
 
-              width: 100vw;
-              height: 100vh;
+              width: 100%;
+              height: 100%;
+            }
+
+            #io-device-framebuffer {
 
               /* Will Keep pixel art looking good */
               image-rendering: pixelated;
@@ -45,13 +67,22 @@ export default class IoDeviceWindow {
               image-rendering: crisp-edges;
             }
           </style>
-          <canvas id="io-device-framebuffer"></canvas>
+          <div class="container">
+            <div id="io-device-framebuffer-container">
+              <canvas id="io-device-framebuffer"></canvas>
+            </div>
+          </div>
         `;
         this.popupWindow.document.head.innerHTML = `
           <title>Wasmer Experimental Framebuffer</title>
         `;
 
-        // Get our canvas stuff
+        // Get our elements stuff
+        this.popupContainerElement = this.popupWindow.document.querySelector(
+          ".container"
+        ) as HTMLElement;
+        this.popupContainerElement.style.width = `${width}px`;
+        this.popupContainerElement.style.height = `${height}px`;
         this.popupCanvas = this.popupWindow.document.querySelector(
           "#io-device-framebuffer"
         ) as HTMLCanvasElement;
