@@ -18,8 +18,6 @@ export default class IoDevicesDefault {
   bufferIndexDisplayCallback: Function;
   inputCallback: Function;
 
-  inputBuffer: Uint8Array = new Uint8Array();
-
   constructor(wasmFs: WasmFs) {
     this.wasmFs = wasmFs;
 
@@ -51,7 +49,7 @@ export default class IoDevicesDefault {
     this.wasmFs.volume.fds[this.fdInput].node.read = function() {
       // Write the input buffer
       const inputBuffer = context.inputCallback();
-      context.wasmFs.volume.writeFileSync(INPUT, context.inputBuffer);
+      context.wasmFs.volume.writeFileSync(INPUT, inputBuffer);
 
       // Read the input
       // @ts-ignore
@@ -117,10 +115,6 @@ export default class IoDevicesDefault {
 
   setInputCallback(inputCallback: Function): void {
     this.inputCallback = inputCallback;
-  }
-
-  setInputBuffer(inputBuffer: Uint8Array): void {
-    this.inputBuffer = inputBuffer;
   }
 
   _clearInput(): void {}

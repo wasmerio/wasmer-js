@@ -43,6 +43,7 @@ export default class Process {
   endCallback: Function;
   errorCallback: Function;
   ioDeviceWindow: IoDeviceWindow;
+  sharedIoDeviceInput?: Int32Array;
   sharedStdin?: Int32Array;
   startStdinReadCallback?: Function;
 
@@ -60,6 +61,7 @@ export default class Process {
     endCallback: Function,
     errorCallback: Function,
     ioDeviceWindow: IoDeviceWindow,
+    sharedIoDeviceInputBuffer?: SharedArrayBuffer,
     sharedStdinBuffer?: SharedArrayBuffer,
     startStdinReadCallback?: Function
   ) {
@@ -82,12 +84,40 @@ export default class Process {
       this.ioDeviceWindow.drawRgbaArrayToFrameBuffer(rgbaArray);
     });
     this.ioDevices.setInputCallback(() => {
-      return this.ioDeviceWindow.getInputBuffer();
+      if (this.sharedIoDeviceInput) {
+        this.ioDeviceWindow.getInputBuffer();
+        Atomics.wait(this.sharedIoDeviceInput, 0, -1);
+
+        // We are done waiting, get the number of elements
+        // Set back the number of elements
+        const numberOfInputBytes = this.sharedIoDeviceInput[0];
+        this.sharedIoDeviceInput[0] = -1;
+        if (numberOfInputBytes > 0) {
+          // Get the bytes and return them
+          let inputBuffer = new Uint8Array(numberOfInputBytes);
+          for (let i = 0; i < numberOfInputBytes; i++) {
+            inputBuffer[i] = this.sharedIoDeviceInput[i + 1];
+          }
+
+          return inputBuffer;
+        }
+
+        // Default to an empty array
+        return new Uint8Array();
+      } else {
+        return this.ioDeviceWindow.getInputBuffer();
+      }
     });
 
     this.dataCallback = dataCallback;
     this.endCallback = endCallback;
     this.errorCallback = errorCallback;
+
+    let sharedIoDeviceInput: Int32Array | undefined = undefined;
+    if (sharedIoDeviceInputBuffer) {
+      sharedIoDeviceInput = new Int32Array(sharedIoDeviceInputBuffer);
+    }
+    this.sharedIoDeviceInput = sharedIoDeviceInput;
 
     let sharedStdin: Int32Array | undefined = undefined;
     if (sharedStdinBuffer) {

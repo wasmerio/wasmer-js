@@ -14,13 +14,12 @@ export default class IoDeviceWindow {
   oldPopupKeyCodes: Array<number> = [];
   popupKeyCodes: Array<number> = [];
 
-  supportsSharedArrayBuffer: bool;
-  sharedInputBuffer: SharedArrayBuffer | undefined = new SharedArrayBuffer(
-    8192
-  );
+  sharedIoDeviceInput: Int32Array | undefined;
 
-  constructor(supportsSharedArrayBuffer) {
-    this.supportsSharedArrayBuffer = supportsSharedArrayBuffer;
+  constructor(sharedIoDeviceInputBuffer: SharedArrayBuffer | undefined) {
+    if (sharedIoDeviceInputBuffer) {
+      this.sharedIoDeviceInput = new Int32Array(sharedIoDeviceInputBuffer);
+    }
   }
 
   resizeWindow(width: number, height: number): void {
@@ -144,25 +143,39 @@ export default class IoDeviceWindow {
 
   getInputBuffer(): Uint8Array {
     // Handle keyCodes
-    const inputBuffer = new Uint8Array();
+    const inputBuffer = [];
 
     // Key Presses
     this.popupKeyCodes.forEach(keyCode => {
       if (!this.oldPopupKeyCodes.includes(keyCode)) {
         inputBuffer.push(1);
-        inputBUffer.push(keyCode);
+        inputBuffer.push(keyCode);
       }
     });
     // Key Releases
     this.oldPopupKeyCodes.forEach(keyCode => {
       if (!this.popupKeyCodes.includes(keyCode)) {
         inputBuffer.push(3);
-        inputBUffer.push(keyCode);
+        inputBuffer.push(keyCode);
       }
     });
     this.oldPopupKeyCodes = this.popupKeyCodes.slice(0);
 
-    return inputBuffer;
+    const inputBytes = new Uint8Array(inputBuffer);
+
+    if (this.sharedIoDeviceInput) {
+      // Write the buffer to the memory
+      for (let i = 0; i < inputBytes.length; i++) {
+        this.sharedIoDeviceInput[i + 1] = inputBytes[i];
+      }
+
+      // Write our number of elements
+      this.sharedIoDeviceInput[0] = inputBytes.length;
+
+      Atomics.notify(this.sharedIoDeviceInput, 0, 1);
+    }
+
+    return inputBytes;
   }
 
   _eventListenerKeydown(event: KeyboardEvent): void {

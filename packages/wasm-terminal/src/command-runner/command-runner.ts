@@ -215,7 +215,8 @@ export default class CommandRunner {
     const wasmFsJson = this.wasmTerminalConfig.wasmFs.toJSON();
 
     // Create our Io Device Window
-    const ioDeviceWindow = new IoDeviceWindow(this.supportsSharedArrayBuffer);
+    const sharedIoDeviceInputBuffer = new SharedArrayBuffer(8192);
+    const ioDeviceWindow = new IoDeviceWindow(sharedIoDeviceInputBuffer);
 
     // @ts-ignore
     const process: any = await new processComlink(
@@ -243,7 +244,9 @@ export default class CommandRunner {
       ),
       // Io Device Window
       Comlink.proxy(ioDeviceWindow),
-      // Shared Array Bufer
+      // Shared Array Buffer for IoDevice Input
+      sharedIoDeviceInputBuffer,
+      // Shared Array Bufer for Stdin
       sharedStdinBuffer,
       // Stdin read callback
       Comlink.proxy(this._processStartStdinReadCallback.bind(this))
@@ -267,7 +270,7 @@ export default class CommandRunner {
     const wasmFsJson = this.wasmTerminalConfig.wasmFs.toJSON();
 
     // Create our Io Device Window
-    const ioDeviceWindow = new IoDeviceWindow(this.supportsSharedArrayBuffer);
+    const ioDeviceWindow = new IoDeviceWindow();
 
     const process = new Process(
       // Command Options
