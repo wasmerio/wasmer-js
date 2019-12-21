@@ -81,6 +81,9 @@ export default class Process {
       const rgbaArray = this.ioDevices.getFrameBuffer();
       this.ioDeviceWindow.drawRgbaArrayToFrameBuffer(rgbaArray);
     });
+    this.ioDevices.setInputCallback(() => {
+      return this.ioDeviceWindow.getInputBuffer();
+    });
 
     this.dataCallback = dataCallback;
     this.endCallback = endCallback;

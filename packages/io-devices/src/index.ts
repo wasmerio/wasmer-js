@@ -13,8 +13,12 @@ export default class IoDevicesDefault {
   fdWindowSize: number;
   fdBufferIndexDisplay: number;
   fdInput: number;
+
   windowSizeCallback: Function;
   bufferIndexDisplayCallback: Function;
+  inputCallback: Function;
+
+  inputBuffer: Uint8Array = new Uint8Array();
 
   constructor(wasmFs: WasmFs) {
     this.wasmFs = wasmFs;
@@ -29,6 +33,7 @@ export default class IoDevicesDefault {
 
     this.windowSizeCallback = () => {};
     this.bufferIndexDisplayCallback = () => {};
+    this.inputCallback = () => new Uint8Array();
 
     // Open our directories and get their file descriptors
     this.fdFrameBuffer = this.wasmFs.volume.openSync(FRAME_BUFFER, "w+");
@@ -44,13 +49,19 @@ export default class IoDevicesDefault {
     const originalInputRead = this.wasmFs.volume.fds[this.fdInput].node.read;
     // @ts-ignore
     this.wasmFs.volume.fds[this.fdInput].node.read = function() {
+      // Write the input buffer
+      const inputBuffer = context.inputCallback();
+      context.wasmFs.volume.writeFileSync(INPUT, context.inputBuffer);
+
+      // Read the input
       // @ts-ignore
       const args = Array.prototype.slice.call(arguments);
       const response = originalInputRead.apply(
         context.wasmFs.volume.fds[context.fdInput].node,
         args as any
       );
-      context._clearInput();
+
+      // Return the response from the read
       return response;
     };
     const originalWindowSizeWrite = this.wasmFs.volume.fds[this.fdWindowSize]
@@ -104,7 +115,13 @@ export default class IoDevicesDefault {
     this.bufferIndexDisplayCallback = bufferIndexDisplayCallback;
   }
 
-  setInput(): void {}
+  setInputCallback(inputCallback: Function): void {
+    this.inputCallback = inputCallback;
+  }
+
+  setInputBuffer(inputBuffer: Uint8Array): void {
+    this.inputBuffer = inputBuffer;
+  }
 
   _clearInput(): void {}
 }

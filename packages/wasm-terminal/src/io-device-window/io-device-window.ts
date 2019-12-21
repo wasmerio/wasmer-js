@@ -11,6 +11,18 @@ export default class IoDeviceWindow {
   popupContainerElement: HTMLElement | undefined | null;
   popupImageData: any;
 
+  oldPopupKeyCodes: Array<number> = [];
+  popupKeyCodes: Array<number> = [];
+
+  supportsSharedArrayBuffer: bool;
+  sharedInputBuffer: SharedArrayBuffer | undefined = new SharedArrayBuffer(
+    8192
+  );
+
+  constructor(supportsSharedArrayBuffer) {
+    this.supportsSharedArrayBuffer = supportsSharedArrayBuffer;
+  }
+
   resizeWindow(width: number, height: number): void {
     if (width > 0 && height > 0) {
       if (this.popupWindow && this.popupCanvas && this.popupCanvasContext) {
@@ -130,12 +142,40 @@ export default class IoDeviceWindow {
     }
   }
 
+  getInputBuffer(): Uint8Array {
+    // Handle keyCodes
+    const inputBuffer = new Uint8Array();
+
+    // Key Presses
+    this.popupKeyCodes.forEach(keyCode => {
+      if (!this.oldPopupKeyCodes.includes(keyCode)) {
+        inputBuffer.push(1);
+        inputBUffer.push(keyCode);
+      }
+    });
+    // Key Releases
+    this.oldPopupKeyCodes.forEach(keyCode => {
+      if (!this.popupKeyCodes.includes(keyCode)) {
+        inputBuffer.push(3);
+        inputBUffer.push(keyCode);
+      }
+    });
+    this.oldPopupKeyCodes = this.popupKeyCodes.slice(0);
+
+    return inputBuffer;
+  }
+
   _eventListenerKeydown(event: KeyboardEvent): void {
-    console.log(event);
+    const keyCode = event.keyCode;
+    this.popupKeyCodes.push(event.keyCode);
   }
 
   _eventListenerKeyup(event: KeyboardEvent): void {
-    console.log(event);
+    const keyCode = event.keyCode;
+    const keyCodeIndex = this.popupKeyCodes.indexOf(event.keyCode);
+    if (keyCodeIndex > -1) {
+      this.popupKeyCodes.splice(keyCodeIndex, 1);
+    }
   }
 
   _eventListenerMousemove(event: MouseEvent): void {
