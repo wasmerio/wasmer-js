@@ -77,7 +77,7 @@ export default class Process {
     // Set up our callbacks for our Io Devices Window
     this.ioDevices.setWindowSizeCallback(() => {
       const windowSize = this.ioDevices.getWindowSize();
-      this.ioDeviceWindow.resizeWindow(windowSize[0], windowSize[1]);
+      this.ioDeviceWindow.resize(windowSize[0], windowSize[1]);
     });
     this.ioDevices.setBufferIndexDisplayCallback(() => {
       const rgbaArray = this.ioDevices.getFrameBuffer();
@@ -146,7 +146,7 @@ export default class Process {
   async start(pipedStdinData?: Uint8Array) {
     const end = () => {
       // Close the window
-      this.ioDeviceWindow.resizeWindow(0, 0);
+      this.ioDeviceWindow.resize(0, 0);
       setTimeout(() => {
         this.endCallback(this.wasmFs.toJSON());
       }, 50);

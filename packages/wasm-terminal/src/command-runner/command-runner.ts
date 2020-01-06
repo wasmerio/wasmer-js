@@ -103,6 +103,10 @@ export default class CommandRunner {
       if (processObject.worker) {
         processObject.worker.terminate();
       }
+
+      if (processObject.ioDeviceWindow) {
+        processObject.ioDeviceWindow.close();
+      }
     });
 
     this.commandOptionsForProcessesToRun = [];
@@ -260,6 +264,7 @@ export default class CommandRunner {
     return {
       process,
       commandOptionIndex,
+      ioDeviceWindow,
       worker: processWorker,
       sharedStdin: sharedStdin
     };
@@ -289,7 +294,8 @@ export default class CommandRunner {
 
     return {
       process,
-      commandOptionIndex
+      commandOptionIndex,
+      ioDeviceWindow
     };
   }
 
