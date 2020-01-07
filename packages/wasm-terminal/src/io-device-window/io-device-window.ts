@@ -95,13 +95,13 @@ export default class IoDeviceWindow {
 
   getInputBuffer(): Uint8Array {
     // Handle keyCodes
-    const inputBytes = new Uint8Array();
+    const inputArray: [number] = [];
 
     // Key Presses
     this.popupKeyCodes.forEach(keyCode => {
       if (!this.oldPopupKeyCodes.includes(keyCode)) {
-        inputBytes[inputBytes.length] = 1;
-        inputBytes[inputBytes.length] = keyCode;
+        inputArray.push(1);
+        inputArray.push(keyCode);
       }
     });
 
@@ -110,21 +110,22 @@ export default class IoDeviceWindow {
       this.oldMouseMovePosition.x !== this.mouseMovePosition.x ||
       this.oldMouseMovePosition.y !== this.mouseMovePosition.y
     ) {
-      inputBytes[inputBytes.length] = 2;
-      this._append32BitIntToByteArray(this.mouseMovePosition.x, inputBytes);
-      this._append32BitIntToByteArray(this.mouseMovePosition.y, inputBytes);
+      inputArray.push(2);
+      this._append32BitIntToByteArray(this.mouseMovePosition.x, inputArray);
+      this._append32BitIntToByteArray(this.mouseMovePosition.y, inputArray);
     }
     this.oldMouseMovePosition = this.mouseMovePosition;
 
     // Key Releases
     this.oldPopupKeyCodes.forEach(keyCode => {
       if (!this.popupKeyCodes.includes(keyCode)) {
-        inputBytes[inputBytes.length] = 3;
-        inputBytes[inputBytes.length] = keyCode;
+        inputArray.push(3);
+        inputArray.push(keyCode);
       }
     });
     this.oldPopupKeyCodes = this.popupKeyCodes.slice(0);
 
+    /*
     // Left Mouse Click
     if (
       this.oldMouseLeftClickPosition.x !== this.mouseLeftClickPosition.x ||
@@ -175,6 +176,9 @@ export default class IoDeviceWindow {
       );
     }
     this.oldMouseMiddleClickPosition = this.mouseMiddleClickPosition;
+     */
+
+    const inputBytes = new Uint8Array(inputArray);
 
     if (this.sharedIoDeviceInput) {
       // Write the buffer to the memory
@@ -286,13 +290,13 @@ export default class IoDeviceWindow {
     );
   }
 
-  _append32BitIntToByteArray(value: number, byteArray: Uint8Array) {
+  _append32BitIntToByteArray(value: number, numberArray: [number]) {
     for (let i = 0; i < 4; i++) {
       // Goes smallest to largest (little endian)
       let currentByte = value;
       currentByte = currentByte & (0x0f << (i * 8));
       currentByte = currentByte >> (i * 8);
-      byteArray[byteArray.length] = currentByte;
+      numberArray.push(currentByte);
     }
   }
 
