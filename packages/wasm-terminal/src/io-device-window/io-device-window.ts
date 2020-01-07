@@ -16,31 +16,13 @@ export default class IoDeviceWindow {
   popupKeyCodes: Array<number> = [];
 
   // Handle Mouse Move
-  oldMouseMovePosition: { x: number; y: number } | undefined = { x: 0, y: 0 };
-  mouseMovePosition: { x: number; y: number } | undefined = { x: 0, y: 0 };
+  oldMouseMovePosition: { x: number; y: number } = { x: 0, y: 0 };
+  mouseMovePosition: { x: number; y: number } = { x: 0, y: 0 };
 
   // Handle Mouse Clicks
-  oldMouseLeftClickPosition: { x: number; y: number } | undefined = {
-    x: 0,
-    y: 0
-  };
-  mouseLeftClickPosition: { x: number; y: number } | undefined = { x: 0, y: 0 };
-  oldMouseRightClickPosition: { x: number; y: number } | undefined = {
-    x: 0,
-    y: 0
-  };
-  mouseRightClickPosition: { x: number; y: number } | undefined = {
-    x: 0,
-    y: 0
-  };
-  oldMouseMiddleClickPosition: { x: number; y: number } | undefined = {
-    x: 0,
-    y: 0
-  };
-  mouseMiddleClickPosition: { x: number; y: number } | undefined = {
-    x: 0,
-    y: 0
-  };
+  mouseLeftClickPosition: { x: number; y: number } | undefined = undefined;
+  mouseRightClickPosition: { x: number; y: number } | undefined = undefined;
+  mouseMiddleClickPosition: { x: number; y: number } | undefined = undefined;
 
   sharedIoDeviceInput: Int32Array | undefined;
 
@@ -95,7 +77,7 @@ export default class IoDeviceWindow {
 
   getInputBuffer(): Uint8Array {
     // Handle keyCodes
-    const inputArray: [number] = [];
+    const inputArray: number[] = [];
 
     // Key Presses
     this.popupKeyCodes.forEach(keyCode => {
@@ -126,10 +108,7 @@ export default class IoDeviceWindow {
     this.oldPopupKeyCodes = this.popupKeyCodes.slice(0);
 
     // Left Mouse Click
-    if (
-      this.oldMouseLeftClickPosition.x !== this.mouseLeftClickPosition.x ||
-      this.oldMouseLeftClickPosition.y !== this.mouseLeftClickPosition.y
-    ) {
+    if (this.mouseLeftClickPosition) {
       inputArray.push(4);
       this._append32BitIntToByteArray(
         this.mouseLeftClickPosition.x,
@@ -139,14 +118,11 @@ export default class IoDeviceWindow {
         this.mouseLeftClickPosition.y,
         inputArray
       );
+      this.mouseLeftClickPosition = undefined;
     }
-    this.oldMouseLeftClickPosition = this.mouseLeftClickPosition;
 
     // Right Mouse Click
-    if (
-      this.oldMouseRightClickPosition.x !== this.mouseRightClickPosition.x ||
-      this.oldMouseRightClickPosition.y !== this.mouseRightClickPosition.y
-    ) {
+    if (this.mouseRightClickPosition) {
       inputArray.push(5);
       this._append32BitIntToByteArray(
         this.mouseRightClickPosition.x,
@@ -156,15 +132,12 @@ export default class IoDeviceWindow {
         this.mouseRightClickPosition.y,
         inputArray
       );
+      this.mouseRightClickPosition = undefined;
     }
-    this.oldMouseRightClickPosition = this.mouseRightClickPosition;
 
     // Middle Mouse Click
-    if (
-      this.oldMouseMiddleClickPosition.x !== this.mouseMiddleClickPosition.x ||
-      this.oldMouseMiddleClickPosition.y !== this.mouseMiddleClickPosition.y
-    ) {
-      inputArray.push(7);
+    if (this.mouseMiddleClickPosition) {
+      inputArray.push(4);
       this._append32BitIntToByteArray(
         this.mouseMiddleClickPosition.x,
         inputArray
@@ -173,8 +146,8 @@ export default class IoDeviceWindow {
         this.mouseMiddleClickPosition.y,
         inputArray
       );
+      this.mouseMiddleClickPosition = undefined;
     }
-    this.oldMouseMiddleClickPosition = this.mouseMiddleClickPosition;
 
     const inputBytes = new Uint8Array(inputArray);
 
@@ -288,11 +261,11 @@ export default class IoDeviceWindow {
     );
   }
 
-  _append32BitIntToByteArray(value: number, numberArray: [number]) {
+  _append32BitIntToByteArray(value: number, numberArray: number[]) {
     for (let i = 0; i < 4; i++) {
       // Goes smallest to largest (little endian)
       let currentByte = value;
-      currentByte = currentByte & (0x0f << (i * 8));
+      currentByte = currentByte & (0xff << (i * 8));
       currentByte = currentByte >> (i * 8);
       numberArray.push(currentByte);
     }
@@ -361,11 +334,11 @@ export default class IoDeviceWindow {
     let y = undefined;
 
     if (event.x >= minX && event.x <= maxX) {
-      x = event.x;
+      x = event.x - minX;
     }
 
     if (event.y >= minY && event.y <= maxY) {
-      y = event.y;
+      y = event.y - minY;
     }
 
     if (x === undefined || y === undefined) {
