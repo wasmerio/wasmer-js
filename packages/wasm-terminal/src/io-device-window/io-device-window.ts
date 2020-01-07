@@ -272,11 +272,13 @@ export default class IoDeviceWindow {
   }
 
   _eventListenerKeydown(event: KeyboardEvent): void {
+    event.preventDefault();
     const keyCode = event.keyCode;
     this.popupKeyCodes.push(event.keyCode);
   }
 
   _eventListenerKeyup(event: KeyboardEvent): void {
+    event.preventDefault();
     const keyCode = event.keyCode;
     const keyCodeIndex = this.popupKeyCodes.indexOf(event.keyCode);
     if (keyCodeIndex > -1) {
