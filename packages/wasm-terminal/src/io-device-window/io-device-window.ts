@@ -125,20 +125,19 @@ export default class IoDeviceWindow {
     });
     this.oldPopupKeyCodes = this.popupKeyCodes.slice(0);
 
-    /*
     // Left Mouse Click
     if (
       this.oldMouseLeftClickPosition.x !== this.mouseLeftClickPosition.x ||
       this.oldMouseLeftClickPosition.y !== this.mouseLeftClickPosition.y
     ) {
-      inputBytes[inputBytes.length] = 4;
+      inputArray.push(4);
       this._append32BitIntToByteArray(
         this.mouseLeftClickPosition.x,
-        inputBytes
+        inputArray
       );
       this._append32BitIntToByteArray(
         this.mouseLeftClickPosition.y,
-        inputBytes
+        inputArray
       );
     }
     this.oldMouseLeftClickPosition = this.mouseLeftClickPosition;
@@ -148,14 +147,14 @@ export default class IoDeviceWindow {
       this.oldMouseRightClickPosition.x !== this.mouseRightClickPosition.x ||
       this.oldMouseRightClickPosition.y !== this.mouseRightClickPosition.y
     ) {
-      inputBytes[inputBytes.length] = 5;
+      inputArray.push(5);
       this._append32BitIntToByteArray(
         this.mouseRightClickPosition.x,
-        inputBytes
+        inputArray
       );
       this._append32BitIntToByteArray(
         this.mouseRightClickPosition.y,
-        inputBytes
+        inputArray
       );
     }
     this.oldMouseRightClickPosition = this.mouseRightClickPosition;
@@ -165,18 +164,17 @@ export default class IoDeviceWindow {
       this.oldMouseMiddleClickPosition.x !== this.mouseMiddleClickPosition.x ||
       this.oldMouseMiddleClickPosition.y !== this.mouseMiddleClickPosition.y
     ) {
-      inputBytes[inputBytes.length] = 7;
+      inputArray.push(7);
       this._append32BitIntToByteArray(
         this.mouseMiddleClickPosition.x,
-        inputBytes
+        inputArray
       );
       this._append32BitIntToByteArray(
         this.mouseMiddleClickPosition.y,
-        inputBytes
+        inputArray
       );
     }
     this.oldMouseMiddleClickPosition = this.mouseMiddleClickPosition;
-     */
 
     const inputBytes = new Uint8Array(inputArray);
 
