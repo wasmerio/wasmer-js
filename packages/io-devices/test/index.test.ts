@@ -1,13 +1,13 @@
 import { WasmFs } from "../../wasmfs/src/index";
-import { WasmFsIoDevices } from "../src/index";
+import { IoDevices } from "../src/index";
 
-describe("wasmfs-io-devices", () => {
+describe("io-devices", () => {
   let wasmfs: WasmFs;
-  let wasmfsIoDevices: WasmFsIoDevices;
+  let ioDevices: IoDevices;
 
   beforeEach(async () => {
     wasmfs = new WasmFs();
-    wasmfsIoDevices = new WasmFsIoDevices(wasmfs);
+    ioDevices = new IoDevices(wasmfs);
   });
 
   it("should work", async () => {
