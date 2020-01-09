@@ -7,6 +7,14 @@ const BUFFER_INDEX_DISPLAY =
   "/sys/class/graphics/wasmerfb0/buffer_index_display";
 const INPUT = "/dev/input";
 
+// Add isomorphic support for TextDecoder
+let TextDecoder: any = undefined;
+if (typeof window === "object") {
+  TextDecoder = window.TextDecoder;
+} else if (typeof require === "function") {
+  TextDecoder = require("util").TextDecoder;
+}
+
 export default class IoDevicesDefault {
   wasmFs: WasmFs;
   fdFrameBuffer: number;
@@ -100,9 +108,18 @@ export default class IoDevicesDefault {
 
   getWindowSize(): Array<number> {
     const windowSizeBuffer = this.wasmFs.fs.readFileSync(WINDOW_SIZE);
-    const windowSize = new TextDecoder("utf-8").decode(windowSizeBuffer as any);
-    const splitWindowSize = windowSize.split("x");
-    return [parseInt(splitWindowSize[0], 10), parseInt(splitWindowSize[1], 10)];
+    if (windowSizeBuffer.length > 0) {
+      const windowSize = new TextDecoder("utf-8").decode(
+        windowSizeBuffer as any
+      );
+      const splitWindowSize = windowSize.split("x");
+      return [
+        parseInt(splitWindowSize[0], 10),
+        parseInt(splitWindowSize[1], 10)
+      ];
+    } else {
+      return [0, 0];
+    }
   }
 
   setWindowSizeCallback(windowSizeCallback: Function): void {
@@ -116,8 +133,6 @@ export default class IoDevicesDefault {
   setInputCallback(inputCallback: Function): void {
     this.inputCallback = inputCallback;
   }
-
-  _clearInput(): void {}
 }
 
 export const IoDevices = IoDevicesDefault;

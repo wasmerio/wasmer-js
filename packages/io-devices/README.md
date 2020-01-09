@@ -1,6 +1,6 @@
-# `@wasmer/wasmfs-io-devices`
+# `@wasmer/io-devices`
 
-Isomorphic library to implement the experimental Wasmer I/O devices for wasmfs instances 🖼️🎮
+Isomorphic library to implement the experimental Wasmer I/O devices for the Wasmer-JS stack 🖼️🎮
 
 ## Table of Contents
 
@@ -20,31 +20,22 @@ This package provides the following features:
 
 ## Installation
 
-For installing `@wasmer/wasmfs-io-devices`, just run this command in your shell:
+For installing `@wasmer/io-devices`, just run this command in your shell:
 
 ```bash
-npm install --save @wasmer/wasmfs-io-devices
+npm install --save @wasmer/io-devices
 ```
 
 ## Quick Start
 
 ```js
 import { WasmFs } from "@wasmer/wasmfs";
-import { WasmFsIoDevices } from "@wasmer/wasmfs-io-devices";
+import { IoDevices } from "@wasmer/io-devices";
 
 const wasmFs = new WasmFs();
-const wasmFsIoDevices = new WasmFsIoDevices(wasmFs);
+const ioDevices = new IoDevices(wasmFs);
 
-// Fill the framebuffer, for example, here
-
-// Get the current framebuffer
-const rgbaFramebuffer = wasmFsIoDevices.getFrameBuffer();
-
-// Handle input events
-document.addEventListener("keydown", wasmFsIoDevices.eventListenerKeydown);
-document.addEventListener("keyup", wasmFsIoDevices.eventListenerKeyup);
-document.addEventListener("mousemove", wasmFsIoDevices.eventListenerMousemove);
-document.addEventListener("click", wasmFsIoDevices.eventListenerClick);
+// TODO:
 ```
 
 ## Documentation
