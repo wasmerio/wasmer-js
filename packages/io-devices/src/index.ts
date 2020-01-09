@@ -11,6 +11,8 @@ const INPUT = "/dev/input";
 let TextDecoder: any = undefined;
 if (typeof window === "object") {
   TextDecoder = window.TextDecoder;
+} else if (typeof self === "object") {
+  TextDecoder = self.TextDecoder;
 } else if (typeof require === "function") {
   TextDecoder = require("util").TextDecoder;
 }
@@ -30,12 +32,14 @@ export default class IoDevicesDefault {
     this.wasmFs = wasmFs;
 
     // Add our files to the wasmFs
-    const wasmFsJSON = this.wasmFs.toJSON();
-    wasmFsJSON[FRAME_BUFFER] = "";
-    wasmFsJSON[WINDOW_SIZE] = "";
-    wasmFsJSON[BUFFER_INDEX_DISPLAY] = "";
-    wasmFsJSON[INPUT] = "";
-    this.wasmFs.fromJSON(wasmFsJSON);
+    this.wasmFs.volume.mkdirSync("/dev", { recursive: true });
+    this.wasmFs.volume.mkdirSync("/sys/class/graphics/wasmerfb0", {
+      recursive: true
+    });
+    this.wasmFs.volume.writeFileSync(FRAME_BUFFER, "");
+    this.wasmFs.volume.writeFileSync(WINDOW_SIZE, "");
+    this.wasmFs.volume.writeFileSync(BUFFER_INDEX_DISPLAY, "");
+    this.wasmFs.volume.writeFileSync(INPUT, "");
 
     this.windowSizeCallback = () => {};
     this.bufferIndexDisplayCallback = () => {};
