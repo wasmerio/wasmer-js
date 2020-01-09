@@ -49,7 +49,7 @@ const fileSystemBundles = [
         file: pkg.iife,
         format: "iife",
         sourcemap: sourcemapOption,
-        name: "WasmFsIoDevices"
+        name: "IoDevices"
       }
     ],
     watch: {
