@@ -35,8 +35,27 @@ import { IoDevices } from "@wasmer/io-devices";
 const wasmFs = new WasmFs();
 const ioDevices = new IoDevices(wasmFs);
 
-// TODO:
+// Let's say we want to read the frame buffer,
+// every time the buffer index display file is written to:
+let callbackCalled = false;
+const callback = () => {
+  // Read the framebuffer
+  console.log(ioDevices.getFrameBuffer); // Outputs a Uint8Array of the frame buffer
+
+  callbackCalled = true;
+};
+
+// Set the callback, and write to the file to call it
+ioDevices.setBufferIndexDisplayCallback(callback);
+wasmFs.fs.writeFileSync(
+  "/sys/class/graphics/wasmerfb0/buffer_index_display",
+  "0"
+);
+
+callbackCalled === true; // This should be true, our callback is called!
 ```
+
+`@wasmer/io-devices` is isomorphic, meaning this quick start should also work in Node with the appropriate Node syntax!
 
 ## Documentation
 
