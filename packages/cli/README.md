@@ -22,7 +22,7 @@ $ npm install -g @wasmer/cli
 $ wasmer-js COMMAND
 running command...
 $ wasmer-js (-v|--version|version)
-@wasmer/cli/0.5.1 darwin-x64 node-v12.6.0
+@wasmer/cli/0.5.1 darwin-x64 node-v10.16.3
 $ wasmer-js --help [COMMAND]
 USAGE
   $ wasmer-js COMMAND
@@ -53,7 +53,7 @@ OPTIONS
   --all  see all commands in CLI
 ```
 
-_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v2.2.1/src/commands/help.ts)_
+_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v2.2.3/src/commands/help.ts)_
 
 ## `wasmer-js run [FILE]`
 
@@ -73,6 +73,6 @@ EXAMPLE
   hello world
 ```
 
-_See code: [src/commands/run.ts](https://github.com/wasmerio/wasmer-js/blob/v0.5.1/src/commands/run.ts)_
+_See code: [lib/commands/run.js](https://github.com/wasmerio/wasmer-js/blob/v0.5.1/lib/commands/run.js)_
 
 <!-- commandsstop -->

@@ -10,6 +10,8 @@ import WasmTerminalConfig from "../wasm-terminal-config";
 
 import WasmTty from "../wasm-tty/wasm-tty";
 
+import IoDeviceWindow from "../io-device-window/io-device-window";
+
 /*ROLLUP_REPLACE_INLINE
 // @ts-ignore
 import processWorkerInlinedUrl from "../../lib/workers/process.worker.js";
@@ -100,6 +102,10 @@ export default class CommandRunner {
     this.spawnedProcessObjects.forEach(processObject => {
       if (processObject.worker) {
         processObject.worker.terminate();
+      }
+
+      if (processObject.ioDeviceWindow) {
+        processObject.ioDeviceWindow.close();
       }
     });
 
@@ -212,6 +218,10 @@ export default class CommandRunner {
     // Get our filesystem state
     const wasmFsJson = this.wasmTerminalConfig.wasmFs.toJSON();
 
+    // Create our Io Device Window
+    const sharedIoDeviceInputBuffer = new SharedArrayBuffer(8192);
+    const ioDeviceWindow = new IoDeviceWindow(sharedIoDeviceInputBuffer);
+
     // @ts-ignore
     const process: any = await new processComlink(
       // Command Options
@@ -236,7 +246,11 @@ export default class CommandRunner {
       Comlink.proxy(
         this._processErrorCallback.bind(this, { commandOptionIndex })
       ),
-      // Shared Array Bufer
+      // Io Device Window
+      Comlink.proxy(ioDeviceWindow),
+      // Shared Array Buffer for IoDevice Input
+      sharedIoDeviceInputBuffer,
+      // Shared Array Bufer for Stdin
       sharedStdinBuffer,
       // Stdin read callback
       Comlink.proxy(this._processStartStdinReadCallback.bind(this))
@@ -250,6 +264,7 @@ export default class CommandRunner {
     return {
       process,
       commandOptionIndex,
+      ioDeviceWindow,
       worker: processWorker,
       sharedStdin: sharedStdin
     };
@@ -258,6 +273,9 @@ export default class CommandRunner {
   async _spawnProcessAsService(commandOptionIndex: number) {
     // Get our filesystem state
     const wasmFsJson = this.wasmTerminalConfig.wasmFs.toJSON();
+
+    // Create our Io Device Window
+    const ioDeviceWindow = new IoDeviceWindow();
 
     const process = new Process(
       // Command Options
@@ -269,12 +287,15 @@ export default class CommandRunner {
       // End Callback
       this._processEndCallback.bind(this, { commandOptionIndex }),
       // Error Callback
-      this._processErrorCallback.bind(this, { commandOptionIndex })
+      this._processErrorCallback.bind(this, { commandOptionIndex }),
+      // Io Device Window
+      ioDeviceWindow
     );
 
     return {
       process,
-      commandOptionIndex
+      commandOptionIndex,
+      ioDeviceWindow
     };
   }
 
@@ -402,7 +423,7 @@ export default class CommandRunner {
     }
 
     // Create the worker blob and URL
-    const workerBlob = new Blob([workerString]);
+    const workerBlob = new Blob([workerString as any]);
     processWorkerBlobUrl = window.URL.createObjectURL(workerBlob);
     return processWorkerBlobUrl;
   }

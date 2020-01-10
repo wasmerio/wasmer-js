@@ -26,7 +26,6 @@ const rebundleOutput = async (
     `
 
     ${optionalImportString}
-    console.log('Temp Bundle!');
     ${optionalExportString};
   `
   );

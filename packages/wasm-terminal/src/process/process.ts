@@ -1,10 +1,12 @@
 import { WasmFs } from "@wasmer/wasmfs";
+import { IoDevices } from "@wasmer/io-devices";
 import { WASIExitError } from "@wasmer/wasi";
 
 import CommandOptions from "../command/command-options";
 import Command from "../command/command";
 import WASICommand from "../command/wasi-command";
 import CallbackCommand from "../command/callback-command";
+import IoDeviceWindow from "../io-device-window/io-device-window";
 
 /**
 
@@ -35,10 +37,13 @@ const cleanStdout = (stdout: string) => {
 export default class Process {
   commandOptions: CommandOptions;
   wasmFs: WasmFs;
+  ioDevices: IoDevices;
   originalWasmFsJson: any;
   dataCallback: Function;
   endCallback: Function;
   errorCallback: Function;
+  ioDeviceWindow: IoDeviceWindow;
+  sharedIoDeviceInput?: Int32Array;
   sharedStdin?: Int32Array;
   startStdinReadCallback?: Function;
 
@@ -55,6 +60,8 @@ export default class Process {
     dataCallback: Function,
     endCallback: Function,
     errorCallback: Function,
+    ioDeviceWindow: IoDeviceWindow,
+    sharedIoDeviceInputBuffer?: SharedArrayBuffer,
     sharedStdinBuffer?: SharedArrayBuffer,
     startStdinReadCallback?: Function
   ) {
@@ -64,9 +71,53 @@ export default class Process {
     this.wasmFs.fromJSON(wasmFsJson);
     this.originalWasmFsJson = wasmFsJson;
 
+    this.ioDevices = new IoDevices(this.wasmFs);
+    this.ioDeviceWindow = ioDeviceWindow;
+
+    // Set up our callbacks for our Io Devices Window
+    this.ioDevices.setWindowSizeCallback(() => {
+      const windowSize = this.ioDevices.getWindowSize();
+      this.ioDeviceWindow.resize(windowSize[0], windowSize[1]);
+    });
+    this.ioDevices.setBufferIndexDisplayCallback(() => {
+      const rgbaArray = this.ioDevices.getFrameBuffer();
+      this.ioDeviceWindow.drawRgbaArrayToFrameBuffer(rgbaArray);
+    });
+    this.ioDevices.setInputCallback(() => {
+      if (this.sharedIoDeviceInput) {
+        this.ioDeviceWindow.getInputBuffer();
+        Atomics.wait(this.sharedIoDeviceInput, 0, -1);
+
+        // We are done waiting, get the number of elements
+        // Set back the number of elements
+        const numberOfInputBytes = this.sharedIoDeviceInput[0];
+        this.sharedIoDeviceInput[0] = -1;
+        if (numberOfInputBytes > 0) {
+          // Get the bytes and return them
+          let inputBuffer = new Uint8Array(numberOfInputBytes);
+          for (let i = 0; i < numberOfInputBytes; i++) {
+            inputBuffer[i] = this.sharedIoDeviceInput[i + 1];
+          }
+
+          return inputBuffer;
+        }
+
+        // Default to an empty array
+        return new Uint8Array();
+      } else {
+        return this.ioDeviceWindow.getInputBuffer();
+      }
+    });
+
     this.dataCallback = dataCallback;
     this.endCallback = endCallback;
     this.errorCallback = errorCallback;
+
+    let sharedIoDeviceInput: Int32Array | undefined = undefined;
+    if (sharedIoDeviceInputBuffer) {
+      sharedIoDeviceInput = new Int32Array(sharedIoDeviceInputBuffer);
+    }
+    this.sharedIoDeviceInput = sharedIoDeviceInput;
 
     let sharedStdin: Int32Array | undefined = undefined;
     if (sharedStdinBuffer) {
@@ -94,6 +145,8 @@ export default class Process {
 
   async start(pipedStdinData?: Uint8Array) {
     const end = () => {
+      // Close the window
+      this.ioDeviceWindow.resize(0, 0);
       setTimeout(() => {
         this.endCallback(this.wasmFs.toJSON());
       }, 50);

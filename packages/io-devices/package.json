@@ -1,11 +1,11 @@
 {
-  "name": "@wasmer/wasmfs",
+  "name": "@wasmer/io-devices",
   "version": "0.5.1",
-  "description": "Isomorphic library to provide a sandboxed node fs implementation for Node and Browsers. 📂",
+  "description": "Isomorphic library to implement the experimental Wasmer I/O devices for wasmfs instances 🖼️🎮",
   "main": "lib/index.cjs.js",
   "module": "lib/index.esm.js",
   "iife": "lib/index.iife.js",
-  "typings": "lib/packages/wasmfs/src/index.d.ts",
+  "typings": "lib/packages/io-devices/src/index.d.ts",
   "files": [
     "lib"
   ],
@@ -39,9 +39,5 @@
   "bugs": {
     "url": "https://github.com/wasmerio/wasmer-js/issues"
   },
-  "homepage": "https://github.com/wasmerio/wasmer-js/tree/master/packages/wasmfs",
-  "dependencies": {
-    "memfs": "git+https://github.com/torch2424/memfs.git#wasmfs-fixes"
-  },
-  "gitHead": "889c22135c81610ddecbb696f8ef24f7ecaf5db7"
+  "homepage": "https://github.com/wasmerio/wasmer-js/tree/master/packages/io-devices"
 }

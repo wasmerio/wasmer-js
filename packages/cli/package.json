@@ -11,25 +11,12 @@
     "@oclif/command": "^1.5.19",
     "@oclif/config": "^1.13.3",
     "@oclif/plugin-help": "^2.2.1",
-    "@wasmer/wasi": "^0.5.1",
-    "@wasmer/wasm-transformer": "^0.5.1",
+    "@wasmer/wasi": "file:../wasi",
+    "@wasmer/wasm-transformer": "file:../wasm-transformer",
     "tslib": "^1.10.0"
   },
   "devDependencies": {
-    "@oclif/dev-cli": "^1.22.2",
-    "@oclif/test": "^1.2.5",
-    "@oclif/tslint": "^3.1.1",
-    "@types/chai": "^4.2.4",
-    "@types/mocha": "^5.2.7",
-    "@types/node": "^10.17.0",
-    "chai": "^4.2.0",
-    "globby": "^10.0.1",
-    "mocha": "^5.2.0",
-    "nyc": "^14.1.1",
-    "ts-node": "^8.4.1",
-    "tslint": "^5.20.0",
-    "tslint-config-prettier": "^1.18.0",
-    "typescript": "^3.6.4"
+    "@oclif/dev-cli": "^1"
   },
   "engines": {
     "node": ">=8.0.0"

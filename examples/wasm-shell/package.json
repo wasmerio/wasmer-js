@@ -19,11 +19,13 @@
   "homepage": "https://github.com/wasmerio/wasmer-js/tree/master/examples/wasm-shell",
   "devDependencies": {
     "parcel-bundler": "^1.12.4",
+    "parcel-plugin-static-files-copy": "^2.2.1",
     "typescript": "^3.6.4"
   },
   "alias": {
     "@wasmer/wasm-terminal": "../../packages/wasm-terminal/src",
     "@wasmer/wasi": "../../packages/wasi/src",
+    "@wasmer/io-devices": "../../packages/io-devices/src",
     "@wasmer/wasm-transformer": "../../packages/wasm-transformer/lib/unoptimized/wasm-transformer.esm.js",
     "@wasmer/wasmfs": "../../packages/wasmfs/src"
   },
