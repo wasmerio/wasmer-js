@@ -15,7 +15,7 @@ Isomorphic library to implement the experimental Wasmer I/O devices for the Wasm
 This package provides the following features:
 
 - Scaffolds files used by the [Wasmer Runtime I/O Devices](https://docs.wasmer.io/runtime/runtime), to allow WASI moduels that depend on these interfaces to run in the browser and Node! 📁
-- Allows readiing the current RGBA FrameBuffer. 🖼️
+- Allows reading the current RGBA FrameBuffer. 🖼️
 - Can send input events to the I/O Devices interface. ⌨️
 
 ## Installation

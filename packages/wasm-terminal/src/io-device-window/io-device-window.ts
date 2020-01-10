@@ -8,7 +8,6 @@ export default class IoDeviceWindow {
   popupWindow: Window | undefined | null;
   popupCanvas: HTMLCanvasElement | undefined | null;
   popupCanvasContext: CanvasRenderingContext2D | undefined | null;
-  popupContainerElement: HTMLElement | undefined | null;
   popupImageData: any;
 
   // Handle Key Press / Release
@@ -39,16 +38,10 @@ export default class IoDeviceWindow {
       return;
     }
 
-    if (
-      this.popupWindow &&
-      this.popupContainerElement &&
-      this.popupCanvas &&
-      this.popupCanvasContext
-    ) {
-      // Resize the open window
-      this.popupWindow.resizeTo(width, height);
-      this.popupContainerElement.style.width = `${width}px`;
-      this.popupContainerElement.style.height = `${height}px`;
+    if (this.popupWindow && this.popupCanvas && this.popupCanvasContext) {
+      // Resize the canvas
+      this.popupCanvas.width = width;
+      this.popupCanvas.height = height;
       this.popupImageData = this.popupCanvasContext.getImageData(
         0,
         0,
@@ -167,16 +160,24 @@ export default class IoDeviceWindow {
   }
 
   _open(width: number, height: number): void {
+    let windowWidth = width * Math.floor(screen.width / width);
+    let windowHeight = height * Math.floor(screen.height / height);
+
     // Open the window
     this.popupWindow = window.open(
       "about:blank",
       "WasmerExperimentalFramebuffer",
-      `width=${width}px,height=${height}px`
+      `width=${windowWidth},height=${windowHeight}`
     ) as Window;
 
     // Add our html and canvas and stuff
     this.popupWindow.document.body.innerHTML = `
       <style>
+        html, body {
+          width: 100%;
+          height: 100%;
+        }
+
         body {
           display: flex;
           flex-direction: column;
@@ -188,23 +189,10 @@ export default class IoDeviceWindow {
           margin-right: auto;
         }
 
-        .container {
-          position: relative;
-          top: 0;
-          left: 0;
-          flex: 1;
-        }
-
-        #io-device-framebuffer-container {
-          position: absolute;
-          top: 0;
-          left: 0;
+        #io-device-framebuffer {
 
           width: 100%;
-          height: 100%;
-        }
-
-        #io-device-framebuffer {
+          height: auto;
 
           /* Will Keep pixel art looking good */
           image-rendering: pixelated;
@@ -212,11 +200,7 @@ export default class IoDeviceWindow {
           image-rendering: crisp-edges;
         }
       </style>
-      <div class="container">
-        <div id="io-device-framebuffer-container">
-          <canvas id="io-device-framebuffer"></canvas>
-        </div>
-      </div>
+      <canvas id="io-device-framebuffer" width="${width}" height="${height}"></canvas>
     `;
 
     this.popupWindow.document.head.innerHTML = `
@@ -224,11 +208,6 @@ export default class IoDeviceWindow {
     `;
 
     // Get our elements stuff
-    this.popupContainerElement = this.popupWindow.document.querySelector(
-      ".container"
-    ) as HTMLElement;
-    this.popupContainerElement.style.width = `${width}px`;
-    this.popupContainerElement.style.height = `${height}px`;
     this.popupCanvas = this.popupWindow.document.querySelector(
       "#io-device-framebuffer"
     ) as HTMLCanvasElement;
@@ -318,19 +297,17 @@ export default class IoDeviceWindow {
   _getPositionFromMouseEvent(
     event: MouseEvent
   ): { x: number; y: number } | undefined {
-    if (!this.popupContainerElement) {
+    if (!this.popupCanvas) {
       return undefined;
     }
 
-    const popupContainerBoundingClientRect = this.popupContainerElement.getBoundingClientRect();
-    const minX = popupContainerBoundingClientRect.x;
+    const popupCanvasBoundingClientRect = this.popupCanvas.getBoundingClientRect();
+    const minX = popupCanvasBoundingClientRect.x;
     const maxX =
-      popupContainerBoundingClientRect.x +
-      popupContainerBoundingClientRect.width;
-    const minY = popupContainerBoundingClientRect.y;
+      popupCanvasBoundingClientRect.x + popupCanvasBoundingClientRect.width;
+    const minY = popupCanvasBoundingClientRect.y;
     const maxY =
-      popupContainerBoundingClientRect.y +
-      popupContainerBoundingClientRect.height;
+      popupCanvasBoundingClientRect.y + popupCanvasBoundingClientRect.height;
 
     let x = undefined;
     let y = undefined;
@@ -346,6 +323,14 @@ export default class IoDeviceWindow {
     if (x === undefined || y === undefined) {
       return undefined;
     }
+
+    // Find where X and Y would be accoring to the scale
+    const xScale = this.popupCanvas.width / popupCanvasBoundingClientRect.width;
+    const yScale =
+      this.popupCanvas.height / popupCanvasBoundingClientRect.height;
+
+    x = x * xScale;
+    y = y * yScale;
 
     return {
       x,
