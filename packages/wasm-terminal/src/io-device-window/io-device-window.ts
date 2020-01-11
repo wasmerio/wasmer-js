@@ -160,8 +160,13 @@ export default class IoDeviceWindow {
   }
 
   _open(width: number, height: number): void {
-    let windowWidth = width * Math.floor(screen.width / width);
-    let windowHeight = height * Math.floor(screen.height / height);
+    // Let's assume landscape for now:
+    const widthScreenRatio = Math.floor(screen.width / width);
+    const heightScreenRatio = Math.floor(screen.height / height);
+    const scale = Math.min(widthScreenRatio, heightScreenRatio);
+
+    let windowWidth = width * scale;
+    let windowHeight = height * scale;
 
     // Open the window
     this.popupWindow = window.open(
@@ -253,7 +258,9 @@ export default class IoDeviceWindow {
   _eventListenerKeydown(event: KeyboardEvent): void {
     event.preventDefault();
     const keyCode = event.keyCode;
-    this.popupKeyCodes.push(event.keyCode);
+    if (!this.popupKeyCodes.includes(event.keyCode)) {
+      this.popupKeyCodes.push(event.keyCode);
+    }
   }
 
   _eventListenerKeyup(event: KeyboardEvent): void {
