@@ -1,12 +1,5 @@
 import { WasmFs } from "../../wasmfs/src/index";
-import { IoDevices } from "../src/index";
-
-// The IO Devices files
-const FRAME_BUFFER = "/dev/wasmerfb0";
-const WINDOW_SIZE = "/sys/class/graphics/wasmerfb0/virtual_size";
-const BUFFER_INDEX_DISPLAY =
-  "/sys/class/graphics/wasmerfb0/buffer_index_display";
-const INPUT = "/dev/input";
+import { IoDevices, IO_DEVICES_CONSTANTS } from "../src/index";
 
 describe("io-devices", () => {
   let wasmfs: WasmFs;
@@ -20,10 +13,26 @@ describe("io-devices", () => {
   it("should add the neccessary files and listeners to a WasmFs Instance", async () => {
     const wasmFs = wasmfs.toJSON();
 
-    expect(wasmFs[FRAME_BUFFER] !== undefined).toBe(true);
-    expect(wasmFs[WINDOW_SIZE] !== undefined).toBe(true);
-    expect(wasmFs[BUFFER_INDEX_DISPLAY] !== undefined).toBe(true);
-    expect(wasmFs[INPUT] !== undefined).toBe(true);
+    expect(
+      wasmFs[
+        IO_DEVICES_CONSTANTS.FILE_PATH.DEVICE_FRAMEBUFFER_ZERO.FRAME_BUFFER
+      ] !== undefined
+    ).toBe(true);
+    expect(
+      wasmFs[
+        IO_DEVICES_CONSTANTS.FILE_PATH.DEVICE_FRAMEBUFFER_ZERO.WINDOW_SIZE
+      ] !== undefined
+    ).toBe(true);
+    expect(
+      wasmFs[
+        IO_DEVICES_CONSTANTS.FILE_PATH.DEVICE_FRAMEBUFFER_ZERO
+          .BUFFER_INDEX_DISPLAY
+      ] !== undefined
+    ).toBe(true);
+    expect(
+      wasmFs[IO_DEVICES_CONSTANTS.FILE_PATH.DEVICE_FRAMEBUFFER_ZERO.INPUT] !==
+        undefined
+    ).toBe(true);
   });
 
   it("should return the current framebuffer", async () => {
@@ -38,7 +47,10 @@ describe("io-devices", () => {
     expect(initialWindowSize[0]).toBe(0);
     expect(initialWindowSize[1]).toBe(0);
 
-    wasmfs.fs.writeFileSync(WINDOW_SIZE, "10x10");
+    wasmfs.fs.writeFileSync(
+      IO_DEVICES_CONSTANTS.FILE_PATH.DEVICE_FRAMEBUFFER_ZERO.WINDOW_SIZE,
+      "10x10"
+    );
 
     const newWindowSize = ioDevices.getWindowSize();
     expect(newWindowSize !== undefined).toBe(true);
@@ -53,7 +65,10 @@ describe("io-devices", () => {
     };
 
     ioDevices.setWindowSizeCallback(callback);
-    wasmfs.fs.writeFileSync(WINDOW_SIZE, "10x10");
+    wasmfs.fs.writeFileSync(
+      IO_DEVICES_CONSTANTS.FILE_PATH.DEVICE_FRAMEBUFFER_ZERO.WINDOW_SIZE,
+      "10x10"
+    );
 
     expect(callbackCalled).toBe(true);
   });
@@ -65,7 +80,11 @@ describe("io-devices", () => {
     };
 
     ioDevices.setBufferIndexDisplayCallback(callback);
-    wasmfs.fs.writeFileSync(BUFFER_INDEX_DISPLAY, "0");
+    wasmfs.fs.writeFileSync(
+      IO_DEVICES_CONSTANTS.FILE_PATH.DEVICE_FRAMEBUFFER_ZERO
+        .BUFFER_INDEX_DISPLAY,
+      "0"
+    );
 
     expect(callbackCalled).toBe(true);
   });
@@ -77,7 +96,10 @@ describe("io-devices", () => {
     };
 
     ioDevices.setWindowSizeCallback(callback);
-    wasmfs.fs.writeFileSync(WINDOW_SIZE, "10x10");
+    wasmfs.fs.writeFileSync(
+      IO_DEVICES_CONSTANTS.FILE_PATH.DEVICE_FRAMEBUFFER_ZERO.WINDOW_SIZE,
+      "10x10"
+    );
 
     expect(callbackCalled).toBe(true);
   });

@@ -5,8 +5,7 @@ const puppeteer = require("puppeteer");
 
 const { rebundleOutput } = require("./util");
 
-const BUFFER_INDEX_DISPLAY =
-  "/sys/class/graphics/wasmerfb0/buffer_index_display";
+import { IO_DEVICES_CONSTANTS } from "../../packages/io-devices/src/index";
 
 const testNodeBundle = async (wasmFsBundleString, ioDevicesBundleString) => {
   const WasmFs = requireFromString(wasmFsBundleString);

@@ -47,10 +47,7 @@ const callback = () => {
 
 // Set the callback, and write to the file to call it
 ioDevices.setBufferIndexDisplayCallback(callback);
-wasmFs.fs.writeFileSync(
-  "/sys/class/graphics/wasmerfb0/buffer_index_display",
-  "0"
-);
+wasmFs.fs.writeFileSync("/_wasmer/dev/fb0/draw", "0");
 
 callbackCalled === true; // This should be true, our callback is called!
 ```

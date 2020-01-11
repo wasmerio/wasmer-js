@@ -1,11 +1,7 @@
 import { WasmFs } from "../../wasmfs/src/index";
 
-// Define our file paths
-const FRAME_BUFFER = "/dev/wasmerfb0";
-const WINDOW_SIZE = "/sys/class/graphics/wasmerfb0/virtual_size";
-const BUFFER_INDEX_DISPLAY =
-  "/sys/class/graphics/wasmerfb0/buffer_index_display";
-const INPUT = "/dev/input";
+import { IO_DEVICES_CONSTANTS } from "./constants";
+export { IO_DEVICES_CONSTANTS } from "./constants";
 
 // Add isomorphic support for TextDecoder
 let TextDecoder: any = undefined;
@@ -32,27 +28,50 @@ export default class IoDevicesDefault {
     this.wasmFs = wasmFs;
 
     // Add our files to the wasmFs
-    this.wasmFs.volume.mkdirSync("/dev", { recursive: true });
-    this.wasmFs.volume.mkdirSync("/sys/class/graphics/wasmerfb0", {
-      recursive: true
-    });
-    this.wasmFs.volume.writeFileSync(FRAME_BUFFER, "");
-    this.wasmFs.volume.writeFileSync(WINDOW_SIZE, "");
-    this.wasmFs.volume.writeFileSync(BUFFER_INDEX_DISPLAY, "");
-    this.wasmFs.volume.writeFileSync(INPUT, "");
+    this.wasmFs.volume.mkdirSync(
+      IO_DEVICES_CONSTANTS.FILE_PATH.DEVICE_FRAMEBUFFER_ZERO.PATH,
+      { recursive: true }
+    );
+    this.wasmFs.volume.writeFileSync(
+      IO_DEVICES_CONSTANTS.FILE_PATH.DEVICE_FRAMEBUFFER_ZERO.FRAME_BUFFER,
+      ""
+    );
+    this.wasmFs.volume.writeFileSync(
+      IO_DEVICES_CONSTANTS.FILE_PATH.DEVICE_FRAMEBUFFER_ZERO.WINDOW_SIZE,
+      ""
+    );
+    this.wasmFs.volume.writeFileSync(
+      IO_DEVICES_CONSTANTS.FILE_PATH.DEVICE_FRAMEBUFFER_ZERO
+        .BUFFER_INDEX_DISPLAY,
+      ""
+    );
+    this.wasmFs.volume.writeFileSync(
+      IO_DEVICES_CONSTANTS.FILE_PATH.DEVICE_FRAMEBUFFER_ZERO.INPUT,
+      ""
+    );
 
     this.windowSizeCallback = () => {};
     this.bufferIndexDisplayCallback = () => {};
     this.inputCallback = () => new Uint8Array();
 
     // Open our directories and get their file descriptors
-    this.fdFrameBuffer = this.wasmFs.volume.openSync(FRAME_BUFFER, "w+");
-    this.fdBufferIndexDisplay = this.wasmFs.volume.openSync(
-      BUFFER_INDEX_DISPLAY,
+    this.fdFrameBuffer = this.wasmFs.volume.openSync(
+      IO_DEVICES_CONSTANTS.FILE_PATH.DEVICE_FRAMEBUFFER_ZERO.FRAME_BUFFER,
       "w+"
     );
-    this.fdWindowSize = this.wasmFs.fs.openSync(WINDOW_SIZE, "w+");
-    this.fdInput = this.wasmFs.volume.openSync(INPUT, "w+");
+    this.fdBufferIndexDisplay = this.wasmFs.volume.openSync(
+      IO_DEVICES_CONSTANTS.FILE_PATH.DEVICE_FRAMEBUFFER_ZERO
+        .BUFFER_INDEX_DISPLAY,
+      "w+"
+    );
+    this.fdWindowSize = this.wasmFs.fs.openSync(
+      IO_DEVICES_CONSTANTS.FILE_PATH.DEVICE_FRAMEBUFFER_ZERO.WINDOW_SIZE,
+      "w+"
+    );
+    this.fdInput = this.wasmFs.volume.openSync(
+      IO_DEVICES_CONSTANTS.FILE_PATH.DEVICE_FRAMEBUFFER_ZERO.INPUT,
+      "w+"
+    );
 
     // Set up our read / write handlers
     const context = this;
@@ -61,7 +80,10 @@ export default class IoDevicesDefault {
     this.wasmFs.volume.fds[this.fdInput].node.read = function() {
       // Write the input buffer
       const inputBuffer = context.inputCallback();
-      context.wasmFs.volume.writeFileSync(INPUT, inputBuffer);
+      context.wasmFs.volume.writeFileSync(
+        IO_DEVICES_CONSTANTS.FILE_PATH.DEVICE_FRAMEBUFFER_ZERO.INPUT,
+        inputBuffer
+      );
 
       // Read the input
       // @ts-ignore
@@ -105,13 +127,15 @@ export default class IoDevicesDefault {
 
   getFrameBuffer(): Uint8Array {
     const buffer: Uint8Array = this.wasmFs.fs.readFileSync(
-      FRAME_BUFFER
+      IO_DEVICES_CONSTANTS.FILE_PATH.DEVICE_FRAMEBUFFER_ZERO.FRAME_BUFFER
     ) as Uint8Array;
     return buffer;
   }
 
   getWindowSize(): Array<number> {
-    const windowSizeBuffer = this.wasmFs.fs.readFileSync(WINDOW_SIZE);
+    const windowSizeBuffer = this.wasmFs.fs.readFileSync(
+      IO_DEVICES_CONSTANTS.FILE_PATH.DEVICE_FRAMEBUFFER_ZERO.WINDOW_SIZE
+    );
     if (windowSizeBuffer.length > 0) {
       const windowSize = new TextDecoder("utf-8").decode(
         windowSizeBuffer as any
