@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "test": "npx mocha --exit --timeout 7500"
+    "test": "npx mocha --exit --timeout 15000"
   },
   "devDependencies": {
     "mkdirp": "^0.5.1",
