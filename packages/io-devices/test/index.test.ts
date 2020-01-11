@@ -20,14 +20,12 @@ describe("io-devices", () => {
     ).toBe(true);
     expect(
       wasmFs[
-        IO_DEVICES_CONSTANTS.FILE_PATH.DEVICE_FRAMEBUFFER_ZERO.WINDOW_SIZE
+        IO_DEVICES_CONSTANTS.FILE_PATH.DEVICE_FRAMEBUFFER_ZERO.VIRTUAL_SIZE
       ] !== undefined
     ).toBe(true);
     expect(
-      wasmFs[
-        IO_DEVICES_CONSTANTS.FILE_PATH.DEVICE_FRAMEBUFFER_ZERO
-          .BUFFER_INDEX_DISPLAY
-      ] !== undefined
+      wasmFs[IO_DEVICES_CONSTANTS.FILE_PATH.DEVICE_FRAMEBUFFER_ZERO.DRAW] !==
+        undefined
     ).toBe(true);
     expect(
       wasmFs[IO_DEVICES_CONSTANTS.FILE_PATH.DEVICE_FRAMEBUFFER_ZERO.INPUT] !==
@@ -48,7 +46,7 @@ describe("io-devices", () => {
     expect(initialWindowSize[1]).toBe(0);
 
     wasmfs.fs.writeFileSync(
-      IO_DEVICES_CONSTANTS.FILE_PATH.DEVICE_FRAMEBUFFER_ZERO.WINDOW_SIZE,
+      IO_DEVICES_CONSTANTS.FILE_PATH.DEVICE_FRAMEBUFFER_ZERO.VIRTUAL_SIZE,
       "10x10"
     );
 
@@ -66,7 +64,7 @@ describe("io-devices", () => {
 
     ioDevices.setWindowSizeCallback(callback);
     wasmfs.fs.writeFileSync(
-      IO_DEVICES_CONSTANTS.FILE_PATH.DEVICE_FRAMEBUFFER_ZERO.WINDOW_SIZE,
+      IO_DEVICES_CONSTANTS.FILE_PATH.DEVICE_FRAMEBUFFER_ZERO.VIRTUAL_SIZE,
       "10x10"
     );
 
@@ -81,8 +79,7 @@ describe("io-devices", () => {
 
     ioDevices.setBufferIndexDisplayCallback(callback);
     wasmfs.fs.writeFileSync(
-      IO_DEVICES_CONSTANTS.FILE_PATH.DEVICE_FRAMEBUFFER_ZERO
-        .BUFFER_INDEX_DISPLAY,
+      IO_DEVICES_CONSTANTS.FILE_PATH.DEVICE_FRAMEBUFFER_ZERO.DRAW,
       "0"
     );
 
@@ -97,7 +94,7 @@ describe("io-devices", () => {
 
     ioDevices.setWindowSizeCallback(callback);
     wasmfs.fs.writeFileSync(
-      IO_DEVICES_CONSTANTS.FILE_PATH.DEVICE_FRAMEBUFFER_ZERO.WINDOW_SIZE,
+      IO_DEVICES_CONSTANTS.FILE_PATH.DEVICE_FRAMEBUFFER_ZERO.VIRTUAL_SIZE,
       "10x10"
     );
 

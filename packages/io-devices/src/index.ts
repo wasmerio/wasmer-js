@@ -37,12 +37,11 @@ export default class IoDevicesDefault {
       ""
     );
     this.wasmFs.volume.writeFileSync(
-      IO_DEVICES_CONSTANTS.FILE_PATH.DEVICE_FRAMEBUFFER_ZERO.WINDOW_SIZE,
+      IO_DEVICES_CONSTANTS.FILE_PATH.DEVICE_FRAMEBUFFER_ZERO.VIRTUAL_SIZE,
       ""
     );
     this.wasmFs.volume.writeFileSync(
-      IO_DEVICES_CONSTANTS.FILE_PATH.DEVICE_FRAMEBUFFER_ZERO
-        .BUFFER_INDEX_DISPLAY,
+      IO_DEVICES_CONSTANTS.FILE_PATH.DEVICE_FRAMEBUFFER_ZERO.DRAW,
       ""
     );
     this.wasmFs.volume.writeFileSync(
@@ -60,12 +59,11 @@ export default class IoDevicesDefault {
       "w+"
     );
     this.fdBufferIndexDisplay = this.wasmFs.volume.openSync(
-      IO_DEVICES_CONSTANTS.FILE_PATH.DEVICE_FRAMEBUFFER_ZERO
-        .BUFFER_INDEX_DISPLAY,
+      IO_DEVICES_CONSTANTS.FILE_PATH.DEVICE_FRAMEBUFFER_ZERO.DRAW,
       "w+"
     );
     this.fdWindowSize = this.wasmFs.fs.openSync(
-      IO_DEVICES_CONSTANTS.FILE_PATH.DEVICE_FRAMEBUFFER_ZERO.WINDOW_SIZE,
+      IO_DEVICES_CONSTANTS.FILE_PATH.DEVICE_FRAMEBUFFER_ZERO.VIRTUAL_SIZE,
       "w+"
     );
     this.fdInput = this.wasmFs.volume.openSync(
@@ -134,7 +132,7 @@ export default class IoDevicesDefault {
 
   getWindowSize(): Array<number> {
     const windowSizeBuffer = this.wasmFs.fs.readFileSync(
-      IO_DEVICES_CONSTANTS.FILE_PATH.DEVICE_FRAMEBUFFER_ZERO.WINDOW_SIZE
+      IO_DEVICES_CONSTANTS.FILE_PATH.DEVICE_FRAMEBUFFER_ZERO.VIRTUAL_SIZE
     );
     if (windowSizeBuffer.length > 0) {
       const windowSize = new TextDecoder("utf-8").decode(
