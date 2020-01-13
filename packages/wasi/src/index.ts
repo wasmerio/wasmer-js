@@ -885,18 +885,12 @@ export default class WASIDefault {
       ),
       fd_tell: wrap((fd: number, offsetPtr: number) => {
         const stats = CHECK_FD(fd, WASI_RIGHT_FD_TELL);
-        // TODO: Why?
-        // Refreshing memory here either way
         this.refreshMemory();
-        throw new Error("fd_tell to be implemented (without binding)");
-        // const currentOffset = binding.seek(stats.real, BigInt(0), SEEK_CUR)
-        // if (typeof currentOffset === 'number') {
-        //   // errno
-        //   throw currentOffset
-        // }
-        // this.refreshMemory()
-        // this.view.setBigUint64(offsetPtr, currentOffset, true)
-        // return WASI_ESUCCESS
+        if (!stats.offset) {
+          stats.offset = BigInt(0);
+        }
+        this.view.setBigUint64(offsetPtr, stats.offset, true);
+        return WASI_ESUCCESS;
       }),
       fd_sync: wrap((fd: number) => {
         const stats = CHECK_FD(fd, WASI_RIGHT_FD_SYNC);
