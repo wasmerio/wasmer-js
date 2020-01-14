@@ -5,8 +5,9 @@ const puppeteer = require("puppeteer");
 
 const { rebundleOutput } = require("./util");
 
-const BUFFER_INDEX_DISPLAY =
-  "/sys/class/graphics/wasmerfb0/buffer_index_display";
+const {
+  IO_DEVICES_CONSTANTS
+} = require("../../packages/io-devices/lib/index.cjs");
 
 const testNodeBundle = async (wasmFsBundleString, ioDevicesBundleString) => {
   const WasmFs = requireFromString(wasmFsBundleString);
@@ -22,7 +23,10 @@ const testNodeBundle = async (wasmFsBundleString, ioDevicesBundleString) => {
   };
 
   ioDevices.setBufferIndexDisplayCallback(callback);
-  wasmFs.fs.writeFileSync(BUFFER_INDEX_DISPLAY, "0");
+  wasmFs.fs.writeFileSync(
+    IO_DEVICES_CONSTANTS.FILE_PATH.DEVICE_FRAMEBUFFER_ZERO.DRAW,
+    "0"
+  );
 
   assert.equal(callbackCalled, true);
 };
@@ -48,7 +52,7 @@ const testBrowserBundle = async (wasmFsBundleString, ioDevicesBundleString) => {
       }
 
       ioDevices.setBufferIndexDisplayCallback(callback);
-      wasmFs.fs.writeFileSync('${BUFFER_INDEX_DISPLAY}', "0");
+      wasmFs.fs.writeFileSync('${IO_DEVICES_CONSTANTS.FILE_PATH.DEVICE_FRAMEBUFFER_ZERO.DRAW}', "0");
 
       callbackCalled === true;
     `);
