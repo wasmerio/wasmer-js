@@ -22,7 +22,7 @@ $ npm install -g @wasmer/cli
 $ wasmer-js COMMAND
 running command...
 $ wasmer-js (-v|--version|version)
-@wasmer/cli/0.5.1 darwin-x64 node-v10.16.3
+@wasmer/cli/0.6.0 darwin-x64 node-v10.16.3
 $ wasmer-js --help [COMMAND]
 USAGE
   $ wasmer-js COMMAND
@@ -73,6 +73,6 @@ EXAMPLE
   hello world
 ```
 
-_See code: [lib/commands/run.js](https://github.com/wasmerio/wasmer-js/blob/v0.5.1/lib/commands/run.js)_
+_See code: [lib/commands/run.js](https://github.com/wasmerio/wasmer-js/blob/v0.6.0/lib/commands/run.js)_
 
 <!-- commandsstop -->

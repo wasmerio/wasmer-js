@@ -1,7 +1,7 @@
 {
   "name": "@wasmer/cli",
   "description": "The CLI for executing Wasmer-JS",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "author": "Wasmer Engineering Team <engineering@wasmer.io>",
   "license": "MIT",
   "bin": {
