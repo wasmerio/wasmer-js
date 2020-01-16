@@ -27,7 +27,7 @@ const commands = {
   }
 };
 
-commands["wasmboy"] = "./wasmboy-wasmer.wasm";
+commands["wasmerboy"] = "./wasmerboy.wasm";
 const wasmboyRom = "./tobutobugirl/tobutobugirl.gb";
 commands["io-as-debug"] = "./io-as-debug.wasm";
 commands["optimized"] = "./optimized.wasm";
@@ -128,8 +128,8 @@ export default class WasmTerminalComponent extends Component {
     this.wasmTerminal.runCommand("io-as-debug");
   }
 
-  runWasmBoy() {
-    this.wasmTerminal.runCommand("wasmboy /rom.gb");
+  runWasmerBoy() {
+    this.wasmTerminal.runCommand("wasmerboy /rom.gb");
   }
 
   render() {
@@ -144,7 +144,7 @@ export default class WasmTerminalComponent extends Component {
           <button onClick={() => this.runIoDevicesDebug()}>
             Run IO Devices Debug
           </button>
-          <button onClick={() => this.runWasmBoy()}>Run WasmBoy</button>
+          <button onClick={() => this.runWasmerBoy()}>Run WasmerBoy</button>
           <br />
           <br />
         </div>
