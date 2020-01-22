@@ -39,13 +39,15 @@ export default class WasmFsDefault {
       isEmpty = false;
 
       const child = link.getChild(name);
-      const node = child.getNode();
-      if (node.isFile()) {
-        let filename = child.getPath();
-        if (path) filename = relative(path, filename);
-        json[filename] = node.getBuffer();
-      } else if (node.isDirectory()) {
-        this._toJSON(child, json, path);
+      if (child) {
+        const node = child.getNode();
+        if (node && node.isFile()) {
+          let filename = child.getPath();
+          if (path) filename = relative(path, filename);
+          json[filename] = node.getBuffer();
+        } else if (node && node.isDirectory()) {
+          this._toJSON(child, json, path);
+        }
       }
     }
 
