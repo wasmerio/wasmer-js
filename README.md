@@ -15,6 +15,10 @@ Wasmer-JS is a mono-repo of multiple JavaScript packages enabling easy use of [W
 
 - [`@wasmer/wasm-terminal`](./packages/wasm-terminal) - A browser terminal/shell for interacting with WASI/Wasm Modules. It powers [WebAssembly.sh](https://webassembly.sh/).
 
+## Documentation
+
+Documentation for the Wasmer-JS Stack, can be found on the [Wasmer Docs](https://docs.wasmer.io/wasmer-js/wasmer-js).
+
 ## Development
 
 Contributing into Wasmer-JS it's very easy, just clone the repo and run:
