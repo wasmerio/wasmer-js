@@ -109,49 +109,9 @@ const fetchAndTransformWasmBinary = async () => {
 };
 ```
 
-## Reference API
+## Documentation
 
-### Node
-
-`version()`
-
-Returns the version of the package.
-
----
-
-`lowerI64Imports(wasmBinaryWithI64Imports: Uint8Array): Uint8Array`
-
-Inserts trampoline functions for imports that have i64 params or returns. This is useful for running Wasm modules in JS runtimes that [do not support JavaScript BigInt -> Wasm i64 integration](https://github.com/WebAssembly/proposals/issues/7). Especially in the case for [i64 WASI Imports](https://github.com/CraneStation/wasmtime/blob/master/docs/WASI-api.md#clock_time_get). Returns the lowered wasm binary as a Uint8Array.
-
-### Unoptimized Browser
-
-`version(): Promise<string>`
-
-Returns a promise that resolves the version of the package.
-
----
-
-`lowerI64Imports(wasmBinaryWithI64Imports: Uint8Array): Promise<Uint8Array>`
-
-Inserts trampoline functions for imports that have i64 params or returns. This is useful for running Wasm modules in JS runtimes that [do not support JavaScript BigInt -> Wasm i64 integration](https://github.com/WebAssembly/proposals/issues/7). Especially in the case for [i64 WASI Imports](https://github.com/CraneStation/wasmtime/blob/master/docs/WASI-api.md#clock_time_get). Returns a promise the resolves the lowered wasm binary as a Uint8Array.
-
-### Optimized Browser
-
-`wasmTransformerInit(wasmUrl: string): Promise`
-
-Initialzation function exported by `wasm-pack build`. This takes in a URL to where the `node_modules/@wasmer/wasm-transformer/wasm-transformer.wasm` is hosted.
-
----
-
-`version()`
-
-Returns the version of the package.
-
----
-
-`lowerI64Imports(wasmBinaryWithI64Imports: Uint8Array): Uint8Array`
-
-Inserts trampoline functions for imports that have i64 params or returns. This is useful for running Wasm modules in browsers that [do not support JavaScript BigInt -> Wasm i64 integration](https://github.com/WebAssembly/proposals/issues/7). Especially in the case for [i64 WASI Imports](https://github.com/CraneStation/wasmtime/blob/master/docs/WASI-api.md#clock_time_get). Returns the lowered wasm binary as a Uint8Array.
+For documentation on `@wasmer/wasm-terminal`, such as additional examples and a Reference API. Please take a look at the [Wasmer Docs](https://docs.wasmer.io/wasmer-js/wasmer-js).
 
 ## Contributing
 

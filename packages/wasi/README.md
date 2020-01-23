@@ -71,81 +71,9 @@ const startWasiTask = async () => {
 startWasiTask();
 ```
 
-For a larger end-to-end example, please see the [wasm-terminal package](https://github.com/wasmerio/wasmer-js/tree/master/packages/wasm-terminal).
+## Documentation
 
-## Reference API
-
-`new WASI(wasiConfigObject)`
-
-Constructs a new WASI instance.
-
-The Config object is is as follows:
-
-```js
-let myWASIInstance = new WASI({
-  // OPTIONAL: The pre-opened dirctories
-  preopens: {},
-
-  // OPTIONAL: The environment vars
-  env: {},
-
-  // OPTIONAL: The arguments provided
-  args: [],
-
-  // OPTIONAL: The environment bindings (fs, path),
-  // useful for using WASI in diferent environments
-  // such as Node.js, Browsers, ...
-  bindings: {
-    // hrtime: WASI.defaultConfig.bindings.hrtime,
-    // exit: WASI.defaultConfig.bindings.exit,
-    // kill: WASI.defaultConfig.bindings.kill,
-    // randomFillSync: WASI.defaultConfig.bindings.randomFillSync,
-    // isTTY: WASI.defaultConfig.bindings.isTTY,
-    // fs: WASI.defaultConfig.bindings.fs,
-    // path: WASI.defaultConfig.bindings.path,
-    ...WASI.defaultConfig.bindings
-  }
-});
-```
-
-And returns a WASI Instance:
-
-```js
-console.log(myWASIInstance);
-/*
-
-Would Output:
-
-{
-  memory: WebAssembly.Memory;
-  view: DataView;
-  FD_MAP: Map<number, File>;
-  exports: Exports; // WASI API to be imported in the importObject on instantiation.
-  bindings: WASIBindings;
-  start: (wasmInstance: WebAssembly.Instance) => void; // Function that takes in a WASI WebAssembly Instance and starts it.
-}
-*/
-```
-
----
-
-`WASI.defaultBindings`
-
-The [default bindings](./lib/bindings) for the environment that are set on the `bindings` property of the constructor config object. This is useful for use cases like, you want to plugin in your own file system. For example:
-
-```js
-const myFs = require("fs");
-
-let wasi = new WASI({
-  preopens: {},
-  env: {},
-  args: [],
-  bindings: {
-    fs: myFs,
-    ...WASI.defaultBindings
-  }
-});
-```
+For documentation on `@wasmer/wasi`, such as additional examples and a Reference API. Please take a look at the [Wasmer Docs](https://docs.wasmer.io/wasmer-js/wasmer-js).
 
 ## Contributing
 

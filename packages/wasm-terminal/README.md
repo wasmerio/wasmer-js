@@ -103,7 +103,7 @@ wasmTerminal.focus();
 
 ### Optimized
 
-Optimized bundles, for both `@wasmer/wasm-terminal` and `@wasmer/wasm-transfoormer`, prioritize performance. For examples, assets required by the library must be passed in manually.
+Optimized bundles, for both `@wasmer/wasm-terminal` and `@wasmer/wasm-transformer`, prioritize performance. For examples, assets required by the library must be passed in manually.
 
 ```javascript
 import WasmTerminal, {
@@ -160,88 +160,9 @@ wasmTerminal.focus();
 
 **NOTE:** Remember to include the CSS file mentioned at the beginning of the "Quick Start" section.
 
-## Wasm Terminal Reference API
+## Documentation
 
-### WasmTerminal
-
-`new WasmTerminal(WasmTerminalConfig)`
-
-Constructor for the WasmTerminal, that returns an instance of the WasmTerminal.
-
-The [WasmTerminalConfig](./lib/wasm-terminal-config.ts) can be described as the following:
-
-```typescript
-{
-  // Function that is called whenever a command is entered and returns a Promise,
-  // It takes in the name of the command being run, and expects a Uint8Array of a Wasm Binary, or a
-  // CallbackCommand (see the api below) to be returned.
-  fetchCommand: (
-    commandName: string,
-    commandArgs?: Array<string>,
-    envEntries?: any[][]
-  ) => Promise<Uint8Array | CallbackCommand>
-  // Only for Optimized Bundles: URL to the /node_modules/wasm-terminal/workers/process.worker.js . This is used by the shell to
-  // to spawn web workers in Comlink, for features such as piping, /dev/stdin reading, and general performance enhancements.
-  processWorkerUrl?: string;
-}
-```
-
-CallbackCommands are functions that can be returned in the `fetchCommand` config property. They are simply Javascript callback that take in the command name, command arguments, enviroment variables, and returns a Promise that resolves stdout. Since these callback commands handle `stdin` and `stdout`, that can be used as normal commands that can be piped!
-
-```typescript
-export type CallbackCommand = (
-  options: CommandOptions,
-  wasmFs: WasmFs
-) => Promise<string | undefined> | string | undefined;
-```
-
----
-
-`wasmTerminal.open(containerElement: Element)`
-
-Function to set the container of the `wasmTerminal`. `containerElement` can be any [Element](https://developer.mozilla.org/en-US/docs/Web/API/Element).
-
----
-
-`wasmTerminal.fit()`
-
-Function to resize the terminal to fit the size of its container.
-
----
-
-`wasmTerminal.focus()`
-
-Function to [focus](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/focus) on the `wasmTerminal` element, and allow input into the shell.
-
----
-
-`wasmTerminal.print(message: string)`
-
-Function to print text to the wasmTerminal. Useful for printing a welcome message before the wasmTerminal is opened.
-
----
-
-`wasmTerminal.scrollToCursor()`
-
-Function to scroll the terminal cursor into view.
-
----
-
-`wasmTerminal.runCommand(commandString: string)`
-
-Function to run the passed string as if it was entered as a command, from the wasm terminal.
-
-### fetchCommandFromWAPM
-
-```typescript
-fetchCommandFromWAPM(
-  commandName: string,
-  commandArgs?: Array<string>,
-  envEntries?: any[][]
-) => Promise<Uint8Array>
-```
-
-Function meant to be returned in the `fetchCommand` config property of the WasmTerminal Class. This takes in the name of command, the command arguments, and the envioronment variables, and returns a Promise that resolves a Uint8Array of the Wasm binary from WAPM.
+For documentation on `@wasmer/wasm-terminal`, such as additional examples and a Reference API. Please take a look at the [Wasmer Docs](https://docs.wasmer.io/wasmer-js/wasmer-js).
 
 ## Browser Compatibility
 

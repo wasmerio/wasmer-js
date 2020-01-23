@@ -79,4 +79,4 @@ _See code: [lib/commands/run.js](https://github.com/wasmerio/wasmer-js/blob/v0.6
 
 # Documentation
 
-Documentation for `@wasmer/cli` can be found on the [Wasmer Docs](https://docs.wasmer.io/wasmer-js/cli/wasmer-js-cli-installation).
+Documentation for `@wasmer/cli` can be found on the [Wasmer Docs](https://docs.wasmer.io/wasmer-js/wasmer-js).
