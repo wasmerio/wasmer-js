@@ -13,7 +13,6 @@
   },
   "license": "MIT",
   "scripts": {
-    "preinstall": "npm install lerna && npm run lerna:install",
     "postinstall": "run-s lerna:bootstrap lerna:install lerna:install:wasmfs lerna:link",
     "build": "npm run lerna:build",
     "cli": "./packages/cli/bin/wasmer-js",
