@@ -11,6 +11,8 @@ Wasmer-JS is a mono-repo of multiple JavaScript packages enabling easy use of [W
 
 - [`@wasmer/wasmfs`](./packages/wasmfs) - WASI/Wasm FileSystem.
 
+- [`@wasmer/io-devices`](./packages/io-devices) - Implementation Support for the Wasmer Experimental I/O Devices for Wassmer-JS.
+
 - [`@wasmer/wasm-transformer`](./packages/wasm-transformer) - the JS interface for the [`wasm_transformer` crate](./crates/wasm_transformer)
 
 - [`@wasmer/wasm-terminal`](./packages/wasm-terminal) - A browser terminal/shell for interacting with WASI/Wasm Modules. It powers [WebAssembly.sh](https://webassembly.sh/).
