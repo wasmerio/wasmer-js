@@ -2,6 +2,8 @@
 
 Isomorphic library to provide a sandboxed [node `fs`](https://nodejs.org/api/fs.html) implementation for Node and Browsers. 📂
 
+Documentation for Wasmer-JS Stack can be found on the [Wasmer Docs](https://docs.wasmer.io/wasmer-js/wasmer-js).
+
 ## Table of Contents
 
 - [Features](#features)
@@ -43,9 +45,9 @@ wasmFs.getStdOut().then(response => {
 });
 ```
 
-## Documentation
+## Reference API
 
-For documentation on `@wasmer/wasm-terminal`, such as additional examples and a Reference API. Please take a look at the [Wasmer Docs](https://docs.wasmer.io/wasmer-js/wasmer-js).
+The Reference API Documentation can be found on the [`@wasmer/wasmfs` Reference API Wasmer Docs](https://docs.wasmer.io/wasmer-js/reference-api/wasmer-js-reference-api-wasi).
 
 ## Contributing
 

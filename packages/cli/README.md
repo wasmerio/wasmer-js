@@ -6,6 +6,8 @@ The CLI for executing Wasmer-JS
 [![Downloads/week](https://img.shields.io/npm/dw/@wasmer/cli.svg)](https://npmjs.org/package/@wasmer/cli)
 [![License](https://img.shields.io/npm/l/@wasmer/cli.svg)](https://github.com/wasmerio/wasmer-js/blob/master/package.json)
 
+Documentation for Wasmer-JS Stack can be found on the [Wasmer Docs](https://docs.wasmer.io/wasmer-js/wasmer-js).
+
 <!-- toc -->
 
 - [@wasmer/cli](#wasmercli)
@@ -76,7 +78,3 @@ EXAMPLE
 _See code: [lib/commands/run.js](https://github.com/wasmerio/wasmer-js/blob/v0.6.0/lib/commands/run.js)_
 
 <!-- commandsstop -->
-
-# Documentation
-
-Documentation for `@wasmer/cli` can be found on the [Wasmer Docs](https://docs.wasmer.io/wasmer-js/wasmer-js).

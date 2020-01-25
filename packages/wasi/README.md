@@ -2,6 +2,8 @@
 
 Isomorphic Javascript library for interacting with WASI Modules in Node.js and the Browser. 📚
 
+Documentation for Wasmer-JS Stack can be found on the [Wasmer Docs](https://docs.wasmer.io/wasmer-js/wasmer-js).
+
 ## Table of Contents
 
 - [Features](#features)
@@ -71,9 +73,9 @@ const startWasiTask = async () => {
 startWasiTask();
 ```
 
-## Documentation
+## Reference API
 
-For documentation on `@wasmer/wasi`, such as additional examples and a Reference API. Please take a look at the [Wasmer Docs](https://docs.wasmer.io/wasmer-js/wasmer-js).
+The Reference API Documentation can be found on the [`@wasmer/wasi` Reference API Wasmer Docs](https://docs.wasmer.io/wasmer-js/reference-api/wasmer-js-reference-api-wasi).
 
 ## Contributing
 

@@ -2,6 +2,8 @@
 
 A terminal-like component for the browser, that fetches and runs Wasm modules in the context of a shell. 🐚
 
+Documentation for Wasmer-JS Stack can be found on the [Wasmer Docs](https://docs.wasmer.io/wasmer-js/wasmer-js).
+
 ![Wasm Terminal Demo Gif](./assets/wasm-terminal-demo.gif)
 
 ## Table of Contents
@@ -160,9 +162,9 @@ wasmTerminal.focus();
 
 **NOTE:** Remember to include the CSS file mentioned at the beginning of the "Quick Start" section.
 
-## Documentation
+## Reference API
 
-For documentation on `@wasmer/wasm-terminal`, such as additional examples and a Reference API. Please take a look at the [Wasmer Docs](https://docs.wasmer.io/wasmer-js/wasmer-js).
+The Reference API Documentation can be found on the [`@wasmer/wasm-terminal` Reference API Wasmer Docs](https://docs.wasmer.io/wasmer-js/reference-api/wasmer-js-reference-api-wasm-terminal).
 
 ## Browser Compatibility
 

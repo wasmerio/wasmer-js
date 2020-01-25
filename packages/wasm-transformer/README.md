@@ -2,6 +2,8 @@
 
 Library to run transformations on WebAssembly binaries. 🦀♻️
 
+Documentation for Wasmer-JS Stack can be found on the [Wasmer Docs](https://docs.wasmer.io/wasmer-js/wasmer-js).
+
 **This README covers the instructions for installing, using, and contributing to the `wasm-transformer` Javascript package. [The `wasm_transformer` Rust crate is available here](../../packages/wasm-transformer).**
 
 ## Table of Contents
@@ -109,9 +111,9 @@ const fetchAndTransformWasmBinary = async () => {
 };
 ```
 
-## Documentation
+## Reference API
 
-For documentation on `@wasmer/wasm-terminal`, such as additional examples and a Reference API. Please take a look at the [Wasmer Docs](https://docs.wasmer.io/wasmer-js/wasmer-js).
+The Reference API Documentation can be found on the [`@wasmer/wasm-transformer` Reference API Wasmer Docs](https://docs.wasmer.io/wasmer-js/reference-api/wasmer-js-reference-api-wasi).
 
 ## Contributing
 
