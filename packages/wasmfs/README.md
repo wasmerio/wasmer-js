@@ -2,6 +2,8 @@
 
 Isomorphic library to provide a sandboxed [node `fs`](https://nodejs.org/api/fs.html) implementation for Node and Browsers. 📂
 
+Documentation for Wasmer-JS Stack can be found on the [Wasmer Docs](https://docs.wasmer.io/wasmer-js/wasmer-js).
+
 ## Table of Contents
 
 - [Features](#features)
@@ -43,35 +45,9 @@ wasmFs.getStdOut().then(response => {
 });
 ```
 
-For a larger end-to-end example, please see the [`@wasmer/wasm-terminal` package](https://github.com/wasmerio/wasmer-js/tree/master/packages/wasm-terminal).
-
 ## Reference API
 
-`wasmFs.fs`
-
-[memfs](https://github.com/streamich/memfs)' [node fs](https://nodejs.org/api/fs.html) implementation object. See the [node fs documentation](https://nodejs.org/api/fs.html) for API usage.
-
-**NOTE:** The functions on this `fs` implementation can easily be overriden to provide custom functionality when your wasm module (running with [`@wasmer/wasi`](https://github.com/wasmerio/wasmer-js/tree/master/packages/wasi)) tries to do file system operations. For example:
-
-```js
-const wasmFs = new WasmFs();
-
-const originalWriteFileSync = wasmFs.fs.writeFileSync;
-wasmFs.fs.writeFileSync = (path, text) => {
-  console.log("File written:", path);
-  originalWriteFileSync(path, text);
-};
-
-wasmFs.fs.writeFileSync("/dev/stdout", "Quick Start!");
-
-// Would log: "File written: /dev/stdout"
-```
-
----
-
-`wasmFs.getStdOut()`
-
-Function that returns a promise that resolves a string. With the file contents of `/dev/stdout`.
+The Reference API Documentation can be found on the [`@wasmer/wasmfs` Reference API Wasmer Docs](https://docs.wasmer.io/wasmer-js/reference-api/wasmer-js-reference-api-wasi).
 
 ## Contributing
 

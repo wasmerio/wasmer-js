@@ -2,6 +2,8 @@
 
 Isomorphic library to implement the experimental Wasmer I/O devices for the Wasmer-JS stack 🖼️🎮
 
+Documentation for Wasmer-JS Stack can be found on the [Wasmer Docs](https://docs.wasmer.io/wasmer-js/wasmer-js).
+
 ## Table of Contents
 
 - [Features](#features)
@@ -53,10 +55,6 @@ callbackCalled === true; // This should be true, our callback is called!
 ```
 
 `@wasmer/io-devices` is isomorphic, meaning this quick start should also work in Node with the appropriate Node syntax!
-
-## Documentation
-
-For documentation for this package, please see the [Wasmer-JS Docs](https://docs.wasmer.io/wasmer-js/wasmer-js).
 
 ## Contributing
 
