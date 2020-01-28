@@ -7,7 +7,7 @@ export class Command {
   constructor(commandConfig: {
     name: string;
     description: string;
-    run: Function;
+    runCallback: Function;
     getHelpBody: Function;
   }) {
     this.name = commandConfig.name;
@@ -16,7 +16,7 @@ export class Command {
     this.getHelpBody = commandConfig.getHelpBody;
   }
 
-  run(args, flags) {
+  run(args: string[], flags: Object) {
     this.runCallback(args, flags);
   }
 
