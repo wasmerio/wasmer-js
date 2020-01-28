@@ -8,6 +8,17 @@ const runHelp = (args: string[]) => {
     helpCommand.help();
     return;
   }
+
+  if (args[0] === runCommand.name) {
+    runCommand.help();
+    return;
+  } else if (args[0] === versionCommand.name) {
+    versionCommand.help();
+    return;
+  }
+
+  console.log(`Unrecognized subcommand: ${args[0]}`);
+  helpCommand.help();
 };
 
 const command = new Command({
@@ -15,8 +26,7 @@ const command = new Command({
   description: "Show the usage of the passed subcommand",
   runCallback: runHelp,
   getHelpBody: () => {
-    return `
-USAGE:
+    return `USAGE:
 
 help [subcommand] - Display the help message for the selected subcommand. 
     
