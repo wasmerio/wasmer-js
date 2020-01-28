@@ -1,59 +1,44 @@
 {
   "name": "@wasmer/cli",
   "description": "The CLI for executing Wasmer-JS",
+  "keywords": [
+    "cli"
+  ],
   "version": "0.6.0",
   "author": "Wasmer Engineering Team <engineering@wasmer.io>",
   "license": "MIT",
-  "bin": {
-    "wasmer-js": "./bin/wasmer-js"
+  "repository": "wasmerio/wasmer-js",
+  "homepage": "https://github.com/wasmerio/wasmer-js/tree/master/packages/cli",
+  "bugs": {
+    "url": "https://github.com/wasmerio/wasmer-js/issues"
   },
-  "dependencies": {
-    "@oclif/command": "^1.5.19",
-    "@oclif/config": "^1.13.3",
-    "@oclif/plugin-help": "^2.2.1",
-    "@wasmer/wasi": "file:../wasi",
-    "@wasmer/wasm-transformer": "file:../wasm-transformer",
-    "tslib": "^1.10.0"
-  },
-  "devDependencies": {
-    "@oclif/dev-cli": "^1"
+  "publishConfig": {
+    "access": "public"
   },
   "engines": {
     "node": ">=8.0.0"
+  },
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "bin": {
+    "wasmer-js": "./bin/wasmer-js"
   },
   "files": [
     "/bin",
     "/lib",
     "/npm-shrinkwrap.json",
-    "/oclif.manifest.json"
+    "README.md"
   ],
-  "keywords": [
-    "oclif"
-  ],
-  "publishConfig": {
-    "access": "public"
-  },
-  "main": "lib/index.js",
-  "oclif": {
-    "commands": "./lib/commands",
-    "bin": "wasmer-js",
-    "plugins": [
-      "@oclif/plugin-help"
-    ]
-  },
-  "repository": "wasmerio/wasmer-js",
-  "bugs": {
-    "url": "https://github.com/wasmerio/wasmer-js/issues"
-  },
-  "homepage": "https://github.com/wasmerio/wasmer-js/tree/master/packages/cli",
   "scripts": {
-    "postpack": "rm -f oclif.manifest.json",
+    "start": "npm run build && node bin/wasmer-js",
     "posttest": "tslint -p test -t stylish",
-    "build": "rm -rf lib && tsc -b && oclif-dev manifest && oclif-dev readme",
+    "build": "rm -rf lib && tsc -b",
     "prepack": "npm run build",
-    "test": "nyc --extension .ts mocha --forbid-only \"test/**/*.test.ts\"",
-    "version": "oclif-dev readme && git add README.md"
+    "test": "nyc --extension .ts mocha --forbid-only \"test/**/*.test.ts\""
   },
-  "types": "lib/index.d.ts",
-  "gitHead": "889c22135c81610ddecbb696f8ef24f7ecaf5db7"
+  "dependencies": {
+    "@wasmer/wasi": "file:../wasi",
+    "@wasmer/wasm-transformer": "file:../wasm-transformer",
+    "tslib": "^1.10.0"
+  }
 }

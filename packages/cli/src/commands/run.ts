@@ -1,14 +1,16 @@
-import { Command, flags } from "@oclif/command";
+/*
+
 import { WASI } from "@wasmer/wasi";
 import nodeBindings from "@wasmer/wasi/lib/bindings/node";
 import { lowerI64Imports } from "@wasmer/wasm-transformer";
 import * as fs from "fs";
 
+
 export default class Run extends Command {
   public static description = "Run a WebAssembly file with Wasmer-JS";
 
   // To enable more arguments than provided
-  public static strict = false;
+  public static strict = true;
 
   public static examples = [
     `$ wasmer-js run hello.wasm
@@ -26,6 +28,10 @@ hello world
 
   public async run() {
     const { args, flags } = this.parse(Run);
+  
+    console.log('args', args);
+    console.log('flags', flags);
+
     const preopens: { [key: string]: string } = {};
     if (flags.dir) {
       flags.dir.forEach(dir => {
@@ -75,3 +81,5 @@ hello world
     wasi.start(instance);
   }
 }
+
+*/
