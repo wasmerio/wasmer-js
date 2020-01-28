@@ -16,16 +16,28 @@ export class Command {
     this.getHelpBody = commandConfig.getHelpBody;
   }
 
-  run(args: string[], flags: Object) {
+  run(args: string[], flags: any) {
+    // Check if we got passed help
+    if (flags.help) {
+      this.help();
+      return;
+    }
+
     this.runCallback(args, flags);
   }
 
   help() {
-    console.log(`
+    let helpMessage = `
 wasmer-js ${this.name}
-${this.description}
+${this.description}`;
 
-${this.getHelpBody()}
-`);
+    const helpBody = this.getHelpBody();
+    if (helpBody) {
+      helpMessage = `${helpMessage} 
+${helpBody}
+`;
+    }
+
+    console.log(helpMessage);
   }
 }
