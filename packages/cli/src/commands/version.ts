@@ -8,5 +8,9 @@ export const versionCommand = new Command({
   runCallback: () => {
     console.log(`${packageJson.name}: ${packageJson.version}`);
   },
-  getHelpBody: () => {}
+  getHelpBody: () => {
+    return `USAGE:
+$ wasmer-js version
+`;
+  }
 });

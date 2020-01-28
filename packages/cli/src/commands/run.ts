@@ -55,6 +55,16 @@ export const runCommand = new Command({
   description: "Run a WebAssembly file with Wasmer-JS",
   runCallback: () => {},
   getHelpBody: () => {
-    return "yo";
+    return `USAGE:
+$ wasmer-js run [FILE]
+
+ARGUMENTS:
+
+[FILE] - The WASI compiled ".wasm" file we would like to run
+
+FLAGS:
+
+
+`;
   }
 });

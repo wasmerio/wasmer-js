@@ -28,9 +28,13 @@ const command = new Command({
   getHelpBody: () => {
     return `USAGE:
 
-help [subcommand] - Display the help message for the selected subcommand. 
+$ wasmer-js help [SUBCOMMAND]
+
+ARGUMENTS:
+
+[SUBCOMMAND] - The subcommand we want to see the help message for 
     
-    The available commands (other than help) are:
+    The available subcommands (other than help) are:
     ${runCommand.name} - ${runCommand.description}
     ${versionCommand.name} - ${versionCommand.description}`;
   }
