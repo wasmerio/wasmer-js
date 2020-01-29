@@ -52,6 +52,8 @@ const runWasiModule = async (args: string[], flags: any) => {
   const wasiArgs = process.argv.slice(3).filter((arg: string) => {
     return !recognizedArgs.some(recognizedArg => arg.startsWith(recognizedArg));
   });
+  // Add the wasm module to the front of the args.
+  wasiArgs.unshift(wasmModuleFileToRun);
 
   const wasi = new WASI({
     args: wasiArgs,
