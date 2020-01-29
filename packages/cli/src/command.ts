@@ -32,7 +32,7 @@ wasmer-js ${this.name}
 ${this.description}`;
 
     const helpBody = this.getHelpBody();
-    if (helpBody) {
+    if (helpBody !== undefined) {
       helpMessage = `${helpMessage} 
 ${helpBody}
 `;
