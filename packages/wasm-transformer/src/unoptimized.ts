@@ -10,7 +10,7 @@ import { bigInt } from "wasm-feature-detect";
 const initPromise = wasmTransformerWasmPack.default(wasmTransformerWasmUrl);
 
 export const lowerI64Imports = async (wasmBinary: Uint8Array) => {
-  let isBigIntSupported = bigInt();
+  let isBigIntSupported = await bigInt();
   if (isBigIntSupported) {
     return wasmBinary;
   }
