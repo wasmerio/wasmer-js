@@ -26,7 +26,8 @@ const command = new Command({
   description: "Show the usage of the passed subcommand",
   runCallback: runHelp,
   getHelpBody: () => {
-    return `USAGE:
+    return `
+USAGE:
 
 $ wasmer-js help [SUBCOMMAND]
 

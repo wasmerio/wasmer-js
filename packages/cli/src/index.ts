@@ -9,15 +9,19 @@ const printHelp = () => {
   console.log(`
 wasmer-js - @wasmer/cli for using Wasm modules with Wasmer JS from the command line.
 
-Usage:
+USAGE:
 
-  wasmer-js COMMAND - run the specified command. The available commands are:
+  $ wasmer-js [SUBCOMMAND] - run the specified command.
+
+  ARGUMENTS:
+
+    [SUBCOMMAND] - A command that can be run by the wasmer-js CLI. The avaiilable commands are:
 
     ${runCommand.name} - ${runCommand.description}
     ${versionCommand.name} - ${versionCommand.description}
     ${helpCommand.name} - ${helpCommand.description}
 
-Flags:
+FLAGS:
 
   --version, -v - Print the version of the CLI.
   --help, -h - Print this help message, or the help message for the specified command
@@ -35,8 +39,6 @@ const argv = minimist(process.argv.slice(2), {
 });
 
 const run = () => {
-  console.log(argv);
-
   // Check if we have the version  flag
   if (argv.version) {
     versionCommand.run([], {});
@@ -57,7 +59,7 @@ const run = () => {
   const flags = {
     ...argv
   };
-  delete flags["_"];
+  delete flags._;
 
   // Call our correct subcommand
   if (subcommand === versionCommand.name) {

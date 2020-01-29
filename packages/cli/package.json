@@ -39,6 +39,12 @@
   "dependencies": {
     "@wasmer/wasi": "file:../wasi",
     "@wasmer/wasm-transformer": "file:../wasm-transformer",
+    "minimist": "^1.2.0",
     "tslib": "^1.10.0"
+  },
+  "devDependencies": {
+    "mocha": "^7.0.1",
+    "nyc": "^15.0.0",
+    "tslint": "^6.0.0"
   }
 }

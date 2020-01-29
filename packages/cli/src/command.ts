@@ -1,14 +1,14 @@
 export class Command {
   name: string;
   description: string;
-  runCallback: Function;
-  getHelpBody: Function;
+  runCallback: (args: string[], flags: any) => void;
+  getHelpBody: () => void;
 
   constructor(commandConfig: {
     name: string;
     description: string;
-    runCallback: Function;
-    getHelpBody: Function;
+    runCallback: (args: string[], flags: any) => void;
+    getHelpBody: () => void;
   }) {
     this.name = commandConfig.name;
     this.description = commandConfig.description;
