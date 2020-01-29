@@ -26,5 +26,8 @@
     "url": "https://github.com/wasmerio/wasmer-js/issues"
   },
   "homepage": "https://github.com/wasmerio/wasmer-js#readme",
-  "gitHead": "889c22135c81610ddecbb696f8ef24f7ecaf5db7"
+  "gitHead": "889c22135c81610ddecbb696f8ef24f7ecaf5db7",
+  "dependencies": {
+    "wasm-feature-detect": "^1.2.2"
+  }
 }
