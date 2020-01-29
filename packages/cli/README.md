@@ -8,73 +8,78 @@ The CLI for executing Wasmer-JS
 
 Documentation for Wasmer-JS Stack can be found on the [Wasmer Docs](https://docs.wasmer.io/wasmer-js/wasmer-js).
 
-<!-- toc -->
-
-- [@wasmer/cli](#wasmercli)
 - [Usage](#usage)
 - [Commands](#commands)
-  <!-- tocstop -->
 
 # Usage
 
-<!-- usage -->
-
 ```sh-session
 $ npm install -g @wasmer/cli
-$ wasmer-js COMMAND
-running command...
-$ wasmer-js (-v|--version|version)
-@wasmer/cli/0.6.0 darwin-x64 node-v10.16.3
-$ wasmer-js --help [COMMAND]
-USAGE
-  $ wasmer-js COMMAND
-...
+
+...npm installation stuff here...
+
+$ wasmer-js
+
+wasmer-js - @wasmer/cli for using Wasm modules with Wasmer JS from the command line.
+
+USAGE:
+
+  $ wasmer-js [SUBCOMMAND] - run the specified command.
+
+  ARGUMENTS:
+
+    [SUBCOMMAND] - A command that can be run by the wasmer-js CLI. The avaiilable commands are:
+
+    run - Run a WebAssembly file with Wasmer-JS
+    version - Print the version of the CLI
+    help - Show the usage of the passed subcommand
+
+FLAGS:
+
+  --version, -v - Print the version of the CLI.
+  --help, -h - Print this help message, or the help message for the specified command
 ```
 
-<!-- usagestop -->
+# SubCommands
 
-# Commands
-
-<!-- commands -->
-
-- [`wasmer-js help [COMMAND]`](#wasmer-js-help-command)
 - [`wasmer-js run [FILE]`](#wasmer-js-run-file)
-
-## `wasmer-js help [COMMAND]`
-
-display help for wasmer-js
-
-```
-USAGE
-  $ wasmer-js help [COMMAND]
-
-ARGUMENTS
-  COMMAND  command to show help for
-
-OPTIONS
-  --all  see all commands in CLI
-```
-
-_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v2.2.3/src/commands/help.ts)_
+- [`wasmer-js version`](#wasmer-js-help-command)
 
 ## `wasmer-js run [FILE]`
 
 Run a WebAssembly file with Wasmer-JS
 
 ```
-USAGE
-  $ wasmer-js run [FILE]
+wasmer-js run
+Run a WebAssembly file with Wasmer-JS
 
-OPTIONS
-  -h, --help       show CLI help
-  --dir=dir
-  --mapdir=mapdir
+USAGE:
+$ wasmer-js run [FILE]
 
-EXAMPLE
-  $ wasmer-js run hello.wasm
-  hello world
+ARGUMENTS:
+
+[FILE] - The WASI compiled ".wasm" file we would like to run
+
+help - Display this help message
+
+FLAGS:
+
+--dir=[some-directory] - WASI pre-opened directory. Can be passed multiple times for multiple directories.
+--mapdir=[host-directory:guest-directory] - Map a host directory to a different location for the wasm module. Can be passed multiple times for multiple directories.
 ```
 
-_See code: [lib/commands/run.js](https://github.com/wasmerio/wasmer-js/blob/v0.6.0/lib/commands/run.js)_
+## `wasmer-js version`
 
-<!-- commandsstop -->
+Display the current wasmer-js CLI version
+
+```
+wasmer-js version
+Print the version of the CLI
+
+USAGE:
+$ wasmer-js version
+
+ARGUMENTS:
+
+help - Display this help message
+```
