@@ -43,7 +43,6 @@ FLAGS:
 # SubCommands
 
 - [`wasmer-js run [FILE]`](#wasmer-js-run-file)
-- [`wasmer-js help [COMMAND]`](#wasmer-js-help-command)
 - [`wasmer-js version`](#wasmer-js-help-command)
 
 ## `wasmer-js run [FILE]`
@@ -61,31 +60,12 @@ ARGUMENTS:
 
 [FILE] - The WASI compiled ".wasm" file we would like to run
 
+help - Display this help message
+
 FLAGS:
 
 --dir=[some-directory] - WASI pre-opened directory. Can be passed multiple times for multiple directories.
 --mapdir=[host-directory:guest-directory] - Map a host directory to a different location for the wasm module. Can be passed multiple times for multiple directories.
-```
-
-## `wasmer-js help [COMMAND]`
-
-display help for wasmer-js
-
-```
-wasmer-js help
-Show the usage of the passed subcommand
-
-USAGE:
-
-$ wasmer-js help [SUBCOMMAND]
-
-ARGUMENTS:
-
-[SUBCOMMAND] - The subcommand we want to see the help message for
-
-    The available subcommands (other than help) are:
-    run - Run a WebAssembly file with Wasmer-JS
-    version - Print the version of the CLI
 ```
 
 ## `wasmer-js version`
@@ -98,4 +78,8 @@ Print the version of the CLI
 
 USAGE:
 $ wasmer-js version
+
+ARGUMENTS:
+
+help - Display this help message
 ```

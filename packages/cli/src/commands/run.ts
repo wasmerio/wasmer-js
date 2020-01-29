@@ -5,7 +5,7 @@ import { lowerI64Imports } from "@wasmer/wasm-transformer";
 import * as fs from "fs";
 
 const runWasiModule = async (args: string[], flags: any) => {
-  if (args.length === 0) {
+  if (args.length === 0 || args[0] === "help") {
     runCommand.help();
     return;
   }
@@ -83,6 +83,8 @@ $ wasmer-js run [FILE]
 ARGUMENTS:
 
 [FILE] - The WASI compiled ".wasm" file we would like to run
+
+help - Display this help message
 
 FLAGS:
 

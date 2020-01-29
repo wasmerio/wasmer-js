@@ -2,7 +2,6 @@ import * as minimist from "minimist";
 
 import { runCommand } from "./commands/run";
 import { versionCommand } from "./commands/version";
-import { helpCommand } from "./commands/help";
 
 // Define our base help command
 const printHelp = () => {
@@ -19,7 +18,6 @@ USAGE:
 
     ${runCommand.name} - ${runCommand.description}
     ${versionCommand.name} - ${versionCommand.description}
-    ${helpCommand.name} - ${helpCommand.description}
 
 FLAGS:
 
@@ -64,9 +62,6 @@ const run = () => {
   // Call our correct subcommand
   if (subcommand === versionCommand.name) {
     versionCommand.run(args, flags);
-    return;
-  } else if (subcommand === helpCommand.name) {
-    helpCommand.run(args, flags);
     return;
   } else if (subcommand === runCommand.name) {
     runCommand.run(args, flags);
