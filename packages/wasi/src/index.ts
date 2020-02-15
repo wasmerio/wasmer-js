@@ -68,6 +68,7 @@ import {
   WASI_FILETYPE_REGULAR_FILE,
   WASI_FILETYPE_SOCKET_STREAM,
   WASI_FILETYPE_SYMBOLIC_LINK,
+  WASI_FILETYPE,
   WASI_FDFLAG_APPEND,
   WASI_FDFLAG_DSYNC,
   WASI_FDFLAG_NONBLOCK,
@@ -99,6 +100,7 @@ import {
   WASI_RIGHT_FD_FILESTAT_SET_TIMES,
   WASI_RIGHT_PATH_SYMLINK,
   WASI_RIGHT_PATH_REMOVE_DIRECTORY,
+  WASI_RIGHT_POLL_FD_READWRITE,
   WASI_RIGHT_PATH_UNLINK_FILE,
   RIGHTS_BLOCK_DEVICE_BASE,
   RIGHTS_BLOCK_DEVICE_INHERITING,
@@ -137,6 +139,22 @@ import {
   WASI_WHENCE_SET
 } from "./constants";
 
+const STDIN_DEFAULT_RIGHTS =
+  WASI_RIGHT_FD_DATASYNC |
+  WASI_RIGHT_FD_READ |
+  WASI_RIGHT_FD_SYNC |
+  WASI_RIGHT_FD_ADVISE |
+  WASI_RIGHT_FD_FILESTAT_GET |
+  WASI_RIGHT_POLL_FD_READWRITE;
+const STDOUT_DEFAULT_RIGHTS =
+  WASI_RIGHT_FD_DATASYNC |
+  WASI_RIGHT_FD_WRITE |
+  WASI_RIGHT_FD_SYNC |
+  WASI_RIGHT_FD_ADVISE |
+  WASI_RIGHT_FD_FILESTAT_GET |
+  WASI_RIGHT_POLL_FD_READWRITE;
+const STDERR_DEFAULT_RIGHTS = STDOUT_DEFAULT_RIGHTS;
+
 const msToNs = (ms: number) => {
   const msInt = Math.trunc(ms);
   const decimal = BigInt(Math.round((ms - msInt) * 1000));
@@ -173,7 +191,7 @@ const stat = (wasi: WASI, fd: number): File => {
       fd,
       stats
     );
-    entry.filetype = filetype;
+    entry.filetype = filetype as WASI_FILETYPE;
     if (!entry.rights) {
       entry.rights = {
         base: rightsBase,
@@ -258,7 +276,7 @@ interface Rights {
 interface File {
   real: number;
   offset?: bigint;
-  filetype?: any;
+  filetype?: WASI_FILETYPE;
   rights: Rights;
   path?: any;
   fakePath?: any;
@@ -378,10 +396,10 @@ export default class WASIDefault {
         WASI_STDIN_FILENO,
         {
           real: 0,
-          filetype: undefined,
+          filetype: WASI_FILETYPE_CHARACTER_DEVICE,
           // offset: BigInt(0),
           rights: {
-            base: RIGHTS_REGULAR_FILE_BASE,
+            base: STDIN_DEFAULT_RIGHTS,
             inheriting: BigInt(0)
           },
           path: undefined
@@ -391,10 +409,10 @@ export default class WASIDefault {
         WASI_STDOUT_FILENO,
         {
           real: 1,
-          filetype: undefined,
+          filetype: WASI_FILETYPE_CHARACTER_DEVICE,
           // offset: BigInt(0),
           rights: {
-            base: RIGHTS_REGULAR_FILE_BASE,
+            base: STDOUT_DEFAULT_RIGHTS,
             inheriting: BigInt(0)
           },
           path: undefined
@@ -404,10 +422,10 @@ export default class WASIDefault {
         WASI_STDERR_FILENO,
         {
           real: 2,
-          filetype: undefined,
+          filetype: WASI_FILETYPE_CHARACTER_DEVICE,
           // offset: BigInt(0),
           rights: {
-            base: RIGHTS_REGULAR_FILE_BASE,
+            base: STDERR_DEFAULT_RIGHTS,
             inheriting: BigInt(0)
           },
           path: undefined
