@@ -1,7 +1,5 @@
 import minimist from "minimist";
-// @ts-nocheck
-// @ts-ignore
-import { version } from "./package.json";
+import { getVersion } from "./version";
 
 export class Command {
   description: string;
@@ -38,12 +36,12 @@ export class Command {
   }
 
   version() {
-    const versionMessage = `wasmer-js ${version}`;
+    const versionMessage = `wasmer-js ${getVersion()}`;
     console.log(versionMessage);
   }
 
   help() {
-    let helpMessage = `wasmer-js ${version}
+    let helpMessage = `wasmer-js ${getVersion()}
 ${this.description}`;
 
     const helpBody = this.getHelpBody();

@@ -32,7 +32,7 @@
   "scripts": {
     "start": "npm run build && node bin/wasmer-js",
     "posttest": "tslint -p test -t stylish",
-    "build": "rm -rf lib && mkdir lib && tsc -b && cp package.json lib",
+    "build": "rm -rf lib && mkdir lib && tsc -b",
     "prepack": "npm run build",
     "test": "nyc --extension .ts mocha --forbid-only \"test/**/*.test.ts\""
   },
@@ -41,6 +41,7 @@
     "@wasmer/wasm-transformer": "file:../wasm-transformer",
     "blake3": "^2.1.1",
     "minimist": "^1.2.0",
+    "pkginfo": "^0.4.1",
     "tslib": "^1.10.0",
     "typescript": "^3.6.4"
   },

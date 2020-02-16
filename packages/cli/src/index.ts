@@ -1,13 +1,11 @@
 import minimist from "minimist";
 
 import { runCommand } from "./commands/run";
-// @ts-nocheck
-// @ts-ignore
-import { version } from "./package.json";
+import { getVersion } from "./version";
 
 // Define our base help command
 const printHelp = () => {
-  console.log(`wasmer-js ${version}
+  console.log(`wasmer-js ${getVersion()}
 The Wasmer Engineering Team <engineering@wasmer.io>
 Node.js Wasm execution runtime.
 
@@ -25,7 +23,7 @@ SUBCOMMANDS:
 };
 
 const printVersion = () => {
-  console.log(`wasmer-js ${version}`);
+  console.log(`wasmer-js ${getVersion()}`);
 };
 
 // Use minimist to parse recognized flags and arguments
