@@ -35,6 +35,7 @@ steps:
   - script: |
       cd e2e-tests
       npm install
+      ulimit -c unlimited
       npm run test
       # Exit if the npm run test was not a success
       if [ $? -ne 0 ] ; then exit 1 ; fi
