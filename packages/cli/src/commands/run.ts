@@ -2,9 +2,13 @@ import { Command } from "../command";
 import { WASI } from "@wasmer/wasi";
 import nodeBindings from "@wasmer/wasi/lib/bindings/node";
 import { lowerI64Imports } from "@wasmer/wasm-transformer";
+import { hash, createHash } from "blake3";
+import * as os from "os";
 import * as fs from "fs";
+import * as path from "path";
 
-const runWasiModule = async (args: string[], flags: any) => {
+const runWasiModule = async (flags: any) => {
+  let args = flags._;
   if (args.length === 0 || args[0] === "help") {
     runCommand.help();
     return;
@@ -30,6 +34,15 @@ const runWasiModule = async (args: string[], flags: any) => {
     }
   }
 
+  let envFlag = [];
+  if (flags.env) {
+    if (typeof flags.env === "string") {
+      envFlag.push(flags.env);
+    } else {
+      envFlag = flags.env;
+    }
+  }
+
   const preopens: { [key: string]: string } = {};
 
   dirFlag.forEach((dir: string) => {
@@ -40,17 +53,31 @@ const runWasiModule = async (args: string[], flags: any) => {
     const [wasm, host] = dir.split(":");
     if (!wasm || !host) {
       console.error(
-        "Options to --mapdir= need to be in the format wasmDir:hostDir"
+        "Error: Options to --mapdir= need to be in the format WASM_DIR:HOST_DIR"
       );
       process.exit(1);
     }
     preopens[wasm] = host;
   });
 
+  let envVars: { [key: string]: string } = {};
+  envFlag.forEach((env: string) => {
+    const [key, value]: string[] = env.split(":");
+    if (!key || !value) {
+      console.error(
+        "Error: Options to ---env= need to be in the format KEY=VALUE"
+      );
+      process.exit(1);
+    }
+    envVars[key] = value;
+  });
+
   // Pass non-recognized / remaining args to the wasi module
-  const recognizedArgs = ["--dir", "--mapdir", wasmModuleFileToRun];
+  const recognizedArgs = ["--dir", "--mapdir", "--env", wasmModuleFileToRun];
   const wasiArgs = process.argv.slice(3).filter((arg: string) => {
-    return !recognizedArgs.some(recognizedArg => arg.startsWith(recognizedArg));
+    return !recognizedArgs.some(
+      recognizedArg => arg.startsWith(recognizedArg) || arg === "--"
+    );
   });
   // Add the wasm module to the front of the args.
   wasiArgs.unshift(wasmModuleFileToRun);
@@ -61,37 +88,74 @@ const runWasiModule = async (args: string[], flags: any) => {
       ...nodeBindings,
       fs
     },
-    env: {},
+    env: envVars,
     preopens
   });
+  let wasmBytes;
+  try {
+    wasmBytes = fs.readFileSync(wasmModuleFileToRun);
+  } catch (e) {
+    console.error(`Error: File ${wasmModuleFileToRun} not found.`);
+    process.exit(1);
+  }
 
-  const wasmBytes = fs.readFileSync(wasmModuleFileToRun);
-  const transformedBytes = await lowerI64Imports(wasmBytes);
+  const tmpDir = os.tmpdir();
+  const wasmerLoweredCacheDir = path.join(tmpDir, "wasmerjs-lowered-wasm");
+
+  if (!fs.existsSync(wasmerLoweredCacheDir)) {
+    fs.mkdirSync(wasmerLoweredCacheDir);
+  }
+
+  const hash = createHash();
+  hash.update(wasmBytes);
+  const digest = hash.digest().toString("hex");
+  const loweredCachePath = path.join(wasmerLoweredCacheDir, digest);
+  let transformedBytes;
+  if (!fs.existsSync(loweredCachePath)) {
+    transformedBytes = await lowerI64Imports(wasmBytes);
+    // Save transformed bytes
+    fs.writeFileSync(loweredCachePath, transformedBytes);
+  } else {
+    transformedBytes = fs.readFileSync(loweredCachePath);
+  }
   const { instance } = await WebAssembly.instantiate(transformedBytes, {
     wasi_unstable: wasi.wasiImport
   });
+
+  // const module = await WebAssembly.compile(transformedBytes);
+  // const { instance } = await WebAssembly.instantiate(transformedBytes, {
+  //   ...wasi.importsForModule(module)
+  // });
   wasi.start(instance);
 };
 
 export const runCommand = new Command({
-  name: "run",
-  description: "Run a WebAssembly file with Wasmer-JS",
   runCallback: runWasiModule,
+  minimistConfig: {
+    boolean: ["help", "version"],
+    string: ["env", "dir", "mapdir"],
+    "--": true,
+    alias: {
+      help: ["h"],
+      version: ["V"]
+    }
+  },
+  description: "Run a WebAssembly file. Formats accepted: wasm, wat",
   getHelpBody: () => {
-    return `
-USAGE:
-$ wasmer-js run [FILE]
-
-ARGUMENTS:
-
-[FILE] - The WASI compiled ".wasm" file we would like to run
-
-help - Display this help message
+    return `USAGE:
+    wasmer-js run [FLAGS] [OPTIONS] <path> [--] [--]...
 
 FLAGS:
+    -h, --help                              Prints help information
+    -V, --version                           Prints version information
 
---dir=[some-directory] - WASI pre-opened directory. Can be passed multiple times for multiple directories.
---mapdir=[host-directory:guest-directory] - Map a host directory to a different location for the wasm module. Can be passed multiple times for multiple directories.
-`;
+OPTIONS:
+        --env <env-vars>...                  Pass custom environment variables
+        --mapdir <mapped-dirs>...            Map a host directory to a different location for the wasm module
+        --dir <pre-opened-directories>...    WASI pre-opened directory
+
+ARGS:
+    <path>     Input file
+    <-->...    Application arguments`;
   }
 });

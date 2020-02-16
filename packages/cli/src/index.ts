@@ -1,45 +1,46 @@
-import * as minimist from "minimist";
+import minimist from "minimist";
 
 import { runCommand } from "./commands/run";
-import { versionCommand } from "./commands/version";
+// @ts-nocheck
+// @ts-ignore
+import { version } from "./package.json";
 
 // Define our base help command
 const printHelp = () => {
-  console.log(`
-wasmer-js - @wasmer/cli for using Wasm modules with Wasmer JS from the command line.
+  console.log(`wasmer-js ${version}
+The Wasmer Engineering Team <engineering@wasmer.io>
+Node.js Wasm execution runtime.
 
 USAGE:
-
-  $ wasmer-js [SUBCOMMAND] - run the specified command.
-
-  ARGUMENTS:
-
-    [SUBCOMMAND] - A command that can be run by the wasmer-js CLI. The avaiilable commands are:
-
-    ${runCommand.name} - ${runCommand.description}
-    ${versionCommand.name} - ${versionCommand.description}
+    wasmer <SUBCOMMAND>
 
 FLAGS:
+    -h, --help       Prints help information
+    -V, --version    Prints version information
 
-  --version, -v - Print the version of the CLI.
-  --help, -h - Print this help message, or the help message for the specified command
-`);
+SUBCOMMANDS:
+    help           Prints this message or the help of the given subcommand(s)
+    run            Run a WebAssembly file. Formats accepted: wasm, wat
+    validate       Validate a Web Assembly binary`);
+};
+
+const printVersion = () => {
+  console.log(`wasmer-js ${version}`);
 };
 
 // Use minimist to parse recognized flags and arguments
 const argv = minimist(process.argv.slice(2), {
   boolean: ["help", "version"],
-  string: ["dir", "mapdir"],
   alias: {
     help: ["h"],
-    version: ["v"]
+    version: ["V"]
   }
 });
 
 const run = () => {
   // Check if we have the version  flag
   if (argv.version) {
-    versionCommand.run([], {});
+    printVersion();
     return;
   }
 
@@ -51,7 +52,6 @@ const run = () => {
 
   // Get our subcommand
   const subcommand = argv._.shift();
-
   // Split our arguments into args and flags
   const args = argv._.slice(0);
   const flags = {
@@ -60,15 +60,12 @@ const run = () => {
   delete flags._;
 
   // Call our correct subcommand
-  if (subcommand === versionCommand.name) {
-    versionCommand.run(args, flags);
-    return;
-  } else if (subcommand === runCommand.name) {
-    runCommand.run(args, flags);
+  if (subcommand === "run") {
+    runCommand.run(process.argv.slice(3));
     return;
   }
 
-  // Print help because we did not recognize the subcommand
-  printHelp();
+  // Do "run" as the default subcommand
+  runCommand.run(process.argv.slice(2));
 };
 run();

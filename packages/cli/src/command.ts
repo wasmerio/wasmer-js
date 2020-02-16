@@ -1,41 +1,56 @@
+import minimist from "minimist";
+// @ts-nocheck
+// @ts-ignore
+import { version } from "./package.json";
+
 export class Command {
-  name: string;
   description: string;
-  runCallback: (args: string[], flags: any) => void;
+  minimistConfig: any;
+  runCallback: (flags: any) => void;
   getHelpBody: () => void;
 
   constructor(commandConfig: {
-    name: string;
     description: string;
-    runCallback: (args: string[], flags: any) => void;
+    minimistConfig: any;
+    runCallback: (flags: any) => void;
     getHelpBody: () => void;
   }) {
-    this.name = commandConfig.name;
     this.description = commandConfig.description;
     this.runCallback = commandConfig.runCallback;
     this.getHelpBody = commandConfig.getHelpBody;
+    this.minimistConfig = commandConfig.minimistConfig;
   }
 
-  run(args: string[], flags: any) {
+  run(args: string[]) {
+    const argv = minimist(args, this.minimistConfig);
+
     // Check if we got passed help
-    if (flags.help) {
+    if (argv.help) {
       this.help();
       return;
     }
+    if (argv.version) {
+      this.version();
+      return;
+    }
 
-    this.runCallback(args, flags);
+    this.runCallback(argv);
+  }
+
+  version() {
+    let versionMessage = `wasmer-js ${version}`;
+    console.log(versionMessage);
   }
 
   help() {
-    let helpMessage = `
-wasmer-js ${this.name}
+    let helpMessage = `wasmer-js ${version}
 ${this.description}`;
 
     const helpBody = this.getHelpBody();
     if (helpBody !== undefined) {
       helpMessage = `${helpMessage} 
-${helpBody}
-`;
+
+${helpBody}`;
     }
 
     console.log(helpMessage);
