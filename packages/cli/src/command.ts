@@ -38,7 +38,7 @@ export class Command {
   }
 
   version() {
-    let versionMessage = `wasmer-js ${version}`;
+    const versionMessage = `wasmer-js ${version}`;
     console.log(versionMessage);
   }
 

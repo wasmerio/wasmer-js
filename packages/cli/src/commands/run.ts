@@ -8,7 +8,7 @@ import * as fs from "fs";
 import * as path from "path";
 
 const runWasiModule = async (flags: any) => {
-  let args = flags._;
+  const args = flags._;
   if (args.length === 0 || args[0] === "help") {
     runCommand.help();
     return;
@@ -60,7 +60,7 @@ const runWasiModule = async (flags: any) => {
     preopens[wasm] = host;
   });
 
-  let envVars: { [key: string]: string } = {};
+  const envVars: { [key: string]: string } = {};
   envFlag.forEach((env: string) => {
     const [key, value]: string[] = env.split(":");
     if (!key || !value) {

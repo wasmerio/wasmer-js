@@ -37,11 +37,6 @@
     "lerna:publish": "lerna publish --force-publish",
     "wasm-transformer:build": "(cd crates/wasm_transformer && ./wasm_transformer_build.sh)"
   },
-  "husky": {
-    "hooks": {
-      "pre-commit": "pretty-quick --staged"
-    }
-  },
   "devDependencies": {
     "@ampproject/rollup-plugin-closure-compiler": "^0.10.0",
     "@babel/core": "^7.6.2",
