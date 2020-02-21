@@ -17,6 +17,8 @@ import IoDeviceWindow from "../io-device-window/io-device-window";
 import processWorkerInlinedUrl from "../../lib/workers/process.worker.js";
 ROLLUP_REPLACE_INLINE*/
 
+const isFunction = (value: any) => value && (Object.prototype.toString.call(value) === "[object Function]" || "function" === typeof value || value instanceof Function);
+
 let processWorkerBlobUrl: string | undefined;
 
 export default class CommandRunner {
@@ -480,9 +482,8 @@ export default class CommandRunner {
       wasmTty.printStatus(`[INFO] Fetching the command ${commandName} ...`);
     }
     const response = await wasmTerminalConfig.fetchCommand(
-      commandName,
-      commandArgs,
-      envEntries
+      [commandName, ...commandArgs],
+      env
     );
     if (wasmTty) {
       wasmTty.clearStatus();
@@ -497,13 +498,15 @@ export default class CommandRunner {
         env,
         module: wasmModule
       });
-    } else {
+    } else if (isFunction(response)) {
       commandOptions.unshift({
         args,
         env,
         // @ts-ignore
         callback: response
       });
+    } else {
+      commandOptions.unshift(response as any);
     }
 
     return commandOptions;

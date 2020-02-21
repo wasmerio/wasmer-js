@@ -68,10 +68,10 @@ const getWasmBinaryFromUrl = async (url: string) => {
 };
 
 export const fetchCommandFromWAPM = async (
-  commandName: string,
-  commandArgs?: Array<string>,
-  envEntries?: any[][]
+  args: Array<string>,
+  env?: {[key: string]: string},
 ) => {
+  let commandName = args[0];
   const commandUrl = await getWAPMUrlForCommandName(commandName);
   return await getWasmBinaryFromUrl(commandUrl);
 };

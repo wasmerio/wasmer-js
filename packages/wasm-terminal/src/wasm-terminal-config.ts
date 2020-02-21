@@ -1,6 +1,7 @@
 // The configuration options passed when creating the Wasm terminal
 
 import { WasmFs } from "@wasmer/wasmfs";
+import CommandOptions from "./command/command-options";
 
 // A Custom command is a function that takes in a stdin string, and an array of argument strings,
 // And returns an stdout string, or undefined.
@@ -10,10 +11,9 @@ export type CallbackCommand = (
 ) => Promise<string>;
 
 type FetchCommandFunction = (
-  commandName: string,
-  commandArgs?: Array<string>,
-  envEntries?: any[][]
-) => Promise<Uint8Array | CallbackCommand>;
+  args?: Array<string>,
+  env?: {[key: string]: string}
+) => Promise<Uint8Array | CallbackCommand | CommandOptions>;
 
 export default class WasmTerminalConfig {
   fetchCommand: FetchCommandFunction;
