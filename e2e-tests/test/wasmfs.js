@@ -79,28 +79,28 @@ const testBrowserBundle = async bundleString => {
 };
 
 describe("@wasmer/wasmfs", function() {
-  it("should handle cjs bundle", async () => {
-    const bundlePath = "../packages/wasmfs/lib/index.cjs.js";
-    const bundle = fs.readFileSync(bundlePath, "utf8");
+  // it("should handle cjs bundle", async () => {
+  //   const bundlePath = "../packages/wasmfs/lib/index.js";
+  //   const bundle = fs.readFileSync(bundlePath, "utf8");
 
-    const newBundle = await rebundleOutput(bundle, "cjs", "WasmFs");
+  //   const newBundle = await rebundleOutput(bundle, "cjs", "WasmFs");
 
-    await testNodeBundle(newBundle);
-  });
+  //   await testNodeBundle(newBundle);
+  // });
 
-  it("should handle esm bundle", async () => {
-    const bundlePath = "../packages/wasmfs/lib/index.esm.js";
-    const bundle = fs.readFileSync(bundlePath, "utf8");
+  // it("should handle esm bundle", async () => {
+  //   const bundlePath = "../packages/wasmfs/lib/index.esm.js";
+  //   const bundle = fs.readFileSync(bundlePath, "utf8");
 
-    const newBundle = await rebundleOutput(bundle, "iife", "WasmFs");
+  //   const newBundle = await rebundleOutput(bundle, "iife", "WasmFs");
 
-    await testBrowserBundle(newBundle);
-  });
+  //   await testBrowserBundle(newBundle);
+  // });
 
-  it("should handle iife bundle", async () => {
-    const bundlePath = "../packages/wasmfs/lib/index.iife.js";
-    const bundle = fs.readFileSync(bundlePath, "utf8");
+  // it("should handle iife bundle", async () => {
+  //   const bundlePath = "../packages/wasmfs/lib/index.iife.js";
+  //   const bundle = fs.readFileSync(bundlePath, "utf8");
 
-    await testBrowserBundle(bundle);
-  });
+  //   await testBrowserBundle(bundle);
+  // });
 });
