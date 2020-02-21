@@ -59,6 +59,6 @@ export const extractContents = (
     extract.on("error", (err: any) => {
       reject(err);
     });
-    extract.end(inflatedBinary);
+    extract.end(Buffer.from(inflatedBinary));
   });
 };
