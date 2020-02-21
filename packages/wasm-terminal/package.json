@@ -9,7 +9,9 @@
     "lib"
   ],
   "scripts": {
-    "build": "npm run build:prod",
+    "build": "run-s build:clean build:prod",
+    "build:clean": "rm -rf lib",
+    "build:ts": "tsc -b",
     "build:prod": "rollup -c --environment LIB,WORKER,PROD",
     "build:dev": "rollup -c --environment LIB,WORKER,DEV",
     "dev": "watch \"npm run build:dev\" src",

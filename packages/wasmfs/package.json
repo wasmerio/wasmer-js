@@ -2,14 +2,20 @@
   "name": "@wasmer/wasmfs",
   "version": "0.8.0",
   "description": "Isomorphic library to provide a sandboxed node fs implementation for Node and Browsers. 📂",
-  "main": "lib/index.js",
+  "main": "lib/index.cjs.js",
+  "module": "lib/index.esm.js",
+  "iife": "lib/index.iife.js",
   "typings": "lib/index.d.ts",
   "files": [
     "src",
     "lib"
   ],
   "scripts": {
-    "build": "rm -rf lib && tsc -b",
+    "build": "run-s build:clean build:ts build:prod",
+    "build:clean": "rm -rf lib",
+    "build:ts": "tsc -b",
+    "build:prod": "rollup -c --environment PROD",
+    "build:dev": "rollup -c --environment DEV",
     "dev": "tsc -b --watch",
     "test": "jest --config jest.config.js",
     "test:watch": "jest --config jest.config.js --watch",

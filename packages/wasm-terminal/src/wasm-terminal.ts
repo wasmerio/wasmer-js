@@ -1,4 +1,5 @@
 // The Wasm Terminal
+// @ts-ignore
 import xterm from "xterm";
 import * as xtermDefault from "xterm";
 const Terminal = xtermDefault.Terminal || xterm.Terminal;

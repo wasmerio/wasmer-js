@@ -1,6 +1,7 @@
 // Including comlink from source:
 // https://github.com/GoogleChromeLabs/comlink/issues/366
 import * as Comlink from "comlink";
+// @ts-ignore
 import parse from "shell-parse";
 
 import Process from "../process/process";

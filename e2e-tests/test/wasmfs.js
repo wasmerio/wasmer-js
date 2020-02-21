@@ -88,19 +88,19 @@ describe("@wasmer/wasmfs", function() {
   //   await testNodeBundle(newBundle);
   // });
 
-  // it("should handle esm bundle", async () => {
-  //   const bundlePath = "../packages/wasmfs/lib/index.esm.js";
-  //   const bundle = fs.readFileSync(bundlePath, "utf8");
+  it("should handle esm bundle", async () => {
+    const bundlePath = "../packages/wasmfs/lib/index.esm.js";
+    const bundle = fs.readFileSync(bundlePath, "utf8");
 
-  //   const newBundle = await rebundleOutput(bundle, "iife", "WasmFs");
+    const newBundle = await rebundleOutput(bundle, "iife", "WasmFs");
 
-  //   await testBrowserBundle(newBundle);
-  // });
+    await testBrowserBundle(newBundle);
+  });
 
-  // it("should handle iife bundle", async () => {
-  //   const bundlePath = "../packages/wasmfs/lib/index.iife.js";
-  //   const bundle = fs.readFileSync(bundlePath, "utf8");
+  it("should handle iife bundle", async () => {
+    const bundlePath = "../packages/wasmfs/lib/index.iife.js";
+    const bundle = fs.readFileSync(bundlePath, "utf8");
 
-  //   await testBrowserBundle(bundle);
-  // });
+    await testBrowserBundle(bundle);
+  });
 });
