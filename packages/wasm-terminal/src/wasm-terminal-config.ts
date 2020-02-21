@@ -11,7 +11,7 @@ export type CallbackCommand = (
 ) => Promise<string>;
 
 type FetchCommandFunction = (
-  args?: Array<string>,
+  args: Array<string>,
   env?: {[key: string]: string}
 ) => Promise<Uint8Array | CallbackCommand | CommandOptions>;
 

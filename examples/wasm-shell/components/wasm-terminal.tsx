@@ -49,7 +49,7 @@ export default class WasmTerminalComponent extends Component {
   wasmFs: WasmFs;
 
   async fetchCommandHandler(
-    args?: Array<string>,
+    args: Array<string>,
     env?: { [key: string]: string }
   ) {
     const commandName = args[0];
