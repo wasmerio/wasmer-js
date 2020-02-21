@@ -448,7 +448,7 @@ export default class CommandRunner {
     let env: any = {};
 
     // Manually doing Object.fromEntries for compatibility with Node 10
-    envEntries.forEach((value, key) => {
+    envEntries.forEach(([key, value]) => {
       env[key] = value;
     });
 
@@ -481,10 +481,10 @@ export default class CommandRunner {
     if (wasmTty) {
       wasmTty.printStatus(`[INFO] Fetching the command ${commandName} ...`);
     }
-    const response = await wasmTerminalConfig.fetchCommand(
-      [commandName, ...commandArgs],
+    const response = await wasmTerminalConfig.fetchCommand({
+      args,
       env
-    );
+    });
     if (wasmTty) {
       wasmTty.clearStatus();
     }

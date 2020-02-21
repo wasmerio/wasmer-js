@@ -58,7 +58,7 @@ import WasmTerminal, { fetchCommandFromWAPM } from "@wasmer/wasm-terminal";
 import { lowerI64Imports } from "@wasmer/wasm-transformer";
 
 // Let's write handler for the fetchCommand property of the WasmTerminal Config.
-const fetchCommandHandler = async (args) => {
+const fetchCommandHandler = async ({args}) => {
   let commandName = args[0];
   // Let's return a "CallbackCommand" if our command matches a special name
   if (commandName === "callback-command") {
@@ -69,7 +69,7 @@ const fetchCommandHandler = async (args) => {
   }
 
   // Let's fetch a wasm Binary from WAPM for the command name.
-  const wasmBinary = await fetchCommandFromWAPM(args);
+  const wasmBinary = await fetchCommandFromWAPM({args});
 
   // lower i64 imports from Wasi Modules, so that most Wasi modules
   // Can run in a Javascript context.

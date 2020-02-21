@@ -48,10 +48,10 @@ export default class WasmTerminalComponent extends Component {
   wasmTerminal: WasmTerminal;
   wasmFs: WasmFs;
 
-  async fetchCommandHandler(
+  async fetchCommandHandler({args, env}: {
     args: Array<string>,
     env?: { [key: string]: string }
-  ) {
+  }) {
     const commandName = args[0];
     const customCommand = (commands as any)[commandName];
     let wasmBinary = undefined;
@@ -69,7 +69,7 @@ export default class WasmTerminalComponent extends Component {
       const binaryName = `/bin/${commandName}`;
       if (!this.wasmFs.fs.existsSync(binaryName)) {
         this.wasmFs.fs.mkdirpSync("/bin");
-        let command = await fetchCommandFromWAPM(args, env);
+        let command = await fetchCommandFromWAPM({args, env});
 
         const packageUrl = command.packageVersion.distribution.downloadUrl;
         let binary = await getBinaryFromUrl(packageUrl);
@@ -90,11 +90,11 @@ export default class WasmTerminalComponent extends Component {
         filesystem.forEach(({ wasm, host }) => {
           preopens[wasm] = `${installedPath}/${host}`;
         });
-        const mainFunction = new Function(`return function main(args, env) {
+        const mainFunction = new Function(`return function main(options) {
           var preopens = ${JSON.stringify(preopens)};
           return {
-            "args": args,
-            "env": env,
+            "args": options.args,
+            "env": options.env,
             "modulePath": ${JSON.stringify(loweredFullPath)},
             "preopens": preopens,
           };
@@ -103,7 +103,7 @@ export default class WasmTerminalComponent extends Component {
       }
       let fileContents = this.wasmFs.fs.readFileSync(binaryName, "utf8");
       let mainProgram = new Function(`return ${fileContents as string}`)();
-      let program = mainProgram(args, env);
+      let program = mainProgram({args, env});
       if (!(program.modulePath in COMPILED_MODULES)) {
         let programContents;
         try {

@@ -70,10 +70,10 @@ const getCommandFromWAPM = async (commandName: string): Promise<CommandWAPMInfo>
   }
 };
 
-export const fetchCommandFromWAPM = async (
+export const fetchCommandFromWAPM = async ({args, env}: {
   args: Array<string>,
-  envEntries?: {[key: string]: string}
-): Promise<CommandWAPMInfo> => {
+  env?: {[key: string]: string}
+}): Promise<CommandWAPMInfo> => {
   const [commandName, ...commandArgs] = args;
   const command = await getCommandFromWAPM(commandName);
   if (command.module.abi !== "wasi") {
