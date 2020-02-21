@@ -109,9 +109,9 @@ export default class WasmTerminal {
   }
 
   focus() {
-    this.xterm.blur();
+    // this.xterm.blur();
     this.xterm.focus();
-    this.xterm.scrollToBottom();
+    // this.xterm.scrollToBottom();
 
     // To fix iOS keyboard, scroll to the cursor in the terminal
     this.scrollToCursor();
