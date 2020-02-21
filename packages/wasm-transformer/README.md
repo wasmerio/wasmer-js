@@ -12,12 +12,8 @@ Documentation for Wasmer-JS Stack can be found on the [Wasmer Docs](https://docs
 - [Installation](#installation)
 - [Quick Start](#quick-start)
   - [Node](#node)
-  - [Unoptimized Browser](#unoptimized-browser)
-  - [Optimized Browser](#optimized-browser)
+  - [Browser](#browser)
 - [Reference API](#reference-api)
-  - [Node](#node-1)
-  - [Unoptimized Browser](#unoptimized-browser-1)
-  - [Optimized Browser](#optimized-browser-1)
 - [Contributing](#contributing)
   - [Guidelines](#guidelines)
   - [Building the project](#building-the-project)
@@ -59,9 +55,7 @@ const loweredBinary = wasmTransformer.lowerI64Imports(wasmBinary);
 // Do something with loweredBinary
 ```
 
-### Unoptimized Browser
-
-The default import of `@wasmer/wasm-transformer` points to the unoptimized bundle. This bundle **has the wasm file from the `wasm_transformer` crate as a Base64 encoded URL in the bundle.** This is done for convenience and developer experience. However, there are use cases where we you might don't want to use the inlined Wasm (for example, when working with [PWAs](https://developers.google.com/web/progressive-web-apps)) For that case, you should be using the `@wasmer/wasm-transformer/lib/optimized` version.
+### Browser
 
 ```js
 import { lowerI64Imports } from "@wasmer/wasm-transformer";
@@ -81,39 +75,9 @@ const fetchAndTransformWasmBinary = async () => {
 };
 ```
 
-### Optimized Browser
-
-Optimized bundles do not have the `wasm_transformer` rust crate `.wasm` inlined. Thus, it must be manually passed in.
-
-```js
-import {
-  wasmTransformerInit
-  lowerI64Imports
-} from "@wasmer/wasm-transformer/optimized/wasm-transformer.esm.js";
-
-const fetchAndTransformWasmBinary = async () => {
-  // Get the original Wasm binary
-  const fetchedOriginalWasmBinary = await fetch("/original-wasm-module.wasm");
-  const originalWasmBinaryBuffer = await fetchedOriginalWasmBinary.arrayBuffer();
-  const originalWasmBinary = new Uint8Array(originalWasmBinaryBuffer);
-
-  // Initialize our wasm-transformer
-  await wasmTransformerInit(
-    "node_modules/@wasmer/wasm-transformer/wasm-transformer.wasm"
-  ); // IMPORTANT: This URL points to wherever the wasm-transformer.wasm is hosted
-
-  // Transform the binary, by running the lower_i64_imports from the wasm-transformer
-  const transformedBinary = lowerI64Imports(originalWasmBinary);
-
-  // Compile the transformed binary
-  const transformedWasmModule = await WebAssembly.compile(transformedBinary);
-  return transformedWasmModule;
-};
-```
-
 ## Reference API
 
-The Reference API Documentation can be found on the [`@wasmer/wasm-transformer` Reference API Wasmer Docs](https://docs.wasmer.io/wasmer-js/reference-api/wasmer-js-reference-api-wasi).
+The Reference API Documentation can be found on the [`@wasmer/wasm-transformer` Reference API Wasmer Docs](https://docs.wasmer.io/integrations/js/reference-api/wasmer-wasm-transformer).
 
 ## Contributing
 

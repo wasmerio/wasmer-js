@@ -11,8 +11,6 @@ Documentation for Wasmer-JS Stack can be found on the [Wasmer Docs](https://docs
 - [Features](#features)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
-  - [Unoptimized](#unoptimized)
-  - [Optimized](#optimized)
 - [Wasm Terminal Reference API](#wasm-terminal-reference-api)
   - [WasmTerminal](#wasmterminal)
   - [fetchCommandFromWAPM](#fetchcommandfromwapm)
@@ -54,18 +52,14 @@ First, We must also include the `[xterm](https://github.com/xtermjs/xterm.js/).c
 />
 ```
 
-Then, we can choose to use the unoptimized (default) or optimizied JavaScript bundles.
-
-### Unoptimized
-
-The default import of `@wasmer/wasm-terminal` and `@wasmer/wasm-transformer` points to the unoptimized bundle. This bundle does things such as inlining assets. This is done for convenience and developer experience. However, there are use cases where we you might don't want to use the inlined Wasm (for example, when working with [PWAs](https://developers.google.com/web/progressive-web-apps)) For that case, you should be using the `@wasmer/wasm-terminal/lib/optimized/...` and `@wasmer/wasm-transformer/lib/optimized/...` version.
 
 ```javascript
 import WasmTerminal, { fetchCommandFromWAPM } from "@wasmer/wasm-terminal";
 import { lowerI64Imports } from "@wasmer/wasm-transformer";
 
 // Let's write handler for the fetchCommand property of the WasmTerminal Config.
-const fetchCommandHandler = async commandName => {
+const fetchCommandHandler = async (args) => {
+  let commandName = args[0];
   // Let's return a "CallbackCommand" if our command matches a special name
   if (commandName === "callback-command") {
     const callbackCommand = async (options, wasmFs) => {
@@ -75,7 +69,7 @@ const fetchCommandHandler = async commandName => {
   }
 
   // Let's fetch a wasm Binary from WAPM for the command name.
-  const wasmBinary = await fetchCommandFromWAPM(commandName);
+  const wasmBinary = await fetchCommandFromWAPM(args);
 
   // lower i64 imports from Wasi Modules, so that most Wasi modules
   // Can run in a Javascript context.
@@ -103,68 +97,9 @@ wasmTerminal.focus();
 
 **NOTE:** Remember to include the CSS file mentioned at the beginning of the "Quick Start" section.
 
-### Optimized
-
-Optimized bundles, for both `@wasmer/wasm-terminal` and `@wasmer/wasm-transformer`, prioritize performance. For examples, assets required by the library must be passed in manually.
-
-```javascript
-import WasmTerminal, {
-  fetchCommandFromWAPM
-} from "@wasmer/wasm-terminal/lib/optimized/wasm-terminal.esm";
-import wasmInit, {
-  lowerI64Imports
-} from "@wasmer/wasm-transformer/lib/optimizied/wasm-transformer.esm";
-
-// URL for where the wasm-transformer wasm file is located. This is probably different depending on your bundler.
-const wasmTransformerWasmUrl =
-  "./node_modules/@wasmer/wasm-transformer/wasm-transformer.wasm";
-
-// Let's write handler for the fetchCommand property of the WasmTerminal Config.
-const fetchCommandHandler = async commandName => {
-  // Let's return a "CallbackCommand" if our command matches a special name
-  if (commandName === "callback-command") {
-    const callbackCommand = async (options, wasmFs) => {
-      return `Callback Command Working! Options: ${options}, fs: ${wasmFs}`;
-    };
-    return callbackCommand;
-  }
-
-  // Let's fetch a wasm Binary from WAPM for the command name.
-  const wasmBinary = await fetchCommandFromWAPM(commandName);
-
-  // Initialize the Wasm Transformer, and use it to lower
-  // i64 imports from Wasi Modules, so that most Wasi modules
-  // Can run in a Javascript context.
-  await wasmInit(wasmTransformerWasmUrl);
-  return lowerI64Imports(wasmBinary);
-};
-
-// Let's create our Wasm Terminal
-const wasmTerminal = new WasmTerminal({
-  // Function that is run whenever a command is fetched
-  fetchCommand: fetchCommandHandler,
-  // IMPORTANT: This is wherever your process.worker.js file URL is hosted
-  processWorkerUrl: "./node_modules/wasm-terminal/workers/process.worker.js"
-});
-
-// Let's print out our initial message
-wasmTerminal.print("Hello World!");
-
-// Let's bind our Wasm terminal to it's container
-const containerElement = document.querySelector("#root");
-wasmTerminal.open(containerElement);
-wasmTerminal.fit();
-wasmTerminal.focus();
-
-// Later, when we are done with the terminal, let's destroy it
-// wasmTerminal.destroy();
-```
-
-**NOTE:** Remember to include the CSS file mentioned at the beginning of the "Quick Start" section.
-
 ## Reference API
 
-The Reference API Documentation can be found on the [`@wasmer/wasm-terminal` Reference API Wasmer Docs](https://docs.wasmer.io/wasmer-js/reference-api/wasmer-js-reference-api-wasm-terminal).
+The Reference API Documentation can be found on the [`@wasmer/wasm-terminal` Reference API Wasmer Docs](https://docs.wasmer.io/integrations/js/reference-api/wasmer-wasm-terminal).
 
 ## Browser Compatibility
 
