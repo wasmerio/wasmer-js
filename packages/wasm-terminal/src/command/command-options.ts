@@ -3,6 +3,7 @@
 type CommandOptions = {
   args: string[];
   env: { [key: string]: string };
+  preopens?: { [key: string]: string };
   module?: WebAssembly.Module;
   callback?: Function;
 };

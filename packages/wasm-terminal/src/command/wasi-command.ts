@@ -15,9 +15,11 @@ export default class WASICommand extends Command {
   }
 
   async run(wasmFs: WasmFs) {
-    const wasi = new WASI({
+    const options = {
       preopens: {
-        "/": "/"
+        ".": ".",
+        "/": "/",
+        ...(this.options.preopens || {})
       },
       env: this.options.env,
       args: this.options.args,
@@ -25,7 +27,8 @@ export default class WASICommand extends Command {
         ...WASI.defaultBindings,
         fs: wasmFs.fs
       }
-    });
+    };
+    const wasi = new WASI(options);
 
     let instance = await WebAssembly.instantiate(
       this.options.module as WebAssembly.Module,

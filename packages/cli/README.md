@@ -19,67 +19,60 @@ $ npm install -g @wasmer/cli
 ...npm installation stuff here...
 
 $ wasmer-js
-
-wasmer-js - @wasmer/cli for using Wasm modules with Wasmer JS from the command line.
+wasmer-js 0.7.1
+The Wasmer Engineering Team <engineering@wasmer.io>
+Node.js Wasm execution runtime.
 
 USAGE:
-
-  $ wasmer-js [SUBCOMMAND] - run the specified command.
-
-  ARGUMENTS:
-
-    [SUBCOMMAND] - A command that can be run by the wasmer-js CLI. The avaiilable commands are:
-
-    run - Run a WebAssembly file with Wasmer-JS
-    version - Print the version of the CLI
-    help - Show the usage of the passed subcommand
+    wasmer <SUBCOMMAND>
 
 FLAGS:
+    -h, --help       Prints help information
+    -V, --version    Prints version information
 
-  --version, -v - Print the version of the CLI.
-  --help, -h - Print this help message, or the help message for the specified command
+SUBCOMMANDS:
+    help           Prints this message or the help of the given subcommand(s)
+    run            Run a WebAssembly file. Formats accepted: wasm, wat
+    validate       Validate a Web Assembly binary
 ```
 
 # SubCommands
 
+- [`wasmer-js [FILE]`](#wasmer-js-run-file) (same as `wasmer-js run [FILE]`)
 - [`wasmer-js run [FILE]`](#wasmer-js-run-file)
-- [`wasmer-js version`](#wasmer-js-help-command)
+- [`wasmer-js --version`](#wasmer-js-help-command)
 
 ## `wasmer-js run [FILE]`
 
 Run a WebAssembly file with Wasmer-JS
 
 ```
-wasmer-js run
-Run a WebAssembly file with Wasmer-JS
+$ wasmer-js run
+wasmer-js 0.7.1
+Run a WebAssembly file. Formats accepted: wasm, wat
 
 USAGE:
-$ wasmer-js run [FILE]
-
-ARGUMENTS:
-
-[FILE] - The WASI compiled ".wasm" file we would like to run
-
-help - Display this help message
+    wasmer-js run [FLAGS] [OPTIONS] <path> [--] [--]...
 
 FLAGS:
+    -h, --help                              Prints help information
+    -V, --version                           Prints version information
 
---dir=[some-directory] - WASI pre-opened directory. Can be passed multiple times for multiple directories.
---mapdir=[host-directory:guest-directory] - Map a host directory to a different location for the wasm module. Can be passed multiple times for multiple directories.
+OPTIONS:
+        --env <env-vars>...                  Pass custom environment variables
+        --mapdir <mapped-dirs>...            Map a host directory to a different location for the wasm module
+        --dir <pre-opened-directories>...    WASI pre-opened directory
+
+ARGS:
+    <path>     Input file
+    <-->...    Application arguments
 ```
 
-## `wasmer-js version`
+## `wasmer-js --version`
 
 Display the current wasmer-js CLI version
 
 ```
-wasmer-js version
-Print the version of the CLI
-
-USAGE:
-$ wasmer-js version
-
-ARGUMENTS:
-
-help - Display this help message
+$ wasmer-js --version
+wasmer-js 0.7.1
 ```

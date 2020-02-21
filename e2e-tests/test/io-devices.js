@@ -61,48 +61,48 @@ const testBrowserBundle = async (wasmFsBundleString, ioDevicesBundleString) => {
 };
 
 describe("@wasmer/io-devices", function() {
-  it("should handle cjs bundle", async () => {
-    const wasmFsBundlePath = "../packages/wasmfs/lib/index.cjs.js";
-    const ioDevicesBundlePath = "../packages/io-devices/lib/index.cjs.js";
-    const wasmFsBundle = fs.readFileSync(wasmFsBundlePath, "utf8");
-    const ioDevicesBundle = fs.readFileSync(ioDevicesBundlePath, "utf8");
+  // it("should handle cjs bundle", async () => {
+  //   const wasmFsBundlePath = "../packages/wasmfs/lib/index.js";
+  //   const ioDevicesBundlePath = "../packages/io-devices/lib/index.cjs.js";
+  //   const wasmFsBundle = fs.readFileSync(wasmFsBundlePath, "utf8");
+  //   const ioDevicesBundle = fs.readFileSync(ioDevicesBundlePath, "utf8");
 
-    const newWasmFsBundle = await rebundleOutput(wasmFsBundle, "cjs", "WasmFs");
-    const newIoDevicesBundle = await rebundleOutput(
-      ioDevicesBundle,
-      "cjs",
-      "IoDevices"
-    );
+  //   const newWasmFsBundle = await rebundleOutput(wasmFsBundle, "cjs", "WasmFs");
+  //   const newIoDevicesBundle = await rebundleOutput(
+  //     ioDevicesBundle,
+  //     "cjs",
+  //     "IoDevices"
+  //   );
 
-    await testNodeBundle(newWasmFsBundle, newIoDevicesBundle);
-  });
+  //   await testNodeBundle(newWasmFsBundle, newIoDevicesBundle);
+  // });
 
-  it("should handle esm bundle", async () => {
-    const wasmFsBundlePath = "../packages/wasmfs/lib/index.esm.js";
-    const ioDevicesBundlePath = "../packages/io-devices/lib/index.esm.js";
-    const wasmFsBundle = fs.readFileSync(wasmFsBundlePath, "utf8");
-    const ioDevicesBundle = fs.readFileSync(ioDevicesBundlePath, "utf8");
+  // it("should handle esm bundle", async () => {
+  //   const wasmFsBundlePath = "../packages/wasmfs/lib/index.esm.js";
+  //   const ioDevicesBundlePath = "../packages/io-devices/lib/index.esm.js";
+  //   const wasmFsBundle = fs.readFileSync(wasmFsBundlePath, "utf8");
+  //   const ioDevicesBundle = fs.readFileSync(ioDevicesBundlePath, "utf8");
 
-    const newWasmFsBundle = await rebundleOutput(
-      wasmFsBundle,
-      "iife",
-      "WasmFs"
-    );
-    const newIoDevicesBundle = await rebundleOutput(
-      ioDevicesBundle,
-      "iife",
-      "IoDevices"
-    );
+  //   const newWasmFsBundle = await rebundleOutput(
+  //     wasmFsBundle,
+  //     "iife",
+  //     "WasmFs"
+  //   );
+  //   const newIoDevicesBundle = await rebundleOutput(
+  //     ioDevicesBundle,
+  //     "iife",
+  //     "IoDevices"
+  //   );
 
-    await testBrowserBundle(newWasmFsBundle, newIoDevicesBundle);
-  });
+  //   await testBrowserBundle(newWasmFsBundle, newIoDevicesBundle);
+  // });
 
-  it("should handle iife bundle", async () => {
-    const wasmFsBundlePath = "../packages/wasmfs/lib/index.iife.js";
-    const ioDevicesBundlePath = "../packages/io-devices/lib/index.iife.js";
-    const wasmFsBundle = fs.readFileSync(wasmFsBundlePath, "utf8");
-    const ioDevicesBundle = fs.readFileSync(ioDevicesBundlePath, "utf8");
+  // it("should handle iife bundle", async () => {
+  //   const wasmFsBundlePath = "../packages/wasmfs/lib/index.iife.js";
+  //   const ioDevicesBundlePath = "../packages/io-devices/lib/index.iife.js";
+  //   const wasmFsBundle = fs.readFileSync(wasmFsBundlePath, "utf8");
+  //   const ioDevicesBundle = fs.readFileSync(ioDevicesBundlePath, "utf8");
 
-    await testBrowserBundle(wasmFsBundle, ioDevicesBundle);
-  });
+  //   await testBrowserBundle(wasmFsBundle, ioDevicesBundle);
+  // });
 });

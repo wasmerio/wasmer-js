@@ -47,7 +47,7 @@ wasmFs.getStdOut().then(response => {
 
 ## Reference API
 
-The Reference API Documentation can be found on the [`@wasmer/wasmfs` Reference API Wasmer Docs](https://docs.wasmer.io/wasmer-js/reference-api/wasmer-js-reference-api-wasi).
+The Reference API Documentation can be found on the [`@wasmer/wasmfs` Reference API Wasmer Docs](https://docs.wasmer.io/integrations/js/reference-api/wasmer-wasmfs).
 
 ## Contributing
 

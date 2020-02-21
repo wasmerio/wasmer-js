@@ -1,19 +1,17 @@
 import { h, Component } from "preact";
 
 // @ts-ignore
-import WasmTerminal, {
-  // @ts-ignore
-  fetchCommandFromWAPM
-  // @ts-ignore
-} from "@wasmer/wasm-terminal";
+import WasmTerminal from "@wasmer/wasm-terminal";
+import { fetchCommandFromWAPM } from "./wapm";
 
 import { WASI } from "@wasmer/wasi";
+// @ts-ignores
 import BrowserWASIBindings from "@wasmer/wasi/bindings/browser";
-// @ts-ignore
 import { lowerI64Imports } from "@wasmer/wasm-transformer";
 
 import welcomeMessage from "./welcome-message";
 import { WasmFs } from "@wasmer/wasmfs";
+import { extractContents } from "@wasmer/wasmfs/lib/tar";
 
 WASI.defaultBindings = BrowserWASIBindings;
 
@@ -27,38 +25,18 @@ const commands = {
   }
 };
 
+const getBinaryFromUrl = async (url: string) => {
+  const fetched = await fetch(url);
+  const buffer = await fetched.arrayBuffer();
+  return new Uint8Array(buffer);
+};
+
 commands["wasmerboy"] = "./wasmerboy.wasm";
 const wasmboyRom = "./tobutobugirl/tobutobugirl.gb";
 commands["io-as-debug"] = "./io-as-debug.wasm";
 commands["optimized"] = "./optimized.wasm";
 
-const fetchCommandHandler = async (
-  commandName: string,
-  commandArgs?: Array<string>,
-  envEntries?: any[][]
-) => {
-  const customCommand = (commands as any)[commandName];
-  let wasmBinary = undefined;
-
-  if (customCommand) {
-    if (typeof customCommand === "string") {
-      const fetched = await fetch(customCommand);
-      const buffer = await fetched.arrayBuffer();
-      wasmBinary = new Uint8Array(buffer);
-    } else {
-      return customCommand;
-    }
-  } else {
-    wasmBinary = await fetchCommandFromWAPM(
-      commandName,
-      commandArgs,
-      envEntries
-    );
-  }
-
-  return await lowerI64Imports(wasmBinary);
-};
-
+var COMPILED_MODULES = {};
 /**
  * A simple preact wrapper around the Wasm Terminal
  */
@@ -70,11 +48,86 @@ export default class WasmTerminalComponent extends Component {
   wasmTerminal: WasmTerminal;
   wasmFs: WasmFs;
 
+  async fetchCommandHandler({args, env}: {
+    args: Array<string>,
+    env?: { [key: string]: string }
+  }) {
+    const commandName = args[0];
+    const customCommand = (commands as any)[commandName];
+    let wasmBinary = undefined;
+
+    if (customCommand) {
+      if (typeof customCommand === "string") {
+        const fetched = await fetch(customCommand);
+        const buffer = await fetched.arrayBuffer();
+        wasmBinary = new Uint8Array(buffer);
+        return await lowerI64Imports(wasmBinary);
+      } else {
+        return customCommand;
+      }
+    } else {
+      const binaryName = `/bin/${commandName}`;
+      if (!this.wasmFs.fs.existsSync(binaryName)) {
+        this.wasmFs.fs.mkdirpSync("/bin");
+        let command = await fetchCommandFromWAPM({args, env});
+
+        const packageUrl = command.packageVersion.distribution.downloadUrl;
+        let binary = await getBinaryFromUrl(packageUrl);
+      
+        const packageVersion = command.packageVersion;
+        const installedPath = `/wapm_packages/${packageVersion.package.displayName}@${packageVersion.version}`;
+        
+        // We extract the contents on the desired directory
+        await extractContents(this.wasmFs, binary, installedPath);
+        
+        const wasmFullPath = `${installedPath}/${command.module.source}`;
+        const filesystem = packageVersion.filesystem;
+        const wasmBinary = this.wasmFs.fs.readFileSync(wasmFullPath);
+        const loweredBinary = await lowerI64Imports(wasmBinary as any);
+        const loweredFullPath = `${wasmFullPath}.__lowered__`;
+        this.wasmFs.fs.writeFileSync(loweredFullPath, loweredBinary);
+        let preopens = {};
+        filesystem.forEach(({ wasm, host }) => {
+          preopens[wasm] = `${installedPath}/${host}`;
+        });
+        const mainFunction = new Function(`return function main(options) {
+          var preopens = ${JSON.stringify(preopens)};
+          return {
+            "args": options.args,
+            "env": options.env,
+            "modulePath": ${JSON.stringify(loweredFullPath)},
+            "preopens": preopens,
+          };
+        }`)();
+        this.wasmFs.fs.writeFileSync(binaryName, mainFunction.toString());
+      }
+      let fileContents = this.wasmFs.fs.readFileSync(binaryName, "utf8");
+      let mainProgram = new Function(`return ${fileContents as string}`)();
+      let program = mainProgram({args, env});
+      if (!(program.modulePath in COMPILED_MODULES)) {
+        let programContents;
+        try {
+          programContents = this.wasmFs.fs.readFileSync(program.modulePath);
+        } catch {
+          throw new Error(
+            `The lowered module ${program.modulePath} doesn't exist`
+          );
+        }
+        COMPILED_MODULES[program.modulePath] = Promise.resolve(
+          WebAssembly.compile(programContents)
+        );
+      }
+      program.module = await COMPILED_MODULES[program.modulePath];
+      return program;
+      // console.log(fileToExecute);
+    }
+  }
+
   constructor() {
     super();
     this.wasmFs = new WasmFs();
     this.wasmTerminal = new WasmTerminal({
-      fetchCommand: fetchCommandHandler,
+      fetchCommand: this.fetchCommandHandler,
       processWorkerUrl,
       wasmFs: this.wasmFs
     });
