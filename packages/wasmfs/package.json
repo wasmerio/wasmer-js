@@ -2,18 +2,15 @@
   "name": "@wasmer/wasmfs",
   "version": "0.7.1",
   "description": "Isomorphic library to provide a sandboxed node fs implementation for Node and Browsers. 📂",
-  "main": "lib/index.cjs.js",
-  "module": "lib/index.esm.js",
-  "iife": "lib/index.iife.js",
-  "typings": "lib/packages/wasmfs/src/index.d.ts",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
   "files": [
+    "src",
     "lib"
   ],
   "scripts": {
-    "build": "npm run build:prod",
-    "build:prod": "rollup -c --environment PROD",
-    "build:dev": "rollup -c --environment DEV",
-    "dev": "watch \"npm run build:dev\" src",
+    "build": "rm -rf lib && tsc -b",
+    "dev": "tsc -b --watch",
     "test": "jest --config jest.config.js",
     "test:watch": "jest --config jest.config.js --watch",
     "docs": "typedoc src/ --out docs --target es6 --theme minimal --mode file"
@@ -41,7 +38,14 @@
   },
   "homepage": "https://github.com/wasmerio/wasmer-js/tree/master/packages/wasmfs",
   "dependencies": {
-    "memfs": "^3.0.4"
+    "memfs": "^3.0.4",
+    "pako": "^1.0.11",
+    "tar-stream": "^2.1.0"
+  },
+  "devDependencies": {
+    "@types/tar-stream": "^1.6.1",
+    "jest": "^24.9.0",
+    "typescript": "^3.6.4"
   },
   "gitHead": "889c22135c81610ddecbb696f8ef24f7ecaf5db7"
 }
