@@ -159,21 +159,21 @@ export default class WasmTTY {
   /**
    * Prints a status message on the current line. Meant to be used with clearStatus()
    */
-  printStatus(message: string) {
+  printStatus(message: string, sync?: boolean) {
     // Save the cursor position
-    this.print("\u001b[s");
-    this.print(message);
+    this.print("\u001b[s", sync);
+    this.print(message, sync);
   }
 
   /**
    * Clears the current status on the line, meant to be run after printStatus
    */
-  clearStatus() {
+  clearStatus(sync?: boolean) {
     // Restore the cursor position
-    this.print("\u001b[u");
+    this.print("\u001b[u", sync);
     // Clear from cursor to end of screen
-    this.print("\u001b[1000D");
-    this.print("\u001b[0J");
+    this.print("\u001b[1000D", sync);
+    this.print("\u001b[0J", sync);
   }
 
   /**
