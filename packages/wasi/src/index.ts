@@ -817,17 +817,25 @@ export default class WASIDefault {
           for (let i = Number(cookie); i < entries.length; i += 1) {
             const entry = entries[i];
             let nameLength = Buffer.byteLength(entry.name);
-            if (bufPtr + 8 + 8 + 4 + 4 + nameLength >= startPtr + bufLen) {
-              // It doesn't fit in the buffer
+            if (bufPtr - startPtr > bufLen) {
               break;
             }
             this.view.setBigUint64(bufPtr, BigInt(i + 1), true);
             bufPtr += 8;
+            if (bufPtr - startPtr > bufLen) {
+              break;
+            }
             const rstats = fs.statSync(path.resolve(stats.path, entry.name));
             this.view.setBigUint64(bufPtr, BigInt(rstats.ino), true);
             bufPtr += 8;
+            if (bufPtr - startPtr > bufLen) {
+              break;
+            }
             this.view.setUint32(bufPtr, nameLength, true);
             bufPtr += 4;
+            if (bufPtr - startPtr > bufLen) {
+              break;
+            }
             let filetype;
             switch (true) {
               case rstats.isBlockDevice():
@@ -858,12 +866,16 @@ export default class WASIDefault {
             this.view.setUint8(bufPtr, filetype);
             bufPtr += 1;
             bufPtr += 3; // padding
+            if (bufPtr + nameLength >= startPtr + bufLen) {
+              // It doesn't fit in the buffer
+              break;
+            }
             let memory_buffer = Buffer.from(this.memory.buffer);
             memory_buffer.write(entry.name, bufPtr);
-            bufPtr += Buffer.byteLength(entry.name);
+            bufPtr += nameLength;
           }
           const bufused = bufPtr - startPtr;
-          this.view.setUint32(bufusedPtr, bufused, true);
+          this.view.setUint32(bufusedPtr, Math.min(bufused, bufLen), true);
           return WASI_ESUCCESS;
         }
       ),
