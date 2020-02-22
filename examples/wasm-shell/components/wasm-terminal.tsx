@@ -75,7 +75,7 @@ export default class WasmTerminalComponent extends Component {
         let binary = await getBinaryFromUrl(packageUrl);
       
         const packageVersion = command.packageVersion;
-        const installedPath = `/wapm_packages/${packageVersion.package.displayName}@${packageVersion.version}`;
+        const installedPath = `/_wasmer/wapm_packages/${packageVersion.package.name}@${packageVersion.version}`;
         
         // We extract the contents on the desired directory
         await extractContents(this.wasmFs, binary, installedPath);
@@ -90,15 +90,18 @@ export default class WasmTerminalComponent extends Component {
         filesystem.forEach(({ wasm, host }) => {
           preopens[wasm] = `${installedPath}/${host}`;
         });
-        const mainFunction = new Function(`return function main(options) {
-          var preopens = ${JSON.stringify(preopens)};
-          return {
-            "args": options.args,
-            "env": options.env,
-            "modulePath": ${JSON.stringify(loweredFullPath)},
-            "preopens": preopens,
-          };
-        }`)();
+        const mainFunction = new Function(`// wasi
+return function main(options) {
+  var preopens = ${JSON.stringify(preopens)};
+  return {
+    "args": options.args,
+    "env": options.env,
+    // We use the path for the lowered Wasm
+    "modulePath": ${JSON.stringify(loweredFullPath)},
+    "preopens": preopens,
+  };
+}
+`)();
         this.wasmFs.fs.writeFileSync(binaryName, mainFunction.toString());
       }
       let fileContents = this.wasmFs.fs.readFileSync(binaryName, "utf8");

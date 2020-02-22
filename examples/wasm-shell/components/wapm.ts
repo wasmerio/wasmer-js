@@ -9,6 +9,7 @@ type CommandWAPMInfo = {
     packageVersion: {
         version: string,
         package: {
+            name: string,
             displayName: string,
         },
         filesystem: {
@@ -32,6 +33,7 @@ const WAPM_GRAPHQL_QUERY = `query shellGetCommandQuery($command: String!) {
     packageVersion {
       version
       package {
+        name
         displayName
       }
       filesystem {
