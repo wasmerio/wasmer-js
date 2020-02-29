@@ -29,22 +29,6 @@ extern "C" {
     fn log(a: &str);
 }
 
-#[cfg(target_arch = "wasm32")]
-#[macro_export]
-macro_rules! console_log {
-    ($($t:tt)*) => {
-        log(&format_args!($($t)*).to_string());
-    };
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-#[macro_export]
-macro_rules! console_log {
-    ($($t:tt)*) => {
-        println!($($t)*);
-    }
-}
-
 // Declare our modules in scope
 #[macro_use]
 mod macros;

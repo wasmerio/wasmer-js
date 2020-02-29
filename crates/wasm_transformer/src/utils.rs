@@ -137,8 +137,8 @@ pub fn get_u32_as_bytes_for_varunit(value: u32) -> Vec<u8> {
 fn test_read_bytes_as_varunit() {
     // Test varuint
     let (value, _) = read_bytes_as_varunit(&[0x38, 0xB6]).unwrap();
-    console_log!("0x38B6 {:x}", value);
+    println!("0x38B6 {:x}", value);
     // Test varuint again
     let (value_again, _) = read_bytes_as_varunit(&[0xC8, 0xB3]).unwrap();
-    console_log!("0xC8B3 {:x}", value_again);
+    println!("0xC8B3 {:x}", value_again);
 }
