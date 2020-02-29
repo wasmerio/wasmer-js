@@ -4,24 +4,24 @@
 // https://github.com/WebAssembly/design/blob/master/BinaryEncoding.md#varuintn
 // https://en.wikipedia.org/wiki/LEB128
 // E.g https://docs.rs/wasmparser/0.35.3/src/wasmparser/binary_reader.rs.html#436
-pub fn read_bytes_as_varunit(bytes: &[u8]) -> Result<(u32, usize), &'static str> {
+pub fn read_bytes_as_varunit(bytes: &[u8]) -> Result<(usize, usize), &'static str> {
     if bytes.is_empty() {
         return Err("Did not pass enough bytes");
     }
 
     // Check if it is only a single byte
     if (bytes[0] & 0x80) == 0 {
-        return Ok((u32::from(bytes[0]), 1));
+        return Ok((usize::from(bytes[0]), 1));
     } else if bytes.len() < 2 {
         return Err("Error decoding the varuint32, the high bit was incorrectly set");
     }
 
-    let mut response: u32 = 0;
+    let mut response: usize = 0;
     let mut byte_length: usize = 0;
     let mut shift = 0;
     for byte in bytes.iter() {
-        let low_order_byte: u32 = u32::from(byte & 0x7F);
-        response |= (low_order_byte << shift) as u32;
+        let low_order_byte: usize = usize::from(byte & 0x7F);
+        response |= low_order_byte << shift;
         byte_length += 1;
         if byte & 0x80 == 0 {
             break;
@@ -54,6 +54,17 @@ pub fn get_u32_as_bytes_for_varunit(value: u32) -> Vec<u8> {
     }
 
     response
+}
+
+#[cfg(test)]
+#[test]
+fn test_read_bytes_as_varunit() {
+    // Test varuint
+    let (value, _) = read_bytes_as_varunit(&[0x38, 0xB6]).unwrap();
+    console_log!("0x38B6 {:x}", value);
+    // Test varuint again
+    let (value_again, _) = read_bytes_as_varunit(&[0xC8, 0xB3]).unwrap();
+    console_log!("0xC8B3 {:x}", value_again);
 }
 
 // Function to insert bytes into a vec at the position
