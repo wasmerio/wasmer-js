@@ -29,26 +29,10 @@ extern "C" {
     fn log(a: &str);
 }
 
-#[cfg(target_arch = "wasm32")]
-#[macro_export]
-macro_rules! console_log {
-    ($($t:tt)*) => {
-        log(&format_args!($($t)*).to_string());
-    };
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-#[macro_export]
-macro_rules! console_log {
-    ($($t:tt)*) => {
-        println!($($t)*);
-    }
-}
-
 // Declare our modules in scope
-mod applier;
-mod generator;
-mod parser;
+#[macro_use]
+mod macros;
+
 mod transformer;
 mod utils;
 
@@ -62,6 +46,5 @@ pub fn version() -> String {
 /// i64 lowering that can be done by the browser
 #[wasm_bindgen(js_name = lowerI64Imports)]
 pub fn lower_i64_imports(mut wasm_binary: Vec<u8>) -> Vec<u8> {
-    transformer::lower_i64_wasm_for_wasi_js(&mut wasm_binary).unwrap();
-    wasm_binary.clone()
+    transformer::lower_i64_imports(&mut wasm_binary).unwrap()
 }
