@@ -5,8 +5,10 @@ use wasmparser::ParserState;
 use wasmparser::WasmDecoder;
 use wasmparser::{FuncType, ImportSectionEntryType, Operator, Parser, Range, SectionCode, Type};
 
-// use crate::macros::println_debug;
-use crate::utils::{get_u32_as_bytes_for_varunit, read_bytes_as_varunit};
+use crate::utils::{
+    generate_trampoline_function, get_u32_as_bytes_for_varunit, lower_func_body,
+    read_bytes_as_varunit,
+};
 
 #[derive(Debug, Clone, Copy)]
 struct PaddedRange {
@@ -34,11 +36,10 @@ pub fn lower_i64_imports(wasm_buf: &Vec<u8>) -> Result<Vec<u8>, &'static str> {
     let mut function_calls_mapping: Vec<usize> = Vec::new();
     let mut imported_functions: Vec<(usize, Range)> = Vec::new();
     let mut trampolines: Vec<(usize, usize)> = Vec::new();
-    // (call_position, new call index)
     let mut call_replacements: Vec<(usize, usize, Range)> = Vec::new();
 
     let mut first_function = true;
-    // let mut last_function_body: Option<PaddedRange> = None;
+
     loop {
         let mut start_position = parser.current_position();
         let mut end_position = 0;
@@ -61,32 +62,20 @@ pub fn lower_i64_imports(wasm_buf: &Vec<u8>) -> Result<Vec<u8>, &'static str> {
                     end: parser.current_position(),
                 };
                 function_types.push((func.clone(), has_i64_sig, func_range));
+                // 96 is the first byte that all function types should have
                 assert_eq!(wasm_buf[start_position], 96);
-                // imported_functions.push(false);
-                // Each index function maps to itself
-                // function_calls_mapping.push(function_calls_mapping.len());
-            }
-            ParserState::FunctionBodyLocals { .. } => {
-                if let Some(range) = last_functionbody_range {
-                    start_position = range.start;
-                    // last_functionbody_range = None;
-                }
             }
             ParserState::BeginSection { range, code, .. } => {
-                // start_position = range.start-2;
                 end_position = range.end;
                 if code == SectionCode::Type {
                     assert!(section_type.is_none(), "Only one section type is allowed");
-
                     // We get the code size
                     let (code_size, code_size_num_bytes) =
                         read_bytes_as_varunit(&wasm_buf[start_position + 1..]).unwrap();
-                    // println_debug!("Code size num bytes {}", code_size_num_bytes);
                     let (num_funcs, num_funcs_num_bytes) = read_bytes_as_varunit(
                         &wasm_buf[start_position + 1 + code_size_num_bytes..],
                     )
                     .unwrap();
-                    // println_debug!("Num funcs num bytes {}", num_funcs_num_bytes);
 
                     section_type = Some(PaddedRange {
                         start: start_position,
@@ -144,21 +133,14 @@ pub fn lower_i64_imports(wasm_buf: &Vec<u8>) -> Result<Vec<u8>, &'static str> {
                         if !has_i64_sig {
                             continue;
                         }
-                        // If it's already mapped into a trampoline (if it have the same signature), skip it
-                        // if function_calls_mapping[*function_index] != function_index {
-                        //     continue;
-                        // }
                         // Num of imported functions + num of implemented functions + index in trampoline
                         let new_index =
                             imported_functions.len() + num_funcs as usize + trampolines.len();
                         lowered_function_calls[import_index] = Some(new_index);
 
-                        // function_calls_mapping[function_index] = (num_funcs as usize) + trampolines.len();
-                        // let func = &function_types[function_index].0;
                         trampolines.push((import_index, *signature_index));
                     }
                 } else if code == SectionCode::Code {
-                    // println_debug!("[parse: SectionCode::Code]\n{}", debug_info);
                     assert!(
                         section_code.is_none(),
                         "Only one section code is supported for now"
@@ -189,7 +171,6 @@ pub fn lower_i64_imports(wasm_buf: &Vec<u8>) -> Result<Vec<u8>, &'static str> {
                 let index = (function_index as usize);
                 if index < lowered_function_calls.len() {
                     if let Some(new_index) = lowered_function_calls[index] {
-                        // println_debug!("Call pos:{} new_index:{}", start_position, new_index);
                         call_replacements.push((
                             start_position + 1,
                             new_index,
@@ -210,12 +191,10 @@ pub fn lower_i64_imports(wasm_buf: &Vec<u8>) -> Result<Vec<u8>, &'static str> {
                 }
 
                 let read = read_bytes_as_varunit(&wasm_buf[start_position..]);
-                // println_debug!("Read function body size {:?}", read);
                 last_functionbody_range = Some(Range {
                     start: start_position,
                     end: range.end,
                 });
-                // println_debug!("{} -> [{:#x}, {:#x}) -> {:?}", debug_info, start_position, end_position, &wasm_buf[start_position..range.end]);
             }
             ParserState::ImportSectionEntry {
                 module,
@@ -231,9 +210,6 @@ pub fn lower_i64_imports(wasm_buf: &Vec<u8>) -> Result<Vec<u8>, &'static str> {
                     }
                 }
                 let (func, has_i64_sig, _) = &function_types[func_index as usize];
-                // if has_i64_sig.to_owned() {
-                //     function_calls_mapping[func_index as usize] = function_calls_mapping.len() +
-                // }
                 let import_range = Range {
                     start: start_position,
                     end: parser.current_position(),
@@ -252,15 +228,6 @@ pub fn lower_i64_imports(wasm_buf: &Vec<u8>) -> Result<Vec<u8>, &'static str> {
             }
             _ => {}
         }
-        if end_position == 0 {
-            end_position = parser.current_position();
-        }
-        // println_debug!("{} -> [{:#x}, {:#x})", debug_info, start_position, end_position);
-        // println_debug!("{} -> [{:#x}, {:#x}) -> {:?}", debug_info, start_position, end_position, &wasm_buf[start_position..end_position]);
-        if start_position > end_position {
-            println_debug!("!!!!!");
-        }
-        // new_buf.extend(wasm_buf[section_start..section_start+end_position].iter());
     }
 
     // If there are no types, return!
@@ -487,113 +454,97 @@ pub fn lower_i64_imports(wasm_buf: &Vec<u8>) -> Result<Vec<u8>, &'static str> {
     }
 
     println_debug!("Adding trampolines");
-    // println_debug!("trampoline {:?}", trampolines);
-    // We insert them on reverse order to preserve the same code end
     for trampoline in code_trampolines.iter() {
         replacement_buf.insert_in_position(trampoline.to_vec(), section_code.end);
     }
 
-    // println_debug!("SECTION TYPE IS NONE {} {}", code_size, num_funcs);
-    // unimplemented!();
-
-    // Add the new types
-
-    // Insert new Types
-
     Ok(replacement_buf.buf)
 }
 
-/// Constants for the different opcodes of the WASM Binary we will insert
-const WASM_OPCODE_I32: u8 = 0x7F;
-const WASM_OPCODE_I64: u8 = 0x7E;
-const WASM_OPCODE_F32: u8 = 0x7D;
-const WASM_OPCODE_F64: u8 = 0x7C;
-const WASM_OPCODE_V128: u8 = 0x7B;
-const WASM_OPCODE_LOCAL_GET: u8 = 0x20;
-const WASM_OPCODE_I32_WRAP_I64: u8 = 0xA7;
-const WASM_OPCODE_CALL: u8 = 0x10;
-const WASM_OPCODE_END: u8 = 0x0B;
-
-fn lower_func_param(param: u8) -> u8 {
-    match param {
-        WASM_OPCODE_I64 => WASM_OPCODE_I32,
-        any => any,
-    }
+struct ReplacementBuf {
+    pub buf: Vec<u8>,
+    pub last_position: usize,
+    pub offset: usize,
 }
 
-fn lower_func_body(body: &Vec<u8>) -> Vec<u8> {
-    let mut new_body = body.to_vec();
-    assert_eq!(body[0], 96, "Provided function is not a function");
-    let (num_params, num_params_size) = read_bytes_as_varunit(&body[1..]).unwrap();
-    let start_params = 1 + num_params_size;
-    for i in start_params..start_params + (num_params as usize) {
-        new_body[i] = lower_func_param(body[i]);
-    }
-    // TODO: Lower returns
-    // let (num_returns, num_returns_size) = read_bytes_as_varunit(&body[start_params+(num_params as usize)..]).unwrap();
-    // let start_return = start_params+(num_params as usize)+1;
-    // for i in start_return..start_return+(num_params as usize) {
-    //     new_body[i] = lower_func_param(body[i]);
-    // }
+#[derive(Debug, Clone)]
+struct VarUintDiff<'a> {
+    original: usize,
+    original_bytes: &'a [u8],
 
-    // println_debug!("{:?} {}", &body[start_params..start_params+(num_params as usize)], num_params);
-    return new_body;
+    replacement: usize,
+    replacement_bytes: Vec<u8>,
 }
 
-/// Function to generate a trampoline function
-fn generate_trampoline_function(func: &FuncType, original_index: usize) -> Vec<u8> {
-    // Construct our trampoline function
-    let mut bytes = Vec::new();
-
-    // We'll add the body size at the end
-
-    // local decl count
-    bytes.push(0x0);
-    // Local get of all of our params
-    for (i, param) in func.params.iter().enumerate() {
-        // local get
-        bytes.push(WASM_OPCODE_LOCAL_GET);
-        // local index
-        bytes.push(i as u8);
-
-        //Get our param value type
-        if *param == Type::I64 {
-            // Param was an i64, wrap as i32
-            // i32.wrap_i64
-            bytes.push(WASM_OPCODE_I32_WRAP_I64);
-        }
-        // bytes.push(match *param {
-        //     Type::I32 => WASM_OPCODE_I32,
-        //     Type::I64 => WASM_OPCODE_I64,
-        //     Type::F32 => WASM_OPCODE_F32,
-        //     Type::F64 => WASM_OPCODE_F64,
-        //     Type::V128 => WASM_OPCODE_V128,
-        //     _ => unsupported!("The param {:?} is not supported for conversion.", param)
-        // })
-    }
-
-    // Returns
-    if func.returns.len() == 1 {
-        if func.returns[0] == Type::I64 {
-            // Return was an i64, wrap as i32
-            // i32.wrap_i64
-            bytes.push(WASM_OPCODE_I32_WRAP_I64);
+impl ReplacementBuf {
+    fn new<'a>(buf: Vec<u8>) -> Self {
+        Self {
+            buf,
+            offset: 0,
+            last_position: 0,
         }
     }
 
-    // Call the original function
-    // Call
-    bytes.push(WASM_OPCODE_CALL);
-    // Function index
-    bytes.push(original_index as u8);
+    fn get_size_diff(&self, replacement: usize, position: usize) -> VarUintDiff {
+        assert!(
+            position >= self.last_position,
+            "The new position {} should be ahead of previous position {}",
+            position,
+            self.last_position
+        );
+        let replacement_as_bytes = get_u32_as_bytes_for_varunit(replacement as _);
+        let (num, num_bytes) = read_bytes_as_varunit(&self.buf[position + self.offset..]).unwrap();
+        VarUintDiff {
+            original: num,
+            original_bytes: &self.buf[position + self.offset..position + self.offset + num_bytes],
 
-    // end
-    bytes.push(WASM_OPCODE_END);
+            replacement: replacement,
+            replacement_bytes: replacement_as_bytes,
+        }
+    }
 
-    // Add the function body length
-    bytes.insert(0, bytes.len() as u8);
+    #[inline(always)]
+    fn assert_previous_position(&self, position: usize) {
+        assert!(
+            position >= self.last_position,
+            "The provided position {} should be ahead of previous position {}",
+            position,
+            self.last_position
+        );
+    }
 
-    bytes
+    fn replace_varuint_with_offset(&mut self, replacement: usize, position: usize) {
+        self.assert_previous_position(position);
+        let diff = self.get_size_diff(replacement, position);
+        let replacement_as_bytes_len = diff.replacement_bytes.len() as isize;
+        let num_bytes = diff.original_bytes.len() as isize;
+        println_debug!(
+            "* Replacing (index: {}) {}:{:?} -> {}:{:?}",
+            position,
+            diff.original,
+            diff.original_bytes,
+            diff.replacement,
+            diff.replacement_bytes
+        );
+        self.buf.splice(
+            self.offset + position
+                ..(self.offset as isize + position as isize + num_bytes as isize) as usize,
+            diff.replacement_bytes,
+        );
+        self.offset = (self.offset as isize + replacement_as_bytes_len as isize
+            - num_bytes as isize) as usize;
+        self.last_position = position;
+    }
+
+    fn insert_in_position(&mut self, data: Vec<u8>, position: usize) {
+        self.assert_previous_position(position);
+        let data_len = data.len();
+        println_debug!("* Inserting (index: {}) -> {:?}", position, data);
+        self.buf
+            .splice((self.offset + position)..(self.offset + position), data);
+        self.offset += data_len;
+        self.last_position = position;
+    }
 }
 
 #[cfg(test)]
@@ -647,88 +598,5 @@ mod test {
             // let transformed_filename = format!("./wasm_module_examples_transformed/{}", filename);
             // fs::write(transformed_filename.clone(), &wasm).expect("Unable to write file");
         }
-    }
-}
-
-struct ReplacementBuf {
-    pub buf: Vec<u8>,
-    pub last_start: usize,
-    pub offset: usize,
-}
-
-#[derive(Debug, Clone)]
-struct VarUintDiff<'a> {
-    original: usize,
-    original_bytes: &'a [u8],
-
-    replacement: usize,
-    replacement_bytes: Vec<u8>,
-}
-
-impl ReplacementBuf {
-    fn new<'a>(buf: Vec<u8>) -> Self {
-        Self {
-            buf,
-            offset: 0,
-            last_start: 0,
-        }
-    }
-    fn get_size_diff(&self, replacement: usize, start: usize) -> VarUintDiff {
-        assert!(
-            start >= self.last_start,
-            "The start {} positon should be ahead of previous position {}",
-            start,
-            self.last_start
-        );
-        let replacement_as_bytes = get_u32_as_bytes_for_varunit(replacement as _);
-        let (num, num_bytes) = read_bytes_as_varunit(&self.buf[start + self.offset..]).unwrap();
-        VarUintDiff {
-            original: num,
-            original_bytes: &self.buf[start + self.offset..start + self.offset + num_bytes],
-
-            replacement: replacement,
-            replacement_bytes: replacement_as_bytes,
-        }
-    }
-    fn replace_varuint_with_offset(&mut self, replacement: usize, start: usize) {
-        assert!(
-            start >= self.last_start,
-            "The start {} positon should be ahead of previous position {}",
-            start,
-            self.last_start
-        );
-        let diff = self.get_size_diff(replacement, start);
-        let replacement_as_bytes_len = diff.replacement_bytes.len() as isize;
-        let num_bytes = diff.original_bytes.len() as isize;
-        println_debug!(
-            "* Replacing (index: {}) {}:{:?} -> {}:{:?}",
-            start,
-            diff.original,
-            diff.original_bytes,
-            diff.replacement,
-            diff.replacement_bytes
-        );
-        self.buf.splice(
-            self.offset + start
-                ..(self.offset as isize + start as isize + num_bytes as isize) as usize,
-            diff.replacement_bytes,
-        );
-        self.offset = (self.offset as isize + replacement_as_bytes_len as isize
-            - num_bytes as isize) as usize;
-        self.last_start = start;
-    }
-    fn insert_in_position(&mut self, data: Vec<u8>, start: usize) {
-        assert!(
-            start >= self.last_start,
-            "The start {} positon should be ahead of previous position {}",
-            start,
-            self.last_start
-        );
-        let data_len = data.len();
-        println_debug!("* Inserting (index: {}) -> {:?}", start, data);
-        self.buf
-            .splice((self.offset + start)..(self.offset + start), data);
-        self.offset += data_len;
-        self.last_start = start;
     }
 }

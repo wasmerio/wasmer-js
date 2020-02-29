@@ -1,4 +1,80 @@
 // Utility functions
+use wasmparser::{FuncType, Type};
+
+/// Constants for the different opcodes of the WASM Binary we will insert
+const WASM_OPCODE_I32: u8 = 0x7F;
+const WASM_OPCODE_I64: u8 = 0x7E;
+const WASM_OPCODE_LOCAL_GET: u8 = 0x20;
+const WASM_OPCODE_I32_WRAP_I64: u8 = 0xA7;
+const WASM_OPCODE_CALL: u8 = 0x10;
+const WASM_OPCODE_END: u8 = 0x0B;
+
+fn lower_func_param(param: u8) -> u8 {
+    match param {
+        WASM_OPCODE_I64 => WASM_OPCODE_I32,
+        any => any,
+    }
+}
+
+// Lower a function body and return the lowered one
+pub fn lower_func_body(body: &Vec<u8>) -> Vec<u8> {
+    let mut new_body = body.to_vec();
+    assert_eq!(body[0], 96, "Provided function is not a function");
+    let (num_params, num_params_size) = read_bytes_as_varunit(&body[1..]).unwrap();
+    let start_params = 1 + num_params_size;
+    for i in start_params..start_params + (num_params as usize) {
+        new_body[i] = lower_func_param(body[i]);
+    }
+    return new_body;
+}
+
+/// Function to generate a trampoline function
+pub fn generate_trampoline_function(func: &FuncType, original_index: usize) -> Vec<u8> {
+    // Construct our trampoline function
+    let mut bytes = Vec::new();
+
+    // We'll add the body size at the end
+
+    // local decl count
+    bytes.push(0x0);
+    // Local get of all of our params
+    for (i, param) in func.params.iter().enumerate() {
+        // local get
+        bytes.push(WASM_OPCODE_LOCAL_GET);
+        // local index
+        bytes.push(i as u8);
+
+        //Get our param value type
+        if *param == Type::I64 {
+            // Param was an i64, wrap as i32
+            // i32.wrap_i64
+            bytes.push(WASM_OPCODE_I32_WRAP_I64);
+        }
+    }
+
+    // Returns
+    if func.returns.len() == 1 {
+        if func.returns[0] == Type::I64 {
+            // Return was an i64, wrap as i32
+            // i32.wrap_i64
+            bytes.push(WASM_OPCODE_I32_WRAP_I64);
+        }
+    }
+
+    // Call the original function
+    // Call
+    bytes.push(WASM_OPCODE_CALL);
+    // Function index
+    bytes.push(original_index as u8);
+
+    // end
+    bytes.push(WASM_OPCODE_END);
+
+    // Add the function body length
+    bytes.insert(0, bytes.len() as u8);
+
+    bytes
+}
 
 // Read a set of bytes as a varuint32
 // https://github.com/WebAssembly/design/blob/master/BinaryEncoding.md#varuintn
@@ -65,22 +141,4 @@ fn test_read_bytes_as_varunit() {
     // Test varuint again
     let (value_again, _) = read_bytes_as_varunit(&[0xC8, 0xB3]).unwrap();
     console_log!("0xC8B3 {:x}", value_again);
-}
-
-// Function to insert bytes into a vec at the position
-pub fn insert_bytes_into_vec_at_position(vec: &mut Vec<u8>, position: usize, bytes: Vec<u8>) {
-    for (i, byte) in bytes.iter().enumerate() {
-        vec.insert(position + i, *byte);
-    }
-}
-
-// Function to remove bytes in a vec at the position
-pub fn remove_number_of_bytes_in_vec_at_position(
-    vec: &mut Vec<u8>,
-    position: usize,
-    number_of_bytes: usize,
-) {
-    for _i in 0..number_of_bytes {
-        vec.remove(position);
-    }
 }
