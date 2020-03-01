@@ -64,7 +64,7 @@ let plugins = [
   }),
   commonjs({
     namedExports: {
-      'xterm': ['Terminal']
+      xterm: ["Terminal"]
     }
   }),
   globals(),
