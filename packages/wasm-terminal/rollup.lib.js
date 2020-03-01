@@ -62,7 +62,11 @@ let plugins = [
   resolve({
     preferBuiltins: true
   }),
-  commonjs(),
+  commonjs({
+    namedExports: {
+      'xterm': ['Terminal']
+    }
+  }),
   globals(),
   builtins(),
   json(),
