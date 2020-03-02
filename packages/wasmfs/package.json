@@ -44,7 +44,7 @@
   },
   "homepage": "https://github.com/wasmerio/wasmer-js/tree/master/packages/wasmfs",
   "dependencies": {
-    "memfs": "^3.0.4",
+    "memfs": "3.0.4",
     "pako": "^1.0.11",
     "tar-stream": "^2.1.0"
   },

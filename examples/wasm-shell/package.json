@@ -19,7 +19,7 @@
   "homepage": "https://github.com/wasmerio/wasmer-js/tree/master/examples/wasm-shell",
   "devDependencies": {
     "parcel-bundler": "^1.12.4",
-    "parcel-plugin-static-files-copy": "^2.2.1",
+    "parcel-plugin-static-files-copy": "^2.3.1",
     "typescript": "^3.6.4"
   },
   "browserslist": [
