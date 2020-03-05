@@ -1,6 +1,6 @@
 {
   "name": "@wasmer/io-devices",
-  "version": "0.9.1",
+  "version": "0.10.0",
   "description": "Isomorphic library to implement the experimental Wasmer I/O devices for wasmfs instances 🖼️🎮",
   "main": "lib/index.cjs.js",
   "module": "lib/index.esm.js",

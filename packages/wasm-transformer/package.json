@@ -1,6 +1,6 @@
 {
   "name": "@wasmer/wasm-transformer",
-  "version": "0.9.1",
+  "version": "0.10.0",
   "description": "Library to run transformations on WebAssembly binaries. 🦀♻️",
   "main": "lib/wasm-pack/node/wasm_transformer.js",
   "module": "lib/unoptimized/wasm-transformer.esm.js",

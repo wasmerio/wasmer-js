@@ -1,6 +1,6 @@
 {
   "name": "@wasmer/wasm-terminal",
-  "version": "0.9.1",
+  "version": "0.10.0",
   "description": "A terminal-like component for the browser, that fetches and runs Wasm modules in the context of a shell. 🐚",
   "module": "lib/unoptimized/wasm-terminal.esm.js",
   "iife": "lib/unoptimized/wasm-terminal.iife.js",
