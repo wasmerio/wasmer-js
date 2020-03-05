@@ -118,8 +118,9 @@ const runWasiModule = async (flags: any) => {
   } else {
     transformedBytes = fs.readFileSync(loweredCachePath);
   }
-  const { instance } = await WebAssembly.instantiate(transformedBytes, {
-    wasi_unstable: wasi.wasiImport
+  const wasmModule = await WebAssembly.compile(transformedBytes);
+  const instance = await WebAssembly.instantiate(wasmModule, {
+    ...wasi.getImports(wasmModule)
   });
 
   // const module = await WebAssembly.compile(transformedBytes);
