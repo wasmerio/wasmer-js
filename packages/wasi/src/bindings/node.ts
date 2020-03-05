@@ -16,7 +16,9 @@ if (process.hrtime && process.hrtime.bigint) {
 
 const bindings: WASIBindings = {
   hrtime: bigIntHrtime,
-  exit: process.exit,
+  exit: (code: number) => {
+    process.exit(code);
+  },
   kill: (signal: string) => {
     process.kill(process.pid, signal);
   },

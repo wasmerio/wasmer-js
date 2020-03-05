@@ -1459,6 +1459,45 @@ export default class WASIDefault {
       (exports as any)._start();
     }
   }
+
+  private getImportNamespace(module: WebAssembly.Module): string {
+    let namespace = null;
+    for (let imp of WebAssembly.Module.imports(module)) {
+      // We only check for the functions
+      if (imp.kind !== "function") {
+        continue;
+      }
+      // We allow functions in other namespaces other than wasi
+      if (!imp.module.startsWith("wasi_")) {
+        continue
+      }
+      if (!namespace) {
+        namespace = imp.module;
+      }
+      else {
+        if (namespace !== imp.module) {
+          throw new Error("Multiple namespaces detected.")
+        }
+      }
+    }
+    return namespace!;
+  }
+
+  getImports(module: WebAssembly.Module): Record<string, Record<string, Function>> {
+    let namespace = this.getImportNamespace(module);
+    switch (namespace) {
+      case "wasi_unstable":
+        return {
+          wasi_unstable: this.wasiImport
+        }
+      case "wasi_snapshot_preview1":
+        return {
+          wasi_snapshot_preview1:  this.wasiImport
+        }
+      default:
+        throw new Error("Can't detect a WASI namespace for the WebAssembly Module")
+    }
+  }
 }
 
 // Also export it as a field in the export object

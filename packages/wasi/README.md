@@ -59,8 +59,9 @@ const startWasiTask = async () => {
 
   // Instantiate the WebAssembly file
   const wasm_bytes = new Uint8Array(responseArrayBuffer).buffer;
-  let { instance } = await WebAssembly.instantiate(wasm_bytes, {
-    wasi_unstable: wasi.wasiImport
+  let module = await WebAssembly.compile(wasm_bytes);
+  let instance = await WebAssembly.instantiate(module, {
+    ...wasi.getImports(module)
   });
 
   // Start the WebAssembly WASI instance!
