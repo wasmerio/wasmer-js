@@ -39,6 +39,10 @@ npm install --save @wasmer/wasi
 
 ```js
 import { WASI } from "@wasmer/wasi";
+import wasiBindings from "@wasmer/wasi/lib/bindings/node";
+// Use this on the browser
+// import wasiBindings from "@wasmer/wasi/lib/bindings/browser";
+
 import { WasmFs } from "@wasmer/wasmfs";
 
 // Instantiate a new WASI Instance
@@ -47,7 +51,7 @@ let wasi = new WASI({
   args: [],
   env: {},
   bindings: {
-    ...WASI.defaultBindings,
+    ...wasiBindings,
     fs: wasmFs.fs
   }
 });
