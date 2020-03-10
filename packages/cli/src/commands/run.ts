@@ -45,10 +45,6 @@ const runWasiModule = async (flags: any) => {
 
   const preopens: { [key: string]: string } = {};
 
-  dirFlag.forEach((dir: string) => {
-    preopens[dir] = dir;
-  });
-
   mapdirFlag.forEach((dir: string) => {
     const [wasm, host] = dir.split(":");
     if (!wasm || !host) {
@@ -58,6 +54,10 @@ const runWasiModule = async (flags: any) => {
       process.exit(1);
     }
     preopens[wasm] = host;
+  });
+
+  dirFlag.forEach((dir: string) => {
+    preopens[dir] = dir;
   });
 
   const envVars: { [key: string]: string } = {};
@@ -73,15 +73,21 @@ const runWasiModule = async (flags: any) => {
   });
 
   // Pass non-recognized / remaining args to the wasi module
-  const recognizedArgs = ["--dir", "--mapdir", "--env", wasmModuleFileToRun];
+  const recognizedArgs = ["--dir", "--mapdir", "--env", "--command-name", wasmModuleFileToRun];
   const wasiArgs = process.argv.slice(3).filter((arg: string) => {
     return !recognizedArgs.some(
       recognizedArg => arg.startsWith(recognizedArg) || arg === "--"
     );
   });
-  // Add the wasm module to the front of the args.
-  wasiArgs.unshift(wasmModuleFileToRun);
-
+  if (flags["command-name"]) {
+    // Add provided command name in front of the args
+    wasiArgs.unshift(flags["command-name"]);
+  }
+  else {
+    // Add the wasm module to the front of the args.
+    wasiArgs.unshift(wasmModuleFileToRun);
+  }
+  // console.log(preopens);
   const wasi = new WASI({
     args: wasiArgs,
     bindings: {
@@ -134,7 +140,7 @@ export const runCommand = new Command({
   runCallback: runWasiModule,
   minimistConfig: {
     boolean: ["help", "version"],
-    string: ["env", "dir", "mapdir"],
+    string: ["env", "dir", "mapdir", "command-name"],
     "--": true,
     alias: {
       help: ["h"],
