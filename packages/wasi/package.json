@@ -1,6 +1,6 @@
 {
   "name": "@wasmer/wasi",
-  "version": "0.10.1",
+  "version": "0.10.2",
   "description": "Isomorphic Javascript library for interacting with WASI Modules in Node.js and the Browser. 📚",
   "main": "lib/index.cjs.js",
   "module": "lib/index.esm.js",
