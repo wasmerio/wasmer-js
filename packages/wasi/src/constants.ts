@@ -286,9 +286,9 @@ export const RIGHTS_TTY_BASE =
   WASI_RIGHT_POLL_FD_READWRITE;
 export const RIGHTS_TTY_INHERITING = BigInt(0);
 
-export const WASI_CLOCK_MONOTONIC = 0;
-export const WASI_CLOCK_PROCESS_CPUTIME_ID = 1;
-export const WASI_CLOCK_REALTIME = 2;
+export const WASI_CLOCK_REALTIME = 0;
+export const WASI_CLOCK_MONOTONIC = 1;
+export const WASI_CLOCK_PROCESS_CPUTIME_ID = 2;
 export const WASI_CLOCK_THREAD_CPUTIME_ID = 3;
 
 export const WASI_EVENTTYPE_CLOCK = 0;
