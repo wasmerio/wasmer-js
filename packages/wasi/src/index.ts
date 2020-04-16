@@ -486,6 +486,8 @@ export default class WASIDefault {
         case WASI_CLOCK_MONOTONIC:
         case WASI_CLOCK_REALTIME:
           return bindings.hrtime();
+        case WASI_CLOCK_REALTIME:
+          return msToNs(new Date().valueOf());
         case WASI_CLOCK_PROCESS_CPUTIME_ID:
         case WASI_CLOCK_THREAD_CPUTIME_ID:
           // return bindings.hrtime(CPUTIME_START)
