@@ -484,8 +484,9 @@ export default class WASIDefault {
     const now = (clockId: number) => {
       switch (clockId) {
         case WASI_CLOCK_MONOTONIC:
-        case WASI_CLOCK_REALTIME:
           return bindings.hrtime();
+        case WASI_CLOCK_REALTIME:
+          return msToNs(new Date().valueOf());
         case WASI_CLOCK_PROCESS_CPUTIME_ID:
         case WASI_CLOCK_THREAD_CPUTIME_ID:
           // return bindings.hrtime(CPUTIME_START)
@@ -542,7 +543,20 @@ export default class WASIDefault {
         return WASI_ESUCCESS;
       },
       clock_res_get: (clockId: number, resolution: number) => {
-        this.view.setBigUint64(resolution, BigInt(0));
+        let res
+        switch (clockId) {
+          case WASI_CLOCK_MONOTONIC:
+          case WASI_CLOCK_PROCESS_CPUTIME_ID:
+          case WASI_CLOCK_THREAD_CPUTIME_ID: {
+            res = BigInt(1);
+            break;
+          }
+          case WASI_CLOCK_REALTIME: {
+            res = BigInt(1000);
+            break
+          }
+        }
+        this.view.setBigUint64(resolution, res);
         return WASI_ESUCCESS;
       },
       clock_time_get: (clockId: number, precision: number, time: number) => {
