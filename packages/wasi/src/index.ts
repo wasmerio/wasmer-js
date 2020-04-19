@@ -584,11 +584,11 @@ export default class WASIDefault {
         this.FD_MAP.delete(fd);
         return WASI_ESUCCESS;
       }),
-      fd_datasync: (fd: number) => {
+      fd_datasync: wrap((fd: number) => {
         const stats = CHECK_FD(fd, WASI_RIGHT_FD_DATASYNC);
         fs.fdatasyncSync(stats.real);
         return WASI_ESUCCESS;
-      },
+      }),
       fd_fdstat_get: wrap((fd: number, bufPtr: number) => {
         const stats = CHECK_FD(fd, BigInt(0));
         this.refreshMemory();
