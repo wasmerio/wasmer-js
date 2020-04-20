@@ -68,7 +68,8 @@ const instantiateWASI = async (
   file: string,
   wasmerFileSystem: any,
   args: string[] = [],
-  env: { [key: string]: string } = {}
+  env: { [key: string]: string } = {},
+  asyncified: boolean = false,
 ) => {
   let wasi = new WASI({
     preopens: {
@@ -83,7 +84,8 @@ const instantiateWASI = async (
         throw new Error(`Exit with code ${code}`);
       },
       fs: wasmerFileSystem.fs
-    }
+    },
+    asyncified,
   });
   const buf = fs.readFileSync(file);
   let bytes = new Uint8Array(buf as any).buffer;
@@ -190,5 +192,18 @@ describe("WASI interaction", () => {
     let module = await WebAssembly.compile(bytes);
     let imports = wasi.getImports(module);
     expect(imports).toHaveProperty("wasi_unstable");
+  });
+
+  it("works with asyncify", async () => {
+    let { instance, wasi } = await instantiateWASI(
+      "test/rs/wasi_snapshot_preview1/helloworld.async.wasm",
+      wasmerFileSystem,
+      [], {}, true
+    );
+    await wasi.start(instance);
+    expect(await wasmerFileSystem.getStdOut()).toMatchInlineSnapshot(`
+                              "Hello world!
+                              "
+                    `);
   });
 });
