@@ -162,22 +162,37 @@ const msToNs = (ms: number) => {
   return ns + decimal;
 };
 
+const processError = (e: any) => {
+  // If it's an error from the fs
+  if (e && e.code && typeof e.code === "string") {
+    return ERROR_MAP[e.code] || WASI_EINVAL;
+  }
+  // If it's a WASI error, we return it directly
+  if (e instanceof WASIError) {
+    return e.errno;
+  }
+  // Otherwise we let the error bubble up
+  throw e;
+};
 const wrap = <T extends Function>(f: T) => (...args: any[]) => {
   try {
     return f(...args);
   } catch (e) {
-    // If it's an error from the fs
-    if (e && e.code && typeof e.code === "string") {
-      return ERROR_MAP[e.code] || WASI_EINVAL;
-    }
-    // If it's a WASI error, we return it directly
-    if (e instanceof WASIError) {
-      return e.errno;
-    }
-    // Otherwise we let the error bubble up
-    throw e;
+    return processError(e);
   }
 };
+
+const promisify = (func: Function) =>
+  (...args: any[]): Promise<any> =>
+    new Promise((resolve, reject) => {
+      func(...args, (err: any | null, data: any) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(data);
+        }
+      });
+    });
 
 const stat = (wasi: WASI, fd: number): File => {
   const entry = wasi.FD_MAP.get(fd);
@@ -325,6 +340,7 @@ export type WASIConfig = {
   env?: WASIEnv;
   args?: WASIArgs;
   bindings?: WASIBindings;
+  asyncified?: boolean;
 };
 
 export class WASIError extends Error {
@@ -354,6 +370,13 @@ export class WASIKillError extends Error {
   }
 }
 
+enum AsyncifyState {
+  Running = 1,
+  Unwinding,
+  Rewinding,
+  Waiting,
+}
+
 export default class WASIDefault {
   memory: WebAssembly.Memory;
   view: DataViewPolyfillType;
@@ -361,6 +384,12 @@ export default class WASIDefault {
   wasiImport: Exports;
   bindings: WASIBindings;
   static defaultBindings: WASIBindings = defaultBindings;
+  asyncified: boolean;
+  wasmExports: Exports;
+  asyncState?: AsyncifyState;
+  asyncDoneCb?: (hasErr: boolean, err: any) => void;
+  asyncifyDataPtr?: number;
+  asyncifyRet?: readonly [boolean, any];
 
   constructor(wasiConfig?: WASIConfigOld | WASIConfig) {
     // Destructure our wasiConfig
@@ -385,11 +414,19 @@ export default class WASIDefault {
       bindings = wasiConfig.bindings;
     }
 
+    let asyncified: boolean = false;
+    if (wasiConfig && (wasiConfig as WASIConfig).asyncified) {
+      asyncified = true;
+    }
+
     // @ts-ignore
     this.memory = undefined;
     // @ts-ignore
     this.view = undefined;
+    // @ts-ignore
+    this.wasmExports = undefined;
     this.bindings = bindings;
+    this.asyncified = asyncified;
 
     this.FD_MAP = new Map([
       [
@@ -493,6 +530,57 @@ export default class WASIDefault {
           return bindings.hrtime() - CPUTIME_START;
         default:
           return null;
+      }
+    };
+
+    // ASYNCIFY_DATA_LEN is in i32s; _wasi_asyncify_alloc(n) should allocate n * sizeof(i32) bytes
+    const ASYNCIFY_DATA_LEN = 2;
+    const getAsyncifyPtr = () => {
+      if (this.asyncifyDataPtr == null) {
+        this.asyncifyDataPtr = this.wasmExports._wasi_asyncify_alloc(ASYNCIFY_DATA_LEN);
+      }
+      return this.asyncifyDataPtr!;
+    };
+    const asyncify = (func: () => Promise<any>) => {
+      switch (this.asyncState) {
+        case AsyncifyState.Running:
+          // normal call to the function
+          const ptr = getAsyncifyPtr();
+          const view = new Uint32Array(this.memory.buffer, ptr, ASYNCIFY_DATA_LEN);
+          // i'm not really sure what the values of the fields mean but i think this is right
+          // https://github.com/WebAssembly/binaryen/blob/master/src/passes/Asyncify.cpp#L110-L113
+          view[0] = ptr; // "current asyncify stack location"
+          view[1] = ptr + ASYNCIFY_DATA_LEN; // "asyncify stack end"
+          this.wasmExports.asyncify_start_unwind(ptr);
+          this.asyncState = AsyncifyState.Unwinding;
+          func()
+            .catch(processError)
+            .then(ret => [true, ret] as const, err => [false, err] as const)
+            .then(retstate => {
+              // shouldn't happen because promises always wait at least a tick, but just to be safe
+              if (this.asyncState !== AsyncifyState.Waiting) {
+                throw new Error(
+                  "asyncify callback was called immediately, before the stack had time to unwind"
+                );
+              }
+              this.asyncifyRet = retstate;
+              this.asyncState = AsyncifyState.Rewinding;
+              this.wasmExports.asyncify_start_rewind(this.asyncifyDataPtr);
+              this._start_async();
+            });
+          return;
+        case AsyncifyState.Rewinding:
+          this.wasmExports.asyncify_stop_unwind();
+          this.asyncState = AsyncifyState.Running;
+          const [ok, val] = this.asyncifyRet!;
+          delete this.asyncifyRet;
+          if (ok) {
+            return val;
+          } else {
+            throw val;
+          }
+        default:
+          throw new Error(`invalid state to call into an async function with: ${this.asyncState}`);
       }
     };
 
@@ -711,6 +799,26 @@ export default class WASIDefault {
           nwritten: number
         ) => {
           const stats = CHECK_FD(fd, WASI_RIGHT_FD_WRITE | WASI_RIGHT_FD_SEEK);
+          if (this.asyncified) {
+            return asyncify(async () => {
+              let written = 0;
+              for (const iov of getiovs(iovs, iovsLen)) {
+                let w = 0;
+                while (w < iov.byteLength) {
+                  w += await promisify(fs.write)(
+                    stats.real,
+                    iov,
+                    w,
+                    iov.byteLength - w,
+                    offset + written + w
+                  );
+                }
+                written += w;
+              }
+              this.view.setUint32(nwritten, written, true);
+              return WASI_ESUCCESS;
+            });
+          }
           let written = 0;
           getiovs(iovs, iovsLen).forEach(iov => {
             let w = 0;
@@ -732,6 +840,28 @@ export default class WASIDefault {
       fd_write: wrap(
         (fd: number, iovs: number, iovsLen: number, nwritten: number) => {
           const stats = CHECK_FD(fd, WASI_RIGHT_FD_WRITE);
+          if (this.asyncified) {
+            return asyncify(async () => {
+              let written = 0;
+              for (const iov of getiovs(iovs, iovsLen)) {
+                let w = 0;
+                while (w < iov.byteLength) {
+                  const i = await promisify(fs.write)(
+                    stats.real,
+                    iov,
+                    w,
+                    iov.byteLength - w,
+                    stats.offset ? Number(stats.offset) : null
+                  );
+                  if (stats.offset) stats.offset += BigInt(i);
+                  w += i;
+                }
+                written += w;
+              }
+              this.view.setUint32(nwritten, written, true);
+              return WASI_ESUCCESS;
+            });
+          }
           let written = 0;
           getiovs(iovs, iovsLen).forEach(iov => {
             let w = 0;
@@ -761,6 +891,26 @@ export default class WASIDefault {
           nread: number
         ) => {
           const stats = CHECK_FD(fd, WASI_RIGHT_FD_READ | WASI_RIGHT_FD_SEEK);
+          if (this.asyncified) {
+            return asyncify(async () => {
+              let read = 0;
+              for (const iov of getiovs(iovs, iovsLen)) {
+                let r = 0;
+                while (r < iov.byteLength) {
+                  await promisify(fs.read)(
+                    stats.real,
+                    iov,
+                    r,
+                    iov.byteLength - r,
+                    offset + read + r,
+                  );
+                }
+                read += r;
+              }
+              this.view.setUint32(nread, read, true);
+              return WASI_ESUCCESS;
+            });
+          }
           let read = 0;
           getiovs(iovs, iovsLen).forEach(iov => {
             let r = 0;
@@ -783,6 +933,41 @@ export default class WASIDefault {
         (fd: number, iovs: number, iovsLen: number, nread: number) => {
           const stats = CHECK_FD(fd, WASI_RIGHT_FD_READ);
           const IS_STDIN = stats.real === 0;
+          if (this.asyncified) {
+            return asyncify(async () => {
+              let read = 0;
+              outer: for (const iov of getiovs(iovs, iovsLen)) {
+                let r = 0;
+                while (r < iov.byteLength) {
+                  let length = iov.byteLength - r;
+                  let position =
+                    IS_STDIN || stats.offset === undefined
+                      ? null
+                      : Number(stats.offset);
+                  let rr: number = await promisify(fs.read)(
+                    stats.real, // fd
+                    iov, // buffer
+                    r, // offset
+                    length, // length
+                    position // position
+                  );
+                  if (!IS_STDIN) {
+                    stats.offset =
+                      (stats.offset ? stats.offset : BigInt(0)) + BigInt(rr);
+                  }
+                  r += rr;
+                  read += rr;
+                  // If we don't read anything, or we receive less than requested
+                  if (rr === 0 || rr < length) {
+                    break outer;
+                  }
+                }
+              }
+              // We should not modify the offset of stdin
+              this.view.setUint32(nread, read, true);
+              return WASI_ESUCCESS;
+            });
+          }
           let read = 0;
           outer: for (const iov of getiovs(iovs, iovsLen)) {
             let r = 0;
@@ -1461,17 +1646,78 @@ export default class WASIDefault {
         `instance.exports must be an Object. Received ${exports}.`
       );
     }
+    this.wasmExports = exports as Exports;
     const { memory } = exports;
     if (!(memory instanceof WebAssembly.Memory)) {
       throw new Error(
         `instance.exports.memory must be a WebAssembly.Memory. Recceived ${memory}.`
       );
     }
-
     this.setMemory(memory);
-    if (exports._start) {
+
+    if (this.asyncified) {
+      const requiredAsyncifyFuncs = [
+        "_start", "asyncify_start_unwind", "asyncify_stop_unwind", "asyncify_start_rewind",
+        "asyncify_stop_rewind", "_wasi_asyncify_alloc",
+      ];
+      for (const funcName of requiredAsyncifyFuncs) {
+        if (typeof exports[funcName] !== "function") {
+          throw new Error(
+            `if config.asyncified is true, instance.exports.${funcName} must be a function.`
+          );
+        }
+      }
+      return this._start_async();
+    } else if (exports._start) {
       (exports as any)._start();
     }
+  }
+
+  _start_async() {
+    let ret = undefined;
+    if (this.asyncDoneCb == null) {
+      ret = new Promise((resolve, reject) => {
+        this.asyncDoneCb = (hasErr, err) => {
+          if (hasErr) {
+            reject(err);
+          } else {
+            resolve();
+          }
+        };
+      });
+    }
+    // should be either Rewinding (callback just resolved, start up the program again)
+    // or undefined (run for the first time) here
+    if (this.asyncState != null) {
+      if (this.asyncState !== AsyncifyState.Rewinding) {
+        throw new Error("already running asyncify, can't run again");
+      }
+    } else {
+      this.asyncState = AsyncifyState.Running;
+    }
+    // when this returns, state will be either Unwinding (just unwound the stack)
+    // or Running (just completely finished the wasi program)
+    let hasErr = false, err = null;
+    try {
+      this.wasmExports._start();
+    } catch (e) {
+      hasErr = true;
+      err = e;
+    }
+    switch (this.asyncState as AsyncifyState) {
+      case AsyncifyState.Unwinding:
+        this.wasmExports.asyncify_stop_unwind();
+        this.asyncState = AsyncifyState.Waiting;
+        break;
+      case AsyncifyState.Running:
+        this.asyncDoneCb!(hasErr, err);
+        // reset the state-ish variables, if someone wants to run the program again
+        this.asyncDoneCb = this.asyncState = this.asyncifyDataPtr = undefined;
+        break;
+      default:
+        throw new Error(`invalid asyncState after returning from _start: ${this.asyncState}`);
+    }
+    return ret;
   }
 
   private getImportNamespace(module: WebAssembly.Module): string {
