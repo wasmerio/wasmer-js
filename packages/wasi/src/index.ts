@@ -622,8 +622,8 @@ export default class WASIDefault {
           if (nri > stats.rights.inheriting) {
             return WASI_EPERM;
           }
-          stats.rights.base = nrb;
-          stats.rights.inheriting = nri;
+          stats.rights.base = fsRightsBase;
+          stats.rights.inheriting = fsRightsInheriting;
           return WASI_ESUCCESS;
         }
       ),
