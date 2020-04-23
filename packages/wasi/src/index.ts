@@ -651,7 +651,7 @@ export default class WASIDefault {
       }),
       fd_filestat_set_size: wrap((fd: number, stSize: number) => {
         const stats = CHECK_FD(fd, WASI_RIGHT_FD_FILESTAT_SET_SIZE);
-        fs.ftruncate(stats.real, Number(stSize));
+        fs.ftruncateSync(stats.real, Number(stSize));
         return WASI_ESUCCESS;
       }),
       fd_filestat_set_times: wrap(
