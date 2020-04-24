@@ -761,19 +761,26 @@ export default class WASIDefault {
         ) => {
           const stats = CHECK_FD(fd, WASI_RIGHT_FD_READ | WASI_RIGHT_FD_SEEK);
           let read = 0;
-          getiovs(iovs, iovsLen).forEach(iov => {
+          outer: for (const iov of getiovs(iovs, iovsLen)) {
             let r = 0;
             while (r < iov.byteLength) {
-              r += fs.readSync(
+              const length = iov.byteLength - r;
+              const rr = fs.readSync(
                 stats.real,
                 iov,
                 r,
                 iov.byteLength - r,
-                offset + read + r
+                Number(offset) + read + r
               );
+              r += rr
+              read += rr
+              // If we don't read anything, or we receive less than requested
+              if (rr === 0 || rr < length) {
+                break outer;
+              }
             }
             read += r;
-          });
+          };
           this.view.setUint32(nread, read, true);
           return WASI_ESUCCESS;
         }
