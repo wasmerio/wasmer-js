@@ -1176,7 +1176,12 @@ export default class WASIDefault {
               throw e;
             }
           }
-          const realfd = fs.openSync(full, noflags);
+          let realfd
+          if (fs.statSync(full).isDirectory()) {
+            realfd = fs.openSync(full, fs.constants.O_RDONLY)
+          } else {
+            realfd = fs.openSync(full, noflags);
+          }
           const newfd = [...this.FD_MAP.keys()].reverse()[0] + 1;
           this.FD_MAP.set(newfd, {
             real: realfd,
