@@ -983,9 +983,9 @@ export default class WASIDefault {
             bufPtr,
             translateFileAttributes(this, undefined, rstats).filetype
           );
-          bufPtr += 4;
-          this.view.setUint32(bufPtr, Number(rstats.nlink), true);
-          bufPtr += 4;
+          bufPtr += 8;
+          this.view.setBigUint64(bufPtr, BigInt(rstats.nlink), true);
+          bufPtr += 8;
           this.view.setBigUint64(bufPtr, BigInt(rstats.size), true);
           bufPtr += 8;
           this.view.setBigUint64(bufPtr, msToNs(rstats.atimeMs), true);
@@ -993,7 +993,6 @@ export default class WASIDefault {
           this.view.setBigUint64(bufPtr, msToNs(rstats.mtimeMs), true);
           bufPtr += 8;
           this.view.setBigUint64(bufPtr, msToNs(rstats.ctimeMs), true);
-          bufPtr += 8;
           return WASI_ESUCCESS;
         }
       ),
