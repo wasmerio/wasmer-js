@@ -1037,13 +1037,28 @@ export default class WASIDefault {
             return WASI_EINVAL;
           }
           this.refreshMemory();
-          const n = now(WASI_CLOCK_REALTIME);
-          const atimNow =
-            (fstflags & WASI_FILESTAT_SET_ATIM_NOW) ===
-            WASI_FILESTAT_SET_ATIM_NOW;
-          const mtimNow =
-            (fstflags & WASI_FILESTAT_SET_MTIM_NOW) ===
-            WASI_FILESTAT_SET_MTIM_NOW;
+          const rstats = fs.fstatSync(stats.real);
+          let atim = rstats.atimeMs;
+          let mtim = rstats.mtimeMs;
+          const n = nsToMs(now(WASI_CLOCK_REALTIME)!);
+          const atimflags = WASI_FILESTAT_SET_ATIM | WASI_FILESTAT_SET_ATIM_NOW;
+          if ((fstflags & atimflags) === atimflags) {
+            return WASI_EINVAL;
+          }
+          const mtimflags = WASI_FILESTAT_SET_MTIM | WASI_FILESTAT_SET_MTIM_NOW;
+          if ((fstflags & mtimflags) === mtimflags) {
+            return WASI_EINVAL;
+          }
+          if ((fstflags & WASI_FILESTAT_SET_ATIM) === WASI_FILESTAT_SET_ATIM) {
+            atim = nsToMs(stAtim)
+          } else if ((fstflags & WASI_FILESTAT_SET_ATIM_NOW) === WASI_FILESTAT_SET_ATIM_NOW) {
+            atim = n
+          }
+          if ((fstflags & WASI_FILESTAT_SET_MTIM) === WASI_FILESTAT_SET_MTIM) {
+            mtim = nsToMs(stMtim)
+          } else if ((fstflags & WASI_FILESTAT_SET_MTIM_NOW) === WASI_FILESTAT_SET_MTIM_NOW) {
+            mtim = n
+          }
           const p = Buffer.from(
             this.memory.buffer,
             pathPtr,
@@ -1051,8 +1066,8 @@ export default class WASIDefault {
           ).toString();
           fs.utimesSync(
             path.resolve(stats.path, p),
-            atimNow ? n : stAtim,
-            mtimNow ? n : stMtim
+            atim,
+            mtim
           );
           return WASI_ESUCCESS;
         }
