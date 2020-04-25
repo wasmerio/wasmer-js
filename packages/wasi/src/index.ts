@@ -159,8 +159,8 @@ const STDERR_DEFAULT_RIGHTS = STDOUT_DEFAULT_RIGHTS;
 
 const msToNs = (ms: number) => {
   const msInt = Math.trunc(ms);
-  const decimal = BigInt(Math.round((ms - msInt) * 1000));
-  const ns = BigInt(msInt) * BigInt(1000);
+  const decimal = BigInt(Math.round((ms - msInt) * 1000000));
+  const ns = BigInt(msInt) * BigInt(1000000);
   return ns + decimal;
 };
 
