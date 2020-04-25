@@ -691,8 +691,8 @@ export default class WASIDefault {
           }
           fs.futimesSync(
             stats.real,
-            atim,
-            mtim
+            new Date(atim),
+            new Date(mtim)
           );
           return WASI_ESUCCESS;
         }
@@ -1067,8 +1067,8 @@ export default class WASIDefault {
           ).toString();
           fs.utimesSync(
             path.resolve(stats.path, p),
-            atim,
-            mtim
+            new Date(atim),
+            new Date(mtim)
           );
           return WASI_ESUCCESS;
         }
