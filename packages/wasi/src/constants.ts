@@ -313,9 +313,9 @@ export const WASI_STDIN_FILENO = 0;
 export const WASI_STDOUT_FILENO = 1;
 export const WASI_STDERR_FILENO = 2;
 
-export const WASI_WHENCE_CUR = 0;
-export const WASI_WHENCE_END = 1;
-export const WASI_WHENCE_SET = 2;
+export const WASI_WHENCE_SET = 0;
+export const WASI_WHENCE_CUR = 1;
+export const WASI_WHENCE_END = 2;
 
 // http://man7.org/linux/man-pages/man3/errno.3.html
 export const ERROR_MAP: { [key: string]: number } = {
