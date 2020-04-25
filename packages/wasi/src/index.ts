@@ -1026,11 +1026,12 @@ export default class WASIDefault {
       path_filestat_set_times: wrap(
         (
           fd: number,
-          fstflags: number,
+          dirflags: number,
           pathPtr: number,
           pathLen: number,
           stAtim: number,
-          stMtim: number
+          stMtim: number,
+          fstflags: number
         ) => {
           const stats = CHECK_FD(fd, WASI_RIGHT_PATH_FILESTAT_SET_TIMES);
           if (!stats.path) {
