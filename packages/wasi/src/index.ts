@@ -668,8 +668,8 @@ export default class WASIDefault {
         (fd: number, stAtim: number, stMtim: number, fstflags: number) => {
           const stats = CHECK_FD(fd, WASI_RIGHT_FD_FILESTAT_SET_TIMES);
           const rstats = fs.fstatSync(stats.real);
-          let atim = rstats.atimeMs;
-          let mtim = rstats.mtimeMs;
+          let atim = rstats.atime;
+          let mtim = rstats.mtime;
           const n = nsToMs(now(WASI_CLOCK_REALTIME)!);
           const atimflags = WASI_FILESTAT_SET_ATIM | WASI_FILESTAT_SET_ATIM_NOW;
           if ((fstflags & atimflags) === atimflags) {
@@ -1038,8 +1038,8 @@ export default class WASIDefault {
           }
           this.refreshMemory();
           const rstats = fs.fstatSync(stats.real);
-          let atim = rstats.atimeMs;
-          let mtim = rstats.mtimeMs;
+          let atim = rstats.atime;
+          let mtim = rstats.mtime;
           const n = nsToMs(now(WASI_CLOCK_REALTIME)!);
           const atimflags = WASI_FILESTAT_SET_ATIM | WASI_FILESTAT_SET_ATIM_NOW;
           if ((fstflags & atimflags) === atimflags) {
