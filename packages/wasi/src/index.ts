@@ -121,7 +121,9 @@ import {
   WASI_EVENTTYPE_CLOCK,
   WASI_EVENTTYPE_FD_READ,
   WASI_EVENTTYPE_FD_WRITE,
+  WASI_FILESTAT_SET_ATIM,
   WASI_FILESTAT_SET_ATIM_NOW,
+  WASI_FILESTAT_SET_MTIM,
   WASI_FILESTAT_SET_MTIM_NOW,
   WASI_O_CREAT,
   WASI_O_DIRECTORY,
@@ -157,9 +159,17 @@ const STDERR_DEFAULT_RIGHTS = STDOUT_DEFAULT_RIGHTS;
 
 const msToNs = (ms: number) => {
   const msInt = Math.trunc(ms);
-  const decimal = BigInt(Math.round((ms - msInt) * 1000));
-  const ns = BigInt(msInt) * BigInt(1000);
+  const decimal = BigInt(Math.round((ms - msInt) * 1000000));
+  const ns = BigInt(msInt) * BigInt(1000000);
   return ns + decimal;
+};
+
+const nsToMs = (ns: number | bigint) => {
+  if (typeof ns === 'number') {
+    ns = Math.trunc(ns);
+  }
+  const nsInt = BigInt(ns);
+  return Number(nsInt / BigInt(1000000));
 };
 
 const wrap = <T extends Function>(f: T) => (...args: any[]) => {
@@ -486,7 +496,7 @@ export default class WASIDefault {
         case WASI_CLOCK_MONOTONIC:
           return bindings.hrtime();
         case WASI_CLOCK_REALTIME:
-          return msToNs(new Date().valueOf());
+          return msToNs(Date.now());
         case WASI_CLOCK_PROCESS_CPUTIME_ID:
         case WASI_CLOCK_THREAD_CPUTIME_ID:
           // return bindings.hrtime(CPUTIME_START)
@@ -656,17 +666,32 @@ export default class WASIDefault {
       fd_filestat_set_times: wrap(
         (fd: number, stAtim: number, stMtim: number, fstflags: number) => {
           const stats = CHECK_FD(fd, WASI_RIGHT_FD_FILESTAT_SET_TIMES);
-          const n = now(WASI_CLOCK_REALTIME);
-          const atimNow =
-            (fstflags & WASI_FILESTAT_SET_ATIM_NOW) ===
-            WASI_FILESTAT_SET_ATIM_NOW;
-          const mtimNow =
-            (fstflags & WASI_FILESTAT_SET_MTIM_NOW) ===
-            WASI_FILESTAT_SET_MTIM_NOW;
+          const rstats = fs.fstatSync(stats.real);
+          let atim = rstats.atime;
+          let mtim = rstats.mtime;
+          const n = nsToMs(now(WASI_CLOCK_REALTIME)!);
+          const atimflags = WASI_FILESTAT_SET_ATIM | WASI_FILESTAT_SET_ATIM_NOW;
+          if ((fstflags & atimflags) === atimflags) {
+            return WASI_EINVAL;
+          }
+          const mtimflags = WASI_FILESTAT_SET_MTIM | WASI_FILESTAT_SET_MTIM_NOW;
+          if ((fstflags & mtimflags) === mtimflags) {
+            return WASI_EINVAL;
+          }
+          if ((fstflags & WASI_FILESTAT_SET_ATIM) === WASI_FILESTAT_SET_ATIM) {
+            atim = nsToMs(stAtim)
+          } else if ((fstflags & WASI_FILESTAT_SET_ATIM_NOW) === WASI_FILESTAT_SET_ATIM_NOW) {
+            atim = n
+          }
+          if ((fstflags & WASI_FILESTAT_SET_MTIM) === WASI_FILESTAT_SET_MTIM) {
+            mtim = nsToMs(stMtim)
+          } else if ((fstflags & WASI_FILESTAT_SET_MTIM_NOW) === WASI_FILESTAT_SET_MTIM_NOW) {
+            mtim = n
+          }
           fs.futimesSync(
             stats.real,
-            atimNow ? n : stAtim,
-            mtimNow ? n : stMtim
+            new Date(atim),
+            new Date(mtim)
           );
           return WASI_ESUCCESS;
         }
@@ -1000,24 +1025,40 @@ export default class WASIDefault {
       path_filestat_set_times: wrap(
         (
           fd: number,
-          fstflags: number,
+          dirflags: number,
           pathPtr: number,
           pathLen: number,
           stAtim: number,
-          stMtim: number
+          stMtim: number,
+          fstflags: number
         ) => {
           const stats = CHECK_FD(fd, WASI_RIGHT_PATH_FILESTAT_SET_TIMES);
           if (!stats.path) {
             return WASI_EINVAL;
           }
           this.refreshMemory();
-          const n = now(WASI_CLOCK_REALTIME);
-          const atimNow =
-            (fstflags & WASI_FILESTAT_SET_ATIM_NOW) ===
-            WASI_FILESTAT_SET_ATIM_NOW;
-          const mtimNow =
-            (fstflags & WASI_FILESTAT_SET_MTIM_NOW) ===
-            WASI_FILESTAT_SET_MTIM_NOW;
+          const rstats = fs.fstatSync(stats.real);
+          let atim = rstats.atime;
+          let mtim = rstats.mtime;
+          const n = nsToMs(now(WASI_CLOCK_REALTIME)!);
+          const atimflags = WASI_FILESTAT_SET_ATIM | WASI_FILESTAT_SET_ATIM_NOW;
+          if ((fstflags & atimflags) === atimflags) {
+            return WASI_EINVAL;
+          }
+          const mtimflags = WASI_FILESTAT_SET_MTIM | WASI_FILESTAT_SET_MTIM_NOW;
+          if ((fstflags & mtimflags) === mtimflags) {
+            return WASI_EINVAL;
+          }
+          if ((fstflags & WASI_FILESTAT_SET_ATIM) === WASI_FILESTAT_SET_ATIM) {
+            atim = nsToMs(stAtim)
+          } else if ((fstflags & WASI_FILESTAT_SET_ATIM_NOW) === WASI_FILESTAT_SET_ATIM_NOW) {
+            atim = n
+          }
+          if ((fstflags & WASI_FILESTAT_SET_MTIM) === WASI_FILESTAT_SET_MTIM) {
+            mtim = nsToMs(stMtim)
+          } else if ((fstflags & WASI_FILESTAT_SET_MTIM_NOW) === WASI_FILESTAT_SET_MTIM_NOW) {
+            mtim = n
+          }
           const p = Buffer.from(
             this.memory.buffer,
             pathPtr,
@@ -1025,8 +1066,8 @@ export default class WASIDefault {
           ).toString();
           fs.utimesSync(
             path.resolve(stats.path, p),
-            atimNow ? n : stAtim,
-            mtimNow ? n : stMtim
+            new Date(atim),
+            new Date(mtim)
           );
           return WASI_ESUCCESS;
         }
