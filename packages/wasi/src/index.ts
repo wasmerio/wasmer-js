@@ -744,7 +744,7 @@ export default class WASIDefault {
                 iov,
                 w,
                 iov.byteLength - w,
-                offset + written + w
+                Number(offset) + written + w
               );
             }
             written += w;
