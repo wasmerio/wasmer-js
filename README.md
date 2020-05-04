@@ -19,7 +19,7 @@ Wasmer-JS is a mono-repo of multiple JavaScript packages enabling easy use of [W
 
 ## Documentation
 
-Documentation for the Wasmer-JS Stack, can be found on the [Wasmer Docs](https://docs.wasmer.io/wasmer-js/wasmer-js).
+Documentation for the Wasmer-JS Stack, can be found on the [Wasmer Docs](https://docs.wasmer.io/integrations/js/reference-api).
 
 ## Development
 
