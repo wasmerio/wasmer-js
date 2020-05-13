@@ -14,8 +14,7 @@ Documentation for Wasmer-JS Stack can be found on the [Wasmer Docs](https://docs
 
 ## Features
 
-This project is forked from [node-wasi](https://github.com/devsnek/node-wasi), a Node implementation made by Gus Caplan. 🙏😄
-It uses the same API than the [future WASI integration in Node](https://github.com/nodejs/wasi), to help transition to it once it becomes available in Node.
+`@wasmer/wasi` uses the same API than the [future WASI integration in Node](https://github.com/nodejs/wasi), to help transition to it once it becomes available in Node.
 
 However, `@wasmer/wasi` is focused on:
 
