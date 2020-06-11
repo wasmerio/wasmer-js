@@ -39,6 +39,7 @@ npm install --save @wasmer/wasi
 ```js
 import { WASI } from "@wasmer/wasi";
 import wasiBindings from "@wasmer/wasi/lib/bindings/node";
+import { lowerI64Imports } from "@wasmer/wasm-transformer"
 // Use this on the browser
 // import wasiBindings from "@wasmer/wasi/lib/bindings/browser";
 
@@ -62,7 +63,8 @@ const startWasiTask = async () => {
 
   // Instantiate the WebAssembly file
   const wasm_bytes = new Uint8Array(responseArrayBuffer).buffer;
-  let module = await WebAssembly.compile(wasm_bytes);
+  const lowered_wasm = await lowerI64Imports(wasm_bytes);
+  let module = await WebAssembly.compile(lowered_wasm);
   let instance = await WebAssembly.instantiate(module, {
     ...wasi.getImports(module)
   });
