@@ -16,7 +16,7 @@ if (!exportedDataView.prototype.setBigUint64) {
     let highWord;
 
     if (value < 2 ** 32) {
-      lowWord = value;
+      lowWord = Number(value);
       highWord = 0;
     } else {
       var bigNumberAsBinaryStr = value.toString(2);
