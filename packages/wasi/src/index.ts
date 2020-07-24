@@ -335,6 +335,7 @@ export type WASIConfig = {
   env?: WASIEnv;
   args?: WASIArgs;
   bindings?: WASIBindings;
+  traceSyscalls?: boolean;
 };
 
 export class WASIError extends Error {
@@ -1480,20 +1481,22 @@ export default class WASIDefault {
       }
     };
     // Wrap each of the imports to show the calls in the console
-    // Object.keys(this.wasiImport).forEach((key: string) => {
-    //   const prevImport = this.wasiImport[key];
-    //   this.wasiImport[key] = function(...args: any[]) {
-    //     console.log(`WASI: wasiImport called: ${key} (${args})`);
-    //     try {
-    //       let result = prevImport(...args);
-    //       console.log(`WASI:  => ${result}`);
-    //       return result;
-    //     } catch (e) {
-    //       console.log(`Catched error: ${e}`);
-    //       throw e;
-    //     }
-    //   };
-    // });
+    if ((wasiConfig as WASIConfig).traceSyscalls) {
+      Object.keys(this.wasiImport).forEach((key: string) => {
+        const prevImport = this.wasiImport[key];
+        this.wasiImport[key] = function(...args: any[]) {
+          console.log(`WASI: wasiImport called: ${key} (${args})`);
+          try {
+            let result = prevImport(...args);
+            console.log(`WASI:  => ${result}`);
+            return result;
+          } catch (e) {
+            console.log(`Catched error: ${e}`);
+            throw e;
+          }
+        };
+      });
+    }
   }
 
   refreshMemory() {
