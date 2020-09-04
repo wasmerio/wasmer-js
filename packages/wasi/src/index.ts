@@ -1224,7 +1224,9 @@ export default class WASIDefault {
             }
           }
           let realfd
-          if (fs.statSync(full).isDirectory()) {
+          /* check if the file is a directory (unless opening for write,
+           * in which case the file may not exist and should be created) */
+          if (!write && fs.statSync(full).isDirectory()) {
             realfd = fs.openSync(full, fs.constants.O_RDONLY)
           } else {
             realfd = fs.openSync(full, noflags);
