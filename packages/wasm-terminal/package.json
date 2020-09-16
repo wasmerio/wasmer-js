@@ -1,6 +1,6 @@
 {
   "name": "@wasmer/wasm-terminal",
-  "version": "0.11.2",
+  "version": "0.12.0",
   "description": "A terminal-like component for the browser, that fetches and runs Wasm modules in the context of a shell. 🐚",
   "module": "lib/unoptimized/wasm-terminal.esm.js",
   "iife": "lib/unoptimized/wasm-terminal.iife.js",
@@ -9,7 +9,7 @@
     "lib"
   ],
   "scripts": {
-    "build": "run-s build:clean build:prod",
+    "build": "run-s build:prod",
     "build:clean": "rm -rf lib",
     "build:ts": "tsc -b",
     "build:prod": "rollup -c --environment LIB,WORKER,PROD",

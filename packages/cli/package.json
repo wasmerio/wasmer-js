@@ -4,7 +4,7 @@
   "keywords": [
     "cli"
   ],
-  "version": "0.11.2",
+  "version": "0.12.0",
   "author": "Wasmer Engineering Team <engineering@wasmer.io>",
   "license": "MIT",
   "repository": "wasmerio/wasmer-js",
