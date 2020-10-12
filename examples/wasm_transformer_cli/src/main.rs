@@ -1,5 +1,4 @@
 use std::*;
-use wasm_transformer::*;
 use clap::{Arg, App};
 
 const NAME: &str = env!("CARGO_PKG_NAME");
@@ -24,7 +23,7 @@ fn main() {
     println!(" ");
 
     // Run the transformation on the file
-    let mut Wasm = fs::read(wasm_file_path).unwrap();
+    let wasm = fs::read(wasm_file_path).unwrap();
     let lowered_wasm = wasm_transformer::lower_i64_imports(wasm);
     fs::write("./out.wasm", &lowered_wasm).expect("Unable to write file");
 
