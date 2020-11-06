@@ -2,5 +2,5 @@
 import pkginfo from 'pkginfo';
 
 export const getVersion = () => {
-    return pkginfo(module, 'version').version;
+    return pkginfo.find(module).version;
 }
