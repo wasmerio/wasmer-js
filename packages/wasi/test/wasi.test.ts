@@ -16,6 +16,7 @@ if ((global as any).BigInt) {
 }
 import { WASI } from "../src";
 import WASINodeBindings from "../src/bindings/node";
+WASI.defaultBindings = WASINodeBindings
 
 const bytesConverter = (buffer: Buffer): Buffer => {
   // Help debugging: https://webassembly.github.io/wabt/demo/wat2wasm/index.html
@@ -105,19 +106,8 @@ describe("WASI interaction", () => {
   });
 
   it("Can instantiate with undefined paramaters, or empty object", () => {
-    try {
-      let wasi = new WASI();
-    } catch (e) {
-      // Ensure the error is about the node bindings, not empty initialization
-      expect(e.message.includes("'fs'")).toBe(true);
-    }
-
-    try {
-      let wasi = new WASI({});
-    } catch (e) {
-      // Ensure the error is about the node bindings, not empty initialization
-      expect(e.message.includes("'fs'")).toBe(true);
-    }
+    new WASI();
+    new WASI({});
   });
 
   it("Helloworld can be run", async () => {

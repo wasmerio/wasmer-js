@@ -391,7 +391,7 @@ export default class WASIDefault {
     if (wasiConfig && wasiConfig.args) {
       args = wasiConfig.args;
     }
-    let bindings: WASIBindings = defaultBindings;
+    let bindings: WASIBindings = WASIDefault.defaultBindings;
     if (wasiConfig && wasiConfig.bindings) {
       bindings = wasiConfig.bindings;
     }
@@ -1487,7 +1487,7 @@ export default class WASIDefault {
       }
     };
     // Wrap each of the imports to show the calls in the console
-    if ((wasiConfig as WASIConfig).traceSyscalls) {
+    if (wasiConfig && (wasiConfig as WASIConfig).traceSyscalls) {
       Object.keys(this.wasiImport).forEach((key: string) => {
         const prevImport = this.wasiImport[key];
         this.wasiImport[key] = function(...args: any[]) {
