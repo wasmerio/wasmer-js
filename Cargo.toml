@@ -1,0 +1,13 @@
+[package]
+name = "wasmer-wasi-js"
+version = "0.1.0"
+authors = ["Syrus Akbary <syrus@wasmer.io>"]
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+js-sys = "0.3.55"
+wasm-bindgen = "0.2.73"
+wasmer = { path = "../wasmer/lib/api", default-features = false, features = ["js", "std"] }
+wasmer-wasi = { path = "../wasmer/lib/wasi", default-features = false, features = ["js"] }

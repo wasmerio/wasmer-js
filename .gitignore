@@ -1,0 +1,8 @@
+/bin
+/target
+**/*.rs.bk
+node_modules/
+pkg/
+dist/
+package-lock.json
+*.log
