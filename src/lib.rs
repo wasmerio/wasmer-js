@@ -5,7 +5,7 @@ extern crate wasmer_wasi;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use wasmer::{ImportObject, Instance, Module, Store};
-use wasmer_wasi::{Stdin, Stdout, WasiEnv, WasiState};
+use wasmer_wasi::{Stdin, Stdout, WasiEnv, WasiState, WasiError};
 
 #[wasm_bindgen]
 pub struct WASI {
@@ -97,9 +97,23 @@ impl WASI {
             .exports
             .get_function("_start")
             .map_err(|_e| js_sys::Error::new("The _start function is not present"))?;
-        start.call(&[]).unwrap();
+        let result = start.call(&[]);
 
-        Ok(0)
+        match result {
+            Ok(_) => Ok(0),
+            Err(err) => {
+                match err.downcast::<WasiError>() {
+                    Ok(WasiError::Exit(exit_code)) => {
+                        // We should exit with the provided exit code
+                        return Ok(exit_code);
+                    }
+                    Ok(err) => {
+                        unimplemented!();
+                    },
+                    Err(err) => Err(err.into()),
+                }
+            }
+        }
     }
 
     #[wasm_bindgen(js_name = getStdoutBuffer)]
