@@ -76,6 +76,7 @@ impl WASI {
         })
     }
 
+    #[wasm_bindgen(js_name = getImports)]
     pub fn get_imports(&mut self) -> js_sys::Object {
         self.import_object.clone().into()
     }
@@ -101,14 +102,16 @@ impl WASI {
         Ok(0)
     }
 
-    pub fn get_stdout(&self) -> Vec<u8> {
+    #[wasm_bindgen(js_name = getStdoutBuffer)]
+    pub fn get_stdout_buffer(&self) -> Vec<u8> {
         let state = self.wasi_env.state();
         let stdout = state.fs.stdout().unwrap().as_ref().unwrap();
         let stdout = stdout.downcast_ref::<Stdout>().unwrap();
         stdout.buf.clone()
     }
 
-    pub fn get_stdout_as_string(&self) -> String {
-        String::from_utf8(self.get_stdout()).unwrap()
+    #[wasm_bindgen(js_name = getStdoutString)]
+    pub fn get_stdout_string(&self) -> String {
+        String::from_utf8(self.get_stdout_buffer()).unwrap()
     }
 }
