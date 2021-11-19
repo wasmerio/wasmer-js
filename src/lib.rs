@@ -1,11 +1,7 @@
-extern crate wasm_bindgen;
-extern crate wasmer;
-extern crate wasmer_wasi;
-
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use wasmer::{ImportObject, Instance, Module, Store};
-use wasmer_wasi::{Stdin, Stdout, WasiEnv, WasiState, WasiError};
+use wasmer_wasi::{Stdin, Stdout, WasiEnv, WasiError, WasiState};
 
 #[wasm_bindgen]
 pub struct WASI {
@@ -58,11 +54,8 @@ impl WASI {
         let mut wasi_env = WasiState::new(&args.get(0).unwrap_or(&"".to_string()))
             .args(if args.len() > 0 { &args[1..] } else { &[] })
             .envs(env)
-            .finalize().map_err(|e| {
-                js_sys::Error::new(
-                    &format!("Failed to create the WasiState: {}`", e)
-                )
-            })?;
+            .finalize()
+            .map_err(|e| js_sys::Error::new(&format!("Failed to create the WasiState: {}`", e)))?;
 
         let module: js_sys::WebAssembly::Module = module.dyn_into().map_err(|_e| {
             js_sys::Error::new(
@@ -71,9 +64,7 @@ impl WASI {
         })?;
         let module: Module = module.into();
         let import_object = wasi_env.import_object(&module).map_err(|e| {
-            js_sys::Error::new(
-                &format!("Failed to create the Import Object: {}`", e)
-            )
+            js_sys::Error::new(&format!("Failed to create the Import Object: {}`", e))
         })?;
 
         Ok(WASI {
@@ -83,7 +74,7 @@ impl WASI {
         })
     }
 
-    async pub fn instantiate(&mut self, imports: js_sys::Object) -> Result<(), JsValue> {
+    pub async fn instantiate(&mut self, imports: js_sys::Object) -> Result<(), JsValue> {
         unimplemented!()
     }
 
@@ -95,7 +86,9 @@ impl WASI {
     /// Start the WASI Instance, it returns the status code when calling the start
     /// function
     pub fn start(&self, instance: js_sys::WebAssembly::Instance) -> Result<u32, JsValue> {
-        let instance = Instance::from_module_and_instance(&self.module, instance).map_err(|e| js_sys::Error::new(&format!("Error while creating the Wasmer instance: {}", e)))?;
+        let instance = Instance::from_module_and_instance(&self.module, instance).map_err(|e| {
+            js_sys::Error::new(&format!("Error while creating the Wasmer instance: {}", e))
+        })?;
         let externs = self
             .import_object
             .clone()
@@ -120,7 +113,7 @@ impl WASI {
                     }
                     Ok(err) => {
                         unimplemented!();
-                    },
+                    }
                     Err(err) => Err(err.into()),
                 }
             }
