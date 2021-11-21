@@ -1,19 +1,26 @@
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
-use wasmer::{ImportObject, Instance, Module, Store};
+use wasmer::{
+    ChainableNamedResolver, ImportObject, Instance, JSObjectResolver, Module, NamedResolverChain,
+};
 use wasmer_wasi::{Stdin, Stdout, WasiEnv, WasiError, WasiState};
+
+struct InstantiatedWASI {
+    instance: Instance,
+    #[allow(dead_code)]
+    resolver: NamedResolverChain<ImportObject, JSObjectResolver>,
+}
 
 #[wasm_bindgen]
 pub struct WASI {
     wasi_env: WasiEnv,
-    module: Module,
-    import_object: ImportObject,
+    instantiated: Option<InstantiatedWASI>,
 }
 
 #[wasm_bindgen]
 impl WASI {
     #[wasm_bindgen(constructor)]
-    pub fn new(config: JsValue, module: JsValue) -> Result<WASI, JsValue> {
+    pub fn new(config: JsValue) -> Result<WASI, JsValue> {
         let args: Vec<String> = {
             let args = js_sys::Reflect::get(&config, &"args".into())?;
             if args.is_undefined() {
@@ -51,53 +58,46 @@ impl WASI {
             }
         };
 
-        let mut wasi_env = WasiState::new(&args.get(0).unwrap_or(&"".to_string()))
+        let wasi_env = WasiState::new(&args.get(0).unwrap_or(&"".to_string()))
             .args(if args.len() > 0 { &args[1..] } else { &[] })
             .envs(env)
             .finalize()
             .map_err(|e| js_sys::Error::new(&format!("Failed to create the WasiState: {}`", e)))?;
 
+        Ok(WASI {
+            wasi_env,
+            instantiated: None,
+        })
+    }
+
+    pub fn instantiate(&mut self, module: JsValue, imports: js_sys::Object) -> Result<(), JsValue> {
         let module: js_sys::WebAssembly::Module = module.dyn_into().map_err(|_e| {
             js_sys::Error::new(
                 "You must provide a module to the WASI new. `let module = new WASI({}, module);`",
             )
         })?;
         let module: Module = module.into();
-        let import_object = wasi_env.import_object(&module).map_err(|e| {
+        let import_object = self.wasi_env.import_object(&module).map_err(|e| {
             js_sys::Error::new(&format!("Failed to create the Import Object: {}`", e))
         })?;
 
-        Ok(WASI {
-            wasi_env,
-            module,
-            import_object,
-        })
-    }
+        let resolver = JSObjectResolver::new(&module, imports);
+        let resolver = resolver.chain_front(import_object);
 
-    pub async fn instantiate(&mut self, imports: js_sys::Object) -> Result<(), JsValue> {
-        unimplemented!()
-    }
-
-    #[wasm_bindgen(js_name = getImports)]
-    pub fn get_imports(&mut self) -> js_sys::Object {
-        self.import_object.clone().into()
+        let instance = Instance::new(&module, &resolver)
+            .map_err(|e| js_sys::Error::new(&format!("Failed to instantiate WASI: {}`", e)))?;
+        self.instantiated = Some(InstantiatedWASI { resolver, instance });
+        Ok(())
     }
 
     /// Start the WASI Instance, it returns the status code when calling the start
     /// function
-    pub fn start(&self, instance: js_sys::WebAssembly::Instance) -> Result<u32, JsValue> {
-        let instance = Instance::from_module_and_instance(&self.module, instance).map_err(|e| {
-            js_sys::Error::new(&format!("Error while creating the Wasmer instance: {}", e))
-        })?;
-        let externs = self
-            .import_object
-            .clone()
-            .into_iter()
-            .map(|((namespace, field), extern_)| extern_)
-            .collect::<Vec<_>>();
-        instance.init_envs(&externs);
-
-        let start = instance
+    pub fn start(&self) -> Result<u32, JsValue> {
+        let start = self
+            .instantiated
+            .as_ref()
+            .unwrap()
+            .instance
             .exports
             .get_function("_start")
             .map_err(|_e| js_sys::Error::new("The _start function is not present"))?;
@@ -112,9 +112,19 @@ impl WASI {
                         return Ok(exit_code);
                     }
                     Ok(err) => {
-                        unimplemented!();
+                        return Err(js_sys::Error::new(&format!(
+                            "Unexpected WASI error while running start function: {}",
+                            err
+                        ))
+                        .into())
                     }
-                    Err(err) => Err(err.into()),
+                    Err(err) => {
+                        return Err(js_sys::Error::new(&format!(
+                            "Error while running start function: {}",
+                            err
+                        ))
+                        .into())
+                    }
                 }
             }
         }

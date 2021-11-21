@@ -4,11 +4,10 @@ const { init, WASI } = require('../dist/Library.cjs.js');
 
 async function doWasi(moduleBytes, config) {
   await init();
+  let wasi = new WASI(config);
   const module = await WebAssembly.compile(moduleBytes);
-  let wasi = new WASI(config, module);
-  let imports = wasi.getImports();
-  let instance = await WebAssembly.instantiate(module, imports);
-  wasi.start(instance);
+  await wasi.instantiate(module, {});
+  let code = wasi.start();
   return wasi;
 }
 
