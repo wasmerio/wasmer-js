@@ -9,7 +9,7 @@
 //     ],
 // };
 
-// import resolve from '@rollup/plugin-node-resolve';
+import resolve from '@rollup/plugin-node-resolve';
 // import commonjs from '@rollup/plugin-commonjs';
 import babel from '@rollup/plugin-babel';
 import { terser } from 'rollup-plugin-terser';
@@ -35,83 +35,81 @@ const banner = `/*!
  */`;
 
 const makeConfig = (env = 'development') => {
-  let bundleSuffix = '';
+    let bundleSuffix = '';
 
-  if (env === 'production') {
-    bundleSuffix = 'min.';
-  }
+    if (env === 'production') {
+        bundleSuffix = 'min.';
+    }
 
-  const config = {
-    input: 'lib.ts',
-    external: EXTERNAL,
-    output: [
-      {
-        banner,
-        name: LIBRARY_NAME,
-        file: `dist/${LIBRARY_NAME}.umd.${bundleSuffix}js`, // UMD
-        format: 'umd',
-        exports: 'auto',
-        globals: GLOBALS
-      },
-      {
-        banner,
-        file: `dist/${LIBRARY_NAME}.cjs.${bundleSuffix}js`, // CommonJS
-        format: 'cjs',
-        exports: 'auto',
-        globals: GLOBALS
-      },
-      {
-        banner,
-        file: `dist/${LIBRARY_NAME}.esm.${bundleSuffix}js`, // ESM
-        format: 'es',
-        exports: 'auto',
-        globals: GLOBALS
-      }
-    ],
-    plugins: [
-        // wasm({
-        //     maxFileSize: 1000000000,
-        // }),
-        // smartAsset({
-        //     url: 'inline',
-        //     extensions: ['.wasm'],
-        // }),
-        url({
-            include: ['**/*.wasm'],
-            limit:14336000,
-            // limit: 0,
-        }),
-      // Uncomment the following 2 lines if your library has external dependencies
-      // resolve(), // teach Rollup how to find external modules
-      // commonjs(), // so Rollup can convert external modules to an ES module
-      babel({
-        babelHelpers: 'bundled',
-        exclude: ['node_modules/**']
-      })
-    // typescript(/*{ plugin options }*/)
-]
-  };
+    const config = {
+        input: 'lib.ts',
+        external: EXTERNAL,
+        output: [
+            {
+                banner,
+                name: LIBRARY_NAME,
+                file: `dist/${LIBRARY_NAME}.umd.${bundleSuffix}js`, // UMD
+                format: 'umd',
+                exports: 'auto',
+                globals: GLOBALS
+            },
+            {
+                banner,
+                file: `dist/${LIBRARY_NAME}.cjs.${bundleSuffix}js`, // CommonJS
+                format: 'cjs',
+                exports: 'auto',
+                globals: GLOBALS
+            },
+            {
+                banner,
+                file: `dist/${LIBRARY_NAME}.esm.${bundleSuffix}js`, // ESM
+                format: 'es',
+                exports: 'named',
+                globals: GLOBALS
+            }
+        ],
+        plugins: [
+            // wasm({
+            //     maxFileSize: 1000000000,
+            // }),
+            // smartAsset({
+            //     url: 'inline',
+            //     extensions: ['.wasm'],
+            // }),
+            url({
+                include: ['**/*.wasm'],
+                limit: 14336000,
+                // limit: 0,
+            }),
+            // Uncomment the following 2 lines if your library has external dependencies
+            resolve(), // teach Rollup how to find external modules
+            typescript({
+                rollupCommonJSResolveHack: false,
+                clean: true,          
+            })
+        ]
+    };
 
-  if (env === 'production') {
-    config.plugins.push(terser({
-      output: {
-        comments: /^!/
-      }
-    }));
-  }
+    if (env === 'production') {
+        config.plugins.push(terser({
+            output: {
+                comments: /^!/
+            }
+        }));
+    }
 
-  return config;
+    return config;
 };
 
 export default commandLineArgs => {
-  const configs = [
-    makeConfig()
-  ];
+    const configs = [
+        makeConfig()
+    ];
 
-  // Production
-  if (commandLineArgs.environment === 'BUILD:production') {
-    configs.push(makeConfig('production'));
-  }
+    // Production
+    if (commandLineArgs.environment === 'BUILD:production') {
+        configs.push(makeConfig('production'));
+    }
 
-  return configs;
+    return configs;
 };

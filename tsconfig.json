@@ -1,11 +1,15 @@
 {
+    "include": ["*"],
+    "exclude": ["dist"],
     "compilerOptions": {
       "outDir": "./dist/",
       "noImplicitAny": true,
+      "declaration": true,
       "module": "es6",
       "target": "es5",
       "jsx": "react",
       "allowJs": true,
+      "allowSyntheticDefaultImports": true,
       "moduleResolution": "node"
     }
   }

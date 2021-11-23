@@ -3,7 +3,20 @@ export * from "./pkg/wasmer_wasi_js";
 import load from "./pkg/wasmer_wasi_js";
 import wasm_bytes from "./pkg/wasmer_wasi_js_bg.wasm";
 
-function dataUriToBuffer(uri) {
+interface MimeBuffer extends Buffer {
+	type: string;
+	typeFull: string;
+	charset: string;
+}
+
+/**
+ * Returns a `Buffer` instance from the given data URI `uri`.
+ *
+ * @param {String} uri Data URI to turn into a Buffer instance
+ * @returns {Buffer} Buffer instance from Data URI
+ * @api public
+ */
+function dataUriToBuffer(uri: string): MimeBuffer {
 	if (!/^data:/i.test(uri)) {
 		throw new TypeError(
 			'`uri` does not appear to be a Data URI (must begin with "data:")'
@@ -45,7 +58,7 @@ function dataUriToBuffer(uri) {
 	// get the encoded data portion and decode URI-encoded chars
 	const encoding = base64 ? 'base64' : 'ascii';
 	const data = unescape(uri.substring(firstComma + 1));
-	const buffer = Buffer.from(data, encoding);
+	const buffer = Buffer.from(data, encoding) as MimeBuffer;
 
 	// set `.type` and `.typeFull` properties to MIME type
 	buffer.type = type;
@@ -58,9 +71,8 @@ function dataUriToBuffer(uri) {
 }
 
 export async function init() {
-    await load(await WebAssembly.compile(dataUriToBuffer(wasm_bytes)));
+    await load(await WebAssembly.compile(dataUriToBuffer(wasm_bytes as any as string)));
 }
-
 // console.log(wasm_bytes)
 // export class WASI extends WASIDefault {
 
