@@ -33,6 +33,7 @@
         "@rollup/plugin-babel": "~5.3.0",
         "@rollup/plugin-commonjs": "~21.0.1",
         "@rollup/plugin-node-resolve": "~13.0.6",
+        "@rollup/plugin-url": "^6.1.0",
         "@rollup/plugin-wasm": "^5.1.2",
         "@wasm-tool/wasm-pack-plugin": "1.6.0",
         "cross-env": "~7.0.3",

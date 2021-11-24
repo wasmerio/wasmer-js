@@ -16,7 +16,7 @@ import { terser } from 'rollup-plugin-terser';
 import pkg from './package.json';
 import typescript from 'rollup-plugin-typescript2';
 import { wasm } from '@rollup/plugin-wasm';
-import smartAsset from "rollup-plugin-smart-asset"
+// import smartAsset from "rollup-plugin-smart-asset"
 import url from '@rollup/plugin-url';
 
 const LIBRARY_NAME = 'Library'; // Change with your library's name
