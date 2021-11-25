@@ -9,12 +9,20 @@
         "wasm",
         "wasi"
     ],
-    "author": "Syrus Akbary <syrus@wasmer.io>",
+    "description": "Isomorphic Javascript library for interacting with WASI Modules in Node.js and the Browser.",
+    "author": "Wasmer Engineering Team <engineering@wasmer.io>",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/wasmerio/wasmer-js/issues"
+    },
+    "homepage": "https://github.com/wasmerio/wasmer-js",
     "repository": {
         "type": "git",
         "url": "https://github.com/wasmerio/wasmer-js"
     },
-    "license": "MIT",
+    "publishConfig": {
+        "access": "public"
+    },    
     "scripts": {
         "build": "wasm-pack build --release --target web; wasm-opt pkg/wasmer_wasi_js_bg.wasm -O2 -o pkg/wasmer_wasi_js_bg.wasm; wasm-strip pkg/wasmer_wasi_js_bg.wasm; rollup -c --environment BUILD:production",
         "dev": "rollup -c -w",
