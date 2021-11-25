@@ -1,14 +1,14 @@
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use wasmer::{
-    ChainableNamedResolver, ImportObject, Instance, JSObjectResolver, Module, NamedResolverChain,
+    ChainableNamedResolver, ImportObject, Instance, JsImportObject, Module, NamedResolverChain,
 };
 use wasmer_wasi::{Stdin, Stdout, WasiEnv, WasiError, WasiState};
 
 struct InstantiatedWASI {
     instance: Instance,
     #[allow(dead_code)]
-    resolver: NamedResolverChain<ImportObject, JSObjectResolver>,
+    resolver: NamedResolverChain<ImportObject, JsImportObject>,
 }
 
 #[wasm_bindgen]
@@ -81,7 +81,7 @@ impl WASI {
             js_sys::Error::new(&format!("Failed to create the Import Object: {}`", e))
         })?;
 
-        let resolver = JSObjectResolver::new(&module, imports);
+        let resolver = JsImportObject::new(&module, imports);
         let resolver = resolver.chain_front(import_object);
 
         let instance = Instance::new(&module, &resolver)
