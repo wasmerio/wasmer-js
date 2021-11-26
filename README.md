@@ -5,7 +5,10 @@ This repository consists of multiple packages:
 
 # Wasmer WASI
 
-Isomorphic Javascript library for interacting with WASI Modules in Node.js, the Browser and [Deno](https://deno.land/x/wasm) 
+Isomorphic Javascript library for interacting with WASI Modules in Node.js, the Browser and [Deno](https://deno.land/x/wasm).
+The Javascript Package supports:
+* [X] WASI (with command args, envs and stdio)
+* [X] In-Memory filesystem (MemFS)
 
 ### NPM
 
@@ -57,6 +60,11 @@ let stdout = wasi.getStdoutString();
  // This should print "hello world (exit code: 0)"
 console.log(`${stdout}(exit code: ${exitCode})`);
 ```
+
+## API Docs
+
+Please check the full API documents here:
+https://docs.wasmer.io/integrations/js/reference-api
 
 ## Building
 

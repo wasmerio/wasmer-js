@@ -2,49 +2,7 @@
 /* eslint-disable */
 /**
 */
-export class MemFS {
-  free(): void;
-/**
-* @param {any} config
-*/
-  constructor(config: any);
-/**
-* @param {string} path
-* @returns {Array<any>}
-*/
-  readDir(path: string): Array<any>;
-/**
-* @param {string} path
-*/
-  createDir(path: string): void;
-/**
-* @param {string} path
-*/
-  removeDir(path: string): void;
-/**
-* @param {string} path
-*/
-  removeFile(path: string): void;
-/**
-* @param {string} path
-* @param {string} to
-*/
-  rename(path: string, to: string): void;
-/**
-* @param {string} path
-* @returns {object}
-*/
-  metadata(path: string): object;
-/**
-* @param {string} path
-* @param {any} options
-* @returns {MemFSFile}
-*/
-  open(path: string, options: any): MemFSFile;
-}
-/**
-*/
-export class MemFSFile {
+export class JSVirtualFile {
   free(): void;
 /**
 * @returns {BigInt}
@@ -88,10 +46,51 @@ export class MemFSFile {
 */
   flush(): void;
 /**
-* @param {BigInt} position
-* @returns {BigInt}
+* @param {number} position
+* @returns {number}
 */
-  seek(position: BigInt): BigInt;
+  seek(position: number): number;
+}
+/**
+*/
+export class MemFS {
+  free(): void;
+/**
+*/
+  constructor();
+/**
+* @param {string} path
+* @returns {Array<any>}
+*/
+  readDir(path: string): Array<any>;
+/**
+* @param {string} path
+*/
+  createDir(path: string): void;
+/**
+* @param {string} path
+*/
+  removeDir(path: string): void;
+/**
+* @param {string} path
+*/
+  removeFile(path: string): void;
+/**
+* @param {string} path
+* @param {string} to
+*/
+  rename(path: string, to: string): void;
+/**
+* @param {string} path
+* @returns {object}
+*/
+  metadata(path: string): object;
+/**
+* @param {string} path
+* @param {any} options
+* @returns {JSVirtualFile}
+*/
+  open(path: string, options: any): JSVirtualFile;
 }
 /**
 */
@@ -146,6 +145,10 @@ export class WASI {
 * @param {string} input
 */
   setStdinString(input: string): void;
+/**
+* @returns {MemFS}
+*/
+  readonly fs: MemFS;
 }
 /**
 * A struct representing an aborted instruction execution, with a message
@@ -160,7 +163,7 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 export interface InitOutput {
   readonly memory: WebAssembly.Memory;
   readonly __wbg_memfs_free: (a: number) => void;
-  readonly memfs_new: (a: number) => number;
+  readonly memfs_new: () => number;
   readonly memfs_readDir: (a: number, b: number, c: number) => number;
   readonly memfs_createDir: (a: number, b: number, c: number) => void;
   readonly memfs_removeDir: (a: number, b: number, c: number) => void;
@@ -168,20 +171,21 @@ export interface InitOutput {
   readonly memfs_rename: (a: number, b: number, c: number, d: number, e: number) => void;
   readonly memfs_metadata: (a: number, b: number, c: number) => number;
   readonly memfs_open: (a: number, b: number, c: number, d: number) => number;
-  readonly __wbg_memfsfile_free: (a: number) => void;
-  readonly memfsfile_lastAccessed: (a: number, b: number) => void;
-  readonly memfsfile_lastModified: (a: number, b: number) => void;
-  readonly memfsfile_createdTime: (a: number, b: number) => void;
-  readonly memfsfile_size: (a: number, b: number) => void;
-  readonly memfsfile_setLength: (a: number, b: number, c: number) => void;
-  readonly memfsfile_read: (a: number, b: number) => void;
-  readonly memfsfile_readString: (a: number, b: number) => void;
-  readonly memfsfile_write: (a: number, b: number, c: number) => number;
-  readonly memfsfile_writeString: (a: number, b: number, c: number) => number;
-  readonly memfsfile_flush: (a: number) => void;
-  readonly memfsfile_seek: (a: number, b: number, c: number, d: number) => void;
+  readonly __wbg_jsvirtualfile_free: (a: number) => void;
+  readonly jsvirtualfile_lastAccessed: (a: number, b: number) => void;
+  readonly jsvirtualfile_lastModified: (a: number, b: number) => void;
+  readonly jsvirtualfile_createdTime: (a: number, b: number) => void;
+  readonly jsvirtualfile_size: (a: number, b: number) => void;
+  readonly jsvirtualfile_setLength: (a: number, b: number, c: number) => void;
+  readonly jsvirtualfile_read: (a: number, b: number) => void;
+  readonly jsvirtualfile_readString: (a: number, b: number) => void;
+  readonly jsvirtualfile_write: (a: number, b: number, c: number) => number;
+  readonly jsvirtualfile_writeString: (a: number, b: number, c: number) => number;
+  readonly jsvirtualfile_flush: (a: number) => void;
+  readonly jsvirtualfile_seek: (a: number, b: number) => number;
   readonly __wbg_wasi_free: (a: number) => void;
   readonly wasi_new: (a: number) => number;
+  readonly wasi_fs: (a: number) => number;
   readonly wasi_instantiate: (a: number, b: number, c: number) => void;
   readonly wasi_start: (a: number) => number;
   readonly wasi_getStdoutBuffer: (a: number, b: number) => void;

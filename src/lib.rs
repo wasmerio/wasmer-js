@@ -1,5 +1,5 @@
-mod mem_fs;
+mod fs;
 mod wasi;
 
-pub use crate::mem_fs::{MemFS, MemFSFile};
+pub use crate::fs::{JSVirtualFile, MemFS};
 pub use crate::wasi::WASI;

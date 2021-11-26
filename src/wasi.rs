@@ -1,3 +1,4 @@
+use crate::fs::MemFS;
 use std::io::{Read, Write};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
@@ -59,9 +60,47 @@ impl WASI {
             }
         };
 
+        let preopens: Vec<(String, String)> =
+            {
+                let preopens = js_sys::Reflect::get(&config, &"preopens".into())?;
+                if preopens.is_undefined() {
+                    vec![(".".to_string(), "/".to_string())]
+                } else {
+                    let preopens_obj: js_sys::Object = preopens.dyn_into()?;
+                    js_sys::Object::entries(&preopens_obj)
+                        .iter()
+                        .map(|entry| {
+                            let entry: js_sys::Array = entry.unchecked_into();
+                            let key: Result<String, JsValue> = entry.get(0).as_string().ok_or(
+                                js_sys::Error::new("All preopen keys must be strings").into(),
+                            );
+                            let value: Result<String, JsValue> = entry.get(1).as_string().ok_or(
+                                js_sys::Error::new("All preopen values must be strings").into(),
+                            );
+                            key.and_then(|key| Ok((key, value?)))
+                        })
+                        .collect::<Result<Vec<(String, String)>, JsValue>>()?
+                }
+            };
+
+        let fs = {
+            let fs = js_sys::Reflect::get(&config, &"fs".into())?;
+            if fs.is_undefined() {
+                MemFS::new()?
+            } else {
+                MemFS::new()?
+                // let mem_fs: MemFS = fs.dyn_into()?;
+                // mem_fs
+            }
+        };
         let wasi_env = WasiState::new(&args.get(0).unwrap_or(&"".to_string()))
             .args(if args.len() > 0 { &args[1..] } else { &[] })
             .envs(env)
+            .set_fs(Box::new(fs))
+            .map_dirs(preopens)
+            .map_err(|e| js_sys::Error::new(&format!("Couldn't preopen the dir: {}`", e)))?
+            // .map_dirs(vec![(".".to_string(), "/".to_string())])
+            // .preopen_dir("/").map_err(|e| js_sys::Error::new(&format!("Couldn't preopen the dir: {}`", e)))?
             .finalize()
             .map_err(|e| js_sys::Error::new(&format!("Failed to create the WasiState: {}`", e)))?;
 
@@ -69,6 +108,17 @@ impl WASI {
             wasi_env,
             instantiated: None,
         })
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn fs(&self) -> Result<MemFS, JsValue> {
+        let mut state = self.wasi_env.state();
+        let mem_fs = state
+            .fs
+            .fs_backing
+            .downcast_ref::<MemFS>()
+            .ok_or_else(|| js_sys::Error::new(&format!("Failed to downcast to MemFS")))?;
+        Ok(mem_fs.clone())
     }
 
     pub fn instantiate(&mut self, module: JsValue, imports: js_sys::Object) -> Result<(), JsValue> {

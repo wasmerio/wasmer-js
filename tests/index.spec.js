@@ -43,3 +43,17 @@ test('piping works', async () => {
   let code = wasi.start();
   expect(wasi.getStdoutString()).toBe("!dlroW olleH\n");
 });
+
+test('mapdir works', async () => {
+  let contents = fs.readFileSync(__dirname + '/mapdir.wasm');
+  let wasi = await doWasi(contents, {});
+  wasi.fs.createDir("/a");
+  wasi.fs.createDir("/b");
+  let file = wasi.fs.open("/file", {read: true, write: true, create: true});
+  file.writeString("fileContents");
+  file.seek(0);
+  // console.log(file.readString());
+  // console.log(wasi.fs.readDir("/"));
+  let code = wasi.start();
+  expect(wasi.getStdoutString()).toBe(`"./a"\n"./b"\n"./file"\n`);
+});
