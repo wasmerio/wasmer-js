@@ -1,13 +1,9 @@
 
 let wasm;
 
-const heap = new Array(32).fill(undefined);
+let cachedTextDecoder = new TextDecoder('utf-8', { ignoreBOM: true, fatal: true });
 
-heap.push(undefined, null, true, false);
-
-function getObject(idx) { return heap[idx]; }
-
-let WASM_VECTOR_LEN = 0;
+cachedTextDecoder.decode();
 
 let cachegetUint8Memory0 = null;
 function getUint8Memory0() {
@@ -16,6 +12,41 @@ function getUint8Memory0() {
     }
     return cachegetUint8Memory0;
 }
+
+function getStringFromWasm0(ptr, len) {
+    return cachedTextDecoder.decode(getUint8Memory0().subarray(ptr, ptr + len));
+}
+
+const heap = new Array(32).fill(undefined);
+
+heap.push(undefined, null, true, false);
+
+let heap_next = heap.length;
+
+function addHeapObject(obj) {
+    if (heap_next === heap.length) heap.push(heap.length + 1);
+    const idx = heap_next;
+    heap_next = heap[idx];
+
+    heap[idx] = obj;
+    return idx;
+}
+
+function getObject(idx) { return heap[idx]; }
+
+function dropObject(idx) {
+    if (idx < 36) return;
+    heap[idx] = heap_next;
+    heap_next = idx;
+}
+
+function takeObject(idx) {
+    const ret = getObject(idx);
+    dropObject(idx);
+    return ret;
+}
+
+let WASM_VECTOR_LEN = 0;
 
 let cachedTextEncoder = new TextEncoder('utf-8');
 
@@ -80,37 +111,6 @@ function getInt32Memory0() {
         cachegetInt32Memory0 = new Int32Array(wasm.memory.buffer);
     }
     return cachegetInt32Memory0;
-}
-
-let heap_next = heap.length;
-
-function dropObject(idx) {
-    if (idx < 36) return;
-    heap[idx] = heap_next;
-    heap_next = idx;
-}
-
-function takeObject(idx) {
-    const ret = getObject(idx);
-    dropObject(idx);
-    return ret;
-}
-
-let cachedTextDecoder = new TextDecoder('utf-8', { ignoreBOM: true, fatal: true });
-
-cachedTextDecoder.decode();
-
-function getStringFromWasm0(ptr, len) {
-    return cachedTextDecoder.decode(getUint8Memory0().subarray(ptr, ptr + len));
-}
-
-function addHeapObject(obj) {
-    if (heap_next === heap.length) heap.push(heap.length + 1);
-    const idx = heap_next;
-    heap_next = heap[idx];
-
-    heap[idx] = obj;
-    return idx;
 }
 
 let cachegetFloat64Memory0 = null;
@@ -186,8 +186,19 @@ function debugString(val) {
     return className;
 }
 
+const u32CvtShim = new Uint32Array(2);
+
+const uint64CvtShim = new BigUint64Array(u32CvtShim.buffer);
+
 function getArrayU8FromWasm0(ptr, len) {
     return getUint8Memory0().subarray(ptr / 1, ptr / 1 + len);
+}
+
+function passArray8ToWasm0(arg, malloc) {
+    const ptr = malloc(arg.length * 1);
+    getUint8Memory0().set(arg, ptr / 1);
+    WASM_VECTOR_LEN = arg.length;
+    return ptr;
 }
 
 function handleError(f, args) {
@@ -195,6 +206,284 @@ function handleError(f, args) {
         return f.apply(this, args);
     } catch (e) {
         wasm.__wbindgen_exn_store(addHeapObject(e));
+    }
+}
+/**
+*/
+export class MemFS {
+
+    static __wrap(ptr) {
+        const obj = Object.create(MemFS.prototype);
+        obj.ptr = ptr;
+
+        return obj;
+    }
+
+    __destroy_into_raw() {
+        const ptr = this.ptr;
+        this.ptr = 0;
+
+        return ptr;
+    }
+
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_memfs_free(ptr);
+    }
+    /**
+    * @param {any} config
+    */
+    constructor(config) {
+        var ret = wasm.memfs_new(addHeapObject(config));
+        return MemFS.__wrap(ret);
+    }
+    /**
+    * @param {string} path
+    * @returns {Array<any>}
+    */
+    readDir(path) {
+        var ptr0 = passStringToWasm0(path, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        var len0 = WASM_VECTOR_LEN;
+        var ret = wasm.memfs_readDir(this.ptr, ptr0, len0);
+        return takeObject(ret);
+    }
+    /**
+    * @param {string} path
+    */
+    createDir(path) {
+        var ptr0 = passStringToWasm0(path, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        var len0 = WASM_VECTOR_LEN;
+        wasm.memfs_createDir(this.ptr, ptr0, len0);
+    }
+    /**
+    * @param {string} path
+    */
+    removeDir(path) {
+        var ptr0 = passStringToWasm0(path, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        var len0 = WASM_VECTOR_LEN;
+        wasm.memfs_removeDir(this.ptr, ptr0, len0);
+    }
+    /**
+    * @param {string} path
+    */
+    removeFile(path) {
+        var ptr0 = passStringToWasm0(path, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        var len0 = WASM_VECTOR_LEN;
+        wasm.memfs_removeFile(this.ptr, ptr0, len0);
+    }
+    /**
+    * @param {string} path
+    * @param {string} to
+    */
+    rename(path, to) {
+        var ptr0 = passStringToWasm0(path, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        var len0 = WASM_VECTOR_LEN;
+        var ptr1 = passStringToWasm0(to, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        var len1 = WASM_VECTOR_LEN;
+        wasm.memfs_rename(this.ptr, ptr0, len0, ptr1, len1);
+    }
+    /**
+    * @param {string} path
+    * @returns {object}
+    */
+    metadata(path) {
+        var ptr0 = passStringToWasm0(path, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        var len0 = WASM_VECTOR_LEN;
+        var ret = wasm.memfs_metadata(this.ptr, ptr0, len0);
+        return takeObject(ret);
+    }
+    /**
+    * @param {string} path
+    * @param {any} options
+    * @returns {MemFSFile}
+    */
+    open(path, options) {
+        var ptr0 = passStringToWasm0(path, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        var len0 = WASM_VECTOR_LEN;
+        var ret = wasm.memfs_open(this.ptr, ptr0, len0, addHeapObject(options));
+        return MemFSFile.__wrap(ret);
+    }
+}
+/**
+*/
+export class MemFSFile {
+
+    static __wrap(ptr) {
+        const obj = Object.create(MemFSFile.prototype);
+        obj.ptr = ptr;
+
+        return obj;
+    }
+
+    __destroy_into_raw() {
+        const ptr = this.ptr;
+        this.ptr = 0;
+
+        return ptr;
+    }
+
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_memfsfile_free(ptr);
+    }
+    /**
+    * @returns {BigInt}
+    */
+    lastAccessed() {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            wasm.memfsfile_lastAccessed(retptr, this.ptr);
+            var r0 = getInt32Memory0()[retptr / 4 + 0];
+            var r1 = getInt32Memory0()[retptr / 4 + 1];
+            u32CvtShim[0] = r0;
+            u32CvtShim[1] = r1;
+            const n0 = uint64CvtShim[0];
+            return n0;
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+    /**
+    * @returns {BigInt}
+    */
+    lastModified() {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            wasm.memfsfile_lastModified(retptr, this.ptr);
+            var r0 = getInt32Memory0()[retptr / 4 + 0];
+            var r1 = getInt32Memory0()[retptr / 4 + 1];
+            u32CvtShim[0] = r0;
+            u32CvtShim[1] = r1;
+            const n0 = uint64CvtShim[0];
+            return n0;
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+    /**
+    * @returns {BigInt}
+    */
+    createdTime() {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            wasm.memfsfile_createdTime(retptr, this.ptr);
+            var r0 = getInt32Memory0()[retptr / 4 + 0];
+            var r1 = getInt32Memory0()[retptr / 4 + 1];
+            u32CvtShim[0] = r0;
+            u32CvtShim[1] = r1;
+            const n0 = uint64CvtShim[0];
+            return n0;
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+    /**
+    * @returns {BigInt}
+    */
+    size() {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            wasm.memfsfile_size(retptr, this.ptr);
+            var r0 = getInt32Memory0()[retptr / 4 + 0];
+            var r1 = getInt32Memory0()[retptr / 4 + 1];
+            u32CvtShim[0] = r0;
+            u32CvtShim[1] = r1;
+            const n0 = uint64CvtShim[0];
+            return n0;
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+    /**
+    * @param {BigInt} new_size
+    */
+    setLength(new_size) {
+        uint64CvtShim[0] = new_size;
+        const low0 = u32CvtShim[0];
+        const high0 = u32CvtShim[1];
+        wasm.memfsfile_setLength(this.ptr, low0, high0);
+    }
+    /**
+    * @returns {Uint8Array}
+    */
+    read() {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            wasm.memfsfile_read(retptr, this.ptr);
+            var r0 = getInt32Memory0()[retptr / 4 + 0];
+            var r1 = getInt32Memory0()[retptr / 4 + 1];
+            var v0 = getArrayU8FromWasm0(r0, r1).slice();
+            wasm.__wbindgen_free(r0, r1 * 1);
+            return v0;
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+    /**
+    * @returns {string}
+    */
+    readString() {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            wasm.memfsfile_readString(retptr, this.ptr);
+            var r0 = getInt32Memory0()[retptr / 4 + 0];
+            var r1 = getInt32Memory0()[retptr / 4 + 1];
+            return getStringFromWasm0(r0, r1);
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+            wasm.__wbindgen_free(r0, r1);
+        }
+    }
+    /**
+    * @param {Uint8Array} buf
+    * @returns {number}
+    */
+    write(buf) {
+        try {
+            var ptr0 = passArray8ToWasm0(buf, wasm.__wbindgen_malloc);
+            var len0 = WASM_VECTOR_LEN;
+            var ret = wasm.memfsfile_write(this.ptr, ptr0, len0);
+            return ret >>> 0;
+        } finally {
+            buf.set(getUint8Memory0().subarray(ptr0 / 1, ptr0 / 1 + len0));
+            wasm.__wbindgen_free(ptr0, len0 * 1);
+        }
+    }
+    /**
+    * @param {string} buf
+    * @returns {number}
+    */
+    writeString(buf) {
+        var ptr0 = passStringToWasm0(buf, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        var len0 = WASM_VECTOR_LEN;
+        var ret = wasm.memfsfile_writeString(this.ptr, ptr0, len0);
+        return ret >>> 0;
+    }
+    /**
+    */
+    flush() {
+        wasm.memfsfile_flush(this.ptr);
+    }
+    /**
+    * @param {BigInt} position
+    * @returns {BigInt}
+    */
+    seek(position) {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            uint64CvtShim[0] = position;
+            const low0 = u32CvtShim[0];
+            const high0 = u32CvtShim[1];
+            wasm.memfsfile_seek(retptr, this.ptr, low0, high0);
+            var r0 = getInt32Memory0()[retptr / 4 + 0];
+            var r1 = getInt32Memory0()[retptr / 4 + 1];
+            u32CvtShim[0] = r0;
+            u32CvtShim[1] = r1;
+            const n1 = uint64CvtShim[0];
+            return n1;
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
     }
 }
 /**
@@ -243,6 +532,8 @@ export class WASI {
         return ret >>> 0;
     }
     /**
+    * Get the stdout buffer
+    * Note: this method flushes the stdout
     * @returns {Uint8Array}
     */
     getStdoutBuffer() {
@@ -259,6 +550,8 @@ export class WASI {
         }
     }
     /**
+    * Get the stdout data as a string
+    * Note: this method flushes the stdout
     * @returns {string}
     */
     getStdoutString() {
@@ -272,6 +565,59 @@ export class WASI {
             wasm.__wbindgen_add_to_stack_pointer(16);
             wasm.__wbindgen_free(r0, r1);
         }
+    }
+    /**
+    * Get the stderr buffer
+    * Note: this method flushes the stderr
+    * @returns {Uint8Array}
+    */
+    getStderrBuffer() {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            wasm.wasi_getStderrBuffer(retptr, this.ptr);
+            var r0 = getInt32Memory0()[retptr / 4 + 0];
+            var r1 = getInt32Memory0()[retptr / 4 + 1];
+            var v0 = getArrayU8FromWasm0(r0, r1).slice();
+            wasm.__wbindgen_free(r0, r1 * 1);
+            return v0;
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+    /**
+    * Get the stderr data as a string
+    * Note: this method flushes the stderr
+    * @returns {string}
+    */
+    getStderrString() {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            wasm.wasi_getStderrString(retptr, this.ptr);
+            var r0 = getInt32Memory0()[retptr / 4 + 0];
+            var r1 = getInt32Memory0()[retptr / 4 + 1];
+            return getStringFromWasm0(r0, r1);
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+            wasm.__wbindgen_free(r0, r1);
+        }
+    }
+    /**
+    * Set the stdin buffer
+    * @param {Uint8Array} buf
+    */
+    setStdinBuffer(buf) {
+        var ptr0 = passArray8ToWasm0(buf, wasm.__wbindgen_malloc);
+        var len0 = WASM_VECTOR_LEN;
+        wasm.wasi_setStdinBuffer(this.ptr, ptr0, len0);
+    }
+    /**
+    * Set the stdin data as a string
+    * @param {string} input
+    */
+    setStdinString(input) {
+        var ptr0 = passStringToWasm0(input, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        var len0 = WASM_VECTOR_LEN;
+        wasm.wasi_setStdinString(this.ptr, ptr0, len0);
     }
 }
 /**
@@ -337,6 +683,13 @@ async function init(input) {
     }
     const imports = {};
     imports.wbg = {};
+    imports.wbg.__wbindgen_string_new = function(arg0, arg1) {
+        var ret = getStringFromWasm0(arg0, arg1);
+        return addHeapObject(ret);
+    };
+    imports.wbg.__wbindgen_object_drop_ref = function(arg0) {
+        takeObject(arg0);
+    };
     imports.wbg.__wbindgen_string_get = function(arg0, arg1) {
         const obj = getObject(arg1);
         var ret = typeof(obj) === 'string' ? obj : undefined;
@@ -344,13 +697,6 @@ async function init(input) {
         var len0 = WASM_VECTOR_LEN;
         getInt32Memory0()[arg0 / 4 + 1] = len0;
         getInt32Memory0()[arg0 / 4 + 0] = ptr0;
-    };
-    imports.wbg.__wbindgen_object_drop_ref = function(arg0) {
-        takeObject(arg0);
-    };
-    imports.wbg.__wbindgen_string_new = function(arg0, arg1) {
-        var ret = getStringFromWasm0(arg0, arg1);
-        return addHeapObject(ret);
     };
     imports.wbg.__wbindgen_is_undefined = function(arg0) {
         var ret = getObject(arg0) === undefined;
@@ -425,6 +771,10 @@ async function init(input) {
         var ret = getObject(arg0).length;
         return ret;
     };
+    imports.wbg.__wbg_new_949bbc1147195c4e = function() {
+        var ret = new Array();
+        return addHeapObject(ret);
+    };
     imports.wbg.__wbg_newnoargs_be86524d73f67598 = function(arg0, arg1) {
         var ret = new Function(getStringFromWasm0(arg0, arg1));
         return addHeapObject(ret);
@@ -450,6 +800,10 @@ async function init(input) {
     };
     imports.wbg.__wbg_isArray_eb7ad55f2da67dde = function(arg0) {
         var ret = Array.isArray(getObject(arg0));
+        return ret;
+    };
+    imports.wbg.__wbg_push_284486ca27c6aa8b = function(arg0, arg1) {
+        var ret = getObject(arg0).push(getObject(arg1));
         return ret;
     };
     imports.wbg.__wbg_new_342a24ca698edd87 = function(arg0, arg1) {

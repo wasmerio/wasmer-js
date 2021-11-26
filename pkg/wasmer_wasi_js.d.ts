@@ -2,6 +2,99 @@
 /* eslint-disable */
 /**
 */
+export class MemFS {
+  free(): void;
+/**
+* @param {any} config
+*/
+  constructor(config: any);
+/**
+* @param {string} path
+* @returns {Array<any>}
+*/
+  readDir(path: string): Array<any>;
+/**
+* @param {string} path
+*/
+  createDir(path: string): void;
+/**
+* @param {string} path
+*/
+  removeDir(path: string): void;
+/**
+* @param {string} path
+*/
+  removeFile(path: string): void;
+/**
+* @param {string} path
+* @param {string} to
+*/
+  rename(path: string, to: string): void;
+/**
+* @param {string} path
+* @returns {object}
+*/
+  metadata(path: string): object;
+/**
+* @param {string} path
+* @param {any} options
+* @returns {MemFSFile}
+*/
+  open(path: string, options: any): MemFSFile;
+}
+/**
+*/
+export class MemFSFile {
+  free(): void;
+/**
+* @returns {BigInt}
+*/
+  lastAccessed(): BigInt;
+/**
+* @returns {BigInt}
+*/
+  lastModified(): BigInt;
+/**
+* @returns {BigInt}
+*/
+  createdTime(): BigInt;
+/**
+* @returns {BigInt}
+*/
+  size(): BigInt;
+/**
+* @param {BigInt} new_size
+*/
+  setLength(new_size: BigInt): void;
+/**
+* @returns {Uint8Array}
+*/
+  read(): Uint8Array;
+/**
+* @returns {string}
+*/
+  readString(): string;
+/**
+* @param {Uint8Array} buf
+* @returns {number}
+*/
+  write(buf: Uint8Array): number;
+/**
+* @param {string} buf
+* @returns {number}
+*/
+  writeString(buf: string): number;
+/**
+*/
+  flush(): void;
+/**
+* @param {BigInt} position
+* @returns {BigInt}
+*/
+  seek(position: BigInt): BigInt;
+}
+/**
+*/
 export class WASI {
   free(): void;
 /**
@@ -20,13 +113,39 @@ export class WASI {
 */
   start(): number;
 /**
+* Get the stdout buffer
+* Note: this method flushes the stdout
 * @returns {Uint8Array}
 */
   getStdoutBuffer(): Uint8Array;
 /**
+* Get the stdout data as a string
+* Note: this method flushes the stdout
 * @returns {string}
 */
   getStdoutString(): string;
+/**
+* Get the stderr buffer
+* Note: this method flushes the stderr
+* @returns {Uint8Array}
+*/
+  getStderrBuffer(): Uint8Array;
+/**
+* Get the stderr data as a string
+* Note: this method flushes the stderr
+* @returns {string}
+*/
+  getStderrString(): string;
+/**
+* Set the stdin buffer
+* @param {Uint8Array} buf
+*/
+  setStdinBuffer(buf: Uint8Array): void;
+/**
+* Set the stdin data as a string
+* @param {string} input
+*/
+  setStdinString(input: string): void;
 }
 /**
 * A struct representing an aborted instruction execution, with a message
@@ -40,12 +159,37 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 
 export interface InitOutput {
   readonly memory: WebAssembly.Memory;
+  readonly __wbg_memfs_free: (a: number) => void;
+  readonly memfs_new: (a: number) => number;
+  readonly memfs_readDir: (a: number, b: number, c: number) => number;
+  readonly memfs_createDir: (a: number, b: number, c: number) => void;
+  readonly memfs_removeDir: (a: number, b: number, c: number) => void;
+  readonly memfs_removeFile: (a: number, b: number, c: number) => void;
+  readonly memfs_rename: (a: number, b: number, c: number, d: number, e: number) => void;
+  readonly memfs_metadata: (a: number, b: number, c: number) => number;
+  readonly memfs_open: (a: number, b: number, c: number, d: number) => number;
+  readonly __wbg_memfsfile_free: (a: number) => void;
+  readonly memfsfile_lastAccessed: (a: number, b: number) => void;
+  readonly memfsfile_lastModified: (a: number, b: number) => void;
+  readonly memfsfile_createdTime: (a: number, b: number) => void;
+  readonly memfsfile_size: (a: number, b: number) => void;
+  readonly memfsfile_setLength: (a: number, b: number, c: number) => void;
+  readonly memfsfile_read: (a: number, b: number) => void;
+  readonly memfsfile_readString: (a: number, b: number) => void;
+  readonly memfsfile_write: (a: number, b: number, c: number) => number;
+  readonly memfsfile_writeString: (a: number, b: number, c: number) => number;
+  readonly memfsfile_flush: (a: number) => void;
+  readonly memfsfile_seek: (a: number, b: number, c: number, d: number) => void;
   readonly __wbg_wasi_free: (a: number) => void;
   readonly wasi_new: (a: number) => number;
   readonly wasi_instantiate: (a: number, b: number, c: number) => void;
   readonly wasi_start: (a: number) => number;
   readonly wasi_getStdoutBuffer: (a: number, b: number) => void;
   readonly wasi_getStdoutString: (a: number, b: number) => void;
+  readonly wasi_getStderrBuffer: (a: number, b: number) => void;
+  readonly wasi_getStderrString: (a: number, b: number) => void;
+  readonly wasi_setStdinBuffer: (a: number, b: number, c: number) => void;
+  readonly wasi_setStdinString: (a: number, b: number, c: number) => void;
   readonly __wbg_wasmerruntimeerror_free: (a: number) => void;
   readonly __wbindgen_malloc: (a: number) => number;
   readonly __wbindgen_realloc: (a: number, b: number, c: number) => number;

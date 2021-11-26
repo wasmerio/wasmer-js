@@ -974,6 +974,7 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "wasmer",
+ "wasmer-vfs",
  "wasmer-wasi",
 ]
 

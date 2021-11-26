@@ -13,3 +13,4 @@ wasm-bindgen = "0.2.73"
 wasm-bindgen-futures = "0.4.28"
 wasmer = { path = "../wasmer/lib/api", default-features = false, features = ["js-default"] }
 wasmer-wasi = { path = "../wasmer/lib/wasi", default-features = false, features = ["js"] }
+wasmer-vfs = { path = "../wasmer/lib/vfs", default-features = false, features = ["mem-fs"] }

@@ -1,12 +1,37 @@
 /* tslint:disable */
 /* eslint-disable */
 export const memory: WebAssembly.Memory;
+export function __wbg_memfs_free(a: number): void;
+export function memfs_new(a: number): number;
+export function memfs_readDir(a: number, b: number, c: number): number;
+export function memfs_createDir(a: number, b: number, c: number): void;
+export function memfs_removeDir(a: number, b: number, c: number): void;
+export function memfs_removeFile(a: number, b: number, c: number): void;
+export function memfs_rename(a: number, b: number, c: number, d: number, e: number): void;
+export function memfs_metadata(a: number, b: number, c: number): number;
+export function memfs_open(a: number, b: number, c: number, d: number): number;
+export function __wbg_memfsfile_free(a: number): void;
+export function memfsfile_lastAccessed(a: number, b: number): void;
+export function memfsfile_lastModified(a: number, b: number): void;
+export function memfsfile_createdTime(a: number, b: number): void;
+export function memfsfile_size(a: number, b: number): void;
+export function memfsfile_setLength(a: number, b: number, c: number): void;
+export function memfsfile_read(a: number, b: number): void;
+export function memfsfile_readString(a: number, b: number): void;
+export function memfsfile_write(a: number, b: number, c: number): number;
+export function memfsfile_writeString(a: number, b: number, c: number): number;
+export function memfsfile_flush(a: number): void;
+export function memfsfile_seek(a: number, b: number, c: number, d: number): void;
 export function __wbg_wasi_free(a: number): void;
 export function wasi_new(a: number): number;
 export function wasi_instantiate(a: number, b: number, c: number): void;
 export function wasi_start(a: number): number;
 export function wasi_getStdoutBuffer(a: number, b: number): void;
 export function wasi_getStdoutString(a: number, b: number): void;
+export function wasi_getStderrBuffer(a: number, b: number): void;
+export function wasi_getStderrString(a: number, b: number): void;
+export function wasi_setStdinBuffer(a: number, b: number, c: number): void;
+export function wasi_setStdinString(a: number, b: number, c: number): void;
 export function __wbg_wasmerruntimeerror_free(a: number): void;
 export function __wbindgen_malloc(a: number): number;
 export function __wbindgen_realloc(a: number, b: number, c: number): number;
