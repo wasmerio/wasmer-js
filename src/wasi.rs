@@ -190,6 +190,7 @@ impl WASI {
             .into()
         })
     }
+
     /// Set the stdin buffer
     #[wasm_bindgen(js_name = setStdinBuffer)]
     pub fn set_stdin_buffer(&self, mut buf: Vec<u8>) -> Result<(), JsValue> {
