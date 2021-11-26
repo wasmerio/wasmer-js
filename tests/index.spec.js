@@ -2,16 +2,20 @@ const fs = require('fs');
 // const { init, WASI } = require('../');
 const { init, WASI } = require('../dist/Library.cjs.js');
 
-async function doWasi(moduleBytes, config) {
-  await init();
+
+async function initWasi(moduleBytes, config) {
   let wasi = new WASI(config);
   const module = await WebAssembly.compile(moduleBytes);
   await wasi.instantiate(module, {});
   return wasi;
 }
 
+beforeAll(async () => {
+  await init();
+});
+
 test('envvar works', async () => {
-  let wasi = await doWasi(fs.readFileSync(__dirname + '/envvar.wasm'), {
+  let wasi = await initWasi(fs.readFileSync(__dirname + '/envvar.wasm'), {
     env: {
       DOG: "X",
       TEST: "VALUE",
@@ -31,14 +35,14 @@ SET VAR Ok("HELLO")
 
 test('demo works', async () => {
   let contents = fs.readFileSync(__dirname + '/demo.wasm');
-  let wasi = await doWasi(contents, {});
+  let wasi = await initWasi(contents, {});
   let code = wasi.start();
   expect(wasi.getStdoutString()).toBe("hello world\n");
 });
 
 test('piping works', async () => {
   let contents = fs.readFileSync(__dirname + '/pipe_reverse.wasm');
-  let wasi = await doWasi(contents, {});
+  let wasi = await initWasi(contents, {});
   wasi.setStdinString("Hello World!");
   let code = wasi.start();
   expect(wasi.getStdoutString()).toBe("!dlroW olleH\n");
@@ -46,7 +50,7 @@ test('piping works', async () => {
 
 test('mapdir works', async () => {
   let contents = fs.readFileSync(__dirname + '/mapdir.wasm');
-  let wasi = await doWasi(contents, {});
+  let wasi = await initWasi(contents, {});
   wasi.fs.createDir("/a");
   wasi.fs.createDir("/b");
   let file = wasi.fs.open("/file", {read: true, write: true, create: true});

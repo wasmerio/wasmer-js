@@ -70,8 +70,12 @@ function dataUriToBuffer(uri: string): MimeBuffer {
 	return buffer;
 }
 
-export async function init() {
-    await load(await WebAssembly.compile(dataUriToBuffer(wasm_bytes as any as string)));
+let inited: Promise<any> | null = null;
+export const init = async () => {
+    if (inited === null) {
+        inited = load(await WebAssembly.compile(dataUriToBuffer(wasm_bytes as any as string)));
+    }
+    await inited;
 }
 // console.log(wasm_bytes)
 // export class WASI extends WASIDefault {
