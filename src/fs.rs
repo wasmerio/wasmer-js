@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
-use wasmer_vfs::mem_fs::FileSystem as JSVirtualFilesystem;
+use wasmer_vfs::mem_fs::FileSystem as MemoryFilesystem;
 use wasmer_vfs::{
     DirEntry, FileSystem, FileType, FsError, Metadata, OpenOptions, ReadDir, VirtualFile,
 };
@@ -11,7 +11,7 @@ use wasmer_vfs::{
 #[wasm_bindgen]
 #[derive(Debug, Clone)]
 pub struct MemFS {
-    inner: Arc<JSVirtualFilesystem>,
+    inner: Arc<MemoryFilesystem>,
 }
 
 fn metadata_to_object(metadata: &Metadata) -> Result<js_sys::Object, JsValue> {
@@ -61,7 +61,7 @@ impl MemFS {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Result<MemFS, JsValue> {
         Ok(MemFS {
-            inner: Arc::new(JSVirtualFilesystem::default()),
+            inner: Arc::new(MemoryFilesystem::default()),
         })
     }
 
