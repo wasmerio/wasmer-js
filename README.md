@@ -66,6 +66,168 @@ console.log(`${stdout}(exit code: ${exitCode})`);
 Please check the full API documents here:
 https://docs.wasmer.io/integrations/js/reference-api
 
+### Typescript API
+
+```typescript
+export class WASI {
+  free(): void;
+/**
+* @param {any} config
+*/
+  constructor(config: any);
+/**
+* @param {any} module
+* @param {object} imports
+*/
+  instantiate(module: any, imports: object): void;
+/**
+* Start the WASI Instance, it returns the status code when calling the start
+* function
+* @returns {number}
+*/
+  start(): number;
+/**
+* Get the stdout buffer
+* Note: this method flushes the stdout
+* @returns {Uint8Array}
+*/
+  getStdoutBuffer(): Uint8Array;
+/**
+* Get the stdout data as a string
+* Note: this method flushes the stdout
+* @returns {string}
+*/
+  getStdoutString(): string;
+/**
+* Get the stderr buffer
+* Note: this method flushes the stderr
+* @returns {Uint8Array}
+*/
+  getStderrBuffer(): Uint8Array;
+/**
+* Get the stderr data as a string
+* Note: this method flushes the stderr
+* @returns {string}
+*/
+  getStderrString(): string;
+/**
+* Set the stdin buffer
+* @param {Uint8Array} buf
+*/
+  setStdinBuffer(buf: Uint8Array): void;
+/**
+* Set the stdin data as a string
+* @param {string} input
+*/
+  setStdinString(input: string): void;
+/**
+* @returns {MemFS}
+*/
+  readonly fs: MemFS;
+}
+
+/**
+*/
+export class MemFS {
+  free(): void;
+/**
+*/
+  constructor();
+/**
+* @param {string} path
+* @returns {Array<any>}
+*/
+  readDir(path: string): Array<any>;
+/**
+* @param {string} path
+*/
+  createDir(path: string): void;
+/**
+* @param {string} path
+*/
+  removeDir(path: string): void;
+/**
+* @param {string} path
+*/
+  removeFile(path: string): void;
+/**
+* @param {string} path
+* @param {string} to
+*/
+  rename(path: string, to: string): void;
+/**
+* @param {string} path
+* @returns {object}
+*/
+  metadata(path: string): object;
+/**
+* @param {string} path
+* @param {any} options
+* @returns {JSVirtualFile}
+*/
+  open(path: string, options: any): JSVirtualFile;
+}
+
+
+export class JSVirtualFile {
+  free(): void;
+/**
+* @returns {BigInt}
+*/
+  lastAccessed(): BigInt;
+/**
+* @returns {BigInt}
+*/
+  lastModified(): BigInt;
+/**
+* @returns {BigInt}
+*/
+  createdTime(): BigInt;
+/**
+* @returns {BigInt}
+*/
+  size(): BigInt;
+/**
+* @param {BigInt} new_size
+*/
+  setLength(new_size: BigInt): void;
+/**
+* @returns {Uint8Array}
+*/
+  read(): Uint8Array;
+/**
+* @returns {string}
+*/
+  readString(): string;
+/**
+* @param {Uint8Array} buf
+* @returns {number}
+*/
+  write(buf: Uint8Array): number;
+/**
+* @param {string} buf
+* @returns {number}
+*/
+  writeString(buf: string): number;
+/**
+*/
+  flush(): void;
+/**
+* @param {number} position
+* @returns {number}
+*/
+  seek(position: number): number;
+}
+
+/**
+* A struct representing an aborted instruction execution, with a message
+* indicating the cause.
+*/
+export class WasmerRuntimeError {
+  free(): void;
+}
+```
+
 ## Building
 
 To build this library you will need to have installed in your system:
@@ -93,8 +255,6 @@ npm run test
 ## Pending things to implement
 
 Currently, the Wasmer WASI implementation is only able to execute WASI packages and read the stdout.
-
-* [ ] API to interact with the in-memory filesystem
 
 
 # What is WebAssembly?
