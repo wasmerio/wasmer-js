@@ -1,0 +1,15 @@
+{
+  "name": "wasmer-node-demo",
+  "version": "1.0.0",
+  "description": "Wasmer/WASI node demo",
+  "main": "index.mjs",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "run": "node index.mjs"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@wasmer/wasi": "^1.0.0"
+  }
+}

@@ -24,6 +24,8 @@ And then import it in your server or client-side code with:
 import { init, WASI } from '@wasmer/wasi';
 ```
 
+> Check a full Node example in https://github.com/wasmerio/wasmer-js/tree/main/examples/node
+
 ### Deno
 
 This package is published in Deno in the `wasm` package, you can import it direclty with:
@@ -31,6 +33,8 @@ This package is published in Deno in the `wasm` package, you can import it direc
 ```ts
 import { init, WASI } from 'https://deno.land/x/wasm/wasi.ts';
 ```
+
+> Check a full Deno example in https://github.com/wasmerio/wasmer-js/tree/main/examples/deno
 
 ## Usage
 
