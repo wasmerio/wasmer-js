@@ -8,7 +8,7 @@ let wasi = new WASI({
   args: [],
 });
 
-const moduleBytes = fetch("https://deno.land/x/wasm/tests/demo.wasm");
+const moduleBytes = fetch("https://cdn.deno.land/wasm/versions/v1.0.1/raw/tests/demo.wasm");
 const module = await WebAssembly.compileStreaming(moduleBytes);
 await wasi.instantiate(module, {});
 
