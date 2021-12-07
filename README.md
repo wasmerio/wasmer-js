@@ -63,8 +63,8 @@ console.log(`${stdout}(exit code: ${exitCode})`);
 
 ## API Docs
 
-Please check the full API documents here:
-https://docs.wasmer.io/integrations/js/reference-api
+<!-- Please check the full API documents here:
+https://docs.wasmer.io/integrations/js/reference-api -->
 
 ### Typescript API
 
