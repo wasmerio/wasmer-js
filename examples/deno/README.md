@@ -1,14 +1,23 @@
-# Wasmer/WASI Deno example
+# Wasmer/WASI Deno examples
 
-You can run the code with:
+## Hello World
 
-```shell
-deno run --allow-read --allow-net example.ts
-```
-
-This should output:
+This example outputs hello world in the `stdout`.
 
 ```
+$ deno run --allow-read --allow-net helloworld.ts
 hello world
+(exit code: 0)
+```
+
+## Filesystem
+
+This example lists the files and directories on `/`.
+
+```
+$ deno run --allow-read --allow-net fs.ts
+"./a"
+"./b"
+"./file"
 (exit code: 0)
 ```

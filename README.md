@@ -24,7 +24,7 @@ And then import it in your server or client-side code with:
 import { init, WASI } from '@wasmer/wasi';
 ```
 
-> Check a full Node example in https://github.com/wasmerio/wasmer-js/tree/main/examples/node
+> Check the Node usage examples in https://github.com/wasmerio/wasmer-js/tree/main/examples/node
 
 ### Deno
 
@@ -34,7 +34,7 @@ This package is published in Deno in the `wasm` package, you can import it direc
 import { init, WASI } from 'https://deno.land/x/wasm/wasi.ts';
 ```
 
-> Check a full Deno example in https://github.com/wasmerio/wasmer-js/tree/main/examples/deno
+> Check the Deno usage Examples in https://github.com/wasmerio/wasmer-js/tree/main/examples/deno
 
 ## Usage
 
@@ -148,11 +148,6 @@ Build the pkg and run the tests:
 npm run build
 npm run test
 ```
-
-## Pending things to implement
-
-Currently, the Wasmer WASI implementation is only able to execute WASI packages and read the stdout.
-
 
 # What is WebAssembly?
 
