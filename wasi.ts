@@ -1,12 +1,12 @@
 // @deno-types="./pkg/wasmer_wasi_js.d.ts"
-import baseInit, { WASI } from "./pkg/wasmer_wasi_js.js";
+import baseInit, { WASI, InitInput } from "./pkg/wasmer_wasi_js.js";
 // @deno-types="./pkg/wasmer_wasi_js.d.ts"
 export { WASI } from "./pkg/wasmer_wasi_js.js";
 
 let inited: Promise<any> | null = null;
-export const init = async () => {
-    if (inited === null) {
-        inited = baseInit();
+export const init = async (input?: InitInput | Promise<InitInput>, force?: boolean) => {
+    if (inited === null || force === true) {
+        inited = baseInit(input);
     }
     await inited;
 }
