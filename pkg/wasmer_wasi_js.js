@@ -751,7 +751,7 @@ async function init(input) {
         var ret = getObject(arg0).msCrypto;
         return addHeapObject(ret);
     };
-    imports.wbg.__wbg_instanceof_Global_67d6c5530b7bcf56 = function(arg0) {
+    imports.wbg.__wbg_instanceof_Global_0ebd1d00fecc4a69 = function(arg0) {
         var ret = getObject(arg0) instanceof WebAssembly.Global;
         return ret;
     };

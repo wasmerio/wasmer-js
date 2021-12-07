@@ -314,9 +314,9 @@ checksum = "308cc39be01b73d0d18f82a0e7b2a3df85245f84af96fdddc5d202d27e47b86a"
 
 [[package]]
 name = "memmap2"
-version = "0.2.3"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "723e3ebdcdc5c023db1df315364573789f8857c11b631a2fdfad7c00f5c046b4"
+checksum = "4647a11b578fead29cdbb34d4adef8dd3dc35b876c9c6d5240d83f205abfe96e"
 dependencies = [
  "libc",
 ]
@@ -844,7 +844,7 @@ checksum = "0237232789cf037d5480773fe568aac745bfe2afbc11a863e97901780a6b47cc"
 
 [[package]]
 name = "wasmer"
-version = "2.0.0"
+version = "2.1.0"
 dependencies = [
  "cfg-if 1.0.0",
  "indexmap",
@@ -865,7 +865,7 @@ dependencies = [
 
 [[package]]
 name = "wasmer-compiler"
-version = "2.0.0"
+version = "2.1.0"
 dependencies = [
  "enumset",
  "loupe",
@@ -881,7 +881,7 @@ dependencies = [
 
 [[package]]
 name = "wasmer-derive"
-version = "2.0.0"
+version = "2.1.0"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
@@ -891,7 +891,7 @@ dependencies = [
 
 [[package]]
 name = "wasmer-engine"
-version = "2.0.0"
+version = "2.1.0"
 dependencies = [
  "backtrace",
  "enumset",
@@ -911,7 +911,7 @@ dependencies = [
 
 [[package]]
 name = "wasmer-types"
-version = "2.0.0"
+version = "2.1.0"
 dependencies = [
  "indexmap",
  "loupe",
@@ -922,7 +922,7 @@ dependencies = [
 
 [[package]]
 name = "wasmer-vfs"
-version = "2.0.0"
+version = "2.1.0"
 dependencies = [
  "slab",
  "thiserror",
@@ -931,7 +931,7 @@ dependencies = [
 
 [[package]]
 name = "wasmer-vm"
-version = "2.0.0"
+version = "2.1.0"
 dependencies = [
  "backtrace",
  "cc",
@@ -951,7 +951,7 @@ dependencies = [
 
 [[package]]
 name = "wasmer-wasi"
-version = "2.0.0"
+version = "2.1.0"
 dependencies = [
  "cfg-if 1.0.0",
  "generational-arena",
@@ -980,7 +980,7 @@ dependencies = [
 
 [[package]]
 name = "wasmer-wasi-types"
-version = "2.0.0"
+version = "2.1.0"
 dependencies = [
  "byteorder",
  "time",
