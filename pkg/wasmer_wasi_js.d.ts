@@ -103,8 +103,9 @@ export class WASI {
 /**
 * @param {any} module
 * @param {object} imports
+* @returns {WebAssembly.Instance}
 */
-  instantiate(module: any, imports: object): void;
+  instantiate(module: any, imports: object): WebAssembly.Instance;
 /**
 * Start the WASI Instance, it returns the status code when calling the start
 * function
@@ -186,7 +187,7 @@ export interface InitOutput {
   readonly __wbg_wasi_free: (a: number) => void;
   readonly wasi_new: (a: number) => number;
   readonly wasi_fs: (a: number) => number;
-  readonly wasi_instantiate: (a: number, b: number, c: number) => void;
+  readonly wasi_instantiate: (a: number, b: number, c: number) => number;
   readonly wasi_start: (a: number) => number;
   readonly wasi_getStdoutBuffer: (a: number, b: number) => void;
   readonly wasi_getStdoutString: (a: number, b: number) => void;

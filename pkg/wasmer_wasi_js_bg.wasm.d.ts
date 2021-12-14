@@ -25,7 +25,7 @@ export function jsvirtualfile_seek(a: number, b: number): number;
 export function __wbg_wasi_free(a: number): void;
 export function wasi_new(a: number): number;
 export function wasi_fs(a: number): number;
-export function wasi_instantiate(a: number, b: number, c: number): void;
+export function wasi_instantiate(a: number, b: number, c: number): number;
 export function wasi_start(a: number): number;
 export function wasi_getStdoutBuffer(a: number, b: number): void;
 export function wasi_getStdoutString(a: number, b: number): void;

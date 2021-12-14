@@ -121,7 +121,7 @@ impl WASI {
         Ok(mem_fs.clone())
     }
 
-    pub fn instantiate(&mut self, module: JsValue, imports: js_sys::Object) -> Result<(), JsValue> {
+    pub fn instantiate(&mut self, module: JsValue, imports: js_sys::Object) -> Result<js_sys::WebAssembly::Instance, JsValue> {
         let module: js_sys::WebAssembly::Module = module.dyn_into().map_err(|_e| {
             js_sys::Error::new(
                 "You must provide a module to the WASI new. `let module = new WASI({}, module);`",
@@ -137,8 +137,11 @@ impl WASI {
 
         let instance = Instance::new(&module, &resolver)
             .map_err(|e| js_sys::Error::new(&format!("Failed to instantiate WASI: {}`", e)))?;
+        
+        let raw_instance = instance.raw().clone();
         self.instantiated = Some(InstantiatedWASI { resolver, instance });
-        Ok(())
+
+        Ok(raw_instance)
     }
 
     /// Start the WASI Instance, it returns the status code when calling the start
