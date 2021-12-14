@@ -511,9 +511,11 @@ export class WASI {
     /**
     * @param {any} module
     * @param {object} imports
+    * @returns {WebAssembly.Instance}
     */
     instantiate(module, imports) {
-        wasm.wasi_instantiate(this.ptr, addHeapObject(module), addHeapObject(imports));
+        var ret = wasm.wasi_instantiate(this.ptr, addHeapObject(module), addHeapObject(imports));
+        return takeObject(ret);
     }
     /**
     * Start the WASI Instance, it returns the status code when calling the start

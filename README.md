@@ -77,7 +77,7 @@ export class WASI {
   constructor(config: any);
   readonly fs: MemFS;
 
-  instantiate(module: any, imports: object): void;
+  instantiate(module: any, imports: object): WebAssembly.Instance;
   // Start the WASI Instance, it returns the status code when calling the start
   // function
   start(): number;
