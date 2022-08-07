@@ -2,20 +2,21 @@ use crate::fs::MemFS;
 use std::io::{Read, Write};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
-use wasmer::{
-    ChainableNamedResolver, ImportObject, Instance, JsImportObject, Module, NamedResolverChain,
-};
-use wasmer_wasi::{Stderr, Stdin, Stdout, WasiEnv, WasiError, WasiState};
+use wasmer::{Imports, Instance, JsImportObject, Module, Store};
+use wasmer_wasi::Pipe;
+use wasmer_wasi::{Stderr, Stdin, Stdout, WasiError, WasiFunctionEnv, WasiState};
 
 struct InstantiatedWASI {
     instance: Instance,
-    #[allow(dead_code)]
-    resolver: NamedResolverChain<ImportObject, JsImportObject>,
 }
 
 #[wasm_bindgen]
 pub struct WASI {
-    wasi_env: WasiEnv,
+    store: Store,
+    stdout: Pipe,
+    stdin: Pipe,
+    stderr: Pipe,
+    wasi_env: WasiFunctionEnv,
     instantiated: Option<InstantiatedWASI>,
 }
 
@@ -93,26 +94,37 @@ impl WASI {
                 // mem_fs
             }
         };
+        let mut store = Store::default();
+        let stdout = Pipe::default();
+        let stdin = Pipe::default();
+        let stderr = Pipe::default();
         let wasi_env = WasiState::new(&args.get(0).unwrap_or(&"".to_string()))
             .args(if args.len() > 0 { &args[1..] } else { &[] })
             .envs(env)
             .set_fs(Box::new(fs))
+            .stdout(Box::new(stdout.clone()))
+            .stdin(Box::new(stdin.clone()))
+            .stderr(Box::new(stderr.clone()))
             .map_dirs(preopens)
             .map_err(|e| js_sys::Error::new(&format!("Couldn't preopen the dir: {}`", e)))?
             // .map_dirs(vec![(".".to_string(), "/".to_string())])
             // .preopen_dir("/").map_err(|e| js_sys::Error::new(&format!("Couldn't preopen the dir: {}`", e)))?
-            .finalize()
+            .finalize(&mut store)
             .map_err(|e| js_sys::Error::new(&format!("Failed to create the WasiState: {}`", e)))?;
 
         Ok(WASI {
+            store,
+            stdout,
+            stdin,
+            stderr,
             wasi_env,
             instantiated: None,
         })
     }
 
     #[wasm_bindgen(getter)]
-    pub fn fs(&self) -> Result<MemFS, JsValue> {
-        let mut state = self.wasi_env.state();
+    pub fn fs(&mut self) -> Result<MemFS, JsValue> {
+        let mut state = self.wasi_env.data_mut(&mut self.store).state();
         let mem_fs = state
             .fs
             .fs_backing
@@ -121,32 +133,43 @@ impl WASI {
         Ok(mem_fs.clone())
     }
 
-    pub fn instantiate(&mut self, module: JsValue, imports: js_sys::Object) -> Result<js_sys::WebAssembly::Instance, JsValue> {
+    pub fn instantiate(
+        &mut self,
+        module: JsValue,
+        imports: js_sys::Object,
+    ) -> Result<js_sys::WebAssembly::Instance, JsValue> {
         let module: js_sys::WebAssembly::Module = module.dyn_into().map_err(|_e| {
             js_sys::Error::new(
                 "You must provide a module to the WASI new. `let module = new WASI({}, module);`",
             )
         })?;
         let module: Module = module.into();
-        let import_object = self.wasi_env.import_object(&module).map_err(|e| {
-            js_sys::Error::new(&format!("Failed to create the Import Object: {}`", e))
-        })?;
+        let import_object = self
+            .wasi_env
+            .import_object(&mut self.store, &module)
+            .map_err(|e| {
+                js_sys::Error::new(&format!("Failed to create the Import Object: {}`", e))
+            })?;
 
-        let resolver = JsImportObject::new(&module, imports);
-        let resolver = resolver.chain_front(import_object);
+        // let base_resolver = JsImportObject::new(&module, imports);
+        // let resolver = resolver.chain_front(import_object);
 
-        let instance = Instance::new(&module, &resolver)
+        let instance = Instance::new(&mut self.store, &module, &import_object)
             .map_err(|e| js_sys::Error::new(&format!("Failed to instantiate WASI: {}`", e)))?;
-        
-        let raw_instance = instance.raw().clone();
-        self.instantiated = Some(InstantiatedWASI { resolver, instance });
+
+        self.wasi_env
+            .data_mut(&mut self.store)
+            .set_memory(instance.exports.get_memory("memory").unwrap().clone());
+
+        let raw_instance = instance.raw(&mut self.store).clone();
+        self.instantiated = Some(InstantiatedWASI { instance });
 
         Ok(raw_instance)
     }
 
     /// Start the WASI Instance, it returns the status code when calling the start
     /// function
-    pub fn start(&self) -> Result<u32, JsValue> {
+    pub fn start(&mut self) -> Result<u32, JsValue> {
         let start = self
             .instantiated
             .as_ref()
@@ -155,7 +178,7 @@ impl WASI {
             .exports
             .get_function("_start")
             .map_err(|_e| js_sys::Error::new("The _start function is not present"))?;
-        let result = start.call(&[]);
+        let result = start.call(&mut self.store, &[]);
 
         match result {
             Ok(_) => Ok(0),
@@ -189,77 +212,65 @@ impl WASI {
     /// Get the stdout buffer
     /// Note: this method flushes the stdout
     #[wasm_bindgen(js_name = getStdoutBuffer)]
-    pub fn get_stdout_buffer(&self) -> Result<Vec<u8>, JsValue> {
-        let mut state = self.wasi_env.state();
-        let stdout = state.fs.stdout_mut().unwrap().as_mut().unwrap();
-        let stdout = stdout.downcast_mut::<Stdout>().unwrap();
-        let buf = stdout.buf.clone();
-        stdout.buf = vec![];
-        // let mut buf: Vec<u8> = vec![];
-        // stdout
-        //     .read_to_end(&mut buf)
-        //     .map_err(|e| js_sys::Error::new(&format!("Error when reading stdout: {}`", e)))?;
+    pub fn get_stdout_buffer(&mut self) -> Result<Vec<u8>, JsValue> {
+        let mut buf = Vec::new();
+        self.stdout
+            .read_to_end(&mut buf)
+            .map_err(|e| js_sys::Error::new(&format!("Could not get the stdout bytes: {}`", e)))?;
         Ok(buf)
     }
 
     /// Get the stdout data as a string
     /// Note: this method flushes the stdout
     #[wasm_bindgen(js_name = getStdoutString)]
-    pub fn get_stdout_string(&self) -> Result<String, JsValue> {
-        String::from_utf8(self.get_stdout_buffer()?).map_err(|e| {
+    pub fn get_stdout_string(&mut self) -> Result<String, JsValue> {
+        let mut stdout_str = String::new();
+        self.stdout.read_to_string(&mut stdout_str).map_err(|e| {
             js_sys::Error::new(&format!(
                 "Could not convert the stdout bytes to a String: {}`",
                 e
             ))
-            .into()
-        })
+        })?;
+        Ok(stdout_str)
     }
 
     /// Get the stderr buffer
     /// Note: this method flushes the stderr
     #[wasm_bindgen(js_name = getStderrBuffer)]
-    pub fn get_stderr_buffer(&self) -> Result<Vec<u8>, JsValue> {
-        let mut state = self.wasi_env.state();
-        let stderr = state.fs.stderr_mut().unwrap().as_mut().unwrap();
-        let stderr = stderr.downcast_mut::<Stderr>().unwrap();
-        let buf = stderr.buf.clone();
-        stderr.buf = vec![];
-        // let mut buf: Vec<u8> = vec![];
-        // stderr
-        //     .read_to_end(&mut buf)
-        //     .map_err(|e| js_sys::Error::new(&format!("Error when reading stderr: {}`", e)))?;
+    pub fn get_stderr_buffer(&mut self) -> Result<Vec<u8>, JsValue> {
+        let mut buf = Vec::new();
+        self.stderr
+            .read_to_end(&mut buf)
+            .map_err(|e| js_sys::Error::new(&format!("Could not get the stderr bytes: {}`", e)))?;
         Ok(buf)
     }
 
     /// Get the stderr data as a string
     /// Note: this method flushes the stderr
     #[wasm_bindgen(js_name = getStderrString)]
-    pub fn get_stderr_string(&self) -> Result<String, JsValue> {
-        String::from_utf8(self.get_stderr_buffer()?).map_err(|e| {
+    pub fn get_stderr_string(&mut self) -> Result<String, JsValue> {
+        let mut stderr_str = String::new();
+        self.stderr.read_to_string(&mut stderr_str).map_err(|e| {
             js_sys::Error::new(&format!(
                 "Could not convert the stderr bytes to a String: {}`",
                 e
             ))
-            .into()
-        })
+        })?;
+        Ok(stderr_str)
     }
 
     /// Set the stdin buffer
     #[wasm_bindgen(js_name = setStdinBuffer)]
-    pub fn set_stdin_buffer(&self, mut buf: Vec<u8>) -> Result<(), JsValue> {
-        let mut state = self.wasi_env.state();
-        let stdin = state.fs.stdin_mut().unwrap().as_mut().unwrap();
-        let stdin = stdin.downcast_mut::<Stdin>().unwrap();
-        stdin.buf.append(&mut buf);
-        // stdin
-        //     .write(&mut input)
-        //     .map_err(|e| js_sys::Error::new(&format!("Error when writing stdin: {}`", e)))?;
+    pub fn set_stdin_buffer(&mut self, buf: &[u8]) -> Result<(), JsValue> {
+        self.stdin
+            .write_all(buf)
+            .map_err(|e| js_sys::Error::new(&format!("Error writing stdin: {}`", e)))?;
         Ok(())
     }
 
     /// Set the stdin data as a string
     #[wasm_bindgen(js_name = setStdinString)]
-    pub fn set_stdin_string(&self, input: String) -> Result<(), JsValue> {
-        self.set_stdin_buffer(input.into_bytes())
+    pub fn set_stdin_string(&mut self, input: String) -> Result<(), JsValue> {
+        self.set_stdin_buffer(input.as_bytes())
     }
 }
