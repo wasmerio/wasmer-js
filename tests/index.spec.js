@@ -3,10 +3,10 @@ const fs = require('fs');
 const { init, WASI } = require('../dist/Library.cjs.js');
 
 
-async function initWasi(moduleBytes, config) {
+async function initWasi(moduleBytes, config, imports = {}) {
   let wasi = new WASI(config);
   const module = await WebAssembly.compile(moduleBytes);
-  await wasi.instantiate(module, {});
+  await wasi.instantiate(module, imports);
   return wasi;
 }
 
@@ -61,3 +61,19 @@ test('mapdir works', async () => {
   let code = wasi.start();
   expect(wasi.getStdoutString()).toBe(`"./a"\n"./b"\n"./file"\n`);
 });
+
+test('testing wasm', async() => {
+
+  let contents = fs.readFileSync(__dirname + '/test.wasm');
+  let wasi = await initWasi(contents, {
+    'module': {
+        'external': function() { console.log("external: hello world!") }
+    }});
+
+  // Run the start function
+  let exitCode = wasi.start();
+  let stdout = wasi.getStdoutString();
+
+  // This should print "hello world (exit code: 0)"
+  console.log(`${stdout}(exit code: ${exitCode})`);
+})
