@@ -2,7 +2,7 @@ use crate::fs::MemFS;
 use std::io::{Read, Write};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
-use wasmer::{Imports, Instance, JsImportObject, Module, Store};
+use wasmer::{Imports, Instance, Module, Store};
 use wasmer_wasi::Pipe;
 use wasmer_wasi::{Stderr, Stdin, Stdout, WasiError, WasiFunctionEnv, WasiState};
 
@@ -144,7 +144,7 @@ impl WASI {
             )
         })?;
         let module: Module = module.into();
-        let import_object = self
+        let mut import_object = self
             .wasi_env
             .import_object(&mut self.store, &module)
             .map_err(|e| {
@@ -154,7 +154,13 @@ impl WASI {
         // let base_resolver = JsImportObject::new(&module, imports);
         // let resolver = resolver.chain_front(import_object);
 
-        let instance = Instance::new(&mut self.store, &module, &import_object)
+        let mut custom_imports = Imports::new_from_js_object(&mut self.store, &module, imports )
+            .map_err(|e| js_sys::Error::new(&format!("Failed to get user imports: {}", e)))?;
+        for (module_name, name, _) in custom_imports.iter(){
+            return Err(js_sys::Error::new(&format!("Failed to get custom imports: {} {}`", module_name, name)).into());
+        }
+        custom_imports.extend(&import_object);
+        let instance = Instance::new(&mut self.store, &module, &custom_imports)
             .map_err(|e| js_sys::Error::new(&format!("Failed to instantiate WASI: {}`", e)))?;
 
         self.wasi_env
