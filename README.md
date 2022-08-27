@@ -28,7 +28,7 @@ import { init, WASI } from '@wasmer/wasi';
 
 ### Deno
 
-This package is published in Deno in the `wasm` package, you can import it direclty with:
+This package is published in Deno in the `wasm` package, you can import it directly with:
 
 ```ts
 import { init, WASI } from 'https://deno.land/x/wasm/wasi.ts';
