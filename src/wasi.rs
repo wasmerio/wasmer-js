@@ -6,10 +6,6 @@ use wasmer::{Imports, Instance, Module, Store};
 use wasmer_wasi::Pipe;
 use wasmer_wasi::{Stderr, Stdin, Stdout, WasiError, WasiFunctionEnv, WasiState};
 
-struct InstantiatedWASI {
-    instance: Instance,
-}
-
 #[wasm_bindgen]
 pub struct WASI {
     store: Store,
@@ -17,7 +13,7 @@ pub struct WASI {
     stdin: Pipe,
     stderr: Pipe,
     wasi_env: WasiFunctionEnv,
-    instantiated: Option<InstantiatedWASI>,
+    module: Option<Module>,
 }
 
 #[wasm_bindgen]
@@ -118,7 +114,7 @@ impl WASI {
             stdin,
             stderr,
             wasi_env,
-            instantiated: None,
+            module: None,
         })
     }
 
@@ -133,10 +129,40 @@ impl WASI {
         Ok(mem_fs.clone())
     }
 
+    pub fn get_imports(
+        &mut self,
+        module: js_sys::WebAssembly::Module,
+    ) -> Result<js_sys::Object, JsValue> {
+        let module: js_sys::WebAssembly::Module = module.dyn_into().map_err(|_e| {
+            js_sys::Error::new(
+                "You must provide a module to the WASI new. `let module = new WASI({}, module);`",
+            )
+        })?;
+        let module: Module = module.into();
+        let import_object = self.get_wasmer_imports(&module)?;
+
+        self.module = Some(module);
+
+        Ok(import_object.as_jsobject(&self.store).into())
+    }
+
+    fn get_wasmer_imports(
+        &mut self,
+        module: &Module
+    ) -> Result<Imports, JsValue> {
+        let import_object = self
+            .wasi_env
+            .import_object(&mut self.store, module)
+            .map_err(|e| {
+                js_sys::Error::new(&format!("Failed to create the Import Object: {}`", e))
+            })?;
+        Ok(import_object)
+    }
+
     pub fn instantiate(
         &mut self,
         module: JsValue,
-        imports: js_sys::Object,
+        imports: Option<js_sys::Object>,
     ) -> Result<js_sys::WebAssembly::Instance, JsValue> {
         let module: js_sys::WebAssembly::Module = module.dyn_into().map_err(|_e| {
             js_sys::Error::new(
@@ -144,43 +170,38 @@ impl WASI {
             )
         })?;
         let module: Module = module.into();
-        let mut import_object = self
-            .wasi_env
-            .import_object(&mut self.store, &module)
-            .map_err(|e| {
-                js_sys::Error::new(&format!("Failed to create the Import Object: {}`", e))
-            })?;
 
-        // let base_resolver = JsImportObject::new(&module, imports);
-        // let resolver = resolver.chain_front(import_object);
-
-        let mut custom_imports = Imports::new_from_js_object(&mut self.store, &module, imports )
-            .map_err(|e| js_sys::Error::new(&format!("Failed to get user imports: {}", e)))?;
-        for (module_name, name, _) in custom_imports.iter(){
-            return Err(js_sys::Error::new(&format!("Failed to get custom imports: {} {}`", module_name, name)).into());
+        let import_object = self.get_wasmer_imports(&module)?;
+        let mut custom_imports = if let Some(base_imports) = imports {
+            Imports::new_from_js_object(&mut self.store, &module, base_imports )
+                .map_err(|e| js_sys::Error::new(&format!("Failed to get user imports: {}", e)))?
         }
+        else {
+            Imports::new()
+        };
+
         custom_imports.extend(&import_object);
+
         let instance = Instance::new(&mut self.store, &module, &custom_imports)
             .map_err(|e| js_sys::Error::new(&format!("Failed to instantiate WASI: {}`", e)))?;
 
-        self.wasi_env
-            .data_mut(&mut self.store)
-            .set_memory(instance.exports.get_memory("memory").unwrap().clone());
-
         let raw_instance = instance.raw(&mut self.store).clone();
-        self.instantiated = Some(InstantiatedWASI { instance });
+        self.module = Some(module);
 
         Ok(raw_instance)
     }
 
     /// Start the WASI Instance, it returns the status code when calling the start
     /// function
-    pub fn start(&mut self) -> Result<u32, JsValue> {
-        let start = self
-            .instantiated
-            .as_ref()
-            .unwrap()
-            .instance
+    pub fn start(&mut self, instance: js_sys::WebAssembly::Instance) -> Result<u32, JsValue> {
+
+        let module = self.module.as_ref().unwrap();
+        let instance = Instance::from_module_and_instance(&mut self.store, module, instance).map_err(|e| js_sys::Error::new(&format!("Can't get the Wasmer Instance: {:?}", e)))?;
+        self.wasi_env
+            .data_mut(&mut self.store)
+            .set_memory(instance.exports.get_memory("memory").unwrap().clone());
+
+        let start = instance
             .exports
             .get_function("_start")
             .map_err(|_e| js_sys::Error::new("The _start function is not present"))?;
