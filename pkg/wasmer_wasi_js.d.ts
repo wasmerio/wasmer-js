@@ -169,6 +169,7 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 
 export interface InitOutput {
   readonly memory: WebAssembly.Memory;
+  readonly __wbg_wasmerruntimeerror_free: (a: number) => void;
   readonly __wbg_wasi_free: (a: number) => void;
   readonly wasi_new: (a: number) => number;
   readonly wasi_fs: (a: number) => number;
@@ -202,13 +203,12 @@ export interface InitOutput {
   readonly jsvirtualfile_writeString: (a: number, b: number, c: number) => number;
   readonly jsvirtualfile_flush: (a: number) => void;
   readonly jsvirtualfile_seek: (a: number, b: number) => number;
-  readonly __wbg_wasmerruntimeerror_free: (a: number) => void;
   readonly __wbindgen_malloc: (a: number) => number;
   readonly __wbindgen_realloc: (a: number, b: number, c: number) => number;
   readonly __wbindgen_export_2: WebAssembly.Table;
+  readonly __wbindgen_exn_store: (a: number) => void;
   readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
   readonly __wbindgen_free: (a: number, b: number) => void;
-  readonly __wbindgen_exn_store: (a: number) => void;
 }
 
 /**
