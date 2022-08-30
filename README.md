@@ -28,7 +28,7 @@ import { init, WASI } from '@wasmer/wasi';
 
 ### Deno
 
-This package is published in Deno in the `wasm` package, you can import it direclty with:
+This package is published in Deno in the `wasm` package, you can import it directly with:
 
 ```ts
 import { init, WASI } from 'https://deno.land/x/wasm/wasi.ts';
@@ -55,10 +55,10 @@ let wasi = new WASI({
 const moduleBytes = fetch("https://deno.land/x/wasm/tests/demo.wasm");
 const module = await WebAssembly.compileStreaming(moduleBytes);
 // Instantiate the WASI module
-await wasi.instantiate(module, {});
+let instance = await wasi.instantiate(module, {});
 
 // Run the start function
-let exitCode = wasi.start();
+let exitCode = wasi.start(instance);
 let stdout = wasi.getStdoutString();
 
  // This should print "hello world (exit code: 0)"
@@ -80,7 +80,7 @@ export class WASI {
   instantiate(module: any, imports: object): WebAssembly.Instance;
   // Start the WASI Instance, it returns the status code when calling the start
   // function
-  start(): number;
+  start(instance: WebAssembly.Instance): number;
   // Get the stdout buffer
   // Note: this method flushes the stdout
   getStdoutBuffer(): Uint8Array;
