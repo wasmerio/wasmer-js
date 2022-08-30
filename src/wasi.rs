@@ -146,10 +146,7 @@ impl WASI {
         Ok(import_object.as_jsobject(&self.store).into())
     }
 
-    fn get_wasmer_imports(
-        &mut self,
-        module: &Module
-    ) -> Result<Imports, JsValue> {
+    fn get_wasmer_imports(&mut self, module: &Module) -> Result<Imports, JsValue> {
         let import_object = self
             .wasi_env
             .import_object(&mut self.store, module)
@@ -173,10 +170,9 @@ impl WASI {
 
         let import_object = self.get_wasmer_imports(&module)?;
         let mut custom_imports = if let Some(base_imports) = imports {
-            Imports::new_from_js_object(&mut self.store, &module, base_imports )
+            Imports::new_from_js_object(&mut self.store, &module, base_imports)
                 .map_err(|e| js_sys::Error::new(&format!("Failed to get user imports: {}", e)))?
-        }
-        else {
+        } else {
             Imports::new()
         };
 
@@ -194,9 +190,21 @@ impl WASI {
     /// Start the WASI Instance, it returns the status code when calling the start
     /// function
     pub fn start(&mut self, instance: js_sys::WebAssembly::Instance) -> Result<u32, JsValue> {
-
+        if instance.is_falsy() {
+            return Err(js_sys::Error::new(
+                "`wasi.start` now receives the instance as the first argument (received none)",
+            )
+            .into());
+        }
+        let instance: js_sys::WebAssembly::Instance = instance.dyn_into().map_err(|e| {
+            js_sys::Error::new(&format!(
+                "`wasi.start` now receives the instance as the first argument. Received: {:?}",
+                e
+            ))
+        })?;
         let module = self.module.as_ref().unwrap();
-        let instance = Instance::from_module_and_instance(&mut self.store, module, instance).map_err(|e| js_sys::Error::new(&format!("Can't get the Wasmer Instance: {:?}", e)))?;
+        let instance = Instance::from_module_and_instance(&mut self.store, module, instance)
+            .map_err(|e| js_sys::Error::new(&format!("Can't get the Wasmer Instance: {:?}", e)))?;
         self.wasi_env
             .data_mut(&mut self.store)
             .set_memory(instance.exports.get_memory("memory").unwrap().clone());

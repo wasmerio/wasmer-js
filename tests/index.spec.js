@@ -78,6 +78,21 @@ test('testing wasm', async() => {
   console.log(`${stdout}(exit code: ${exitCode})`);
 })
 
+test('wasi start empty fails', async() => {
+  let moduleBytes = fs.readFileSync(__dirname + '/test.wasm');
+  let wasi = new WASI({});
+  const module = await WebAssembly.compile(moduleBytes);
+  let imports = wasi.get_imports(module);
+  // console.log(imports);
+  let instance = await WebAssembly.instantiate(module, {
+    ...imports,
+    'module': {
+      'external': function() { console.log("external: hello world!") }
+    }
+  });
+  expect(() => wasi.start()).toThrow("`wasi.start` now receives the instance as the first argument (received none)");
+});
+
 test('get imports', async() => {
   let moduleBytes = fs.readFileSync(__dirname + '/test.wasm');
   let wasi = new WASI({});
