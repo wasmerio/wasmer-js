@@ -14,9 +14,9 @@ const buf = fs.readFileSync('../../tests/demo.wasm');
 const module = await WebAssembly.compile(
   new Uint8Array(buf)
 );
-await wasi.instantiate(module, {});
+let instance = await wasi.instantiate(module, {});
 
-let exitCode = wasi.start();
+let exitCode = wasi.start(instance);
 let stdout = wasi.getStdoutString();
 // This should print "hello world (exit code: 0)"
 console.log(`${stdout}(exit code: ${exitCode})`);
