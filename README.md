@@ -80,7 +80,7 @@ export class WASI {
   instantiate(module: any, imports: object): WebAssembly.Instance;
   // Start the WASI Instance, it returns the status code when calling the start
   // function
-  start(): number;
+  start(instance: WebAssembly.Instance): number;
   // Get the stdout buffer
   // Note: this method flushes the stdout
   getStdoutBuffer(): Uint8Array;
