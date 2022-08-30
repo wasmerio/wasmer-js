@@ -14,7 +14,7 @@ const buf = fs.readFileSync('../../tests/mapdir.wasm');
 const module = await WebAssembly.compile(
   new Uint8Array(buf)
 );
-await wasi.instantiate(module, {});
+let instance = await wasi.instantiate(module, {});
 
 wasi.fs.createDir("/a");
 wasi.fs.createDir("/b");
@@ -23,7 +23,7 @@ let file = wasi.fs.open("/file", {read: true, write: true, create: true});
 file.writeString("fileContents");
 file.seek(0);
 
-let exitCode = wasi.start();
+let exitCode = wasi.start(instance);
 let stdout = wasi.getStdoutString();
 
 // This should print "hello world (exit code: 0)"
