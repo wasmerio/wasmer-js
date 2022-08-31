@@ -104,7 +104,7 @@ export class WASI {
 * @param {WebAssembly.Module} module
 * @returns {object}
 */
-  get_imports(module: WebAssembly.Module): object;
+  getImports(module: WebAssembly.Module): object;
 /**
 * @param {any} module
 * @param {object | undefined} imports
@@ -173,7 +173,7 @@ export interface InitOutput {
   readonly __wbg_wasi_free: (a: number) => void;
   readonly wasi_new: (a: number) => number;
   readonly wasi_fs: (a: number) => number;
-  readonly wasi_get_imports: (a: number, b: number) => number;
+  readonly wasi_getImports: (a: number, b: number) => number;
   readonly wasi_instantiate: (a: number, b: number, c: number) => number;
   readonly wasi_start: (a: number, b: number) => number;
   readonly wasi_getStdoutBuffer: (a: number, b: number) => void;

@@ -1,6 +1,6 @@
 // import load, { WASI } from "./pkg/index";
 export * from "./pkg/wasmer_wasi_js";
-import { InitInput } from "./pkg/wasmer_wasi_js";
+// import { InitInput } from "./pkg/wasmer_wasi_js";
 import load from "./pkg/wasmer_wasi_js";
 import wasm_bytes from "./pkg/wasmer_wasi_js_bg.wasm";
 
@@ -70,6 +70,8 @@ function dataUriToBuffer(uri: string): MimeBuffer {
 
 	return buffer;
 }
+
+export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 let inited: Promise<any> | null = null;
 export const init = async (input?: InitInput | Promise<InitInput>, force?: boolean) => {

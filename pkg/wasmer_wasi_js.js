@@ -512,8 +512,8 @@ export class WASI {
     * @param {WebAssembly.Module} module
     * @returns {object}
     */
-    get_imports(module) {
-        var ret = wasm.wasi_get_imports(this.ptr, addHeapObject(module));
+    getImports(module) {
+        var ret = wasm.wasi_getImports(this.ptr, addHeapObject(module));
         return takeObject(ret);
     }
     /**

@@ -5,7 +5,7 @@ export function __wbg_wasmerruntimeerror_free(a: number): void;
 export function __wbg_wasi_free(a: number): void;
 export function wasi_new(a: number): number;
 export function wasi_fs(a: number): number;
-export function wasi_get_imports(a: number, b: number): number;
+export function wasi_getImports(a: number, b: number): number;
 export function wasi_instantiate(a: number, b: number, c: number): number;
 export function wasi_start(a: number, b: number): number;
 export function wasi_getStdoutBuffer(a: number, b: number): void;

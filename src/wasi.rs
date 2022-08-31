@@ -129,6 +129,7 @@ impl WASI {
         Ok(mem_fs.clone())
     }
 
+    #[wasm_bindgen(js_name = getImports)]    
     pub fn get_imports(
         &mut self,
         module: js_sys::WebAssembly::Module,

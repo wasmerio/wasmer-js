@@ -82,7 +82,7 @@ test('wasi start empty fails', async() => {
   let moduleBytes = fs.readFileSync(__dirname + '/test.wasm');
   let wasi = new WASI({});
   const module = await WebAssembly.compile(moduleBytes);
-  let imports = wasi.get_imports(module);
+  let imports = wasi.getImports(module);
   // console.log(imports);
   let instance = await WebAssembly.instantiate(module, {
     ...imports,
@@ -97,7 +97,7 @@ test('get imports', async() => {
   let moduleBytes = fs.readFileSync(__dirname + '/test.wasm');
   let wasi = new WASI({});
   const module = await WebAssembly.compile(moduleBytes);
-  let imports = wasi.get_imports(module);
+  let imports = wasi.getImports(module);
   // console.log(imports);
   let instance = await WebAssembly.instantiate(module, {
     ...imports,
