@@ -106,18 +106,18 @@ export class WASI {
 */
   getImports(module: WebAssembly.Module): object;
 /**
-* @param {any} module
+* @param {any} module_or_instance
 * @param {object | undefined} imports
 * @returns {WebAssembly.Instance}
 */
-  instantiate(module: any, imports?: object): WebAssembly.Instance;
+  instantiate(module_or_instance: any, imports?: object): WebAssembly.Instance;
 /**
 * Start the WASI Instance, it returns the status code when calling the start
 * function
-* @param {WebAssembly.Instance} instance
+* @param {WebAssembly.Instance | undefined} instance
 * @returns {number}
 */
-  start(instance: WebAssembly.Instance): number;
+  start(instance?: WebAssembly.Instance): number;
 /**
 * Get the stdout buffer
 * Note: this method flushes the stdout
@@ -170,18 +170,6 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 export interface InitOutput {
   readonly memory: WebAssembly.Memory;
   readonly __wbg_wasmerruntimeerror_free: (a: number) => void;
-  readonly __wbg_wasi_free: (a: number) => void;
-  readonly wasi_new: (a: number) => number;
-  readonly wasi_fs: (a: number) => number;
-  readonly wasi_getImports: (a: number, b: number) => number;
-  readonly wasi_instantiate: (a: number, b: number, c: number) => number;
-  readonly wasi_start: (a: number, b: number) => number;
-  readonly wasi_getStdoutBuffer: (a: number, b: number) => void;
-  readonly wasi_getStdoutString: (a: number, b: number) => void;
-  readonly wasi_getStderrBuffer: (a: number, b: number) => void;
-  readonly wasi_getStderrString: (a: number, b: number) => void;
-  readonly wasi_setStdinBuffer: (a: number, b: number, c: number) => void;
-  readonly wasi_setStdinString: (a: number, b: number, c: number) => void;
   readonly __wbg_memfs_free: (a: number) => void;
   readonly memfs_new: () => number;
   readonly memfs_readDir: (a: number, b: number, c: number) => number;
@@ -203,6 +191,18 @@ export interface InitOutput {
   readonly jsvirtualfile_writeString: (a: number, b: number, c: number) => number;
   readonly jsvirtualfile_flush: (a: number) => void;
   readonly jsvirtualfile_seek: (a: number, b: number) => number;
+  readonly __wbg_wasi_free: (a: number) => void;
+  readonly wasi_new: (a: number) => number;
+  readonly wasi_fs: (a: number) => number;
+  readonly wasi_getImports: (a: number, b: number) => number;
+  readonly wasi_instantiate: (a: number, b: number, c: number) => number;
+  readonly wasi_start: (a: number, b: number) => number;
+  readonly wasi_getStdoutBuffer: (a: number, b: number) => void;
+  readonly wasi_getStdoutString: (a: number, b: number) => void;
+  readonly wasi_getStderrBuffer: (a: number, b: number) => void;
+  readonly wasi_getStderrString: (a: number, b: number) => void;
+  readonly wasi_setStdinBuffer: (a: number, b: number, c: number) => void;
+  readonly wasi_setStdinString: (a: number, b: number, c: number) => void;
   readonly __wbindgen_malloc: (a: number) => number;
   readonly __wbindgen_realloc: (a: number, b: number, c: number) => number;
   readonly __wbindgen_export_2: WebAssembly.Table;

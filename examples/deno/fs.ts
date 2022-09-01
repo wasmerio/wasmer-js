@@ -10,7 +10,7 @@ let wasi = new WASI({
 
 const moduleBytes = fetch("https://cdn.deno.land/wasm/versions/v1.0.1/raw/tests/mapdir.wasm");
 const module = await WebAssembly.compileStreaming(moduleBytes);
-let instance = await wasi.instantiate(module, {});
+await wasi.instantiate(module, {});
 
 wasi.fs.createDir("/a");
 wasi.fs.createDir("/b");
@@ -19,7 +19,7 @@ let file = wasi.fs.open("/file", {read: true, write: true, create: true});
 file.writeString("fileContents");
 file.seek(0);
 
-let exitCode = wasi.start(instance);
+let exitCode = wasi.start();
 let stdout = wasi.getStdoutString();
 // This should print "hello world (exit code: 0)"
 console.log(`${stdout}(exit code: ${exitCode})`);

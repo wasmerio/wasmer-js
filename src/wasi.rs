@@ -14,6 +14,7 @@ pub struct WASI {
     stderr: Pipe,
     wasi_env: WasiFunctionEnv,
     module: Option<Module>,
+    instance: Option<Instance>,
 }
 
 #[wasm_bindgen]
@@ -115,6 +116,7 @@ impl WASI {
             stderr,
             wasi_env,
             module: None,
+            instance: None,
         })
     }
 
@@ -129,7 +131,7 @@ impl WASI {
         Ok(mem_fs.clone())
     }
 
-    #[wasm_bindgen(js_name = getImports)]    
+    #[wasm_bindgen(js_name = getImports)]
     pub fn get_imports(
         &mut self,
         module: js_sys::WebAssembly::Module,
@@ -140,14 +142,14 @@ impl WASI {
             )
         })?;
         let module: Module = module.into();
-        let import_object = self.get_wasmer_imports(&module)?;
+        let import_object = self.get_wasi_imports(&module)?;
 
         self.module = Some(module);
 
         Ok(import_object.as_jsobject(&self.store).into())
     }
 
-    fn get_wasmer_imports(&mut self, module: &Module) -> Result<Imports, JsValue> {
+    fn get_wasi_imports(&mut self, module: &Module) -> Result<Imports, JsValue> {
         let import_object = self
             .wasi_env
             .import_object(&mut self.store, module)
@@ -159,58 +161,72 @@ impl WASI {
 
     pub fn instantiate(
         &mut self,
-        module: JsValue,
+        module_or_instance: JsValue,
         imports: Option<js_sys::Object>,
     ) -> Result<js_sys::WebAssembly::Instance, JsValue> {
-        let module: js_sys::WebAssembly::Module = module.dyn_into().map_err(|_e| {
-            js_sys::Error::new(
-                "You must provide a module to the WASI new. `let module = new WASI({}, module);`",
-            )
-        })?;
-        let module: Module = module.into();
+        let instance = if module_or_instance.has_type::<js_sys::WebAssembly::Module>() {
+            let js_module: js_sys::WebAssembly::Module = module_or_instance.unchecked_into();
+            let module: Module = js_module.into();
+            let import_object = self.get_wasi_imports(&module)?;
+            let imports = if let Some(base_imports) = imports {
+                let mut imports =
+                    Imports::new_from_js_object(&mut self.store, &module, base_imports).map_err(
+                        |e| js_sys::Error::new(&format!("Failed to get user imports: {}", e)),
+                    )?;
+                imports.extend(&import_object);
+                imports
+            } else {
+                import_object
+            };
 
-        let import_object = self.get_wasmer_imports(&module)?;
-        let mut custom_imports = if let Some(base_imports) = imports {
-            Imports::new_from_js_object(&mut self.store, &module, base_imports)
-                .map_err(|e| js_sys::Error::new(&format!("Failed to get user imports: {}", e)))?
+            let instance = Instance::new(&mut self.store, &module, &imports)
+                .map_err(|e| js_sys::Error::new(&format!("Failed to instantiate WASI: {}`", e)))?;
+            self.module = Some(module);
+            instance
+        } else if module_or_instance.has_type::<js_sys::WebAssembly::Instance>() {
+            if let Some(instance) = &self.instance {
+                // We completely skip the set instance step
+                return Ok(instance.raw(&mut self.store).clone());
+            }
+            let module = self.module.as_ref().ok_or(js_sys::Error::new("When providing an instance, the `wasi.getImports` must be called with the module first"))?;
+            let js_instance: js_sys::WebAssembly::Instance = module_or_instance.unchecked_into();
+            let instance = Instance::from_module_and_instance(&mut self.store, module, js_instance)
+                .map_err(|e| {
+                    js_sys::Error::new(&format!("Can't get the Wasmer Instance: {:?}", e))
+                })?;
+            instance
         } else {
-            Imports::new()
+            return Err(
+                js_sys::Error::new("You need to provide a `WebAssembly.Module` or `WebAssembly.Instance` as first argument to `wasi.instantiate`").into(),
+            );
         };
 
-        custom_imports.extend(&import_object);
-
-        let instance = Instance::new(&mut self.store, &module, &custom_imports)
-            .map_err(|e| js_sys::Error::new(&format!("Failed to instantiate WASI: {}`", e)))?;
+        self.wasi_env
+            .data_mut(&mut self.store)
+            .set_memory(instance.exports.get_memory("memory").unwrap().clone());
 
         let raw_instance = instance.raw(&mut self.store).clone();
-        self.module = Some(module);
-
+        self.instance = Some(instance);
         Ok(raw_instance)
     }
 
     /// Start the WASI Instance, it returns the status code when calling the start
     /// function
-    pub fn start(&mut self, instance: js_sys::WebAssembly::Instance) -> Result<u32, JsValue> {
-        if instance.is_falsy() {
-            return Err(js_sys::Error::new(
-                "`wasi.start` now receives the instance as the first argument (received none)",
-            )
-            .into());
+    pub fn start(
+        &mut self,
+        instance: Option<js_sys::WebAssembly::Instance>,
+    ) -> Result<u32, JsValue> {
+        if let Some(instance) = instance {
+            self.instantiate(instance.into(), None)?;
+        } else if self.instance.is_none() {
+            return Err(
+                js_sys::Error::new("You need to provide a instance as argument to start, or call `wasi.instantiate` with the `WebAssembly.Instance` manually").into(),
+            );
         }
-        let instance: js_sys::WebAssembly::Instance = instance.dyn_into().map_err(|e| {
-            js_sys::Error::new(&format!(
-                "`wasi.start` now receives the instance as the first argument. Received: {:?}",
-                e
-            ))
-        })?;
-        let module = self.module.as_ref().unwrap();
-        let instance = Instance::from_module_and_instance(&mut self.store, module, instance)
-            .map_err(|e| js_sys::Error::new(&format!("Can't get the Wasmer Instance: {:?}", e)))?;
-        self.wasi_env
-            .data_mut(&mut self.store)
-            .set_memory(instance.exports.get_memory("memory").unwrap().clone());
-
-        let start = instance
+        let start = self
+            .instance
+            .as_ref()
+            .unwrap()
             .exports
             .get_function("_start")
             .map_err(|_e| js_sys::Error::new("The _start function is not present"))?;

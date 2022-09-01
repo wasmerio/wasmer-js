@@ -55,10 +55,10 @@ let wasi = new WASI({
 const moduleBytes = fetch("https://deno.land/x/wasm/tests/demo.wasm");
 const module = await WebAssembly.compileStreaming(moduleBytes);
 // Instantiate the WASI module
-let instance = await wasi.instantiate(module, {});
+await wasi.instantiate(module, {});
 
 // Run the start function
-let exitCode = wasi.start(instance);
+let exitCode = wasi.start();
 let stdout = wasi.getStdoutString();
 
  // This should print "hello world (exit code: 0)"

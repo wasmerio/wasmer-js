@@ -198,16 +198,16 @@ function getArrayU8FromWasm0(ptr, len) {
     return getUint8Memory0().subarray(ptr / 1, ptr / 1 + len);
 }
 
+const u32CvtShim = new Uint32Array(2);
+
+const uint64CvtShim = new BigUint64Array(u32CvtShim.buffer);
+
 function passArray8ToWasm0(arg, malloc) {
     const ptr = malloc(arg.length * 1);
     getUint8Memory0().set(arg, ptr / 1);
     WASM_VECTOR_LEN = arg.length;
     return ptr;
 }
-
-const u32CvtShim = new Uint32Array(2);
-
-const uint64CvtShim = new BigUint64Array(u32CvtShim.buffer);
 /**
 */
 export class JSVirtualFile {
@@ -517,22 +517,22 @@ export class WASI {
         return takeObject(ret);
     }
     /**
-    * @param {any} module
+    * @param {any} module_or_instance
     * @param {object | undefined} imports
     * @returns {WebAssembly.Instance}
     */
-    instantiate(module, imports) {
-        var ret = wasm.wasi_instantiate(this.ptr, addHeapObject(module), isLikeNone(imports) ? 0 : addHeapObject(imports));
+    instantiate(module_or_instance, imports) {
+        var ret = wasm.wasi_instantiate(this.ptr, addHeapObject(module_or_instance), isLikeNone(imports) ? 0 : addHeapObject(imports));
         return takeObject(ret);
     }
     /**
     * Start the WASI Instance, it returns the status code when calling the start
     * function
-    * @param {WebAssembly.Instance} instance
+    * @param {WebAssembly.Instance | undefined} instance
     * @returns {number}
     */
     start(instance) {
-        var ret = wasm.wasi_start(this.ptr, addHeapObject(instance));
+        var ret = wasm.wasi_start(this.ptr, isLikeNone(instance) ? 0 : addHeapObject(instance));
         return ret >>> 0;
     }
     /**
@@ -763,6 +763,10 @@ async function init(input) {
         var ret = getObject(arg0).call(getObject(arg1));
         return addHeapObject(ret);
     }, arguments) };
+    imports.wbg.__wbg_instanceof_Function_07f0fd0979b11789 = function(arg0) {
+        var ret = getObject(arg0) instanceof Function;
+        return ret;
+    };
     imports.wbg.__wbindgen_memory = function() {
         var ret = wasm.memory;
         return addHeapObject(ret);
@@ -790,10 +794,18 @@ async function init(input) {
         var ret = getObject(arg0) instanceof WebAssembly.Module;
         return ret;
     };
+    imports.wbg.__wbg_instanceof_Table_7aa3c4bf4a3e48a4 = function(arg0) {
+        var ret = getObject(arg0) instanceof WebAssembly.Table;
+        return ret;
+    };
     imports.wbg.__wbg_get_11af051ff97b40e3 = function() { return handleError(function (arg0, arg1) {
         var ret = getObject(arg0).get(arg1 >>> 0);
         return addHeapObject(ret);
     }, arguments) };
+    imports.wbg.__wbg_instanceof_Memory_625744f21df3a5ec = function(arg0) {
+        var ret = getObject(arg0) instanceof WebAssembly.Memory;
+        return ret;
+    };
     imports.wbg.__wbg_get_4d0f21c2f823742e = function() { return handleError(function (arg0, arg1) {
         var ret = Reflect.get(getObject(arg0), getObject(arg1));
         return addHeapObject(ret);
@@ -834,6 +846,10 @@ async function init(input) {
         var len0 = WASM_VECTOR_LEN;
         getInt32Memory0()[arg0 / 4 + 1] = len0;
         getInt32Memory0()[arg0 / 4 + 0] = ptr0;
+    };
+    imports.wbg.__wbg_instanceof_Global_6f02d66d02a0b291 = function(arg0) {
+        var ret = getObject(arg0) instanceof WebAssembly.Global;
+        return ret;
     };
     imports.wbg.__wbg_wasmerruntimeerror_new = function(arg0) {
         var ret = WasmerRuntimeError.__wrap(arg0);
@@ -885,14 +901,6 @@ async function init(input) {
         var ret = getObject(arg0).bind(getObject(arg1), getObject(arg2), getObject(arg3));
         return addHeapObject(ret);
     };
-    imports.wbg.__wbg_isArray_eb7ad55f2da67dde = function(arg0) {
-        var ret = Array.isArray(getObject(arg0));
-        return ret;
-    };
-    imports.wbg.__wbg_entries_aadf9c3f38203a12 = function(arg0) {
-        var ret = Object.entries(getObject(arg0));
-        return addHeapObject(ret);
-    };
     imports.wbg.__wbg_new_342a24ca698edd87 = function(arg0, arg1) {
         var ret = new Error(getStringFromWasm0(arg0, arg1));
         return addHeapObject(ret);
@@ -901,30 +909,6 @@ async function init(input) {
         var ret = new Object();
         return addHeapObject(ret);
     };
-    imports.wbg.__wbindgen_typeof = function(arg0) {
-        var ret = typeof getObject(arg0);
-        return addHeapObject(ret);
-    };
-    imports.wbg.__wbg_new_85ffb4017aa64fce = function() { return handleError(function (arg0, arg1) {
-        var ret = new WebAssembly.Instance(getObject(arg0), getObject(arg1));
-        return addHeapObject(ret);
-    }, arguments) };
-    imports.wbg.__wbindgen_is_falsy = function(arg0) {
-        var ret = !getObject(arg0);
-        return ret;
-    };
-    imports.wbg.__wbg_instanceof_Instance_38f5bc5383db505e = function(arg0) {
-        var ret = getObject(arg0) instanceof WebAssembly.Instance;
-        return ret;
-    };
-    imports.wbg.__wbg_newwithlength_75ee2b96c288e6bc = function(arg0) {
-        var ret = new Array(arg0 >>> 0);
-        return addHeapObject(ret);
-    };
-    imports.wbg.__wbg_apply_0b1f3c47d1bbe0ea = function() { return handleError(function (arg0, arg1, arg2) {
-        var ret = Reflect.apply(getObject(arg0), getObject(arg1), getObject(arg2));
-        return addHeapObject(ret);
-    }, arguments) };
     imports.wbg.__wbg_randomFillSync_64cc7d048f228ca8 = function() { return handleError(function (arg0, arg1, arg2) {
         getObject(arg0).randomFillSync(getArrayU8FromWasm0(arg1, arg2));
     }, arguments) };
@@ -937,6 +921,14 @@ async function init(input) {
     };
     imports.wbg.__wbg_exports_fbb3d7d1f9db2ccb = function(arg0) {
         var ret = WebAssembly.Module.exports(getObject(arg0));
+        return addHeapObject(ret);
+    };
+    imports.wbg.__wbindgen_typeof = function(arg0) {
+        var ret = typeof getObject(arg0);
+        return addHeapObject(ret);
+    };
+    imports.wbg.__wbindgen_bigint_new = function(arg0, arg1) {
+        var ret = BigInt(getStringFromWasm0(arg0, arg1));
         return addHeapObject(ret);
     };
     imports.wbg.__wbg_new_949bbc1147195c4e = function() {
@@ -952,30 +944,34 @@ async function init(input) {
         var ret = typeof(v) === 'boolean' ? (v ? 1 : 0) : 2;
         return ret;
     };
-    imports.wbg.__wbindgen_bigint_new = function(arg0, arg1) {
-        var ret = BigInt(getStringFromWasm0(arg0, arg1));
-        return addHeapObject(ret);
-    };
     imports.wbg.__wbg_instanceof_Object_66786225e0dbc8ba = function(arg0) {
         var ret = getObject(arg0) instanceof Object;
         return ret;
     };
-    imports.wbg.__wbg_instanceof_Table_7aa3c4bf4a3e48a4 = function(arg0) {
-        var ret = getObject(arg0) instanceof WebAssembly.Table;
+    imports.wbg.__wbg_isArray_eb7ad55f2da67dde = function(arg0) {
+        var ret = Array.isArray(getObject(arg0));
         return ret;
     };
-    imports.wbg.__wbg_instanceof_Function_07f0fd0979b11789 = function(arg0) {
-        var ret = getObject(arg0) instanceof Function;
+    imports.wbg.__wbg_entries_aadf9c3f38203a12 = function(arg0) {
+        var ret = Object.entries(getObject(arg0));
+        return addHeapObject(ret);
+    };
+    imports.wbg.__wbg_instanceof_Instance_38f5bc5383db505e = function(arg0) {
+        var ret = getObject(arg0) instanceof WebAssembly.Instance;
         return ret;
     };
-    imports.wbg.__wbg_instanceof_Memory_625744f21df3a5ec = function(arg0) {
-        var ret = getObject(arg0) instanceof WebAssembly.Memory;
-        return ret;
+    imports.wbg.__wbg_new_85ffb4017aa64fce = function() { return handleError(function (arg0, arg1) {
+        var ret = new WebAssembly.Instance(getObject(arg0), getObject(arg1));
+        return addHeapObject(ret);
+    }, arguments) };
+    imports.wbg.__wbg_newwithlength_75ee2b96c288e6bc = function(arg0) {
+        var ret = new Array(arg0 >>> 0);
+        return addHeapObject(ret);
     };
-    imports.wbg.__wbg_instanceof_Global_6f02d66d02a0b291 = function(arg0) {
-        var ret = getObject(arg0) instanceof WebAssembly.Global;
-        return ret;
-    };
+    imports.wbg.__wbg_apply_0b1f3c47d1bbe0ea = function() { return handleError(function (arg0, arg1, arg2) {
+        var ret = Reflect.apply(getObject(arg0), getObject(arg1), getObject(arg2));
+        return addHeapObject(ret);
+    }, arguments) };
 
     if (typeof input === 'string' || (typeof Request === 'function' && input instanceof Request) || (typeof URL === 'function' && input instanceof URL)) {
         input = fetch(input);
