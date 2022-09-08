@@ -220,7 +220,7 @@ impl WASI {
             self.instantiate(instance.into(), None)?;
         } else if self.instance.is_none() {
             return Err(
-                js_sys::Error::new("You need to provide a instance as argument to start, or call `wasi.instantiate` with the `WebAssembly.Instance` manually").into(),
+                js_sys::Error::new("You need to provide an instance as argument to `start`, or call `wasi.instantiate` with the `WebAssembly.Instance` manually").into(),
             );
         }
         let start = self
