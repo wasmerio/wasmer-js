@@ -7,6 +7,7 @@ use wasmer_vfs::mem_fs::FileSystem as MemoryFilesystem;
 use wasmer_vfs::{
     DirEntry, FileSystem, FileType, FsError, Metadata, OpenOptions, ReadDir, VirtualFile,
 };
+use crate::wasi::generic_of_jsval;
 
 #[wasm_bindgen]
 #[derive(Debug, Clone)]
@@ -63,6 +64,10 @@ impl MemFS {
         Ok(MemFS {
             inner: Arc::new(MemoryFilesystem::default()),
         })
+    }
+
+    pub fn from_js(jso: JsValue) -> Result<MemFS, JsValue> {
+        Ok(generic_of_jsval::<MemFS>(jso, "MemFS")?.clone())
     }
 
     #[wasm_bindgen(js_name = readDir)]

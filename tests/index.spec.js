@@ -1,6 +1,6 @@
 const fs = require('fs');
 // const { init, WASI } = require('../');
-const { init, WASI } = require('../dist/Library.cjs.js');
+const { init, WASI, MemFS } = require('../dist/Library.cjs.js');
 
 
 async function initWasi(moduleBytes, config, imports = {}) {
@@ -90,7 +90,23 @@ test('wasi start empty fails', async() => {
       'external': function() { console.log("external: hello world!") }
     }
   });
-  expect(() => wasi.start()).toThrow("You need to provide a instance as argument to start, or call `wasi.instantiate` with the `WebAssembly.Instance` manually");
+  expect(() => wasi.start()).toThrow("You need to provide an instance as argument to `start`, or call `wasi.instantiate` with the `WebAssembly.Instance` manually");
+});
+
+test('wasi fs config works', async() => {
+  let fs = new MemFS();
+  fs.createDir('/magic');
+  let wasi = new WASI({fs});
+  expect(wasi.fs.readDir('/').map(e => e.path)).toEqual(['/magic']);
+});
+
+test('mapdir with fs config works', async () => {
+  let wfs = new MemFS();
+  wfs.createDir('/magic');
+  let contents = fs.readFileSync(__dirname + '/mapdir.wasm');
+  let wasi = await initWasi(contents, {fs: wfs});
+  let code = wasi.start();
+  expect(wasi.getStdoutString()).toBe(`"./magic"\n`);
 });
 
 test('get imports', async() => {

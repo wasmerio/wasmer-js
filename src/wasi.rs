@@ -1,10 +1,13 @@
 use crate::fs::MemFS;
 use std::io::{Read, Write};
+use js_sys::{Object, Reflect};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use wasmer::{Imports, Instance, Module, Store};
 use wasmer_wasi::Pipe;
 use wasmer_wasi::{Stderr, Stdin, Stdout, WasiError, WasiFunctionEnv, WasiState};
+
+use wasm_bindgen::convert::RefFromWasmAbi;
 
 #[wasm_bindgen]
 pub struct WASI {
@@ -86,9 +89,7 @@ impl WASI {
             if fs.is_undefined() {
                 MemFS::new()?
             } else {
-                MemFS::new()?
-                // let mem_fs: MemFS = fs.dyn_into()?;
-                // mem_fs
+                MemFS::from_js(fs)?
             }
         };
         let mut store = Store::default();
@@ -220,7 +221,7 @@ impl WASI {
             self.instantiate(instance.into(), None)?;
         } else if self.instance.is_none() {
             return Err(
-                js_sys::Error::new("You need to provide a instance as argument to start, or call `wasi.instantiate` with the `WebAssembly.Instance` manually").into(),
+                js_sys::Error::new("You need to provide an instance as argument to `start`, or call `wasi.instantiate` with the `WebAssembly.Instance` manually").into(),
             );
         }
         let start = self
@@ -324,5 +325,27 @@ impl WASI {
     #[wasm_bindgen(js_name = setStdinString)]
     pub fn set_stdin_string(&mut self, input: String) -> Result<(), JsValue> {
         self.set_stdin_buffer(input.as_bytes())
+    }
+}
+
+// helper function for passing Rust objects through JS
+// https://github.com/rustwasm/wasm-bindgen/issues/2231#issuecomment-1147260391
+pub fn generic_of_jsval<T: RefFromWasmAbi<Abi=u32>>(js: JsValue, classname: &str) -> Result<T::Anchor, JsValue> {
+    if !js.is_object() {
+        return Err(js_sys::Error::new(
+            &format!("expected object, got {:?}", js).as_str(),
+        ).into());
+    }
+
+    let ctor_name = Object::get_prototype_of(&js).constructor().name();
+    if ctor_name == classname {
+        let ptr = Reflect::get(&js, &JsValue::from_str("ptr"))?;
+        let ptr_u32: u32 = ptr.as_f64().ok_or(JsValue::NULL)? as u32;
+        let foo = unsafe { T::ref_from_abi(ptr_u32) };
+        Ok(foo)
+    } else {
+        Err(js_sys::Error::new(
+          &format!("expected '{}', got '{}'", classname, ctor_name).as_str()
+        ).into())
     }
 }
