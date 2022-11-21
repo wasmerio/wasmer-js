@@ -5,25 +5,25 @@
 export class JSVirtualFile {
   free(): void;
 /**
-* @returns {BigInt}
+* @returns {bigint}
 */
-  lastAccessed(): BigInt;
+  lastAccessed(): bigint;
 /**
-* @returns {BigInt}
+* @returns {bigint}
 */
-  lastModified(): BigInt;
+  lastModified(): bigint;
 /**
-* @returns {BigInt}
+* @returns {bigint}
 */
-  createdTime(): BigInt;
+  createdTime(): bigint;
 /**
-* @returns {BigInt}
+* @returns {bigint}
 */
-  size(): BigInt;
+  size(): bigint;
 /**
-* @param {BigInt} new_size
+* @param {bigint} new_size
 */
-  setLength(new_size: BigInt): void;
+  setLength(new_size: bigint): void;
 /**
 * @returns {Uint8Array}
 */
@@ -58,6 +58,11 @@ export class MemFS {
 /**
 */
   constructor();
+/**
+* @param {any} jso
+* @returns {MemFS}
+*/
+  static from_js(jso: any): MemFS;
 /**
 * @param {string} path
 * @returns {Array<any>}
@@ -153,7 +158,6 @@ export class WASI {
 */
   setStdinString(input: string): void;
 /**
-* @returns {MemFS}
 */
   readonly fs: MemFS;
 }
@@ -171,38 +175,41 @@ export interface InitOutput {
   readonly memory: WebAssembly.Memory;
   readonly __wbg_wasmerruntimeerror_free: (a: number) => void;
   readonly __wbg_memfs_free: (a: number) => void;
-  readonly memfs_new: () => number;
-  readonly memfs_readDir: (a: number, b: number, c: number) => number;
-  readonly memfs_createDir: (a: number, b: number, c: number) => void;
-  readonly memfs_removeDir: (a: number, b: number, c: number) => void;
-  readonly memfs_removeFile: (a: number, b: number, c: number) => void;
-  readonly memfs_rename: (a: number, b: number, c: number, d: number, e: number) => void;
-  readonly memfs_metadata: (a: number, b: number, c: number) => number;
-  readonly memfs_open: (a: number, b: number, c: number, d: number) => number;
+  readonly memfs_new: (a: number) => void;
+  readonly memfs_from_js: (a: number, b: number) => void;
+  readonly memfs_readDir: (a: number, b: number, c: number, d: number) => void;
+  readonly memfs_createDir: (a: number, b: number, c: number, d: number) => void;
+  readonly memfs_removeDir: (a: number, b: number, c: number, d: number) => void;
+  readonly memfs_removeFile: (a: number, b: number, c: number, d: number) => void;
+  readonly memfs_rename: (a: number, b: number, c: number, d: number, e: number, f: number) => void;
+  readonly memfs_metadata: (a: number, b: number, c: number, d: number) => void;
+  readonly memfs_open: (a: number, b: number, c: number, d: number, e: number) => void;
   readonly __wbg_jsvirtualfile_free: (a: number) => void;
-  readonly jsvirtualfile_lastAccessed: (a: number, b: number) => void;
-  readonly jsvirtualfile_lastModified: (a: number, b: number) => void;
-  readonly jsvirtualfile_createdTime: (a: number, b: number) => void;
-  readonly jsvirtualfile_size: (a: number, b: number) => void;
+  readonly jsvirtualfile_lastAccessed: (a: number) => number;
+  readonly jsvirtualfile_lastModified: (a: number) => number;
+  readonly jsvirtualfile_createdTime: (a: number) => number;
+  readonly jsvirtualfile_size: (a: number) => number;
   readonly jsvirtualfile_setLength: (a: number, b: number, c: number) => void;
   readonly jsvirtualfile_read: (a: number, b: number) => void;
   readonly jsvirtualfile_readString: (a: number, b: number) => void;
-  readonly jsvirtualfile_write: (a: number, b: number, c: number) => number;
-  readonly jsvirtualfile_writeString: (a: number, b: number, c: number) => number;
-  readonly jsvirtualfile_flush: (a: number) => void;
-  readonly jsvirtualfile_seek: (a: number, b: number) => number;
+  readonly jsvirtualfile_write: (a: number, b: number, c: number, d: number) => void;
+  readonly jsvirtualfile_writeString: (a: number, b: number, c: number, d: number) => void;
+  readonly jsvirtualfile_flush: (a: number, b: number) => void;
+  readonly jsvirtualfile_seek: (a: number, b: number, c: number) => void;
   readonly __wbg_wasi_free: (a: number) => void;
-  readonly wasi_new: (a: number) => number;
-  readonly wasi_fs: (a: number) => number;
-  readonly wasi_getImports: (a: number, b: number) => number;
-  readonly wasi_instantiate: (a: number, b: number, c: number) => number;
-  readonly wasi_start: (a: number, b: number) => number;
+  readonly wasi_new: (a: number, b: number) => void;
+  readonly wasi_fs: (a: number, b: number) => void;
+  readonly wasi_getImports: (a: number, b: number, c: number) => void;
+  readonly wasi_instantiate: (a: number, b: number, c: number, d: number) => void;
+  readonly wasi_start: (a: number, b: number, c: number) => void;
   readonly wasi_getStdoutBuffer: (a: number, b: number) => void;
   readonly wasi_getStdoutString: (a: number, b: number) => void;
   readonly wasi_getStderrBuffer: (a: number, b: number) => void;
   readonly wasi_getStderrString: (a: number, b: number) => void;
-  readonly wasi_setStdinBuffer: (a: number, b: number, c: number) => void;
-  readonly wasi_setStdinString: (a: number, b: number, c: number) => void;
+  readonly wasi_setStdinBuffer: (a: number, b: number, c: number, d: number) => void;
+  readonly wasi_setStdinString: (a: number, b: number, c: number, d: number) => void;
+  readonly canonical_abi_realloc: (a: number, b: number, c: number, d: number) => number;
+  readonly canonical_abi_free: (a: number, b: number, c: number) => void;
   readonly __wbindgen_malloc: (a: number) => number;
   readonly __wbindgen_realloc: (a: number, b: number, c: number) => number;
   readonly __wbindgen_export_2: WebAssembly.Table;
@@ -210,6 +217,17 @@ export interface InitOutput {
   readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
   readonly __wbindgen_free: (a: number, b: number) => void;
 }
+
+export type SyncInitInput = BufferSource | WebAssembly.Module;
+/**
+* Instantiates the given `module`, which can either be bytes or
+* a precompiled `WebAssembly.Module`.
+*
+* @param {SyncInitInput} module
+*
+* @returns {InitOutput}
+*/
+export function initSync(module: SyncInitInput): InitOutput;
 
 /**
 * If `module_or_path` is {RequestInfo} or {URL}, makes a request and

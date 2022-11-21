@@ -78,12 +78,26 @@ test('testing wasm', async() => {
   console.log(`${stdout}(exit code: ${exitCode})`);
 })
 
-test('wasi start empty fails', async() => {
+test('wasi initialize with JS imports', async() => {
   let moduleBytes = fs.readFileSync(__dirname + '/test.wasm');
   let wasi = new WASI({});
   const module = await WebAssembly.compile(moduleBytes);
   let imports = wasi.getImports(module);
-  // console.log(imports);
+  let instance = await WebAssembly.instantiate(module, {
+    ...imports,
+    'module': {
+      'external': function() { console.log("external: hello world!") }
+    }
+  });
+  let code = wasi.start(instance);
+  expect(code).toBe(0);
+});
+
+test('wasi initialize with JS imports with empty start', async() => {
+  let moduleBytes = fs.readFileSync(__dirname + '/test.wasm');
+  let wasi = new WASI({});
+  const module = await WebAssembly.compile(moduleBytes);
+  let imports = wasi.getImports(module);
   let instance = await WebAssembly.instantiate(module, {
     ...imports,
     'module': {
@@ -124,6 +138,8 @@ test('get imports', async() => {
   wasi.instantiate(instance);
   let exitCode = wasi.start();
   let stdout = wasi.getStdoutString();
+
+  expect(exitCode).toBe(0);
 
   // This should print "hello world (exit code: 0)"
   console.log(`${stdout}(exit code: ${exitCode})`);
