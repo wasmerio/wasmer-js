@@ -132,8 +132,8 @@ To build this library you will need to have installed in your system:
 * Node.JS
 * [Rust][Rust]
 * [wasm-pack][wasm-pack]
-* [wabt][wabt] (for `wasm-opt`)
-* [binaryen][binaryen] (for `wasm-strip`)
+* [wabt][wabt] (for `wasm-strip`)
+* [binaryen][binaryen] (for `wasm-opt`)
 
 ```sh
 npm i
