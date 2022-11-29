@@ -25,7 +25,7 @@
     "access": "public"
   },
   "scripts": {
-    "build": "wasm-pack build --release --target web; wasm-opt pkg/wasmer_wasi_js_bg.wasm -O2 -o pkg/wasmer_wasi_js_bg.wasm; wasm-strip pkg/wasmer_wasi_js_bg.wasm; rollup -c --environment BUILD:production",
+    "build": "wasm-pack build --release --target web && wasm-opt pkg/wasmer_wasi_js_bg.wasm -O2 -o pkg/wasmer_wasi_js_bg.wasm && wasm-strip pkg/wasmer_wasi_js_bg.wasm && rollup -c --environment BUILD:production",
     "dev": "rollup -c -w",
     "lint": "",
     "test": "jest -c jest.config.js",
