@@ -1,5 +1,14 @@
 /* tslint:disable */
 /* eslint-disable */
+
+interface WasiConfig {
+    readonly args?: string[],
+    readonly env?: Record<string, string>,
+    readonly preopens?: Record<string, string>,
+    readonly fs?: any,
+}
+
+
 /**
 */
 export class JSVirtualFile {
@@ -102,9 +111,9 @@ export class MemFS {
 export class WASI {
   free(): void;
 /**
-* @param {any} config
+* @param {WasiConfig} config
 */
-  constructor(config: any);
+  constructor(config: WasiConfig);
 /**
 * @param {WebAssembly.Module} module
 * @returns {object}

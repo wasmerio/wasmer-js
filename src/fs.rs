@@ -1,13 +1,13 @@
+use crate::wasi::generic_of_jsval;
 use js_sys::Reflect;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use wasm_bindgen::prelude::*;
-use wasm_bindgen::JsCast;
+
 use wasmer_vfs::mem_fs::FileSystem as MemoryFilesystem;
 use wasmer_vfs::{
     DirEntry, FileSystem, FileType, FsError, Metadata, OpenOptions, ReadDir, VirtualFile,
 };
-use crate::wasi::generic_of_jsval;
 
 #[wasm_bindgen]
 #[derive(Debug, Clone)]
@@ -51,7 +51,7 @@ fn direntry_to_object(direntry: &DirEntry) -> Result<js_sys::Object, JsValue> {
     Reflect::set(
         &direntry_obj,
         &"metadata".into(),
-        &metadata_to_object(&direntry.metadata.as_ref().unwrap())?.into(),
+        &metadata_to_object(direntry.metadata.as_ref().unwrap())?.into(),
     )?;
     Ok(direntry_obj)
 }
@@ -76,13 +76,13 @@ impl MemFS {
             .inner
             .read_dir(&PathBuf::from(path))
             .map_err(|e| js_sys::Error::new(&format!("Error when reading the dir: {}`", e)))?;
-        Ok(dir_entries
+        dir_entries
             .map(|entry| {
                 let entry = entry
                     .map_err(|e| js_sys::Error::new(&format!("Failed to get entry: {}`", e)))?;
                 direntry_to_object(&entry)
             })
-            .collect::<Result<js_sys::Array, JsValue>>()?)
+            .collect::<Result<js_sys::Array, JsValue>>()
     }
 
     #[wasm_bindgen(js_name = createDir)]
@@ -241,9 +241,9 @@ impl JSVirtualFile {
     }
 
     // Write APIs
-    pub fn write(&mut self, mut buf: &mut [u8]) -> Result<usize, JsValue> {
+    pub fn write(&mut self, buf: &mut [u8]) -> Result<usize, JsValue> {
         self.handle
-            .write(&mut buf)
+            .write(buf)
             .map_err(|e| js_sys::Error::new(&format!("Error when writing: {}`", e)).into())
     }
 
