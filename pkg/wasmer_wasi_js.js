@@ -1142,10 +1142,10 @@ function getImports() {
         const ret = typeof(v) === 'boolean' ? (v ? 1 : 0) : 2;
         return ret;
     };
-    imports.wbg.__wbg_instanceof_Global_ecf1273768d70d91 = function(arg0) {
+    imports.wbg.__wbg_instanceof_Table_7aa3c4bf4a3e48a4 = function(arg0) {
         let result;
         try {
-            result = getObject(arg0) instanceof WebAssembly.Global;
+            result = getObject(arg0) instanceof WebAssembly.Table;
         } catch {
             result = false;
         }
@@ -1162,20 +1162,20 @@ function getImports() {
         const ret = result;
         return ret;
     };
-    imports.wbg.__wbg_instanceof_Function_07f0fd0979b11789 = function(arg0) {
+    imports.wbg.__wbg_instanceof_Global_6ae38baa556a9042 = function(arg0) {
         let result;
         try {
-            result = getObject(arg0) instanceof Function;
+            result = getObject(arg0) instanceof WebAssembly.Global;
         } catch {
             result = false;
         }
         const ret = result;
         return ret;
     };
-    imports.wbg.__wbg_instanceof_Table_7aa3c4bf4a3e48a4 = function(arg0) {
+    imports.wbg.__wbg_instanceof_Function_07f0fd0979b11789 = function(arg0) {
         let result;
         try {
-            result = getObject(arg0) instanceof WebAssembly.Table;
+            result = getObject(arg0) instanceof Function;
         } catch {
             result = false;
         }

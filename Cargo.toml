@@ -13,9 +13,9 @@ wasm-bindgen = "0.2.73"
 # Using the Wasmer 3.0.0 with the revert on stdin/err/out changes
 # https://github.com/wasmerio/wasmer/pull/3344. Please use stable version as soon
 # as wasmer is released
-wasmer = { path = "../wasmer/lib/api", default-features = false, features = ["js", "std"] }
-wasmer-wasi = { path = "../wasmer/lib/wasi", default-features = false, features = ["js"] }
-wasmer-vfs = { path = "../wasmer/lib/vfs", default-features = false, features = ["mem-fs"] }
+wasmer = { version = "3.0.2", default-features = false, features = ["js", "std"] }
+wasmer-wasi = { version = "3.0.2", default-features = false, features = ["js"] }
+wasmer-vfs = { version = "3.0.2", default-features = false, features = ["mem-fs"] }
 
 [profile.release]
 lto = true
