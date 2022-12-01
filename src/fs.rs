@@ -1,8 +1,8 @@
-use crate::wasi::generic_of_jsval;
 use js_sys::Reflect;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use wasm_bindgen::prelude::*;
+use wasm_bindgen_downcast::DowncastJS;
 
 use wasmer_vfs::mem_fs::FileSystem as MemoryFilesystem;
 use wasmer_vfs::{
@@ -10,7 +10,7 @@ use wasmer_vfs::{
 };
 
 #[wasm_bindgen]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, DowncastJS)]
 pub struct MemFS {
     inner: Arc<MemoryFilesystem>,
 }
@@ -67,7 +67,7 @@ impl MemFS {
     }
 
     pub fn from_js(jso: JsValue) -> Result<MemFS, JsValue> {
-        Ok(generic_of_jsval::<MemFS>(jso, "MemFS")?.clone())
+        Ok(MemFS::downcast_js(jso)?.clone())
     }
 
     #[wasm_bindgen(js_name = readDir)]

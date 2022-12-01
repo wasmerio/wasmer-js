@@ -1290,6 +1290,7 @@ version = "1.2.0"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
+ "wasm-bindgen-downcast",
  "wasmer",
  "wasmer-vfs",
  "wasmer-wasi",

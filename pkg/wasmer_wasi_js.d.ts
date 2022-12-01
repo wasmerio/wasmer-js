@@ -65,6 +65,10 @@ export class JSVirtualFile {
 export class MemFS {
   free(): void;
 /**
+* @returns {Symbol}
+*/
+  static __wbgd_downcast_token(): Symbol;
+/**
 */
   constructor();
 /**
@@ -189,6 +193,7 @@ export interface InitOutput {
   readonly __wbg_wasmerruntimeerror_free: (a: number) => void;
   readonly wasmerruntimeerror___wbgd_downcast_token: () => number;
   readonly __wbg_memfs_free: (a: number) => void;
+  readonly memfs___wbgd_downcast_token: () => number;
   readonly memfs_new: (a: number) => void;
   readonly memfs_from_js: (a: number, b: number) => void;
   readonly memfs_readDir: (a: number, b: number, c: number, d: number) => void;

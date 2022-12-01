@@ -16,6 +16,7 @@ wasm-bindgen = "0.2.73"
 wasmer = { version = "3.0.2", default-features = false, features = ["js", "std"] }
 wasmer-wasi = { version = "3.0.2", default-features = false, features = ["js"] }
 wasmer-vfs = { version = "3.0.2", default-features = false, features = ["mem-fs"] }
+wasm-bindgen-downcast = "0.1.1"
 
 [profile.release]
 lto = true
