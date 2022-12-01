@@ -1,13 +1,27 @@
 use crate::fs::MemFS;
+
 use std::io::{Read, Write};
-use js_sys::{Object, Reflect};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use wasmer::{Imports, Instance, Module, Store};
 use wasmer_wasi::Pipe;
-use wasmer_wasi::{Stderr, Stdin, Stdout, WasiError, WasiFunctionEnv, WasiState};
+use wasmer_wasi::{WasiError, WasiFunctionEnv, WasiState};
 
-use wasm_bindgen::convert::RefFromWasmAbi;
+#[wasm_bindgen(typescript_custom_section)]
+const _: &str = r#"
+interface WasiConfig {
+    readonly args?: string[],
+    readonly env?: Record<string, string>,
+    readonly preopens?: Record<string, string>,
+    readonly fs?: any,
+}
+"#;
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(typescript_type = "WasiConfig")]
+    pub type Config;
+}
 
 #[wasm_bindgen]
 pub struct WASI {
@@ -23,7 +37,7 @@ pub struct WASI {
 #[wasm_bindgen]
 impl WASI {
     #[wasm_bindgen(constructor)]
-    pub fn new(config: JsValue) -> Result<WASI, JsValue> {
+    pub fn new(config: Config) -> Result<WASI, JsValue> {
         let args: Vec<String> = {
             let args = js_sys::Reflect::get(&config, &"args".into())?;
             if args.is_undefined() {
@@ -96,8 +110,8 @@ impl WASI {
         let stdout = Pipe::default();
         let stdin = Pipe::default();
         let stderr = Pipe::default();
-        let wasi_env = WasiState::new(&args.get(0).unwrap_or(&"".to_string()))
-            .args(if args.len() > 0 { &args[1..] } else { &[] })
+        let wasi_env = WasiState::new(args.get(0).unwrap_or(&"".to_string()))
+            .args(if !args.is_empty() { &args[1..] } else { &[] })
             .envs(env)
             .set_fs(Box::new(fs))
             .stdout(Box::new(stdout.clone()))
@@ -123,12 +137,12 @@ impl WASI {
 
     #[wasm_bindgen(getter)]
     pub fn fs(&mut self) -> Result<MemFS, JsValue> {
-        let mut state = self.wasi_env.data_mut(&mut self.store).state();
+        let state = self.wasi_env.data_mut(&mut self.store).state();
         let mem_fs = state
             .fs
             .fs_backing
             .downcast_ref::<MemFS>()
-            .ok_or_else(|| js_sys::Error::new(&format!("Failed to downcast to MemFS")))?;
+            .ok_or_else(|| js_sys::Error::new("Failed to downcast to MemFS"))?;
         Ok(mem_fs.clone())
     }
 
@@ -147,7 +161,7 @@ impl WASI {
 
         self.module = Some(module);
 
-        Ok(import_object.as_jsobject(&self.store).into())
+        Ok(import_object.as_jsobject(&self.store))
     }
 
     fn get_wasi_imports(&mut self, module: &Module) -> Result<Imports, JsValue> {
@@ -187,15 +201,14 @@ impl WASI {
         } else if module_or_instance.has_type::<js_sys::WebAssembly::Instance>() {
             if let Some(instance) = &self.instance {
                 // We completely skip the set instance step
-                return Ok(instance.raw(&mut self.store).clone());
+                return Ok(instance.raw(&self.store).clone());
             }
             let module = self.module.as_ref().ok_or(js_sys::Error::new("When providing an instance, the `wasi.getImports` must be called with the module first"))?;
             let js_instance: js_sys::WebAssembly::Instance = module_or_instance.unchecked_into();
-            let instance = Instance::from_module_and_instance(&mut self.store, module, js_instance)
-                .map_err(|e| {
-                    js_sys::Error::new(&format!("Can't get the Wasmer Instance: {:?}", e))
-                })?;
-            instance
+
+            Instance::from_module_and_instance(&mut self.store, module, js_instance).map_err(
+                |e| js_sys::Error::new(&format!("Can't get the Wasmer Instance: {:?}", e)),
+            )?
         } else {
             return Err(
                 js_sys::Error::new("You need to provide a `WebAssembly.Module` or `WebAssembly.Instance` as first argument to `wasi.instantiate`").into(),
@@ -206,7 +219,7 @@ impl WASI {
             .data_mut(&mut self.store)
             .set_memory(instance.exports.get_memory("memory").unwrap().clone());
 
-        let raw_instance = instance.raw(&mut self.store).clone();
+        let raw_instance = instance.raw(&self.store).clone();
         self.instance = Some(instance);
         Ok(raw_instance)
     }
@@ -239,7 +252,7 @@ impl WASI {
                 match err.downcast::<WasiError>() {
                     Ok(WasiError::Exit(exit_code)) => {
                         // We should exit with the provided exit code
-                        return Ok(exit_code);
+                        Ok(exit_code)
                     }
                     Ok(err) => {
                         return Err(js_sys::Error::new(&format!(
@@ -325,27 +338,5 @@ impl WASI {
     #[wasm_bindgen(js_name = setStdinString)]
     pub fn set_stdin_string(&mut self, input: String) -> Result<(), JsValue> {
         self.set_stdin_buffer(input.as_bytes())
-    }
-}
-
-// helper function for passing Rust objects through JS
-// https://github.com/rustwasm/wasm-bindgen/issues/2231#issuecomment-1147260391
-pub fn generic_of_jsval<T: RefFromWasmAbi<Abi=u32>>(js: JsValue, classname: &str) -> Result<T::Anchor, JsValue> {
-    if !js.is_object() {
-        return Err(js_sys::Error::new(
-            &format!("expected object, got {:?}", js).as_str(),
-        ).into());
-    }
-
-    let ctor_name = Object::get_prototype_of(&js).constructor().name();
-    if ctor_name == classname {
-        let ptr = Reflect::get(&js, &JsValue::from_str("ptr"))?;
-        let ptr_u32: u32 = ptr.as_f64().ok_or(JsValue::NULL)? as u32;
-        let foo = unsafe { T::ref_from_abi(ptr_u32) };
-        Ok(foo)
-    } else {
-        Err(js_sys::Error::new(
-          &format!("expected '{}', got '{}'", classname, ctor_name).as_str()
-        ).into())
     }
 }

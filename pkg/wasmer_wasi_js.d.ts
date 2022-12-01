@@ -1,5 +1,14 @@
 /* tslint:disable */
 /* eslint-disable */
+
+interface WasiConfig {
+    readonly args?: string[],
+    readonly env?: Record<string, string>,
+    readonly preopens?: Record<string, string>,
+    readonly fs?: any,
+}
+
+
 /**
 */
 export class JSVirtualFile {
@@ -56,6 +65,10 @@ export class JSVirtualFile {
 export class MemFS {
   free(): void;
 /**
+* @returns {Symbol}
+*/
+  static __wbgd_downcast_token(): Symbol;
+/**
 */
   constructor();
 /**
@@ -102,9 +115,9 @@ export class MemFS {
 export class WASI {
   free(): void;
 /**
-* @param {any} config
+* @param {WasiConfig} config
 */
-  constructor(config: any);
+  constructor(config: WasiConfig);
 /**
 * @param {WebAssembly.Module} module
 * @returns {object}
@@ -167,6 +180,10 @@ export class WASI {
 */
 export class WasmerRuntimeError {
   free(): void;
+/**
+* @returns {Symbol}
+*/
+  static __wbgd_downcast_token(): Symbol;
 }
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
@@ -174,7 +191,9 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 export interface InitOutput {
   readonly memory: WebAssembly.Memory;
   readonly __wbg_wasmerruntimeerror_free: (a: number) => void;
+  readonly wasmerruntimeerror___wbgd_downcast_token: () => number;
   readonly __wbg_memfs_free: (a: number) => void;
+  readonly memfs___wbgd_downcast_token: () => number;
   readonly memfs_new: (a: number) => void;
   readonly memfs_from_js: (a: number, b: number) => void;
   readonly memfs_readDir: (a: number, b: number, c: number, d: number) => void;
