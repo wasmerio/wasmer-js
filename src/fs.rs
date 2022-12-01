@@ -67,7 +67,7 @@ impl MemFS {
     }
 
     pub fn from_js(jso: JsValue) -> Result<MemFS, JsValue> {
-        Ok(MemFS::downcast_js(jso)?.clone())
+        MemFS::downcast_js(jso)
     }
 
     #[wasm_bindgen(js_name = readDir)]

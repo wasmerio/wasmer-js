@@ -1,5 +1,5 @@
 use crate::fs::MemFS;
-use js_sys::{Object, Reflect};
+
 use std::io::{Read, Write};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
