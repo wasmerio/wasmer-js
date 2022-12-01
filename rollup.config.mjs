@@ -10,12 +10,10 @@
 // };
 
 import resolve from '@rollup/plugin-node-resolve';
-// import commonjs from '@rollup/plugin-commonjs';
-import babel from '@rollup/plugin-babel';
-import { terser } from 'rollup-plugin-terser';
-import pkg from './package.json';
-import typescript from 'rollup-plugin-typescript2';
-import { wasm } from '@rollup/plugin-wasm';
+import terser from '@rollup/plugin-terser';
+import pkg from './package.json' assert { type: 'json' };
+import dts from "rollup-plugin-dts";
+import typescript from '@rollup/plugin-typescript';
 // import smartAsset from "rollup-plugin-smart-asset"
 import url from '@rollup/plugin-url';
 
@@ -76,17 +74,13 @@ const makeConfig = (env = 'development') => {
             //     url: 'inline',
             //     extensions: ['.wasm'],
             // }),
+            // Uncomment the following 2 lines if your library has external dependencies
+            typescript(),
             url({
                 include: ['**/*.wasm'],
                 limit: 14336000,
                 // limit: 0,
             }),
-            // Uncomment the following 2 lines if your library has external dependencies
-            resolve(), // teach Rollup how to find external modules
-            typescript({
-                rollupCommonJSResolveHack: false,
-                clean: true,          
-            })
         ]
     };
 
@@ -103,7 +97,12 @@ const makeConfig = (env = 'development') => {
 
 export default commandLineArgs => {
     const configs = [
-        makeConfig()
+        makeConfig(),
+        {
+            input: "./pkg/wasmer_wasi_js.d.ts",
+            output: [{ file: "dist/pkg/wasmer_wasi_js.d.ts", format: "es" }],
+            plugins: [dts()],
+        }
     ];
 
     // Production
