@@ -2,6 +2,7 @@
 /* eslint-disable */
 export const memory: WebAssembly.Memory;
 export function __wbg_wasmerruntimeerror_free(a: number): void;
+export function wasmerruntimeerror___wbgd_downcast_token(): number;
 export function __wbg_memfs_free(a: number): void;
 export function memfs_new(a: number): void;
 export function memfs_from_js(a: number, b: number): void;

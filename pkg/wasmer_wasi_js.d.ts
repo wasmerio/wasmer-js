@@ -176,6 +176,10 @@ export class WASI {
 */
 export class WasmerRuntimeError {
   free(): void;
+/**
+* @returns {Symbol}
+*/
+  static __wbgd_downcast_token(): Symbol;
 }
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
@@ -183,6 +187,7 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 export interface InitOutput {
   readonly memory: WebAssembly.Memory;
   readonly __wbg_wasmerruntimeerror_free: (a: number) => void;
+  readonly wasmerruntimeerror___wbgd_downcast_token: () => number;
   readonly __wbg_memfs_free: (a: number) => void;
   readonly memfs_new: (a: number) => void;
   readonly memfs_from_js: (a: number, b: number) => void;

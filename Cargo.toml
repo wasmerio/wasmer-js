@@ -20,3 +20,8 @@ wasmer-vfs = { version = "3.0.2", default-features = false, features = ["mem-fs"
 [profile.release]
 lto = true
 opt-level = 'z'
+
+[patch.crates-io]
+wasmer = { git = "https://github.com/wasmerio/wasmer", default-features = false, features = ["js", "std"], branch = "fix-downcasting" }
+wasmer-wasi = { git = "https://github.com/wasmerio/wasmer", default-features = false, features = ["js"], branch = "fix-downcasting" }
+wasmer-vfs = { git = "https://github.com/wasmerio/wasmer", default-features = false, features = ["mem-fs"], branch = "fix-downcasting" }
