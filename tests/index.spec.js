@@ -1,5 +1,4 @@
 const fs = require('fs');
-// const { init, WASI } = require('../');
 const { init, WASI, MemFS } = require('../dist/Library.cjs.js');
 
 
