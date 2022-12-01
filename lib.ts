@@ -1,6 +1,4 @@
-// import load, { WASI } from "./pkg/index";
 export * from "./pkg/wasmer_wasi_js";
-// import { InitInput } from "./pkg/wasmer_wasi_js";
 import load from "./pkg/wasmer_wasi_js";
 import wasm_bytes from "./pkg/wasmer_wasi_js_bg.wasm";
 

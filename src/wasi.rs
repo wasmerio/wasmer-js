@@ -8,19 +8,24 @@ use wasmer_wasi::Pipe;
 use wasmer_wasi::{WasiError, WasiFunctionEnv, WasiState};
 
 #[wasm_bindgen(typescript_custom_section)]
-const _: &str = r#"
-interface WasiConfig {
-    readonly args?: string[],
-    readonly env?: Record<string, string>,
-    readonly preopens?: Record<string, string>,
-    readonly fs?: any,
-}
+const WASI_CONFIG_TYPE_DEFINITION: &str = r#"
+/** Options used when configuring a new WASI instance.  */
+export type WasiConfig = {
+    /** The command-line arguments passed to the WASI executable. */
+    readonly args?: string[];
+    /** Additional environment variables made available to the WASI executable. */
+    readonly env?: Record<string, string>;
+    /** Preopened directories. */
+    readonly preopens?: Record<string, string>;
+    /** The in-memory filesystem that should be used. */
+    readonly fs?: MemFS;
+};
 "#;
 
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(typescript_type = "WasiConfig")]
-    pub type Config;
+    pub type WasiConfig;
 }
 
 #[wasm_bindgen]
@@ -37,7 +42,7 @@ pub struct WASI {
 #[wasm_bindgen]
 impl WASI {
     #[wasm_bindgen(constructor)]
-    pub fn new(config: Config) -> Result<WASI, JsValue> {
+    pub fn new(config: WasiConfig) -> Result<WASI, JsValue> {
         let args: Vec<String> = {
             let args = js_sys::Reflect::get(&config, &"args".into())?;
             if args.is_undefined() {
