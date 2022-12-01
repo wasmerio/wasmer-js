@@ -22,7 +22,9 @@ wasm-bindgen-downcast = "0.1.1"
 lto = true
 opt-level = 'z'
 
+# TODO(Michael-F-Bryan): Remove this when Wasmer 3.1 comes out
+# See https://github.com/wasmerio/wasmer-js/issues/312 for more.
 [patch.crates-io]
-wasmer = { git = "https://github.com/wasmerio/wasmer", default-features = false, features = ["js", "std"], branch = "fix-downcasting" }
-wasmer-wasi = { git = "https://github.com/wasmerio/wasmer", default-features = false, features = ["js"], branch = "fix-downcasting" }
-wasmer-vfs = { git = "https://github.com/wasmerio/wasmer", default-features = false, features = ["mem-fs"], branch = "fix-downcasting" }
+wasmer = { git = "https://github.com/wasmerio/wasmer", default-features = false, features = ["js", "std"], rev = "ecde2aa" }
+wasmer-wasi = { git = "https://github.com/wasmerio/wasmer", default-features = false, features = ["js"], rev = "ecde2aa" }
+wasmer-vfs = { git = "https://github.com/wasmerio/wasmer", default-features = false, features = ["mem-fs"], rev = "ecde2aa" }

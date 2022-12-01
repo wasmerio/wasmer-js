@@ -1141,7 +1141,7 @@ checksum = "1c38c045535d93ec4f0b4defec448e4291638ee608530863b1e2ba115d4fff7f"
 [[package]]
 name = "wasmer"
 version = "3.0.2"
-source = "git+https://github.com/wasmerio/wasmer?branch=fix-downcasting#d4041463bed13a336ea97a43d8317cb08481ed5a"
+source = "git+https://github.com/wasmerio/wasmer?rev=ecde2aa#ecde2aa8f454b4ace057ee06319fe8dafff95ea6"
 dependencies = [
  "bytes",
  "cfg-if 1.0.0",
@@ -1164,7 +1164,7 @@ dependencies = [
 [[package]]
 name = "wasmer-compiler"
 version = "3.0.2"
-source = "git+https://github.com/wasmerio/wasmer?branch=fix-downcasting#d4041463bed13a336ea97a43d8317cb08481ed5a"
+source = "git+https://github.com/wasmerio/wasmer?rev=ecde2aa#ecde2aa8f454b4ace057ee06319fe8dafff95ea6"
 dependencies = [
  "backtrace",
  "cfg-if 1.0.0",
@@ -1187,7 +1187,7 @@ dependencies = [
 [[package]]
 name = "wasmer-derive"
 version = "3.0.2"
-source = "git+https://github.com/wasmerio/wasmer?branch=fix-downcasting#d4041463bed13a336ea97a43d8317cb08481ed5a"
+source = "git+https://github.com/wasmerio/wasmer?rev=ecde2aa#ecde2aa8f454b4ace057ee06319fe8dafff95ea6"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
@@ -1198,7 +1198,7 @@ dependencies = [
 [[package]]
 name = "wasmer-types"
 version = "3.0.2"
-source = "git+https://github.com/wasmerio/wasmer?branch=fix-downcasting#d4041463bed13a336ea97a43d8317cb08481ed5a"
+source = "git+https://github.com/wasmerio/wasmer?rev=ecde2aa#ecde2aa8f454b4ace057ee06319fe8dafff95ea6"
 dependencies = [
  "enum-iterator",
  "enumset",
@@ -1212,7 +1212,7 @@ dependencies = [
 [[package]]
 name = "wasmer-vbus"
 version = "3.0.2"
-source = "git+https://github.com/wasmerio/wasmer?branch=fix-downcasting#d4041463bed13a336ea97a43d8317cb08481ed5a"
+source = "git+https://github.com/wasmerio/wasmer?rev=ecde2aa#ecde2aa8f454b4ace057ee06319fe8dafff95ea6"
 dependencies = [
  "thiserror",
  "wasmer-vfs",
@@ -1221,7 +1221,7 @@ dependencies = [
 [[package]]
 name = "wasmer-vfs"
 version = "3.0.2"
-source = "git+https://github.com/wasmerio/wasmer?branch=fix-downcasting#d4041463bed13a336ea97a43d8317cb08481ed5a"
+source = "git+https://github.com/wasmerio/wasmer?rev=ecde2aa#ecde2aa8f454b4ace057ee06319fe8dafff95ea6"
 dependencies = [
  "slab",
  "thiserror",
@@ -1231,7 +1231,7 @@ dependencies = [
 [[package]]
 name = "wasmer-vm"
 version = "3.0.2"
-source = "git+https://github.com/wasmerio/wasmer?branch=fix-downcasting#d4041463bed13a336ea97a43d8317cb08481ed5a"
+source = "git+https://github.com/wasmerio/wasmer?rev=ecde2aa#ecde2aa8f454b4ace057ee06319fe8dafff95ea6"
 dependencies = [
  "backtrace",
  "cc",
@@ -1254,7 +1254,7 @@ dependencies = [
 [[package]]
 name = "wasmer-vnet"
 version = "3.0.2"
-source = "git+https://github.com/wasmerio/wasmer?branch=fix-downcasting#d4041463bed13a336ea97a43d8317cb08481ed5a"
+source = "git+https://github.com/wasmerio/wasmer?rev=ecde2aa#ecde2aa8f454b4ace057ee06319fe8dafff95ea6"
 dependencies = [
  "bytes",
  "thiserror",
@@ -1264,7 +1264,7 @@ dependencies = [
 [[package]]
 name = "wasmer-wasi"
 version = "3.0.2"
-source = "git+https://github.com/wasmerio/wasmer?branch=fix-downcasting#d4041463bed13a336ea97a43d8317cb08481ed5a"
+source = "git+https://github.com/wasmerio/wasmer?rev=ecde2aa#ecde2aa8f454b4ace057ee06319fe8dafff95ea6"
 dependencies = [
  "bytes",
  "cfg-if 1.0.0",
@@ -1299,7 +1299,7 @@ dependencies = [
 [[package]]
 name = "wasmer-wasi-types"
 version = "3.0.2"
-source = "git+https://github.com/wasmerio/wasmer?branch=fix-downcasting#d4041463bed13a336ea97a43d8317cb08481ed5a"
+source = "git+https://github.com/wasmerio/wasmer?rev=ecde2aa#ecde2aa8f454b4ace057ee06319fe8dafff95ea6"
 dependencies = [
  "byteorder",
  "time",
