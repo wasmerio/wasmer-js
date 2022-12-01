@@ -1,6 +1,6 @@
 {
   "name": "@wasmer/wasi",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "main": "dist/Library.cjs.min.js",
   "module": "dist/Library.esm.min.js",
   "unpkg": "dist/Library.umd.min.js",
