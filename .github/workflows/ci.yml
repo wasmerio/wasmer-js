@@ -25,6 +25,10 @@ jobs:
           target: wasm32-unknown-unknown
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      - name: Install wasm-strip and wasm-opt
+        run: apt-get update && apt-get install -y wabt binaryen
       - name: Install Dependencies
         run: npm install
       - name: Build
