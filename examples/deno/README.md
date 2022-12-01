@@ -5,7 +5,7 @@
 This example outputs hello world in the `stdout`.
 
 ```
-$ deno run --allow-read --allow-net helloworld.ts
+$ deno run --allow-net helloworld.ts
 hello world
 (exit code: 0)
 ```
@@ -15,7 +15,7 @@ hello world
 This example lists the files and directories on `/`.
 
 ```
-$ deno run --allow-read --allow-net fs.ts
+$ deno run --allow-net fs.ts
 "./a"
 "./b"
 "./file"
