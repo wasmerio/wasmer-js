@@ -1286,7 +1286,7 @@ dependencies = [
 
 [[package]]
 name = "wasmer-wasi-js"
-version = "1.2.0"
+version = "1.2.2"
 dependencies = [
  "js-sys",
  "wasm-bindgen",

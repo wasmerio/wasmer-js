@@ -1,14 +1,16 @@
 {
-    "include": ["pkg"],
+    "include": [ "pkg", "lib.ts" ],
     "exclude": ["dist"],
     "compilerOptions": {
       "outDir": "./dist/",
+      "rootDir": ".",
       "noImplicitAny": true,
       "declaration": true,
       "module": "es6",
       "target": "es5",
       "jsx": "react",
       "allowJs": true,
+      "emitDeclarationOnly": true,
       "allowSyntheticDefaultImports": true,
       "moduleResolution": "node"
     }

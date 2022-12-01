@@ -1,12 +1,17 @@
 /* tslint:disable */
 /* eslint-disable */
 
-interface WasiConfig {
-    readonly args?: string[],
-    readonly env?: Record<string, string>,
-    readonly preopens?: Record<string, string>,
-    readonly fs?: any,
-}
+/** Options used when configuring a new WASI instance.  */
+export type WasiConfig = {
+    /** The command-line arguments passed to the WASI executable. */
+    readonly args?: string[];
+    /** Additional environment variables made available to the WASI executable. */
+    readonly env?: Record<string, string>;
+    /** Preopened directories. */
+    readonly preopens?: Record<string, string>;
+    /** The in-memory filesystem that should be used. */
+    readonly fs?: MemFS;
+};
 
 
 /**
