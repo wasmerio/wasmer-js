@@ -11,9 +11,7 @@ let wasi = new WASI({
 
 const buf = fs.readFileSync('../../tests/demo.wasm');
 
-const module = await WebAssembly.compile(
-  new Uint8Array(buf)
-);
+const module = await WebAssembly.compile(buf);
 wasi.instantiate(module, {});
 
 let exitCode = wasi.start();

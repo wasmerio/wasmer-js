@@ -11,9 +11,7 @@ let wasi = new WASI({
 
 const buf = fs.readFileSync('../../tests/mapdir.wasm');
 
-const module = await WebAssembly.compile(
-  new Uint8Array(buf)
-);
+const module = await WebAssembly.compile(buf);
 wasi.instantiate(module, {});
 
 wasi.fs.createDir("/a");
