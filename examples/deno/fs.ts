@@ -12,7 +12,7 @@ const moduleBytes = fetch(
   "https://cdn.deno.land/wasm/versions/v1.0.2/raw/tests/mapdir.wasm",
 );
 const module = await WebAssembly.compileStreaming(moduleBytes);
-await wasi.instantiate(module, {});
+wasi.instantiate(module, {});
 
 wasi.fs.createDir("/a");
 wasi.fs.createDir("/b");

@@ -14,7 +14,7 @@ const buf = fs.readFileSync('../../tests/demo.wasm');
 const module = await WebAssembly.compile(
   new Uint8Array(buf)
 );
-await wasi.instantiate(module, {});
+wasi.instantiate(module, {});
 
 let exitCode = wasi.start();
 let stdout = wasi.getStdoutString();

@@ -14,7 +14,7 @@ const buf = fs.readFileSync('../../tests/mapdir.wasm');
 const module = await WebAssembly.compile(
   new Uint8Array(buf)
 );
-await wasi.instantiate(module, {});
+wasi.instantiate(module, {});
 
 wasi.fs.createDir("/a");
 wasi.fs.createDir("/b");
