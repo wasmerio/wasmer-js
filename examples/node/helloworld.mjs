@@ -1,4 +1,4 @@
-import fs from "fs";
+import { readFile } from "node:fs/promises";
 import { init, WASI } from "@wasmer/wasi";
 
 // This is needed to load the WASI library first
@@ -9,7 +9,7 @@ let wasi = new WASI({
   args: [],
 });
 
-const buf = fs.readFileSync('../../tests/demo.wasm');
+const buf = await readFile('../../tests/demo.wasm');
 
 const module = await WebAssembly.compile(buf);
 wasi.instantiate(module, {});
