@@ -1,6 +1,6 @@
 [package]
 name = "wasmer-wasi-js"
-version = "1.2.0"
+version = "1.3.0"
 authors = ["Syrus Akbary <syrus@wasmer.io>"]
 edition = "2021"
 
@@ -13,9 +13,9 @@ wasm-bindgen = "0.2.73"
 # Using the Wasmer 3.0.0 with the revert on stdin/err/out changes
 # https://github.com/wasmerio/wasmer/pull/3344. Please use stable version as soon
 # as wasmer is released
-wasmer = { version = "3.0.2", default-features = false, features = ["js", "std"] }
-wasmer-wasi = { version = "3.0.2", default-features = false, features = ["js"] }
-wasmer-vfs = { version = "3.0.2", default-features = false, features = ["mem-fs"] }
+wasmer = { version = "3.2.0-alpha.1", default-features = false, features = ["js", "std"] }
+wasmer-wasi = { version = "3.2.0-alpha.1", default-features = false, features = ["js"] }
+wasmer-vfs = { version = "3.2.0-alpha.1", default-features = false, features = ["mem-fs"] }
 wasm-bindgen-downcast = "0.1.1"
 
 [profile.release]
@@ -24,7 +24,12 @@ opt-level = 'z'
 
 # TODO(Michael-F-Bryan): Remove this when Wasmer 3.1 comes out
 # See https://github.com/wasmerio/wasmer-js/issues/312 for more.
+# [patch.crates-io]
+# wasmer = { git = "https://github.com/wasmerio/wasmer", default-features = false, features = ["js", "std"], rev = "ecde2aa" }
+# wasmer-wasi = { git = "https://github.com/wasmerio/wasmer", default-features = false, features = ["js"], rev = "ecde2aa" }
+# wasmer-vfs = { git = "https://github.com/wasmerio/wasmer", default-features = false, features = ["mem-fs"], rev = "ecde2aa" }
+
 [patch.crates-io]
-wasmer = { git = "https://github.com/wasmerio/wasmer", default-features = false, features = ["js", "std"], rev = "ecde2aa" }
-wasmer-wasi = { git = "https://github.com/wasmerio/wasmer", default-features = false, features = ["js"], rev = "ecde2aa" }
-wasmer-vfs = { git = "https://github.com/wasmerio/wasmer", default-features = false, features = ["mem-fs"], rev = "ecde2aa" }
+wasmer = { path = "../wasmer/lib/api", default-features = false, features = ["js", "std"] }
+wasmer-wasi = { path = "../wasmer/lib/wasi", default-features = false, features = ["js"] }
+wasmer-vfs = { path = "../wasmer/lib/vfs", default-features = false, features = ["mem-fs"] }

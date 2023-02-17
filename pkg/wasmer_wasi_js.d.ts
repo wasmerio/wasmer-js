@@ -125,9 +125,9 @@ export class WASI {
   constructor(config: WasiConfig);
 /**
 * @param {WebAssembly.Module} module
-* @returns {object}
+* @returns {any}
 */
-  getImports(module: WebAssembly.Module): object;
+  getImports(module: WebAssembly.Module): any;
 /**
 * @param {any} module_or_instance
 * @param {object | undefined} imports
@@ -197,6 +197,18 @@ export interface InitOutput {
   readonly memory: WebAssembly.Memory;
   readonly __wbg_wasmerruntimeerror_free: (a: number) => void;
   readonly wasmerruntimeerror___wbgd_downcast_token: () => number;
+  readonly __wbg_wasi_free: (a: number) => void;
+  readonly wasi_new: (a: number, b: number) => void;
+  readonly wasi_fs: (a: number, b: number) => void;
+  readonly wasi_getImports: (a: number, b: number, c: number) => void;
+  readonly wasi_instantiate: (a: number, b: number, c: number, d: number) => void;
+  readonly wasi_start: (a: number, b: number, c: number) => void;
+  readonly wasi_getStdoutBuffer: (a: number, b: number) => void;
+  readonly wasi_getStdoutString: (a: number, b: number) => void;
+  readonly wasi_getStderrBuffer: (a: number, b: number) => void;
+  readonly wasi_getStderrString: (a: number, b: number) => void;
+  readonly wasi_setStdinBuffer: (a: number, b: number, c: number, d: number) => void;
+  readonly wasi_setStdinString: (a: number, b: number, c: number, d: number) => void;
   readonly __wbg_memfs_free: (a: number) => void;
   readonly memfs___wbgd_downcast_token: () => number;
   readonly memfs_new: (a: number) => void;
@@ -220,18 +232,6 @@ export interface InitOutput {
   readonly jsvirtualfile_writeString: (a: number, b: number, c: number, d: number) => void;
   readonly jsvirtualfile_flush: (a: number, b: number) => void;
   readonly jsvirtualfile_seek: (a: number, b: number, c: number) => void;
-  readonly __wbg_wasi_free: (a: number) => void;
-  readonly wasi_new: (a: number, b: number) => void;
-  readonly wasi_fs: (a: number, b: number) => void;
-  readonly wasi_getImports: (a: number, b: number, c: number) => void;
-  readonly wasi_instantiate: (a: number, b: number, c: number, d: number) => void;
-  readonly wasi_start: (a: number, b: number, c: number) => void;
-  readonly wasi_getStdoutBuffer: (a: number, b: number) => void;
-  readonly wasi_getStdoutString: (a: number, b: number) => void;
-  readonly wasi_getStderrBuffer: (a: number, b: number) => void;
-  readonly wasi_getStderrString: (a: number, b: number) => void;
-  readonly wasi_setStdinBuffer: (a: number, b: number, c: number, d: number) => void;
-  readonly wasi_setStdinString: (a: number, b: number, c: number, d: number) => void;
   readonly canonical_abi_realloc: (a: number, b: number, c: number, d: number) => number;
   readonly canonical_abi_free: (a: number, b: number, c: number) => void;
   readonly __wbindgen_malloc: (a: number) => number;

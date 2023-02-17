@@ -1140,11 +1140,11 @@ checksum = "1c38c045535d93ec4f0b4defec448e4291638ee608530863b1e2ba115d4fff7f"
 
 [[package]]
 name = "wasmer"
-version = "3.0.2"
-source = "git+https://github.com/wasmerio/wasmer?rev=ecde2aa#ecde2aa8f454b4ace057ee06319fe8dafff95ea6"
+version = "3.2.0-alpha.1"
 dependencies = [
  "bytes",
  "cfg-if 1.0.0",
+ "derivative",
  "indexmap",
  "js-sys",
  "more-asserts",
@@ -1163,8 +1163,7 @@ dependencies = [
 
 [[package]]
 name = "wasmer-compiler"
-version = "3.0.2"
-source = "git+https://github.com/wasmerio/wasmer?rev=ecde2aa#ecde2aa8f454b4ace057ee06319fe8dafff95ea6"
+version = "3.2.0-alpha.1"
 dependencies = [
  "backtrace",
  "cfg-if 1.0.0",
@@ -1180,14 +1179,12 @@ dependencies = [
  "thiserror",
  "wasmer-types",
  "wasmer-vm",
- "wasmparser",
  "winapi",
 ]
 
 [[package]]
 name = "wasmer-derive"
-version = "3.0.2"
-source = "git+https://github.com/wasmerio/wasmer?rev=ecde2aa#ecde2aa8f454b4ace057ee06319fe8dafff95ea6"
+version = "3.2.0-alpha.1"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
@@ -1197,8 +1194,7 @@ dependencies = [
 
 [[package]]
 name = "wasmer-types"
-version = "3.0.2"
-source = "git+https://github.com/wasmerio/wasmer?rev=ecde2aa#ecde2aa8f454b4ace057ee06319fe8dafff95ea6"
+version = "3.2.0-alpha.1"
 dependencies = [
  "enum-iterator",
  "enumset",
@@ -1211,8 +1207,7 @@ dependencies = [
 
 [[package]]
 name = "wasmer-vbus"
-version = "3.0.2"
-source = "git+https://github.com/wasmerio/wasmer?rev=ecde2aa#ecde2aa8f454b4ace057ee06319fe8dafff95ea6"
+version = "3.2.0-alpha.1"
 dependencies = [
  "thiserror",
  "wasmer-vfs",
@@ -1220,8 +1215,7 @@ dependencies = [
 
 [[package]]
 name = "wasmer-vfs"
-version = "3.0.2"
-source = "git+https://github.com/wasmerio/wasmer?rev=ecde2aa#ecde2aa8f454b4ace057ee06319fe8dafff95ea6"
+version = "3.2.0-alpha.1"
 dependencies = [
  "slab",
  "thiserror",
@@ -1230,13 +1224,13 @@ dependencies = [
 
 [[package]]
 name = "wasmer-vm"
-version = "3.0.2"
-source = "git+https://github.com/wasmerio/wasmer?rev=ecde2aa#ecde2aa8f454b4ace057ee06319fe8dafff95ea6"
+version = "3.2.0-alpha.1"
 dependencies = [
  "backtrace",
  "cc",
  "cfg-if 1.0.0",
  "corosensei",
+ "derivative",
  "enum-iterator",
  "indexmap",
  "lazy_static",
@@ -1253,8 +1247,7 @@ dependencies = [
 
 [[package]]
 name = "wasmer-vnet"
-version = "3.0.2"
-source = "git+https://github.com/wasmerio/wasmer?rev=ecde2aa#ecde2aa8f454b4ace057ee06319fe8dafff95ea6"
+version = "3.2.0-alpha.1"
 dependencies = [
  "bytes",
  "thiserror",
@@ -1263,8 +1256,7 @@ dependencies = [
 
 [[package]]
 name = "wasmer-wasi"
-version = "3.0.2"
-source = "git+https://github.com/wasmerio/wasmer?rev=ecde2aa#ecde2aa8f454b4ace057ee06319fe8dafff95ea6"
+version = "3.2.0-alpha.1"
 dependencies = [
  "bytes",
  "cfg-if 1.0.0",
@@ -1286,7 +1278,7 @@ dependencies = [
 
 [[package]]
 name = "wasmer-wasi-js"
-version = "1.2.0"
+version = "1.3.0"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
@@ -1298,8 +1290,7 @@ dependencies = [
 
 [[package]]
 name = "wasmer-wasi-types"
-version = "3.0.2"
-source = "git+https://github.com/wasmerio/wasmer?rev=ecde2aa#ecde2aa8f454b4ace057ee06319fe8dafff95ea6"
+version = "3.2.0-alpha.1"
 dependencies = [
  "byteorder",
  "time",
@@ -1378,12 +1369,6 @@ dependencies = [
  "unicode-normalization",
  "unicode-xid",
 ]
-
-[[package]]
-name = "wasmparser"
-version = "0.83.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "718ed7c55c2add6548cca3ddd6383d738cd73b892df400e96b9aa876f0141d7a"
 
 [[package]]
 name = "winapi"
