@@ -2,7 +2,7 @@ export * from "./pkg/wasmer_wasi_js";
 import load from "./pkg/wasmer_wasi_js";
 import wasm_bytes from "./pkg/wasmer_wasi_js_bg.wasm";
 
-interface MimeBuffer extends Buffer {
+interface MimeBuffer extends ArrayBuffer {
 	type: string;
 	typeFull: string;
 	charset: string;
@@ -55,9 +55,8 @@ function dataUriToBuffer(uri: string): MimeBuffer {
 	}
 
 	// get the encoded data portion and decode URI-encoded chars
-	const encoding = base64 ? 'base64' : 'ascii';
 	const data = unescape(uri.substring(firstComma + 1));
-	const buffer = Buffer.from(data, encoding) as MimeBuffer;
+	const buffer = Uint8Array.from(base64 ? atob(data) : data, c => c.charCodeAt(0)).buffer as MimeBuffer;
 
 	// set `.type` and `.typeFull` properties to MIME type
 	buffer.type = type;
