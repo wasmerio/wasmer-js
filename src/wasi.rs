@@ -3,7 +3,7 @@ use crate::fs::MemFS;
 use std::io::{Read, Write};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
-use wasmer::{Imports, Instance, Module, Store};
+use wasmer::{Imports, Instance, Module, Store, AsJs};
 use wasmer_wasi::Pipe;
 use wasmer_wasi::{WasiError, WasiFunctionEnv, WasiState};
 
@@ -155,18 +155,19 @@ impl WASI {
     pub fn get_imports(
         &mut self,
         module: js_sys::WebAssembly::Module,
-    ) -> Result<js_sys::Object, JsValue> {
+    ) -> Result<JsValue, JsValue> {
         let module: js_sys::WebAssembly::Module = module.dyn_into().map_err(|_e| {
             js_sys::Error::new(
                 "You must provide a module to the WASI new. `let module = new WASI({}, module);`",
             )
         })?;
+        
         let module: Module = module.into();
         let import_object = self.get_wasi_imports(&module)?;
 
         self.module = Some(module);
 
-        Ok(import_object.as_jsobject(&self.store))
+        Ok(import_object.as_jsvalue(&self.store))
     }
 
     fn get_wasi_imports(&mut self, module: &Module) -> Result<Imports, JsValue> {
@@ -190,9 +191,7 @@ impl WASI {
             let import_object = self.get_wasi_imports(&module)?;
             let imports = if let Some(base_imports) = imports {
                 let mut imports =
-                    Imports::new_from_js_object(&mut self.store, &module, base_imports).map_err(
-                        |e| js_sys::Error::new(&format!("Failed to get user imports: {}", e)),
-                    )?;
+                    Imports::from_jsvalue(&mut self.store, &module, &base_imports)?;
                 imports.extend(&import_object);
                 imports
             } else {
@@ -206,14 +205,12 @@ impl WASI {
         } else if module_or_instance.has_type::<js_sys::WebAssembly::Instance>() {
             if let Some(instance) = &self.instance {
                 // We completely skip the set instance step
-                return Ok(instance.raw(&self.store).clone());
+                return Ok(instance.as_jsvalue(&self.store).into());
             }
             let module = self.module.as_ref().ok_or(js_sys::Error::new("When providing an instance, the `wasi.getImports` must be called with the module first"))?;
             let js_instance: js_sys::WebAssembly::Instance = module_or_instance.unchecked_into();
 
-            Instance::from_module_and_instance(&mut self.store, module, js_instance).map_err(
-                |e| js_sys::Error::new(&format!("Can't get the Wasmer Instance: {:?}", e)),
-            )?
+            Instance::from_jsvalue(&mut self.store, module, &js_instance)?
         } else {
             return Err(
                 js_sys::Error::new("You need to provide a `WebAssembly.Module` or `WebAssembly.Instance` as first argument to `wasi.instantiate`").into(),
@@ -224,9 +221,9 @@ impl WASI {
             .data_mut(&mut self.store)
             .set_memory(instance.exports.get_memory("memory").unwrap().clone());
 
-        let raw_instance = instance.raw(&self.store).clone();
+        let raw_instance = instance.as_jsvalue(&self.store);
         self.instance = Some(instance);
-        Ok(raw_instance)
+        Ok(raw_instance.into())
     }
 
     /// Start the WASI Instance, it returns the status code when calling the start
