@@ -1,0 +1,1 @@
+export function wasix_worker(opts){return new Worker(new URL("../../../js/worker.js",import.meta.url),opts)}

@@ -1,6 +1,6 @@
 [package]
-name = "wasmer-wasi-js"
-version = "1.3.0"
+name = "wasmer-wasix-js"
+version = "0.0.1-alpha.1"
 authors = ["Syrus Akbary <syrus@wasmer.io>"]
 edition = "2021"
 
@@ -8,21 +8,90 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-js-sys = "0.3.60"
-wasm-bindgen = "0.2.84"
-wasmer = { version = "4.0.0-beta.2", default-features = false, features = [
-    "js",
-    "std",
-] }
-wasmer-wasix = { version = "0.7.0", default-features = false, features = [
+# uncomment instant dependency to fix the unknown import "env" "now"
+# instant = { version = "0.1", features = [
+#     "wasm-bindgen",
+# ] }
+console_error_panic_hook = { version = "0.1", optional = true }
+wee_alloc = { version = "0.4", optional = true }
+js-sys = "0.3"
+wasm-bindgen = { version = "0.2", features = ["serde-serialize"] }
+wasmer = { version = "4.0.0", git = "https://github.com/wasmerio/wasmer.git", rev = "df69b82", default-features = false, features = [
     "js-default",
 ] }
-wasmer-vfs = { version = "3.2.0-alpha.1", default-features = false, features = [
-    "mem-fs",
+wasmer-wasix = { version = "0.9", git = "https://github.com/wasmerio/wasmer.git", rev = "df69b82", default-features = false, features = [
+    "js-default",
 ] }
-wasmer-vnet = { version = "3.2.0-alpha.1" }
-wasm-bindgen-downcast = "0.1.1"
+futures = "0.3"
+wasm-bindgen-futures = "0.4"
+wasm-bindgen-downcast = "0.1"
+# tracing = { version = "0.1", features = ["log"] }
+# tracing-futures = { version = "0.2" }
+# tracing-subscriber = { version = "0.3" }
+# # tracing-wasm = { version = "0.2" }
+# tracing-subscriber-wasm = { version = "0.1" }
+bytes = "1"
+# serde = { version = "1", features = ["derive"] }
+# serde_derive = "1"
+# serde_json = "1"
+tokio = { version = "1", features = [
+    "rt",
+    "sync",
+    "macros",
+], default_features = false }
+derivative = { version = "2" }
+# bincode = "1.3"
+async-trait = "0.1"
+anyhow = "1"
+http = "0.2"
+
+
+[dependencies.web-sys]
+version = "0.3"
+features = [
+    # "AbortController",
+    # "AbortSignal",
+    "Headers",
+    "Request",
+    "RequestInit",
+    "RequestMode",
+    "Response",
+    "Window",
+    # "FormData",
+    "Blob",
+    "BlobPropertyBag",
+    # "ServiceWorkerGlobalScope",
+    # "RequestCredentials",
+    # "File",
+    "ReadableStream",
+    "ReadableStreamDefaultReader",
+    "WritableStream",
+    "WritableStreamDefaultWriter",
+    # "BinaryType",
+    # "console",
+    "DedicatedWorkerGlobalScope",
+    "WorkerGlobalScope",
+    "MessageEvent",
+    "Navigator",
+    "Url",
+    "Worker",
+    "WorkerOptions",
+    "WorkerType",
+]
+
+[features]
+default = ["console_error_panic_hook"]
+console_error_panic_hook = ["dep:console_error_panic_hook"]
+wee_alloc = ["dep:wee_alloc"]
 
 [profile.release]
 lto = true
 opt-level = 'z'
+
+[package.metadata.wasm-pack.profile.release.wasm-bindgen]
+debug-js-glue = false
+demangle-name-section = false
+dwarf-debug-info = false
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = ["--enable-threads", "--enable-bulk-memory", "-O2"]

@@ -1,4 +1,4 @@
-import { init, WASI } from "https://deno.land/x/wasm/wasi.ts";
+import { init, WASI } from "../../wasix.ts";
 
 // This is needed to load the WASI library first
 await init();
@@ -9,7 +9,7 @@ const wasi = new WASI({
 });
 
 const moduleBytes = fetch(
-  "https://cdn.deno.land/wasm/versions/v1.0.2/raw/tests/mapdir.wasm",
+  new URL('../../tests/mapdir.wasm', import.meta.url),
 );
 const module = await WebAssembly.compileStreaming(moduleBytes);
 await wasi.instantiate(module, {});
@@ -18,10 +18,10 @@ wasi.fs.createDir("/a");
 wasi.fs.createDir("/b");
 
 const file = wasi.fs.open("/file", { read: true, write: true, create: true });
-file.writeString("fileContents");
-file.seek(0);
+await file.writeString("fileContents");
+await file.flush();
 
 const exitCode = wasi.start();
-const stdout = wasi.getStdoutString();
+const stdout = await wasi.getStdoutString();
 // This should print "hello world (exit code: 0)"
 console.log(`${stdout}(exit code: ${exitCode})`);

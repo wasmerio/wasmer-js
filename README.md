@@ -1,30 +1,32 @@
 # <img height="48" src="https://raw.githubusercontent.com/wasmerio/wasmer/master/assets/logo.png" alt="Wasmer logo" valign="middle"> Wasmer JS [![Wasmer Slack Channel](https://img.shields.io/static/v1?label=chat&message=on%20Slack&color=green)](https://slack.wasmer.io)
 
-This repository consists of multiple packages:
-* [Wasmer WASI](#wasmer-wasi)
+This repository consists of the following packages:
 
-# Wasmer WASI
+* [Wasmer WASIX](#wasmer-wasix)
 
-Isomorphic Javascript library for interacting with WASI Modules in Node.js, the Browser and [Deno](https://deno.land/x/wasm).
+# Wasmer WASIX
+
+~~Isomorphic~~ Javascript library for interacting with WASI(X) Modules in Node.js, the Browser and [Deno](https://deno.land/x/wasm).
 The Javascript Package supports:
-* [X] WASI (with command args, envs and stdio)
+
+* [X] WASI(X) (with command args, envs, stdio, network, and tty)
 * [X] In-Memory filesystem (MemFS)
 
 ### NPM
 
-For instaling `@wasmer/wasi` run this command in your shell:
+For installing `@wasmer/wasix` run this command in your shell:
 
 ```bash
-npm install --save @wasmer/wasi
+npm install --save @wasmer/wasix
 ```
 
 And then import it in your server or client-side code with:
 
 ```js
-import { init, WASI } from '@wasmer/wasi';
+import { init, WASI } from '@wasmer/wasix';
 ```
 
-> Check the Node usage examples in https://github.com/wasmerio/wasmer-js/tree/main/examples/node
+> Check the Node usage examples in <https://github.com/wasmerio/wasmer-js/tree/main/examples/node>
 
 ### Deno
 
@@ -34,7 +36,7 @@ This package is published in Deno in the `wasm` package, you can import it direc
 import { init, WASI } from 'https://deno.land/x/wasm/wasi.ts';
 ```
 
-> Check the Deno usage Examples in https://github.com/wasmerio/wasmer-js/tree/main/examples/deno
+> Check the Deno usage Examples in <https://github.com/wasmerio/wasmer-js/tree/main/examples/deno>
 
 ## Usage
 

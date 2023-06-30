@@ -1,24 +1,10 @@
-// import rust from "@wasm-tool/rollup-plugin-rust";
-
-// export default {
-//     input: {
-//         foo: "Cargo.toml",
-//     },
-//     plugins: [
-//         rust(),
-//     ],
-// };
-
-import resolve from '@rollup/plugin-node-resolve';
 import terser from '@rollup/plugin-terser';
 import pkg from './package.json' assert { type: 'json' };
 import dts from "rollup-plugin-dts";
 import typescript from '@rollup/plugin-typescript';
-// import smartAsset from "rollup-plugin-smart-asset"
-import url from '@rollup/plugin-url';
 
-const LIBRARY_NAME = 'Library'; // Change with your library's name
-const EXTERNAL = []; // Indicate which modules should be treated as external
+const LIBRARY_NAME = 'lib'; // Change with your library's name
+const EXTERNAL = ["whatwg-workers", "node-fetch"]; // Indicate which modules should be treated as external
 const GLOBALS = {}; // https://rollupjs.org/guide/en/#outputglobals
 
 const banner = `/*!
@@ -32,83 +18,67 @@ const banner = `/*!
  * @license ${pkg.license}
  */`;
 
+const typescriptPlugin = typescript();
+const terserPlugin = terser({
+    output: {
+        comments: /^!/,
+    },
+});
+
 const makeConfig = (env = 'development') => {
-    let bundleSuffix = '';
-
-    if (env === 'production') {
-        bundleSuffix = 'min.';
-    }
-
+    let bundleSuffix = env === 'production' ? 'min.' : '';
     const config = {
         input: 'lib.ts',
         external: EXTERNAL,
         output: [
             {
                 banner,
-                name: LIBRARY_NAME,
-                file: `dist/${LIBRARY_NAME}.umd.${bundleSuffix}js`, // UMD
-                format: 'umd',
-                exports: 'auto',
-                globals: GLOBALS
-            },
-            {
-                banner,
-                file: `dist/${LIBRARY_NAME}.cjs.${bundleSuffix}js`, // CommonJS
+                dir: `dist`, // CommonJS
+                entryFileNames: `${LIBRARY_NAME}.${bundleSuffix}cjs`,
+                chunkFileNames: `[name].${bundleSuffix}cjs`,
                 format: 'cjs',
                 exports: 'auto',
                 globals: GLOBALS
             },
             {
                 banner,
-                file: `dist/${LIBRARY_NAME}.esm.${bundleSuffix}js`, // ESM
+                dir: `dist`, // ESM
+                entryFileNames: `${LIBRARY_NAME}.${bundleSuffix}mjs`,
+                chunkFileNames: `[name].${bundleSuffix}mjs`,
                 format: 'es',
-                exports: 'named',
+                exports: 'auto',
                 globals: GLOBALS
+            },
+            {
+                banner,
+                name: LIBRARY_NAME,
+                file: `dist/${LIBRARY_NAME}.umd.${bundleSuffix}js`, // UMD
+                format: 'umd',
+                exports: 'auto',
+                globals: GLOBALS,
+                inlineDynamicImports: true
             }
         ],
-        plugins: [
-            // wasm({
-            //     maxFileSize: 1000000000,
-            // }),
-            // smartAsset({
-            //     url: 'inline',
-            //     extensions: ['.wasm'],
-            // }),
-            // Uncomment the following 2 lines if your library has external dependencies
-            typescript(),
-            url({
-                include: ['**/*.wasm'],
-                limit: 14336000,
-                // limit: 0,
-            }),
-        ]
+        plugins: [ typescriptPlugin ]
     };
-
     if (env === 'production') {
-        config.plugins.push(terser({
-            output: {
-                comments: /^!/
-            }
-        }));
+        config.plugins.push(terserPlugin);
     }
-
     return config;
 };
 
 export default commandLineArgs => {
     const configs = [
-        makeConfig(),
+        makeConfig('development'),
         {
-            input: "./pkg/wasmer_wasi_js.d.ts",
-            output: [{ file: "dist/pkg/wasmer_wasi_js.d.ts", format: "es" }],
+            input: "./pkg/wasmer_wasix_js.d.ts",
+            output: [{ file: "dist/pkg/wasmer_wasix_js.d.ts", format: "es" }],
             plugins: [dts()],
         }
     ];
-
     // Production
     if (commandLineArgs.environment === 'BUILD:production') {
-        configs.push(makeConfig('production'));
+        configs.push(makeConfig('production'))
     }
-
     return configs;
 };
