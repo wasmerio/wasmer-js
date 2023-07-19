@@ -21,7 +21,7 @@ use wasmer_wasix::{
     http::{DynHttpClient, HttpRequest, HttpResponse},
     os::TtyBridge,
     runtime::{
-        module_cache::{FileSystemCache, ModuleCache, ThreadLocalCache},
+        module_cache::ModuleCache,
         package_loader::{BuiltinPackageLoader, PackageLoader},
         resolver::{MultiSource, Source},
         task_manager::TaskWasm,
@@ -30,14 +30,15 @@ use wasmer_wasix::{
 };
 use web_sys::*;
 
+use crate::module_cache::WebWorkerModuleCache;
+
 use super::{pool::WebThreadPool, tty::*};
 
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub(crate) struct WebRuntime {
     pub(crate) pool: WebThreadPool,
-    #[derivative(Debug = "ignore")]
-    tty: Option<JSTty>,
+    tty: WebTty,
     http_client: DynHttpClient,
     package_loader: Arc<BuiltinPackageLoader>,
     source: Arc<MultiSource>,
@@ -48,30 +49,19 @@ pub(crate) struct WebRuntime {
 
 impl WebRuntime {
     #[allow(unused_variables)]
-    pub(crate) fn new(pool: WebThreadPool, tty: Option<JSTtyBridge>) -> WebRuntime {
+    pub(crate) fn new(pool: WebThreadPool, tty: WebTty) -> WebRuntime {
         let tasks = WebTaskManager {
             pool: pool.clone(),
             runtime: Arc::new(Builder::new_current_thread().build().unwrap()),
         };
         let http_client = Arc::new(WebHttpClient { pool: pool.clone() });
         let source = MultiSource::new();
-
-        let cache_dir = std::env::current_dir()
-            .unwrap_or_else(|_| ".wasmer".into())
-            .join("cache")
-            .join("");
-
-        // Note: the package loader and module cache have tiered caching, so
-        // even if the filesystem cache fails (i.e. because we're compiled to
-        // wasm32-unknown-unknown and running in a browser), the in-memory layer
-        // should still work.
-        let package_loader = BuiltinPackageLoader::new_with_client(&cache_dir, http_client.clone());
-        let module_cache =
-            ThreadLocalCache::default().with_fallback(FileSystemCache::new(&cache_dir));
+        let package_loader = BuiltinPackageLoader::new_only_client(http_client.clone());
+        let module_cache = WebWorkerModuleCache::default();
         WebRuntime {
             pool,
             tasks: Arc::new(tasks),
-            tty: tty.map(|tty| JSTty::new(tty)),
+            tty,
             http_client,
             net: Arc::new(WebVirtualNetworking),
             module_cache: Arc::new(module_cache),
@@ -164,8 +154,7 @@ impl VirtualTaskManager for WebTaskManager {
     /// pulled from the worker pool that has a stateful thread local variable
     /// It is ok for this task to block execution and any async futures within its scope
     fn task_wasm(&self, task: TaskWasm) -> Result<(), WasiThreadError> {
-        self.pool.spawn_wasm(task);
-        Ok(())
+        self.pool.spawn_wasm(task)
     }
 
     /// Starts an asynchronous task will will run on a dedicated thread
@@ -194,9 +183,7 @@ impl wasmer_wasix::Runtime for WebRuntime {
     }
 
     fn tty(&self) -> Option<&(dyn TtyBridge + Send + Sync)> {
-        self.tty
-            .as_ref()
-            .map(|x| x as &(dyn TtyBridge + Send + Sync))
+        Some(&self.tty as _)
     }
 
     fn http_client(&self) -> Option<&DynHttpClient> {
@@ -335,7 +322,7 @@ pub async fn fetch(
     }
 
     let request = {
-        let request = Request::new_with_str_and_init(&url, &opts)
+        let request = Request::new_with_str_and_init(url, &opts)
             .map_err(|_| anyhow::anyhow!("Could not construct request object"))?;
 
         let set_headers = request.headers();

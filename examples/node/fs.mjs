@@ -1,56 +1,75 @@
+// This should print
+// ```
+// hello world
+// (exit code: 0)
+// ```
+
 import fs from "node:fs";
 import url from "node:url";
-import { init, WASI, MemFS } from "../../dist/lib.mjs";
+import stream from "node:stream";
+import init, { WASI, TtyState, VirtualFileReader, VirtualFileWriter } from "../../dist/lib.mjs";
+Error.stackTraceLimit += 30;
 
-async function main() {
-  const sentry = new Promise((resolve, reject) => {
-    const handle = setInterval(() => {
-      console.log("check stdout:", stdout);
-    }, 1000);
-    setTimeout(() => {
-      clearInterval(handle);
-      resolve();
-    }, 10000);
-  });
-  Error.stackTraceLimit += 30;
-  // This is needed to load the WASI library first
-  await init();
+// This is needed to load the WASI library first, must be called before API can be used
+await init();
 
-  let wasi = new WASI({
-    env: {},
-    args: [],
-    tty: {
-      ttyReset() {},
-      ttySet(state) {},
-      ttyGet() {},
-    },
-  });
+const defaultTtyState = Object.assign(new TtyState(), {
+  columns: 800,
+  rows: 250,
+});
 
-  const buf = fs.readFileSync(url.fileURLToPath(new URL('../../tests/mapdir.wasm', import.meta.url)));
+let wasi = new WASI({
+  env: {},
+  args: [],
+  // define the starting state of the tty
+  tty: defaultTtyState,
+});
 
-  const module = await WebAssembly.compile(
-    new Uint8Array(buf)
+// keep track of tty/io Promises
+let handles = [];
+let stdoutBuf = "";
+
+{ // setup tty and stdio handlers
+  handles.push(
+    (() => {
+      const handle = wasi.tty;
+      const handler = new TransformStream({ transform(chunk, controller) { controller.enqueue(chunk ? chunk : defaultTtyState) } });
+      return handle.readable.pipeThrough(handler).pipeTo(handle.writable);
+    })()
   );
-  await wasi.instantiate(module, {});
-
-  wasi.fs.createDir("/a");
-  wasi.fs.createDir("/b");
-
-  let file = wasi.fs.open("/file", {read: true, write: true, create: true});
-  await file.writeString("fileContents");
-  console.log("readString: ", await file.readString());
-  await file.seek(0);
-
-  let exitCode = wasi.start();
-  let stdout = wasi.getStdoutString().catch((e) => {
-    console.log("getStdoutString error:", e);
-  })
-
-  // await stdout;
-  // // This should print "hello world (exit code: 0)"
-  // console.log(`${stdout}(exit code: ${exitCode})`);
-  // console.log(`wtf: ${stdout}`);
-  await sentry;
+  handles.push(
+    (() => {
+      const decoder = new TransformStream({
+        start(controller) { this.decoder = new TextDecoder("utf-8"); },
+        transform(chunk, controller) { controller.enqueue(this.decoder.decode(chunk, { stream: true })) },
+      });
+      const handler = new WritableStream({
+        write(chunk, _controller) { stdoutBuf += chunk; }
+      });
+      return wasi.stdout.pipeThrough(decoder).pipeTo(handler);
+    })()
+  );
 }
 
-await main();
+{ // test fs
+  wasi.fs.createDir("/a");
+  wasi.fs.createDir("/b");
+  let file = wasi.fs.open("/file", { read: true, write: true, create: true });
+  console.log("await file.writeString(\"fileContents\") ... ", await file.writeString("fileContents"));
+  await file.flush();
+  console.log("await file.text() ... ", await file.text());
+  file.free();
+}
+
+const wasm = fs.readFileSync(url.fileURLToPath(new URL('../../tests/mapdir.wasm', import.meta.url)));
+const module = await WebAssembly.compile(
+  new Uint8Array(wasm)
+);
+wasi.instantiate(module, {});
+let exitCode = wasi.start();
+
+// You must call WASI.free() before handles can resolve
+wasi.free();
+// Await handles to flush tty/io
+await Promise.all(handles);
+console.log(`${stdoutBuf}(exit code: ${exitCode})`);

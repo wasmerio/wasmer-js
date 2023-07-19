@@ -1,6 +1,17 @@
 const fs = require('fs');
-const { init, WASI, MemFS } = require('../dist/Library.cjs.js');
+// const { TextDecoder, TextEncoder } = require('util');
+// Object.assign(global, { TextDecoder, TextEncoder });
+const { default: init, WASI, MemFS } = require('../dist/lib.min.cjs');
+const { start } = require('repl');
+const { abort } = require('process');
 
+const decoder = this.decoder = new TextDecoder('utf-8', { ignoreBOM: true, fatal: true });
+let stdout = "";
+const Stdout = () => new WritableStream({
+  write(chunk) { stdout += decoder.decode(chunk, { stream: true }); },
+  close() { decoder.decode(); },
+  abort() { decoder.decode(); }
+});
 
 async function initWasi(moduleBytes, config, imports = {}) {
   let wasi = new WASI(config);
@@ -14,15 +25,20 @@ beforeAll(async () => {
 });
 
 test('envvar works', async () => {
+  const handles = [];
+  stdout = "";
   let wasi = await initWasi(fs.readFileSync(__dirname + '/envvar.wasm'), {
     env: {
       DOG: "X",
       TEST: "VALUE",
       TEST2: "VALUE2"
-    }
+    },
   });
+  handles.push(wasi.stdout.pipeTo(Stdout()));
   let code = wasi.start();
-  expect(wasi.getStdoutString()).toBe(`Env vars:
+  wasi.free();
+  await Promise.all(handles);
+  expect(stdout).toBe(`Env vars:
 DOG=X
 TEST2=VALUE2
 TEST=VALUE
@@ -33,51 +49,69 @@ SET VAR Ok("HELLO")
 });
 
 test('demo works', async () => {
+  const handles = [];
+  stdout = "";
   let contents = fs.readFileSync(__dirname + '/demo.wasm');
   let wasi = await initWasi(contents, {});
+  handles.push(wasi.stdout.pipeTo(Stdout()));
   let code = wasi.start();
-  expect(wasi.getStdoutString()).toBe("hello world\n");
+  wasi.free();
+  await Promise.all(handles);
+  expect(stdout).toBe("hello world\n");
 });
 
 test('piping works', async () => {
+  const handles = [];
+  stdout = "";
   let contents = fs.readFileSync(__dirname + '/pipe_reverse.wasm');
   let wasi = await initWasi(contents, {});
-  wasi.setStdinString("Hello World!");
+  wasi.stdin.getWriter().write((new TextEncoder("utf-8")).encode("Hello World!"));
+  handles.push(wasi.stdout.pipeTo(Stdout()));
   let code = wasi.start();
-  expect(wasi.getStdoutString()).toBe("!dlroW olleH\n");
+  wasi.free();
+  await Promise.all(handles);
+  expect(stdout).toBe("!dlroW olleH\n");
 });
 
 test('mapdir works', async () => {
+  const handles = [];
+  stdout = "";
   let contents = fs.readFileSync(__dirname + '/mapdir.wasm');
   let wasi = await initWasi(contents, {});
   wasi.fs.createDir("/a");
   wasi.fs.createDir("/b");
-  let file = wasi.fs.open("/file", {read: true, write: true, create: true});
+  let file = wasi.fs.open("/file", { read: true, write: true, create: true });
   file.writeString("fileContents");
   file.seek(0);
   // console.log(file.readString());
   // console.log(wasi.fs.readDir("/"));
+  handles.push(wasi.stdout.pipeTo(Stdout()));
   let code = wasi.start();
-  expect(wasi.getStdoutString()).toBe(`"./a"\n"./b"\n"./file"\n`);
+  wasi.free();
+  await Promise.all(handles);
+  expect(stdout).toBe(`"./a"\n"./b"\n"./file"\n`);
 });
 
-test('testing wasm', async() => {
-
+test('testing wasm', async () => {
+  const handles = [];
   let contents = fs.readFileSync(__dirname + '/test.wasm');
   let wasi = await initWasi(contents, {}, {
     'module': {
-        'external': function() { console.log("external: hello world!") }
-    }});
+      'external': function () { console.log("external: hello world!") }
+    }
+  });
 
   // Run the start function
+  handles.push(wasi.stdout.pipeTo(Stdout()));
   let exitCode = wasi.start();
-  let stdout = wasi.getStdoutString();
+  wasi.free();
+  await Promise.all(handles);
 
   // This should print "hello world (exit code: 0)"
   console.log(`${stdout}(exit code: ${exitCode})`);
 })
 
-test('wasi initialize with JS imports', async() => {
+test('wasi initialize with JS imports', async () => {
   let moduleBytes = fs.readFileSync(__dirname + '/test.wasm');
   let wasi = new WASI({});
   const module = await WebAssembly.compile(moduleBytes);
@@ -85,14 +119,14 @@ test('wasi initialize with JS imports', async() => {
   let instance = await WebAssembly.instantiate(module, {
     ...imports,
     'module': {
-      'external': function() { console.log("external: hello world!") }
+      'external': function () { console.log("external: hello world!") }
     }
   });
   let code = wasi.start(instance);
   expect(code).toBe(0);
 });
 
-test('wasi initialize with JS imports with empty start', async() => {
+test('wasi initialize with JS imports with empty start', async () => {
   let moduleBytes = fs.readFileSync(__dirname + '/test.wasm');
   let wasi = new WASI({});
   const module = await WebAssembly.compile(moduleBytes);
@@ -100,29 +134,35 @@ test('wasi initialize with JS imports with empty start', async() => {
   let instance = await WebAssembly.instantiate(module, {
     ...imports,
     'module': {
-      'external': function() { console.log("external: hello world!") }
+      'external': function () { console.log("external: hello world!") }
     }
   });
   expect(() => wasi.start()).toThrow("You need to provide an instance as argument to `start`, or call `wasi.instantiate` with the `WebAssembly.Instance` manually");
 });
 
-test('wasi fs config works', async() => {
+test('wasi fs config works', async () => {
   let fs = new MemFS();
   fs.createDir('/magic');
-  let wasi = new WASI({fs});
+  let wasi = new WASI({ fs });
   expect(wasi.fs.readDir('/').map(e => e.path)).toEqual(['/magic']);
 });
 
 test('mapdir with fs config works', async () => {
+  const handles = [];
+  stdout = "";
   let wfs = new MemFS();
   wfs.createDir('/magic');
   let contents = fs.readFileSync(__dirname + '/mapdir.wasm');
-  let wasi = await initWasi(contents, {fs: wfs});
+  let wasi = await initWasi(contents, { fs: wfs });
+  handles.push(wasi.stdout.pipeTo(Stdout()));
   let code = wasi.start();
-  expect(wasi.getStdoutString()).toBe(`"./magic"\n`);
+  wasi.free();
+  await Promise.all(handles);
+  expect(stdout).toBe(`"./magic"\n`);
 });
 
-test('get imports', async() => {
+test('get imports', async () => {
+  const handles = [];
   let moduleBytes = fs.readFileSync(__dirname + '/test.wasm');
   let wasi = new WASI({});
   const module = await WebAssembly.compile(moduleBytes);
@@ -131,12 +171,14 @@ test('get imports', async() => {
   let instance = await WebAssembly.instantiate(module, {
     ...imports,
     'module': {
-      'external': function() { console.log("external: hello world!") }
+      'external': function () { console.log("external: hello world!") }
     }
   });
   wasi.instantiate(instance);
+  handles.push(wasi.stdout.pipeTo(Stdout()));
   let exitCode = wasi.start();
-  let stdout = wasi.getStdoutString();
+  wasi.free();
+  await Promise.all(handles);
 
   expect(exitCode).toBe(0);
 
@@ -191,3 +233,5 @@ test('get imports', async() => {
   //   "clock_time_get"
   // ]);
 })
+
+// TODO: tty, file io, concurrency/threads (workers), networking

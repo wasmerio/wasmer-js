@@ -354,26 +354,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "dirs"
-version = "4.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ca3aa72a6f96ea37bbc5aa912f6788242832f75369bdfdadcb0e38423f100059"
-dependencies = [
- "dirs-sys",
-]
-
-[[package]]
-name = "dirs-sys"
-version = "0.3.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1b1d1d91c932ef41c0f2663aa8b0ca0342d444d842c06914aa0a7e352d0bada6"
-dependencies = [
- "libc",
- "redox_users",
- "winapi",
-]
-
-[[package]]
 name = "discard"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -749,6 +729,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a5bbe824c507c5da5956355e86a746d82e0e1464f65d862cc5e71da70e94b2c"
 dependencies = [
  "cfg-if 1.0.0",
+ "js-sys",
+ "wasm-bindgen",
+ "web-sys",
 ]
 
 [[package]]
@@ -905,6 +888,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7843ec2de400bcbc6a6328c958dc38e5359da6e93e72e37bc5246bf1ae776389"
 
 [[package]]
+name = "nu-ansi-term"
+version = "0.46.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "77a8165726e8236064dbb45459242600304b42a5ea24ee2948e18e023bf7ba84"
+dependencies = [
+ "overload",
+ "winapi",
+]
+
+[[package]]
 name = "num-traits"
 version = "0.2.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -950,6 +943,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dd8b5dd2ae5ed71462c540258bedcb51965123ad7e7ccf4b9a8cafaa4a63576d"
 
 [[package]]
+name = "overload"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b15813163c1d831bf4a13c3610c05c0d03b39feb07f7e09fa234dac9b15aaf39"
+
+[[package]]
 name = "parking_lot_core"
 version = "0.9.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -957,7 +956,7 @@ checksum = "93f00c865fe7cabf650081affecd3871070f26767e7b2070a3ffae14c654b447"
 dependencies = [
  "cfg-if 1.0.0",
  "libc",
- "redox_syscall 0.3.5",
+ "redox_syscall",
  "smallvec",
  "windows-targets",
 ]
@@ -1149,31 +1148,11 @@ dependencies = [
 
 [[package]]
 name = "redox_syscall"
-version = "0.2.16"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fb5a58c1855b4b6819d59012155603f0b22ad30cad752600aadfcb695265519a"
-dependencies = [
- "bitflags",
-]
-
-[[package]]
-name = "redox_syscall"
 version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "567664f262709473930a4bf9e51bf2ebf3348f2e748ccc50dea20646858f8f29"
 dependencies = [
  "bitflags",
-]
-
-[[package]]
-name = "redox_users"
-version = "0.4.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b033d837a7cf162d7993aded9304e30a83213c648b6e389db233191f891e5c2b"
-dependencies = [
- "getrandom",
- "redox_syscall 0.2.16",
- "thiserror",
 ]
 
 [[package]]
@@ -1409,6 +1388,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "sharded-slab"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "900fba806f70c630b0a382d0d825e17a0f19fcd059a2ade1ff237bcddf446b31"
+dependencies = [
+ "lazy_static",
+]
+
+[[package]]
 name = "shared-buffer"
 version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1416,15 +1404,6 @@ checksum = "2cf61602ee61e2f83dd016b3e6387245291cf728ea071c378b35088125b4d995"
 dependencies = [
  "bytes",
  "memmap2 0.6.2",
-]
-
-[[package]]
-name = "shellexpand"
-version = "2.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7ccc8076840c4da029af4f87e4e8daeb0fca6b87bbb02e10cb60b791450e11e4"
-dependencies = [
- "dirs",
 ]
 
 [[package]]
@@ -1564,7 +1543,7 @@ dependencies = [
  "autocfg",
  "cfg-if 1.0.0",
  "fastrand",
- "redox_syscall 0.3.5",
+ "redox_syscall",
  "rustix",
  "windows-sys 0.48.0",
 ]
@@ -1606,6 +1585,16 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.22",
+]
+
+[[package]]
+name = "thread_local"
+version = "1.1.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3fdd6f064ccff2d6567adcb3873ca630700f00b5ad3f060c25b5dcfd9a4ce152"
+dependencies = [
+ "cfg-if 1.0.0",
+ "once_cell",
 ]
 
 [[package]]
@@ -1671,6 +1660,7 @@ dependencies = [
  "bytes",
  "pin-project-lite",
  "tokio-macros",
+ "tracing",
  "windows-sys 0.48.0",
 ]
 
@@ -1709,6 +1699,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ce8c33a8d48bd45d624a6e523445fd21ec13d3653cd51f681abf67418f54eb8"
 dependencies = [
  "cfg-if 1.0.0",
+ "log",
  "pin-project-lite",
  "tracing-attributes",
  "tracing-core",
@@ -1732,6 +1723,53 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0955b8137a1df6f1a2e9a37d8a6656291ff0297c1a97c24e0d8425fe2312f79a"
 dependencies = [
  "once_cell",
+ "valuable",
+]
+
+[[package]]
+name = "tracing-futures"
+version = "0.2.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "97d095ae15e245a057c8e8451bab9b3ee1e1f68e9ba2b4fbc18d0ac5237835f2"
+dependencies = [
+ "pin-project",
+ "tracing",
+]
+
+[[package]]
+name = "tracing-log"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "78ddad33d2d10b1ed7eb9d1f518a5674713876e97e5bb9b7345a7984fbb4f922"
+dependencies = [
+ "lazy_static",
+ "log",
+ "tracing-core",
+]
+
+[[package]]
+name = "tracing-subscriber"
+version = "0.3.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "30a651bc37f915e81f087d86e62a18eec5f79550c7faff886f7090b4ea757c77"
+dependencies = [
+ "nu-ansi-term",
+ "sharded-slab",
+ "smallvec",
+ "thread_local",
+ "tracing-core",
+ "tracing-log",
+]
+
+[[package]]
+name = "tracing-wasm"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4575c663a174420fa2d78f4108ff68f65bf2fbb7dd89f33749b6e826b3626e07"
+dependencies = [
+ "tracing",
+ "tracing-subscriber",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -1813,6 +1851,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0fa2982af2eec27de306107c027578ff7f423d65f7250e40ce0fea8f45248b81"
 
 [[package]]
+name = "valuable"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "830b7e5d4d90034032940e4ace0d9a9a057e7a45cd94e6c007832e39edb82f6d"
+
+[[package]]
 name = "version_check"
 version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1821,7 +1865,7 @@ checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
 [[package]]
 name = "virtual-fs"
 version = "0.6.0"
-source = "git+https://github.com/wasmerio/wasmer.git?rev=df69b82#df69b821146561c8f24dc021bdf18ac0e4d305c5"
+source = "git+https://github.com/wasmerio/wasmer.git?rev=aaa34d2#aaa34d209198f2cf997b852f4246446158b4d9e6"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1843,7 +1887,7 @@ dependencies = [
 [[package]]
 name = "virtual-net"
 version = "0.3.0"
-source = "git+https://github.com/wasmerio/wasmer.git?rev=df69b82#df69b821146561c8f24dc021bdf18ac0e4d305c5"
+source = "git+https://github.com/wasmerio/wasmer.git?rev=aaa34d2#aaa34d209198f2cf997b852f4246446158b4d9e6"
 dependencies = [
  "async-trait",
  "bytes",
@@ -1918,7 +1962,7 @@ dependencies = [
 [[package]]
 name = "wai-bindgen-wasmer"
 version = "0.9.0"
-source = "git+https://github.com/wasmerio/wasmer.git?rev=df69b82#df69b821146561c8f24dc021bdf18ac0e4d305c5"
+source = "git+https://github.com/wasmerio/wasmer.git?rev=aaa34d2#aaa34d209198f2cf997b852f4246446158b4d9e6"
 dependencies = [
  "anyhow",
  "bitflags",
@@ -2079,7 +2123,7 @@ dependencies = [
 [[package]]
 name = "wasmer"
 version = "4.0.0"
-source = "git+https://github.com/wasmerio/wasmer.git?rev=df69b82#df69b821146561c8f24dc021bdf18ac0e4d305c5"
+source = "git+https://github.com/wasmerio/wasmer.git?rev=aaa34d2#aaa34d209198f2cf997b852f4246446158b4d9e6"
 dependencies = [
  "bytes",
  "cfg-if 1.0.0",
@@ -2092,6 +2136,7 @@ dependencies = [
  "serde-wasm-bindgen",
  "target-lexicon",
  "thiserror",
+ "tracing",
  "wasm-bindgen",
  "wasm-bindgen-downcast",
  "wasmer-compiler",
@@ -2107,7 +2152,7 @@ dependencies = [
 [[package]]
 name = "wasmer-compiler"
 version = "4.0.0"
-source = "git+https://github.com/wasmerio/wasmer.git?rev=df69b82#df69b821146561c8f24dc021bdf18ac0e4d305c5"
+source = "git+https://github.com/wasmerio/wasmer.git?rev=aaa34d2#aaa34d209198f2cf997b852f4246446158b4d9e6"
 dependencies = [
  "backtrace",
  "cfg-if 1.0.0",
@@ -2128,7 +2173,7 @@ dependencies = [
 [[package]]
 name = "wasmer-derive"
 version = "4.0.0"
-source = "git+https://github.com/wasmerio/wasmer.git?rev=df69b82#df69b821146561c8f24dc021bdf18ac0e4d305c5"
+source = "git+https://github.com/wasmerio/wasmer.git?rev=aaa34d2#aaa34d209198f2cf997b852f4246446158b4d9e6"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
@@ -2139,7 +2184,7 @@ dependencies = [
 [[package]]
 name = "wasmer-types"
 version = "4.0.0"
-source = "git+https://github.com/wasmerio/wasmer.git?rev=df69b82#df69b821146561c8f24dc021bdf18ac0e4d305c5"
+source = "git+https://github.com/wasmerio/wasmer.git?rev=aaa34d2#aaa34d209198f2cf997b852f4246446158b4d9e6"
 dependencies = [
  "bytecheck",
  "enum-iterator",
@@ -2155,7 +2200,7 @@ dependencies = [
 [[package]]
 name = "wasmer-vm"
 version = "4.0.0"
-source = "git+https://github.com/wasmerio/wasmer.git?rev=df69b82#df69b821146561c8f24dc021bdf18ac0e4d305c5"
+source = "git+https://github.com/wasmerio/wasmer.git?rev=aaa34d2#aaa34d209198f2cf997b852f4246446158b4d9e6"
 dependencies = [
  "backtrace",
  "cc",
@@ -2181,7 +2226,7 @@ dependencies = [
 [[package]]
 name = "wasmer-wasix"
 version = "0.9.0"
-source = "git+https://github.com/wasmerio/wasmer.git?rev=df69b82#df69b821146561c8f24dc021bdf18ac0e4d305c5"
+source = "git+https://github.com/wasmerio/wasmer.git?rev=aaa34d2#aaa34d209198f2cf997b852f4246446158b4d9e6"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2211,7 +2256,6 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "sha2",
- "shellexpand",
  "tempfile",
  "term_size",
  "termios",
@@ -2239,13 +2283,19 @@ version = "0.0.1-alpha.1"
 dependencies = [
  "anyhow",
  "async-trait",
+ "base64",
  "bytes",
  "console_error_panic_hook",
  "derivative",
  "futures",
  "http",
+ "instant",
  "js-sys",
  "tokio",
+ "tracing",
+ "tracing-futures",
+ "tracing-subscriber",
+ "tracing-wasm",
  "wasm-bindgen",
  "wasm-bindgen-downcast",
  "wasm-bindgen-futures",
@@ -2258,7 +2308,7 @@ dependencies = [
 [[package]]
 name = "wasmer-wasix-types"
 version = "0.9.0"
-source = "git+https://github.com/wasmerio/wasmer.git?rev=df69b82#df69b821146561c8f24dc021bdf18ac0e4d305c5"
+source = "git+https://github.com/wasmerio/wasmer.git?rev=aaa34d2#aaa34d209198f2cf997b852f4246446158b4d9e6"
 dependencies = [
  "anyhow",
  "bitflags",

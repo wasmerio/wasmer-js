@@ -29,32 +29,33 @@
     "access": "public"
   },
   "scripts": {
-    "build": "wasm-pack build --release --target web && wasm-strip pkg/wasmer_wasix_js_bg.wasm && rollup -c --environment BUILD:production",
+    "build:dev": "wasm-pack build --dev --reference-types --weak-refs --target web . -Zbuild-std=panic_abort,std && wasm-strip pkg/wasmer_wasix_js_bg.wasm && rollup -c --environment BUILD:development",
+    "build": "wasm-pack build --release --reference-types --weak-refs --target web . -Zbuild-std=panic_abort,std && wasm-strip pkg/wasmer_wasix_js_bg.wasm && rollup -c --environment BUILD:production",
     "dev": "rollup -c -w",
     "lint": "",
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js -c jest.config.js",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest -c jest.config.js",
     "test:watch": "npm run test -- --watch",
     "test:coverage": "npm run test -- --coverage",
     "clean": "rimraf dist coverage",
-    "prepare": "npm-run-all clean lint build test"
+    "prepare": "npm run clean && npm run lint && npm run build && npm run test"
   },
   "dependencies": {
     "node-fetch": "^3.3.1",
-    "whatwg-worker": "github:jimmywarting/whatwg-worker#master"
+    "whatwg-worker": "github:jimmywarting/whatwg-worker#2045350"
   },
   "devDependencies": {
     "@rollup/plugin-terser": "~0.4.3",
     "@rollup/plugin-typescript": "^11.1.1",
     "cross-env": "^7.0.3",
-    "eslint": "^7.18.0",
+    "eslint": "^8.44.0",
     "jest": "^29.5.0",
-    "npm-run-all": "^4.1.5",
-    "rimraf": "^3.0.2",
-    "rollup": "^3.25.1",
+    "rimraf": "^5.0.1",
+    "rollup": "^3.26.0",
+    "rollup-plugin-copy": "^3.4.0",
     "rollup-plugin-dts": "^5.3.0",
-    "ts-loader": "^9.4.3",
-    "tslib": "^2.5.3",
-    "typescript": "^5.1.3"
+    "ts-loader": "^9.4.4",
+    "tslib": "^2.6.0",
+    "typescript": "^5.1.6"
   },
-  "browserslist": "defaults"
+  "browserslist": "> 0.5% and last 2 versions, not dead"
 }

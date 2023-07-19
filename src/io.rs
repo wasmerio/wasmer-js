@@ -1,100 +1,36 @@
 use std::{
-    cell::RefCell,
     io::SeekFrom,
     pin::Pin,
-    sync::{Arc, Mutex},
-    task::{ready, Context, Poll, RawWaker},
+    sync::{Arc, Mutex, MutexGuard},
+    task::{Context, Poll},
 };
 
 use bytes::{Buf, Bytes};
-use futures::{future::BoxFuture, FutureExt};
-use tokio::io::{self, AsyncRead, AsyncSeek, AsyncWrite};
+use futures::future::BoxFuture;
+use tokio::{
+    io::{self, AsyncRead, AsyncSeek, AsyncWrite},
+    sync::mpsc,
+};
+#[allow(unused_imports, dead_code)]
+use tracing::{debug, error, info, trace, warn};
 use wasm_bindgen::prelude::*;
-use wasm_bindgen_futures::JsFuture;
 use wasmer_wasix::{FsError, VirtualFile};
-use web_sys::{ReadableStreamDefaultReader, WritableStreamDefaultWriter};
 
-// mod pipe;
-
+/// readable pipe that becomes an `Empty` when channel is closed
 #[derive(Clone, Debug)]
-pub struct JsInput {
-    reader: Arc<Mutex<JsReader>>,
+pub struct WebStdin {
+    rx: Arc<Mutex<mpsc::UnboundedReceiver<Box<[u8]>>>>,
+    buf: Bytes,
 }
+/// writable pipe that becomes a `Sink` when channel is closed
 #[derive(Clone, Debug)]
-pub struct JsOutput {
-    writer: Arc<Mutex<JsWriter>>,
+pub struct WebStdout {
+    tx: mpsc::UnboundedSender<Box<[u8]>>,
 }
+/// writable pipe that becomes a `Sink` when channel is closed
+pub type WebStderr = WebStdout;
 
-impl JsInput {
-    pub fn new(reader: ReadableStreamDefaultReader) -> Self {
-        Self {
-            reader: Arc::new(Mutex::new(JsReader(reader))),
-        }
-    }
-    fn ctx<'a>(cx: &Context<'_>) -> &'a mut (Option<JsFuture>, Bytes) {
-        // FIXME: surely there's a better, safer way to do this?
-        thread_local! {
-            static CTX: RefCell<Vec<(RawWaker, (Option<JsFuture>, Bytes))>> = RefCell::new(Vec::new());
-        }
-        CTX.with(|l| {
-            let mut ctx = l.borrow_mut();
-            let ctx_len = ctx.len();
-            let ctx_key = unsafe { core::mem::transmute_copy::<_, RawWaker>(cx.waker()) };
-            let reborrow = unsafe {
-                &mut *(&mut ctx
-                    as *mut core::cell::RefMut<'_, Vec<(RawWaker, (Option<JsFuture>, Bytes))>>)
-            };
-            let val = match ctx.iter_mut().find(|(key, _)| key == &ctx_key) {
-                Some((_, val)) => val,
-                None => {
-                    reborrow.push((ctx_key, (None, Bytes::new())));
-                    &mut reborrow[ctx_len].1
-                }
-            };
-            unsafe { &mut *(val as *mut (Option<JsFuture>, Bytes)) }
-        })
-    }
-}
-impl JsOutput {
-    pub fn new(writer: WritableStreamDefaultWriter) -> Self {
-        Self {
-            writer: Arc::new(Mutex::new(JsWriter(writer))),
-        }
-    }
-    fn ctx<'a>(cx: &Context<'_>) -> &'a mut Option<JsFuture> {
-        // FIXME: surely there's a better, safer way to do this?
-        thread_local! {
-            static CTX: RefCell<Vec<(RawWaker, Option<JsFuture>)>> = RefCell::new(Vec::new());
-        }
-        CTX.with(|l| {
-            let mut ctx = l.borrow_mut();
-            let ctx_len = ctx.len();
-            let ctx_key = unsafe { core::mem::transmute_copy::<_, RawWaker>(cx.waker()) };
-            let reborrow = unsafe {
-                &mut *(&mut ctx as *mut core::cell::RefMut<'_, Vec<(RawWaker, Option<JsFuture>)>>)
-            };
-            let val = match ctx.iter_mut().find(|(key, _)| key == &ctx_key) {
-                Some((_, val)) => val,
-                None => {
-                    reborrow.push((ctx_key, None));
-                    &mut reborrow[ctx_len].1
-                }
-            };
-            unsafe { &mut *(val as *mut _) }
-        })
-    }
-}
-
-// REVIEW: Unless the owned JsValue-table in the wasm runtime is sent with this WebAssembly.Memory snapshot, this is not Send/Sync.
-
-// SAFETY: We manually ensure the Arc<Mutex<T>> is Send/Sync.
-unsafe impl Send for JsInput {}
-unsafe impl Sync for JsInput {}
-// SAFETY: We manually ensure the Arc<Mutex<T>> is Send/Sync.
-unsafe impl Send for JsOutput {}
-unsafe impl Sync for JsOutput {}
-
-impl AsyncSeek for JsInput {
+impl AsyncSeek for WebStdin {
     fn start_seek(self: Pin<&mut Self>, _position: SeekFrom) -> io::Result<()> {
         Ok(())
     }
@@ -102,7 +38,7 @@ impl AsyncSeek for JsInput {
         Poll::Ready(Ok(0))
     }
 }
-impl AsyncSeek for JsOutput {
+impl AsyncSeek for WebStdout {
     fn start_seek(self: Pin<&mut Self>, _position: SeekFrom) -> io::Result<()> {
         Ok(())
     }
@@ -111,7 +47,7 @@ impl AsyncSeek for JsOutput {
     }
 }
 
-impl AsyncWrite for JsInput {
+impl AsyncWrite for WebStdin {
     fn poll_write(
         self: Pin<&mut Self>,
         _cx: &mut Context<'_>,
@@ -119,128 +55,60 @@ impl AsyncWrite for JsInput {
     ) -> Poll<Result<usize, io::Error>> {
         Poll::Ready(Err(std::io::ErrorKind::Unsupported.into()))
     }
-
     fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Result<(), io::Error>> {
         Poll::Ready(Err(std::io::ErrorKind::Unsupported.into()))
     }
-
     fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Result<(), io::Error>> {
         Poll::Ready(Err(std::io::ErrorKind::Unsupported.into()))
     }
 }
-impl AsyncWrite for JsOutput {
+impl AsyncWrite for WebStdout {
     fn poll_write(
         self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
+        _cx: &mut Context<'_>,
         buf: &[u8],
     ) -> Poll<io::Result<usize>> {
-        let this = self.get_mut();
-        let future = Self::ctx(cx);
-        let fut = match future {
-            Some(fut) => fut,
-            None => {
-                let guard = lock_or_clear(&this.writer);
-                future.insert(JsFuture::from(
-                    guard.write_with_chunk(&JsValue::from(js_sys::Uint8Array::from(buf))),
-                ))
-            }
-        };
-        let result = ready!(fut.poll_unpin(cx));
-        *future = None;
-        Poll::Ready(match result {
-            Ok(_) => Ok(buf.len()),
-            Err(e) => Err(io::Error::new(
-                io::ErrorKind::BrokenPipe,
-                format!("failed to write to stream: {:?}", e),
-            )),
-        })
+        let _ = self.tx.send(Box::from(buf));
+        Poll::Ready(Ok(buf.len()))
     }
-    fn poll_flush(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
-        let this = self.get_mut();
-        let future = Self::ctx(cx);
-        let fut = match future {
-            Some(fut) => fut,
-            None => {
-                let guard = lock_or_clear(&this.writer);
-                future.insert(JsFuture::from(guard.ready()))
-            }
-        };
-        let result = ready!(fut.poll_unpin(cx));
-        *future = None;
-        Poll::Ready(match result {
-            Ok(_) => Ok(()),
-            Err(e) => Err(io::Error::new(
-                io::ErrorKind::BrokenPipe,
-                format!("failed to flush stream: {:?}", e),
-            )),
-        })
+    fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<io::Result<()>> {
+        Poll::Ready(Ok(()))
     }
-    fn poll_shutdown(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
-        self.poll_flush(cx)
+    fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<io::Result<()>> {
+        Poll::Ready(Ok(()))
     }
 }
 
-impl AsyncRead for JsInput {
+impl AsyncRead for WebStdin {
     fn poll_read(
         self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
+        _cx: &mut Context<'_>,
         buf: &mut io::ReadBuf<'_>,
     ) -> Poll<io::Result<()>> {
         let this = self.get_mut();
-        let (future, bytes) = Self::ctx(cx);
         loop {
             {
-                let len = bytes.len();
+                let len = this.buf.len();
                 if len > 0 {
                     let read = len.min(buf.remaining());
-                    buf.put_slice(&bytes[..read]);
-                    bytes.advance(read);
+                    buf.put_slice(&this.buf[..read]);
+                    this.buf.advance(read);
                     return Poll::Ready(Ok(()));
                 }
             }
-            let fut = match future {
-                Some(fut) => fut,
-                None => {
-                    let guard = lock_or_clear(&this.reader);
-                    future.insert(JsFuture::from(guard.read()))
-                }
-            };
-            let result = ready!(fut.poll_unpin(cx));
-            *future = None;
-            // [MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/ReadableStreamDefaultReader/read#return_value)
-            let result = match result {
-                Ok(result) => result,
-                Err(err) => {
-                    return Poll::Ready(Err(io::Error::new(
-                        io::ErrorKind::BrokenPipe,
-                        format!("failed to read from stream: {:?}", err),
-                    )))
-                }
-            };
-            let result = match result.dyn_into::<ReadableStreamReadResult>() {
-                Ok(result) => result,
-                Err(err) => {
-                    return Poll::Ready(Err(io::Error::new(
-                        io::ErrorKind::InvalidData,
-                        format!("failed to read from stream: {:?}", err),
-                    )))
-                }
-            };
-            match result.value() {
-                Some(result) => {
-                    let len = result.len();
-                    // EOF
-                    if len == 0 {
-                        return Poll::Ready(Ok(()));
+            match try_lock_clear(&this.rx) {
+                Some(mut guard) => match guard.try_recv() {
+                    Ok(bytes) if bytes.len() > 0 => {
+                        this.buf = bytes.into();
                     }
-                    *bytes = Bytes::from(result);
-                }
-                None => return Poll::Ready(Err(io::ErrorKind::BrokenPipe.into())),
+                    _ => return Poll::Ready(Ok(())),
+                },
+                None => return Poll::Ready(Err(io::ErrorKind::WouldBlock.into())),
             }
         }
     }
 }
-impl AsyncRead for JsOutput {
+impl AsyncRead for WebStdout {
     fn poll_read(
         self: Pin<&mut Self>,
         _cx: &mut Context<'_>,
@@ -249,8 +117,7 @@ impl AsyncRead for JsOutput {
         Poll::Ready(Err(io::ErrorKind::Unsupported.into()))
     }
 }
-
-impl VirtualFile for JsInput {
+impl VirtualFile for WebStdin {
     fn last_accessed(&self) -> u64 {
         0
     }
@@ -272,62 +139,30 @@ impl VirtualFile for JsInput {
     fn is_open(&self) -> bool {
         true
     }
-    fn poll_read_ready(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<usize>> {
+    fn poll_read_ready(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<io::Result<usize>> {
         let this = self.get_mut();
-        let (future, bytes) = Self::ctx(cx);
-        loop {
-            {
-                let len = bytes.len();
-                if len > 0 {
-                    return Poll::Ready(Ok(len));
-                }
+        {
+            let len = this.buf.len();
+            if len > 0 {
+                return Poll::Ready(Ok(len));
             }
-            let fut = match future {
-                Some(fut) => fut,
-                None => {
-                    let guard = lock_or_clear(&this.reader);
-                    future.insert(JsFuture::from(guard.read()))
+        }
+        match try_lock_clear(&this.rx) {
+            Some(mut guard) => match guard.try_recv() {
+                Ok(bytes) if bytes.len() > 0 => {
+                    this.buf = bytes.into();
+                    Poll::Ready(Ok(this.buf.len()))
                 }
-            };
-            let result = ready!(fut.poll_unpin(cx));
-            *future = None;
-            // [MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/ReadableStreamDefaultReader/read#return_value)
-            let result = match result {
-                Ok(result) => result,
-                Err(err) => {
-                    return Poll::Ready(Err(io::Error::new(
-                        io::ErrorKind::BrokenPipe,
-                        format!("failed to read from stream: {:?}", err),
-                    )))
-                }
-            };
-            let result = match result.dyn_into::<ReadableStreamReadResult>() {
-                Ok(result) => result,
-                Err(err) => {
-                    return Poll::Ready(Err(io::Error::new(
-                        io::ErrorKind::InvalidData,
-                        format!("failed to read from stream: {:?}", err),
-                    )))
-                }
-            };
-            match result.value() {
-                Some(result) => {
-                    let len = result.len();
-                    // EOF
-                    if len == 0 {
-                        return Poll::Ready(Ok(0));
-                    }
-                    *bytes = Bytes::from(result);
-                }
-                None => return Poll::Ready(Err(io::ErrorKind::BrokenPipe.into())),
-            }
+                _ => Poll::Ready(Ok(0)),
+            },
+            None => Poll::Ready(Err(io::ErrorKind::WouldBlock.into())),
         }
     }
     fn poll_write_ready(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<io::Result<usize>> {
         Poll::Ready(Err(io::ErrorKind::Unsupported.into()))
     }
 }
-impl VirtualFile for JsOutput {
+impl VirtualFile for WebStdout {
     fn last_accessed(&self) -> u64 {
         0
     }
@@ -347,115 +182,102 @@ impl VirtualFile for JsOutput {
         Box::pin(async { Ok(()) })
     }
     fn is_open(&self) -> bool {
-        let writer = match self.writer.try_lock() {
-            Ok(writer) => writer,
-            Err(std::sync::TryLockError::Poisoned(writer)) => writer.into_inner(),
-            _ => return false,
-        };
-        matches!(writer.desired_size(), Ok(Some(x)) if x.is_normal())
+        true
     }
     fn poll_read_ready(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<io::Result<usize>> {
         Poll::Ready(Err(io::ErrorKind::Unsupported.into()))
     }
-    fn poll_write_ready(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<usize>> {
-        let this = self.get_mut();
-        let future = Self::ctx(cx);
-        let (result, guard) = match future {
-            Some(fut) => {
-                let result = ready!(fut.poll_unpin(cx));
-                (result, lock_or_clear(&this.writer))
-            }
-            None => {
-                let guard = lock_or_clear(&this.writer);
-                let result = ready!(future.insert(JsFuture::from(guard.ready())).poll_unpin(cx));
-                (result, guard)
-            }
-        };
-        *future = None;
-        if let Ok(Ok(Some(x))) = result.map(|_| guard.desired_size()) {
-            Poll::Ready(Ok(x as usize))
-        } else {
-            Poll::Ready(Err(io::Error::new(
-                io::ErrorKind::BrokenPipe,
-                format!("failed to ready output stream"),
-            )))
-        }
+    fn poll_write_ready(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<io::Result<usize>> {
+        Poll::Ready(Ok(8192))
     }
 }
 
-#[derive(Debug)]
-#[repr(transparent)]
-struct JsWriter(WritableStreamDefaultWriter);
-impl std::ops::Deref for JsWriter {
-    type Target = WritableStreamDefaultWriter;
-    fn deref(&self) -> &Self::Target {
-        &self.0
+pub fn stdin() -> (web_sys::WritableStream, WebStdin) {
+    #[wasm_bindgen]
+    #[derive(Clone)]
+    struct IoSink {
+        tx: mpsc::UnboundedSender<Box<[u8]>>,
     }
-}
-impl std::ops::DerefMut for JsWriter {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-impl Drop for JsWriter {
-    fn drop(&mut self) {
-        wasm_bindgen_futures::spawn_local(JsFuture::from(self.0.close()).map(drop));
-    }
-}
-
-#[derive(Debug)]
-#[repr(transparent)]
-pub struct JsReader(ReadableStreamDefaultReader);
-impl std::ops::Deref for JsReader {
-    type Target = ReadableStreamDefaultReader;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-impl std::ops::DerefMut for JsReader {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-impl Drop for JsReader {
-    fn drop(&mut self) {
-        wasm_bindgen_futures::spawn_local(JsFuture::from(self.0.cancel()).map(drop));
-    }
-}
-
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(extends = js_sys::Object, is_type_of = ReadableStreamReadResult::is_type_of)]
-    type ReadableStreamReadResult;
-    #[wasm_bindgen(method, getter)]
-    fn done(this: &ReadableStreamReadResult) -> bool;
-    #[wasm_bindgen(method, getter)]
-    fn value(this: &ReadableStreamReadResult) -> Option<Box<[u8]>>;
-}
-impl ReadableStreamReadResult {
-    pub fn is_type_of(val: &JsValue) -> bool {
-        #[wasm_bindgen]
-        extern "C" {
-            type Unknown;
-            #[wasm_bindgen(method, getter)]
-            fn done(this: &Unknown) -> JsValue;
-            #[wasm_bindgen(method, getter)]
-            fn value(this: &Unknown) -> JsValue;
-        }
-        val.is_object() && {
-            let val = val.unchecked_ref::<Unknown>();
-            val.done().as_bool().is_some() && {
-                let val: JsValue = val.value();
-                val.is_undefined() || val.is_instance_of::<js_sys::Uint8Array>()
+    #[wasm_bindgen]
+    impl IoSink {
+        pub fn write(
+            &self,
+            chunk: js_sys::Uint8Array,
+            controller: web_sys::WritableStreamDefaultController,
+        ) -> Result<(), JsValue> {
+            match self.tx.send(chunk.to_vec().into_boxed_slice()) {
+                Ok(()) => Ok(()),
+                Err(e) => {
+                    let e = JsValue::from_str(&e.to_string());
+                    controller.error_with_e(&e);
+                    Err(e)
+                }
             }
         }
+        pub fn close(self, _controller: JsValue) {}
+        pub fn abort(self) {}
     }
+
+    let (tx, rx) = mpsc::unbounded_channel();
+    (
+        web_sys::WritableStream::new_with_underlying_sink(&js_sys::Object::unchecked_from_js(
+            JsValue::from(IoSink { tx }),
+        ))
+        .unwrap_throw(),
+        WebStdin {
+            rx: Arc::new(Mutex::new(rx)),
+            buf: Bytes::new(),
+        },
+    )
+}
+pub fn stdout() -> (WebStdout, web_sys::ReadableStream) {
+    #[wasm_bindgen]
+    struct IoSource {
+        rx: mpsc::UnboundedReceiver<Box<[u8]>>,
+    }
+    #[wasm_bindgen]
+    impl IoSource {
+        pub async fn pull(
+            &mut self,
+            controller: web_sys::ReadableStreamDefaultController,
+        ) -> Result<(), JsValue> {
+            match self.rx.recv().await {
+                Some(bytes) => {
+                    if bytes.len() > 0 {
+                        let array = js_sys::Uint8Array::from(bytes.as_ref());
+                        controller.enqueue_with_chunk(&array.into())
+                    } else {
+                        Ok(())
+                    }
+                }
+                None => controller.close(),
+            }
+        }
+        pub fn cancel(&mut self) {
+            self.rx.close();
+        }
+    }
+
+    let (tx, rx) = mpsc::unbounded_channel();
+    (
+        WebStdout { tx },
+        web_sys::ReadableStream::new_with_underlying_source(&js_sys::Object::unchecked_from_js(
+            JsValue::from(IoSource { rx }),
+        ))
+        .unwrap_throw(),
+    )
+}
+#[inline]
+pub fn stderr() -> (WebStderr, web_sys::ReadableStream) {
+    stdout()
 }
 
 #[inline]
-fn lock_or_clear<T: ?Sized>(mutex: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
-    match mutex.lock() {
-        Ok(guard) => guard,
-        Err(poison) => poison.into_inner(),
+fn try_lock_clear<T: ?Sized>(mutex: &Mutex<T>) -> Option<MutexGuard<'_, T>> {
+    use std::sync::TryLockError::*;
+    match mutex.try_lock() {
+        Ok(guard) => Some(guard),
+        Err(Poisoned(e)) => Some(e.into_inner()),
+        Err(WouldBlock) => None,
     }
 }

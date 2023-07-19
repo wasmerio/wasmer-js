@@ -1,10 +1,11 @@
 import terser from '@rollup/plugin-terser';
 import pkg from './package.json' assert { type: 'json' };
-import dts from "rollup-plugin-dts";
+import dts from 'rollup-plugin-dts';
 import typescript from '@rollup/plugin-typescript';
+import copy from 'rollup-plugin-copy';
 
 const LIBRARY_NAME = 'lib'; // Change with your library's name
-const EXTERNAL = ["whatwg-workers", "node-fetch"]; // Indicate which modules should be treated as external
+const EXTERNAL = ["node:fs", "whatwg-workers", "node-fetch"]; // Indicate which modules should be treated as external
 const GLOBALS = {}; // https://rollupjs.org/guide/en/#outputglobals
 
 const banner = `/*!
@@ -59,7 +60,7 @@ const makeConfig = (env = 'development') => {
                 inlineDynamicImports: true
             }
         ],
-        plugins: [ typescriptPlugin ]
+        plugins: [typescriptPlugin]
     };
     if (env === 'production') {
         config.plugins.push(terserPlugin);
@@ -73,7 +74,11 @@ export default commandLineArgs => {
         {
             input: "./pkg/wasmer_wasix_js.d.ts",
             output: [{ file: "dist/pkg/wasmer_wasix_js.d.ts", format: "es" }],
-            plugins: [dts()],
+            plugins: [dts(), copy({
+                targets: [
+                    { src: 'pkg/wasmer_wasix_js_bg.wasm', dest: 'dist' },
+                ],
+            })],
         }
     ];
     // Production

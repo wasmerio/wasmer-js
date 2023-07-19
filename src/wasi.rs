@@ -1,14 +1,20 @@
-use crate::io::{JsInput, JsOutput};
-use crate::{fs::MemFS, pool::WebThreadPool, runtime::WebRuntime};
+use crate::{
+    fs::MemFS,
+    pool::WebThreadPool,
+    runtime::WebRuntime,
+    tty::{Tty, TtyState},
+};
 
 use std::sync::Arc;
 
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
+use wasm_bindgen_downcast::DowncastJS;
 use wasmer::{AsJs, Imports, Instance, Module, Store};
 use wasmer_wasix::fs::WasiFsRoot;
 use wasmer_wasix::{WasiEnvBuilder, WasiError, WasiFunctionEnv};
+use web_sys::{ReadableStream, WritableStream};
 
 #[wasm_bindgen(typescript_custom_section)]
 const WASI_CONFIG_TYPE_DEFINITION: &str = r#"
@@ -22,16 +28,10 @@ export interface WasiConfig {
     readonly preopens?: Record<string, string>;
     /** The in-memory filesystem that should be used. */
     readonly fs?: MemFS;
-    /** The TTY handler that should be used */
-    readonly tty?: JSTty;
-    /** The readable used as stdin */
-    readonly stdin?: ReadableStreamDefaultReader<Uint8Array>;
-    /** The writable used as stdout */
-    readonly stdout?: WritableStreamDefaultWriter<Uint8Array>;
-    /** The writable used as stderr */
-    readonly stderr?: WritableStreamDefaultWriter<Uint8Array>;
     /** Maximum concurrency to use (minimum of 1) */
     readonly concurrency?: number;
+    /** The initial tty state */
+    readonly tty?: TtyState;
 }
 "#;
 
@@ -47,6 +47,8 @@ pub struct WASI {
     wasi_env: WasiFunctionEnv,
     module: Option<Module>,
     instance: Option<Instance>,
+    _tty: Tty,
+    io: (WritableStream, ReadableStream, ReadableStream),
 }
 
 #[wasm_bindgen]
@@ -55,6 +57,13 @@ impl WASI {
     pub fn new(config: WasiConfig) -> Result<WASI, JsValue> {
         #[cfg(feature = "console_error_panic_hook")]
         console_error_panic_hook::set_once();
+        #[cfg(feature = "tracing")]
+        tracing_wasm::set_as_global_default_with_config(
+            tracing_wasm::WASMLayerConfigBuilder::new()
+                .set_report_logs_in_timings(false)
+                .set_max_level(tracing::Level::TRACE)
+                .build(),
+        );
         let args: Vec<String> = {
             let args = js_sys::Reflect::get(&config, &"args".into())?;
             if args.is_undefined() {
@@ -124,38 +133,6 @@ impl WASI {
                 MemFS::from_js(fs)?
             }
         };
-        let tty = {
-            let tty = js_sys::Reflect::get(&config, &"tty".into())?;
-            if tty.is_undefined() {
-                None
-            } else {
-                Some(tty.dyn_into()?)
-            }
-        };
-        let stdin: Option<web_sys::ReadableStreamDefaultReader> = {
-            let stdin = js_sys::Reflect::get(&config, &"stdin".into())?;
-            if stdin.is_undefined() {
-                None
-            } else {
-                Some(stdin.dyn_into()?)
-            }
-        };
-        let stdout: Option<web_sys::WritableStreamDefaultWriter> = {
-            let stdout = js_sys::Reflect::get(&config, &"stdout".into())?;
-            if stdout.is_undefined() {
-                None
-            } else {
-                Some(stdout.dyn_into()?)
-            }
-        };
-        let stderr: Option<web_sys::WritableStreamDefaultWriter> = {
-            let stderr = js_sys::Reflect::get(&config, &"stderr".into())?;
-            if stderr.is_undefined() {
-                None
-            } else {
-                Some(stderr.dyn_into()?)
-            }
-        };
         let concurrency = {
             let concurrency = js_sys::Reflect::get(&config, &"concurrency".into())?;
             if concurrency.is_undefined() {
@@ -165,26 +142,34 @@ impl WASI {
                     Some(concurrency) if concurrency.is_normal() => {
                         Some(concurrency.clamp(1., 16.) as usize)
                     }
-                    _ => return Err(JsError::new(&"Concurrency must be an integer").into()),
+                    _ => return Err(JsError::new("Concurrency must be an integer").into()),
                 }
             }
         };
+        let tty = {
+            let tty = js_sys::Reflect::get(&config, &"tty".into())?;
+            if tty.is_undefined() {
+                None
+            } else {
+                Some(match TtyState::downcast_js(tty) {
+                    Ok(tty) => tty,
+                    _ => return Err(JsError::new("Tty must be an TtyState").into()),
+                })
+            }
+        };
 
+        let (tty_js, tty) = crate::tty::tty(tty);
+        let (stdin_js, stdin) = crate::io::stdin();
+        let (stdout, stdout_js) = crate::io::stdout();
+        let (stderr, stderr_js) = crate::io::stderr();
         let mut store = Store::default();
-        let mut wasi_env = WasiEnvBuilder::new(args.get(0).unwrap_or(&"".to_string()))
+        let wasi_env = WasiEnvBuilder::new(args.get(0).unwrap_or(&"".to_string()))
             .args(if !args.is_empty() { &args[1..] } else { &[] })
             .envs(env)
-            .fs(Box::new(fs));
-        if let Some(stdin) = stdin {
-            wasi_env.set_stdin(Box::new(JsInput::new(stdin)));
-        }
-        if let Some(stdout) = stdout {
-            wasi_env.set_stdout(Box::new(JsOutput::new(stdout)));
-        }
-        if let Some(stderr) = stderr {
-            wasi_env.set_stderr(Box::new(JsOutput::new(stderr)));
-        }
-        let wasi_env = wasi_env
+            .fs(Box::new(fs))
+            .stdin(Box::new(stdin))
+            .stdout(Box::new(stdout))
+            .stderr(Box::new(stderr))
             .map_dirs(preopens)
             .map_err(|e| JsError::new(&format!("Couldn't preopen the dir: {}`", e)))?
             // .map_dirs(vec![(".".to_string(), "/".to_string())])
@@ -205,18 +190,38 @@ impl WASI {
             wasi_env,
             module: None,
             instance: None,
+            _tty: tty_js,
+            io: (stdin_js, stdout_js, stderr_js),
         })
     }
 
     #[wasm_bindgen(getter)]
     pub fn fs(&mut self) -> Result<MemFS, JsValue> {
-        let WasiFsRoot::Backing(backing) = self.wasi_env.data_mut(&mut self.store).fs_root() else {
-            return Err(JsError::new("Failed to get the fs").into());
-        };
-        let mem_fs = backing
-            .downcast_ref::<MemFS>()
-            .ok_or_else(|| -> JsValue { JsError::new("Failed to downcast to MemFS").into() })?;
-        Ok(mem_fs.clone())
+        match self.wasi_env.data_mut(&mut self.store).fs_root() {
+            WasiFsRoot::Backing(backing) => {
+                // SAFETY: We know that the backing is a MemFS because we set it to be one.
+                Ok(unsafe { backing.downcast_ref::<MemFS>().unwrap_unchecked() }.clone())
+            }
+            _ => unreachable!(),
+        }
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn tty(&self) -> Tty {
+        self._tty.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn stdin(&self) -> WritableStream {
+        self.io.0.clone()
+    }
+    #[wasm_bindgen(getter)]
+    pub fn stdout(&self) -> ReadableStream {
+        self.io.1.clone()
+    }
+    #[wasm_bindgen(getter)]
+    pub fn stderr(&self) -> ReadableStream {
+        self.io.2.clone()
     }
 
     #[wasm_bindgen(js_name = getImports)]
@@ -318,22 +323,27 @@ impl WASI {
                         // We should exit with the provided exit code
                         Ok(exit_code.raw() as u32)
                     }
-                    Ok(err) => {
-                        return Err(JsError::new(&format!(
-                            "Unexpected WASI error while running start function: {}",
-                            err
-                        ))
-                        .into())
-                    }
-                    Err(err) => {
-                        return Err(JsError::new(&format!(
-                            "Error while running start function: {}",
-                            err
-                        ))
-                        .into())
-                    }
+                    Ok(err) => Err(JsError::new(&format!(
+                        "Unexpected WASI error while running start function: {}",
+                        err
+                    ))
+                    .into()),
+                    Err(err) => Err(JsError::new(&format!(
+                        "Error while running start function: {}",
+                        err
+                    ))
+                    .into()),
                 }
             }
         }
+    }
+}
+
+impl Drop for WASI {
+    fn drop(&mut self) {
+        // attempt to gracefully close the stdin stream
+        let cb = Closure::new(drop);
+        let _ = self.io.0.close().catch(&cb);
+        cb.forget();
     }
 }

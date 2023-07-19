@@ -8,28 +8,26 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-# uncomment instant dependency to fix the unknown import "env" "now"
-# instant = { version = "0.1", features = [
-#     "wasm-bindgen",
-# ] }
+# comment instant dependency to create the unknown import "env" "now"
+instant = { version = "0.1", features = ["wasm-bindgen"] }
 console_error_panic_hook = { version = "0.1", optional = true }
 wee_alloc = { version = "0.4", optional = true }
 js-sys = "0.3"
 wasm-bindgen = { version = "0.2", features = ["serde-serialize"] }
-wasmer = { version = "4.0.0", git = "https://github.com/wasmerio/wasmer.git", rev = "df69b82", default-features = false, features = [
+wasmer = { version = "4.0.0", git = "https://github.com/wasmerio/wasmer.git", rev = "aaa34d2", default-features = false, features = [
     "js-default",
 ] }
-wasmer-wasix = { version = "0.9", git = "https://github.com/wasmerio/wasmer.git", rev = "df69b82", default-features = false, features = [
+wasmer-wasix = { version = "0.9", git = "https://github.com/wasmerio/wasmer.git", rev = "aaa34d2", default-features = false, features = [
     "js-default",
 ] }
 futures = "0.3"
 wasm-bindgen-futures = "0.4"
 wasm-bindgen-downcast = "0.1"
-# tracing = { version = "0.1", features = ["log"] }
-# tracing-futures = { version = "0.2" }
-# tracing-subscriber = { version = "0.3" }
-# # tracing-wasm = { version = "0.2" }
-# tracing-subscriber-wasm = { version = "0.1" }
+tracing = { version = "0.1", features = ["log", "release_max_level_info"] }
+tracing-futures = { version = "0.2", optional = true }
+tracing-subscriber = { version = "0.3", optional = true }
+tracing-wasm = { version = "0.2", optional = true }
+base64 = "0.21"
 bytes = "1"
 # serde = { version = "1", features = ["derive"] }
 # serde_derive = "1"
@@ -65,8 +63,10 @@ features = [
     # "File",
     "ReadableStream",
     "ReadableStreamDefaultReader",
+    "ReadableStreamDefaultController",
     "WritableStream",
     "WritableStreamDefaultWriter",
+    "WritableStreamDefaultController",
     # "BinaryType",
     # "console",
     "DedicatedWorkerGlobalScope",
@@ -80,9 +80,16 @@ features = [
 ]
 
 [features]
-default = ["console_error_panic_hook"]
+default = ["console_error_panic_hook", "wee_alloc"]
 console_error_panic_hook = ["dep:console_error_panic_hook"]
 wee_alloc = ["dep:wee_alloc"]
+tracing = [
+    "dep:tracing-subscriber",
+    "dep:tracing-wasm",
+    "dep:tracing-futures",
+    "tokio/tracing",
+    "wasmer/tracing",
+]
 
 [profile.release]
 lto = true
@@ -94,4 +101,4 @@ demangle-name-section = false
 dwarf-debug-info = false
 
 [package.metadata.wasm-pack.profile.release]
-wasm-opt = ["--enable-threads", "--enable-bulk-memory", "-O2"]
+wasm-opt = ["--enable-threads", "--enable-bulk-memory", "-Oz"]

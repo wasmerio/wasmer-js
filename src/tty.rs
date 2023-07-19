@@ -1,13 +1,12 @@
-use std::sync::{Arc, Mutex};
-
+use tokio::sync::{mpsc, watch};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_downcast::DowncastJS;
 use wasmer_wasix::{os::TtyBridge, WasiTtyState};
 
 #[wasm_bindgen(inspectable)]
 #[derive(Clone, Debug, DowncastJS)]
-/// TTY state. `Object.assign(new JSTtyState(), { ... })`
-pub struct JSTtyState {
+/// TTY state. `Object.assign(new JsTtyState(), { ... })`
+pub struct TtyState {
     pub cols: u32,
     pub rows: u32,
     pub width: u32,
@@ -21,20 +20,20 @@ pub struct JSTtyState {
 }
 
 #[wasm_bindgen]
-impl JSTtyState {
+impl TtyState {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
         Self::default()
     }
 }
 
-impl Default for JSTtyState {
+impl Default for TtyState {
     fn default() -> Self {
         Self::from(WasiTtyState::default())
     }
 }
 
-impl From<WasiTtyState> for JSTtyState {
+impl From<WasiTtyState> for TtyState {
     fn from(tty_state: WasiTtyState) -> Self {
         Self {
             cols: tty_state.cols,
@@ -51,8 +50,8 @@ impl From<WasiTtyState> for JSTtyState {
     }
 }
 
-impl From<JSTtyState> for WasiTtyState {
-    fn from(tty_state: JSTtyState) -> Self {
+impl From<TtyState> for WasiTtyState {
+    fn from(tty_state: TtyState) -> Self {
         Self {
             cols: tty_state.cols,
             rows: tty_state.rows,
@@ -68,83 +67,105 @@ impl From<JSTtyState> for WasiTtyState {
     }
 }
 
-#[wasm_bindgen(typescript_custom_section)]
-const JS_TTY_BRIDGE: &'static str = r##"
-/** WASIX JavaScript TTY handler. */
-export interface JSTty {
-    /** Reset TTY state. */
-    ttyReset(): void;
-    /** Get TTY state. */
-    ttyGet(): JSTtyState;
-    /** Set TTY state. */
-    ttySet(state: JSTtyState): void;
+#[derive(Clone, Debug)]
+pub struct WebTty {
+    tx: mpsc::UnboundedSender<Option<WasiTtyState>>,
+    rx: watch::Receiver<WasiTtyState>,
 }
-"##;
-
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(typescript_type = "JSTty", js_name = JSTty, extends = js_sys::Object, is_type_of = JSTtyBridge::looks_like_bridge)]
-    pub type JSTtyBridge;
-    #[wasm_bindgen(method, js_name = "ttyReset")]
-    pub fn tty_reset(this: &JSTtyBridge);
-    #[wasm_bindgen(method, js_name = "ttyGet")]
-    pub fn tty_get(this: &JSTtyBridge) -> JsValue;
-    #[wasm_bindgen(method, js_name = "ttySet")]
-    pub fn tty_set(this: &JSTtyBridge, tty_state: &JsValue);
-}
-
-impl JSTtyBridge {
-    pub fn looks_like_bridge(val: &JsValue) -> bool {
-        #[wasm_bindgen]
-        extern "C" {
-            type Unknown;
-            #[wasm_bindgen(method, getter)]
-            fn ttyReset(this: &Unknown) -> JsValue;
-            #[wasm_bindgen(method, getter)]
-            fn ttyGet(this: &Unknown) -> JsValue;
-            #[wasm_bindgen(method, getter)]
-            fn ttySet(this: &Unknown) -> JsValue;
-        }
-        val.is_object() && {
-            let val = val.unchecked_ref::<Unknown>();
-            val.ttyReset().is_function() && val.ttyGet().is_function() && val.ttySet().is_function()
-        }
-    }
-}
-
-#[derive(Clone)]
-pub struct JSTty {
-    inner: Arc<Mutex<JSTtyBridge>>,
-}
-
-impl JSTty {
-    pub fn new(bridge: JSTtyBridge) -> Self {
-        Self {
-            inner: Arc::new(Mutex::new(bridge)),
-        }
-    }
-    fn lock(&self) -> std::sync::MutexGuard<'_, JSTtyBridge> {
-        self.inner.lock().unwrap_or_else(|e| e.into_inner())
-    }
-}
-
-impl TtyBridge for JSTty {
+impl TtyBridge for WebTty {
     fn reset(&self) {
-        self.lock().tty_reset();
+        let _ = self.tx.send(None);
     }
     fn tty_get(&self) -> WasiTtyState {
-        match JSTtyState::downcast_js(self.lock().tty_get()) {
-            Ok(state) => state.into(),
-            _ => WasiTtyState::default(), // ignore malformed state
-        }
+        self.rx.borrow().clone()
     }
     fn tty_set(&self, tty_state: WasiTtyState) {
-        self.lock().tty_set(&JSTtyState::from(tty_state).into());
+        let _ = self.tx.send(Some(tty_state));
     }
 }
 
-// REVIEW: Unless the owned JsValue-table in the wasm runtime is sent with this WebAssembly.Memory, this is not Send/Sync.
+#[wasm_bindgen]
+struct TtySink {
+    tx: watch::Sender<WasiTtyState>,
+}
+#[wasm_bindgen]
+impl TtySink {
+    pub fn write(
+        &self,
+        chunk: TtyState,
+        controller: web_sys::WritableStreamDefaultController,
+    ) -> Result<(), JsValue> {
+        match self.tx.send(chunk.into()) {
+            Ok(()) => Ok(()),
+            Err(e) => {
+                let e = JsValue::from_str(&e.to_string());
+                controller.error_with_e(&e);
+                Err(e)
+            }
+        }
+    }
+    pub fn close(self, _controller: JsValue) {}
+    pub fn abort(self) {}
+}
 
-// SAFETY: We manually ensure the Arc<Mutex<T>> contract is upheld for Send/Sync.
-unsafe impl Send for JSTty {}
-unsafe impl Sync for JSTty {}
+#[wasm_bindgen]
+struct TtySource {
+    rx: mpsc::UnboundedReceiver<Option<WasiTtyState>>,
+}
+#[wasm_bindgen]
+impl TtySource {
+    pub async fn pull(
+        &mut self,
+        controller: web_sys::ReadableStreamDefaultController,
+    ) -> Result<(), JsValue> {
+        match self.rx.recv().await {
+            Some(state) => controller.enqueue_with_chunk(&state.map(TtyState::from).into()),
+            None => controller.close(),
+        }
+    }
+    pub fn cancel(&mut self) {
+        self.rx.close();
+    }
+}
+
+#[wasm_bindgen]
+#[derive(Clone)]
+pub struct Tty {
+    tx: web_sys::WritableStream,
+    rx: web_sys::ReadableStream,
+}
+#[wasm_bindgen]
+impl Tty {
+    #[wasm_bindgen(getter)]
+    pub fn writable(&self) -> web_sys::WritableStream {
+        self.tx.clone()
+    }
+    #[wasm_bindgen(getter)]
+    pub fn readable(&self) -> web_sys::ReadableStream {
+        self.rx.clone()
+    }
+}
+
+pub fn tty(init: Option<TtyState>) -> (Tty, WebTty) {
+    let (tx_wa, rx_js) = mpsc::unbounded_channel();
+    let (tx_js, rx_wa) = watch::channel(match init {
+        Some(state) => state.into(),
+        None => WasiTtyState::default(),
+    });
+    (
+        Tty {
+            tx: web_sys::WritableStream::new_with_underlying_sink(
+                &js_sys::Object::unchecked_from_js(JsValue::from(TtySink { tx: tx_js })),
+            )
+            .unwrap_throw(),
+            rx: web_sys::ReadableStream::new_with_underlying_source(
+                &js_sys::Object::unchecked_from_js(JsValue::from(TtySource { rx: rx_js })),
+            )
+            .unwrap_throw(),
+        },
+        WebTty {
+            tx: tx_wa,
+            rx: rx_wa,
+        },
+    )
+}

@@ -1,13 +1,13 @@
 import _init from "./pkg/wasmer_wasix_js";
-export { JSVirtualFile, MemFS, WASI, type WasiConfig, type JSTty, JSTtyState } from "./pkg/wasmer_wasix_js";
+export * from "./pkg/wasmer_wasix_js";
+export * from "./common";
 
-// todo: use @rollup/wasm to import wasm
 
 let inited: Promise<any> | null = null;
-export const init = async (force?: boolean) => {
-	if (inited === null || force === true) {
-		// node polyfills
+export default async function init(...args: any[]) {
+	if (inited === null) {
 		if (typeof globalThis.process?.versions?.node !== 'undefined') {
+			// node polyfills
 			if (!globalThis.require && !globalThis.crypto) {
 				await import('node:crypto').then(({ webcrypto }) => {
 					// @ts-ignore `rand` crate requires this polyfill for node modules
@@ -26,11 +26,16 @@ export const init = async (force?: boolean) => {
 					globalThis.Worker = Worker;
 				});
 			}
+			if (args.length === 0) {
+				await import('node:fs').then((fs) => {
+					inited = _init(fs.readFileSync(new URL('wasmer_wasix_js_bg.wasm', import.meta.url)));
+				});
+			} else {
+				inited = _init(...args);
+			}
 		} else {
-			inited = _init();
+			inited = _init(...args);
 		}
 	}
 	await inited;
 }
-
-export default init;

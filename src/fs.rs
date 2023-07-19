@@ -127,7 +127,7 @@ impl MemFS {
     }
 
     #[wasm_bindgen(js_name = open)]
-    pub fn js_open(&self, path: &str, options: JsValue) -> Result<JSVirtualFile, JsValue> {
+    pub fn js_open(&self, path: &str, options: JsValue) -> Result<MemFile, JsValue> {
         let mut open_options = self.new_open_options();
         open_options.read(
             js_sys::Reflect::get(&options, &"read".into())?
@@ -162,7 +162,7 @@ impl MemFS {
         let file = open_options
             .open(path)
             .map_err(|e| JsError::new(&format!("Error when opening the file: {}`", e)))?;
-        Ok(JSVirtualFile { handle: file })
+        Ok(MemFile { handle: file })
     }
 }
 
@@ -188,39 +188,47 @@ impl FileSystem for MemFS {
     fn remove_file(&self, path: &Path) -> Result<(), FsError> {
         self.inner.remove_file(path)
     }
-
     fn new_open_options(&self) -> OpenOptions {
         self.inner.new_open_options()
     }
 }
 
 // Files
-#[wasm_bindgen]
-pub struct JSVirtualFile {
+#[wasm_bindgen(js_name = VirtualFile)]
+pub struct MemFile {
     handle: Box<dyn VirtualFile>,
 }
 
-#[wasm_bindgen]
-impl JSVirtualFile {
-    #[wasm_bindgen(js_name = lastAccessed)]
+impl MemFile {
+    async fn read_vec(&mut self) -> Result<Vec<u8>, JsValue> {
+        let sz = self.size();
+        let mut buf = Vec::with_capacity(sz.min(i32::MAX as _) as usize);
+        self.handle
+            .read_to_end(&mut buf)
+            .map_err(|e| JsError::new(&format!("Error when reading: {}`", e)))
+            .await?;
+        Ok(buf)
+    }
+}
+
+#[wasm_bindgen(js_class = VirtualFile)]
+impl MemFile {
+    #[wasm_bindgen(getter, js_name = lastAccessed)]
     pub fn last_accessed(&self) -> u64 {
         self.handle.last_accessed()
     }
-
-    #[wasm_bindgen(js_name = lastModified)]
+    #[wasm_bindgen(getter, js_name = lastModified)]
     pub fn last_modified(&self) -> u64 {
         self.handle.last_modified()
     }
-
     #[wasm_bindgen(js_name = createdTime)]
     pub fn created_time(&self) -> u64 {
         self.handle.created_time()
     }
-
+    #[wasm_bindgen(getter)]
     pub fn size(&self) -> u64 {
         self.handle.size()
     }
-
     #[wasm_bindgen(js_name = setLength)]
     pub fn set_len(&mut self, new_size: u64) -> Result<(), JsValue> {
         self.handle.set_len(new_size).map_err(|e| {
@@ -229,43 +237,34 @@ impl JSVirtualFile {
     }
 
     // Read APIs
-
-    async fn read_vec(&mut self) -> Result<Vec<u8>, JsValue> {
-        let mut buf = Vec::with_capacity(self.size() as usize);
+    #[wasm_bindgen(js_name = arrayBuffer)]
+    pub async fn array_buffer(&mut self) -> Result<js_sys::ArrayBuffer, JsValue> {
+        Ok(js_sys::Uint8Array::from(self.read_vec().await?.as_slice()).buffer())
+    }
+    pub async fn text(&mut self) -> Result<String, JsValue> {
+        Ok(String::from_utf8_lossy(&self.read_vec().await?).into_owned())
+    }
+    pub async fn read(&mut self, buf: &mut [u8]) -> Result<usize, JsValue> {
         self.handle
-            .read_to_end(&mut buf)
-            .map_err(|e| JsError::new(&format!("Error when reading: {}`", e)))
-            .await?;
-        Ok(buf)
-    }
-
-    pub async fn read(&mut self) -> Result<js_sys::Uint8Array, JsValue> {
-        Ok(js_sys::Uint8Array::from(self.read_vec().await?.as_slice()))
-    }
-
-    #[wasm_bindgen(js_name = readString)]
-    pub async fn read_string(&mut self) -> Result<String, JsValue> {
-        String::from_utf8(self.read_vec().await?).map_err(|e| {
-            JsError::new(&format!("Could not convert the bytes to a String: {}`", e)).into()
-        })
+            .read(buf)
+            .map_err(|e| JsError::new(&format!("Error when reading: {}`", e)).into())
+            .await
     }
 
     // Write APIs
-    pub async fn write(&mut self, buf: &mut [u8]) -> Result<usize, JsValue> {
+    pub async fn write(&mut self, buf: &[u8]) -> Result<usize, JsValue> {
         self.handle
             .write(buf)
             .map_err(|e| JsError::new(&format!("Error when writing: {}`", e)).into())
             .await
     }
-
     #[wasm_bindgen(js_name = writeString)]
-    pub async fn write_string(&mut self, mut buf: String) -> Result<usize, JsValue> {
+    pub async fn write_string(&mut self, buf: String) -> Result<usize, JsValue> {
         self.handle
-            .write(unsafe { buf.as_bytes_mut() })
+            .write(buf.as_bytes())
             .map_err(|e| JsError::new(&format!("Error when writing string: {}`", e)).into())
             .await
     }
-
     pub async fn flush(&mut self) -> Result<(), JsValue> {
         self.handle
             .flush()
@@ -274,12 +273,16 @@ impl JSVirtualFile {
     }
 
     // Seek APIs
-    pub async fn seek(&mut self, position: u32) -> Result<u32, JsValue> {
+    pub async fn seek(&mut self, position: f64) -> Result<u64, JsValue> {
         let ret = self
             .handle
-            .seek(std::io::SeekFrom::Start(position as _))
+            .seek(if position >= 0. {
+                std::io::SeekFrom::Start(position as _)
+            } else {
+                std::io::SeekFrom::End(position as _)
+            })
             .map_err(|e| JsError::new(&format!("Error when seeking: {}`", e)))
             .await?;
-        Ok(ret as _)
+        Ok(ret)
     }
 }

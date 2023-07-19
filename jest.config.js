@@ -1,4 +1,3 @@
 module.exports = {
-    coverageReporters: ['json', 'lcov', 'text', 'clover', 'html'],
-    transform: {}
-  };
+  coverageReporters: ['json', 'lcov', 'text', 'clover', 'html']
+};
