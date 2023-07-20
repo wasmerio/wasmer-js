@@ -15,7 +15,7 @@ jobs:
       - name: Install Node
         uses: actions/setup-node@v3
         with:
-          node-version: 16
+          node-version: 18
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
@@ -30,9 +30,5 @@ jobs:
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
       - name: Install wasm-strip and wasm-opt
         run: sudo apt-get update && sudo apt-get install -y wabt binaryen
-      - name: Install Dependencies
+      - name: Install dependencies, build, & test
         run: npm install
-      - name: Build
-        run: npm run build
-      - name: Test
-        run: npm run test
