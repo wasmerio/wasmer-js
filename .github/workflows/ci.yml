@@ -22,7 +22,7 @@ jobs:
           profile: minimal
           # toolchain: "1.64.0" # Required for [workspace.package]
           toolchain: nightly
-          override: true
+          override: false
           target: wasm32-unknown-unknown
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
