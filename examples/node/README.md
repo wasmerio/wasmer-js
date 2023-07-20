@@ -1,11 +1,5 @@
 # Wasmer/WASI Node examples
 
-You can run the code with:
-
-```shell
-npm i
-```
-
 ## Hello World
 
 This example outputs hello world in the `stdout`.

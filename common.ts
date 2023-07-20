@@ -1,4 +1,4 @@
-import { VirtualFile } from "./pkg/wasmer_wasix_js";
+import { VirtualFile } from "./pkg/wasmer_wasix_js.js";
 
 export function VirtualFileReader(file: VirtualFile, opts?: { chunkSize?: number, strategy?: QueuingStrategy<Uint8Array> }): ReadableStream<Uint8Array> {
     let chunkSize = opts?.chunkSize || 65536;
