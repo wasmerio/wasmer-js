@@ -28,7 +28,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
       - name: Install wasm-pack
         run: npm install -g wasm-pack
-      - name: Install wasm-strip and wasm-opt
+      - name: Install wabt
         run: sudo apt-get update && sudo apt-get install -y wabt
-      - name: Install dependencies, build, & test
+      - name: Install dependencies, build, and test
         run: npm install
