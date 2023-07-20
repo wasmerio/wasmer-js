@@ -27,8 +27,8 @@ jobs:
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
       - name: Install wasm-pack
-        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+        run: npm install -g wasm-pack
       - name: Install wasm-strip and wasm-opt
-        run: sudo apt-get update && sudo apt-get install -y wabt binaryen
+        run: sudo apt-get update && sudo apt-get install -y wabt
       - name: Install dependencies, build, & test
         run: npm install
