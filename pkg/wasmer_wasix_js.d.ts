@@ -206,10 +206,6 @@ export class TtyState {
 export class VirtualFile {
   free(): void;
 /**
-* @returns {bigint}
-*/
-  createdTime(): bigint;
-/**
 * @param {bigint} new_size
 */
   setLength(new_size: bigint): void;
@@ -245,6 +241,9 @@ export class VirtualFile {
 * @returns {Promise<bigint>}
 */
   seek(position: number): Promise<bigint>;
+/**
+*/
+  readonly createdTime: bigint;
 /**
 */
   readonly lastAccessed: bigint;

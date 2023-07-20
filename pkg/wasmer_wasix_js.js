@@ -970,7 +970,7 @@ export class VirtualFile {
     /**
     * @returns {bigint}
     */
-    createdTime() {
+    get createdTime() {
         const ret = wasm.virtualfile_createdTime(this.ptr);
         return BigInt.asUintN(64, ret);
     }

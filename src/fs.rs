@@ -221,7 +221,7 @@ impl MemFile {
     pub fn last_modified(&self) -> u64 {
         self.handle.last_modified()
     }
-    #[wasm_bindgen(js_name = createdTime)]
+    #[wasm_bindgen(getter, js_name = createdTime)]
     pub fn created_time(&self) -> u64 {
         self.handle.created_time()
     }

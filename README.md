@@ -23,7 +23,7 @@ npm install --save @wasmer/wasix
 And then import it in your server or client-side code with:
 
 ```js
-import { init, WASI } from '@wasmer/wasix';
+import init, { WASI } from '@wasmer/wasix';
 ```
 
 > Check the Node usage examples in <https://github.com/wasmerio/wasmer-js/tree/main/examples/node>
@@ -33,7 +33,7 @@ import { init, WASI } from '@wasmer/wasix';
 This package is published in Deno in the `wasm` package, you can import it directly with:
 
 ```ts
-import { init, WASI } from 'https://deno.land/x/wasm/wasi.ts';
+import init, { WASI } from 'https://deno.land/x/wasm/wasix.ts';
 ```
 
 > Check the Deno usage Examples in <https://github.com/wasmerio/wasmer-js/tree/main/examples/deno>
@@ -54,6 +54,15 @@ let wasi = new WASI({
   ],
 });
 
+// pipe wasi.stdout to `stdout` string
+let stdout = "";
+const DecodeStream = () => new TextDecoderStream("utf-8", { ignoreBOM: false, fatal: true });
+const StdoutWritable = () => new WritableStream({
+  write(chunk, _controller) { stdout += chunk; }
+});
+// and keep track of open handles (Promises)
+const handles = [wasi.stdout.pipeThrough(DecodeStream()).pipeTo(StdoutWritable())];
+
 const moduleBytes = fetch("https://deno.land/x/wasm/tests/demo.wasm");
 const module = await WebAssembly.compileStreaming(moduleBytes);
 // Instantiate the WASI module
@@ -61,10 +70,16 @@ await wasi.instantiate(module, {});
 
 // Run the start function
 let exitCode = wasi.start();
-let stdout = wasi.getStdoutString();
 
- // This should print "hello world (exit code: 0)"
-console.log(`${stdout}(exit code: ${exitCode})`);
+// WASI must be freed before handles are closed, either manually, "wasi.free()", or by garbage collection
+wasi.free();
+// Wait for handles to finish before proceeding
+Promise.all(handles).then(() => {
+  // This should print:
+  // hello world
+  // (exit code: 0)
+  console.log(`${stdout}(exit code: ${exitCode})`);
+});
 ```
 
 ## API Docs
@@ -76,29 +91,29 @@ https://docs.wasmer.io/integrations/js/reference-api -->
 
 ```typescript
 export class WASI {
-  constructor(config: any);
+  constructor(config: WasiConfig);
   readonly fs: MemFS;
+  readonly tty: Tty;
+  readonly stdin: WritableStream;
+  readonly stdout: ReadableStream;
+  readonly stderr: ReadableStream;
 
+
+  // Instantiate the WebAssembly.Module or WebAssembly.Instance.
+  // If passing a WebAssembly.Instance, you must call WASI.getImports(module) beforehand.
   instantiate(module: any, imports: object): WebAssembly.Instance;
   // Start the WASI Instance, it returns the status code when calling the start
   // function
   start(instance: WebAssembly.Instance): number;
-  // Get the stdout buffer
-  // Note: this method flushes the stdout
-  getStdoutBuffer(): Uint8Array;
-  // Get the stdout data as a string
-  // Note: this method flushes the stdout
-  getStdoutString(): string;
-  // Get the stderr buffer
-  // Note: this method flushes the stderr
-  getStderrBuffer(): Uint8Array;
-  // Get the stderr data as a string
-  // Note: this method flushes the stderr
-  getStderrString(): string;
-  // Set the stdin buffer
-  setStdinBuffer(buf: Uint8Array): void;
-  // Set the stdin data as a string
-  setStdinString(input: string): void;
+}
+
+export interface WasiConfig {
+  readonly args?: string[];
+  readonly env?: Record<string, string>;
+  readonly preopens?: Record<string, string>;
+  readonly fs?: MemFS;
+  readonly concurrency?: number;
+  readonly tty?: TtyState;
 }
 
 export class MemFS {
@@ -107,23 +122,43 @@ export class MemFS {
   createDir(path: string): void;
   removeDir(path: string): void;
   removeFile(path: string): void;
-  rename(path: string, to: string): void;
+  rename(path: string, to: string): Promise<void>;
   metadata(path: string): object;
-  open(path: string, options: any): JSVirtualFile;
+  open(path: string, options: any): VirtualFile;
 }
 
-export class JSVirtualFile {
-  lastAccessed(): BigInt;
-  lastModified(): BigInt;
-  createdTime(): BigInt;
-  size(): BigInt;
+export class VirtualFile {
+  readonly lastAccessed: BigInt;
+  readonly lastModified: BigInt;
+  readonly createdTime: BigInt;
+  readonly size: BigInt;
   setLength(new_size: BigInt): void;
-  read(): Uint8Array;
-  readString(): string;
-  write(buf: Uint8Array): number;
-  writeString(buf: string): number;
-  flush(): void;
-  seek(position: number): number;
+  arrayBuffer(): Promise<ArrayBuffer>;
+  text(): Promise<string>;
+  read(buf: Uint8Array): Promise<number>;
+  write(buf: Uint8Array): Promise<number>;
+  writeString(buf: string): Promise<number>;
+  flush(): Promise<void>;
+  seek(position: number): Promise<number>;
+}
+
+export class Tty {
+  readonly readable: ReadableStream;
+  readonly writable: WritableStream;
+}
+
+export class TtyState {
+  constructor();
+  cols: number;
+  echo: boolean;
+  height: number;
+  line_buffered: boolean;
+  line_feeds: boolean;
+  rows: number;
+  stderr_tty: boolean;
+  stdin_tty: boolean;
+  stdout_tty: boolean;
+  width: number;
 }
 ```
 
