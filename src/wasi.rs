@@ -16,6 +16,9 @@ use wasmer_wasix::fs::WasiFsRoot;
 use wasmer_wasix::{WasiEnvBuilder, WasiError, WasiFunctionEnv};
 use web_sys::{ReadableStream, WritableStream};
 
+#[cfg(any(feature = "console_error_panic_hook", feature = "tracing"))]
+static START: std::sync::Once = std::sync::Once::new();
+
 #[wasm_bindgen(typescript_custom_section)]
 const WASI_CONFIG_TYPE_DEFINITION: &str = r#"
 /** Options used when configuring a new WASI instance.  */
@@ -55,15 +58,18 @@ pub struct WASI {
 impl WASI {
     #[wasm_bindgen(constructor)]
     pub fn new(config: WasiConfig) -> Result<WASI, JsValue> {
-        #[cfg(feature = "console_error_panic_hook")]
-        console_error_panic_hook::set_once();
-        #[cfg(feature = "tracing")]
-        tracing_wasm::set_as_global_default_with_config(
-            tracing_wasm::WASMLayerConfigBuilder::new()
-                .set_report_logs_in_timings(false)
-                .set_max_level(tracing::Level::TRACE)
-                .build(),
-        );
+        #[cfg(any(feature = "console_error_panic_hook", feature = "tracing"))]
+        START.call_once(|| {
+            #[cfg(feature = "console_error_panic_hook")]
+            std::panic::set_hook(Box::new(console_error_panic_hook::hook));
+            #[cfg(feature = "tracing")]
+            tracing_wasm::set_as_global_default_with_config(
+                tracing_wasm::WASMLayerConfigBuilder::new()
+                    .set_report_logs_in_timings(false)
+                    .set_max_level(tracing::Level::TRACE)
+                    .build(),
+            );
+        });
         let args: Vec<String> = {
             let args = js_sys::Reflect::get(&config, &"args".into())?;
             if args.is_undefined() {

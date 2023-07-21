@@ -1,4 +1,5 @@
 // import init, { WASI } from "https://deno.land/x/wasm/wasi.ts";
+// @ts-ignore
 import init, { WASI } from "../../wasix.ts";
 
 // This is needed to load the WASI library first

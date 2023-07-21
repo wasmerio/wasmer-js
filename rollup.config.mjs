@@ -5,7 +5,7 @@ import typescript from '@rollup/plugin-typescript';
 import copy from 'rollup-plugin-copy';
 
 const LIBRARY_NAME = 'lib'; // Change with your library's name
-const EXTERNAL = ["node:fs", "whatwg-workers", "node-fetch"]; // Indicate which modules should be treated as external
+const EXTERNAL = ["node:fs", "node:crypto", "whatwg-worker", "node-fetch"]; // Indicate which modules should be treated as external
 const GLOBALS = {}; // https://rollupjs.org/guide/en/#outputglobals
 
 const banner = `/*!

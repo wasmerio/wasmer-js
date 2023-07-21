@@ -1,0 +1,12 @@
+{
+  "name": "wasmer-web-demo",
+  "version": "1.0.0",
+  "description": "Wasmer/WASI web demo",
+  "main": "main.mjs",
+  "type": "module",
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "serve-handler": "^6"
+  }
+}
