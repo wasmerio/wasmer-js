@@ -1,5 +1,3 @@
-// Copy of wasi-web/src/module_cache.rs
-
 use std::{cell::RefCell, collections::HashMap};
 
 use bytes::Bytes;

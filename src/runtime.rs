@@ -1,5 +1,3 @@
-// DISCUSSION: just use sync runtime? workers are being more of a pain than they're worth. I don't know if replicating wasi-web is desirable here.
-
 use std::time::Duration;
 /// ^1: bindgen glue marks its calls as unsafe - namely the use of
 ///     shared references that can be sent to is not in line with
@@ -13,8 +11,8 @@ use http::{HeaderMap, StatusCode};
 use js_sys::Promise;
 
 use tokio::runtime::{Builder, Handle, Runtime};
-/* #[allow(unused_imports, dead_code)]
-use tracing::{debug, error, info, trace, warn}; */
+#[allow(unused_imports, dead_code)]
+use tracing::{debug, error, info, trace, warn};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::*;
 use wasmer_wasix::{

@@ -1,4 +1,3 @@
-// Modified copy of wasi-web/src/pool.rs
 use std::{
     cell::RefCell,
     fmt::Debug,

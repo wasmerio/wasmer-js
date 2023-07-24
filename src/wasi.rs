@@ -249,7 +249,7 @@ impl WASI {
     fn get_wasi_imports(&mut self, module: &Module) -> Result<Imports, JsValue> {
         let import_object = self
             .wasi_env
-            .import_object(&mut self.store, module)
+            .import_object_for_all_wasi_versions(&mut self.store, module)
             .map_err(|e| JsError::new(&format!("Failed to create the Import Object: {}`", e)))?;
         Ok(import_object)
     }
@@ -272,7 +272,7 @@ impl WASI {
             };
 
             let instance = Instance::new(&mut self.store, &module, &imports)
-                .map_err(|e| JsError::new(&format!("Failed to instantiate WASI: {}`", e)))?;
+                .map_err(|e| JsError::new(&format!("Failed to instantiate WASI: {}", e)))?;
             self.module = Some(module);
             instance
         } else if module_or_instance.has_type::<js_sys::WebAssembly::Instance>() {
