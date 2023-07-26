@@ -26,8 +26,8 @@ impl WebWorkerModuleCache {
     fn insert(&self, key: ModuleHash, module: &Module, deterministic_id: &str) -> bool {
         let key = (key, deterministic_id.to_string());
         let old = CACHED_MODULES.with(|m| m.borrow_mut().insert(key, module.clone()));
-
-        old.is_some()
+        let already_exists = old.is_some();
+        already_exists
     }
 
     fn cache_in_main(&self, key: ModuleHash, module: &Module, deterministic_id: &str) {
@@ -54,7 +54,8 @@ impl WebWorkerModuleCache {
             unsafe {
                 let entries = js_sys::Array::new_with_length(m.borrow().len() as u32);
 
-                for (i, ((key, deterministic_id), module)) in m.borrow().iter().enumerate() {
+                let mut i = 0;
+                for ((key, deterministic_id), module) in m.borrow().iter() {
                     let entry = js_sys::Object::new();
 
                     js_sys::Reflect::set(
@@ -84,7 +85,8 @@ impl WebWorkerModuleCache {
                     )
                     .unwrap();
 
-                    entries.set(i as u32, JsValue::from(entry));
+                    entries.set(i, JsValue::from(entry));
+                    i += 1;
                 }
 
                 JsValue::from(entries)
@@ -97,7 +99,7 @@ impl WebWorkerModuleCache {
             // Annotation is here to prevent spurious IDE warnings.
             #[allow(unused_unsafe)]
             unsafe {
-                let entries = cache.dyn_into::<js_sys::Array>().unwrap();
+                let entries = JsValue::from(cache).dyn_into::<js_sys::Array>().unwrap();
 
                 for i in 0..entries.length() {
                     let entry = entries.get(i);
@@ -148,7 +150,7 @@ impl ModuleCache for WebWorkerModuleCache {
 
         // We also send the module to the main thread via a postMessage
         // which they relays it to all the web works
-        if !already_exists {
+        if already_exists == false {
             self.cache_in_main(key, module, engine.deterministic_id());
         }
 

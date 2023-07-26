@@ -249,6 +249,7 @@ impl WASI {
     fn get_wasi_imports(&mut self, module: &Module) -> Result<Imports, JsValue> {
         let import_object = self
             .wasi_env
+            // FIXME: this does not define "wasi" namespace for WASI threads proposal (to be fixed upstream in wasmer-wasix?)
             .import_object_for_all_wasi_versions(&mut self.store, module)
             .map_err(|e| JsError::new(&format!("Failed to create the Import Object: {}`", e)))?;
         Ok(import_object)

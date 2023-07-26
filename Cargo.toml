@@ -14,10 +14,10 @@ console_error_panic_hook = { version = "0.1", optional = true }
 wee_alloc = { version = "0.4", optional = true }
 js-sys = "0.3"
 wasm-bindgen = { version = "0.2", features = ["serde-serialize"] }
-wasmer = { version = "4.0.0", git = "https://github.com/wasmerio/wasmer.git", rev = "aaa34d2", default-features = false, features = [
+wasmer = { version = "4.1.0", git = "https://github.com/wasmerio/wasmer.git", rev = "d344df2", default-features = false, features = [
     "js-default",
 ] }
-wasmer-wasix = { version = "0.9", git = "https://github.com/wasmerio/wasmer.git", rev = "aaa34d2", default-features = false, features = [
+wasmer-wasix = { version = "0.10", git = "https://github.com/wasmerio/wasmer.git", rev = "d344df2", default-features = false, features = [
     "js-default",
 ] }
 futures = "0.3"

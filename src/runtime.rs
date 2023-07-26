@@ -10,7 +10,6 @@ use futures::future::BoxFuture;
 use http::{HeaderMap, StatusCode};
 use js_sys::Promise;
 
-use tokio::runtime::{Builder, Handle, Runtime};
 #[allow(unused_imports, dead_code)]
 use tracing::{debug, error, info, trace, warn};
 use wasm_bindgen::prelude::*;
@@ -26,11 +25,8 @@ use wasmer_wasix::{
     },
     VirtualNetworking, VirtualTaskManager, WasiThreadError,
 };
-use web_sys::*;
 
-use crate::module_cache::WebWorkerModuleCache;
-
-use super::{pool::WebThreadPool, tty::*};
+use crate::{common::*, module_cache::WebWorkerModuleCache, pool::WebThreadPool, tty::*};
 
 #[derive(Derivative)]
 #[derivative(Debug)]
@@ -48,10 +44,7 @@ pub(crate) struct WebRuntime {
 impl WebRuntime {
     #[allow(unused_variables)]
     pub(crate) fn new(pool: WebThreadPool, tty: WebTty) -> WebRuntime {
-        let tasks = WebTaskManager {
-            pool: pool.clone(),
-            runtime: Arc::new(Builder::new_current_thread().build().unwrap()),
-        };
+        let tasks = WebTaskManager { pool: pool.clone() };
         let http_client = Arc::new(WebHttpClient { pool: pool.clone() });
         let source = MultiSource::new();
         let package_loader = BuiltinPackageLoader::new_only_client(http_client.clone());
@@ -77,7 +70,6 @@ impl VirtualNetworking for WebVirtualNetworking {}
 #[derive(Debug, Clone)]
 pub(crate) struct WebTaskManager {
     pool: WebThreadPool,
-    runtime: Arc<Runtime>,
 }
 
 struct WebRuntimeGuard<'g> {
@@ -133,19 +125,6 @@ impl VirtualTaskManager for WebTaskManager {
             })
         }));
         Ok(())
-    }
-
-    /// Returns a runtime that can be used for asynchronous tasks
-    fn runtime(&self) -> &Handle {
-        self.runtime.handle()
-    }
-
-    /// Enters a runtime context
-    #[allow(dyn_drop)]
-    fn runtime_enter<'g>(&'g self) -> Box<dyn std::ops::Drop + 'g> {
-        Box::new(WebRuntimeGuard {
-            inner: self.runtime.enter(),
-        })
     }
 
     /// Starts an asynchronous task will will run on a dedicated thread
@@ -247,14 +226,14 @@ impl WebHttpClient {
             );
         }
 
-        /* debug!("received {} bytes", data.len()); */
+        debug!("received {} bytes", data.len());
         let resp = HttpResponse {
             redirected,
             status,
             headers,
             body: Some(data),
         };
-        /* debug!("response status {}", status); */
+        debug!("response status {}", status);
 
         Ok(resp)
     }
@@ -273,124 +252,13 @@ impl wasmer_wasix::http::HttpClient for WebHttpClient {
         self.pool.spawn_shared(Box::new(move || {
             Box::pin(async move {
                 let res = Self::do_request(request).await;
-                let _ = tx.send(res);
+                if let Err(err) = tx.send(res) {
+                    tracing::error!("failed to reply http response to caller - {:?}", err);
+                }
             })
         }));
         Box::pin(async move { rx.await.unwrap() })
     }
-}
-
-fn fetch_internal(request: &Request) -> JsFuture {
-    let global = js_sys::global();
-    if JsValue::from_str("WorkerGlobalScope").js_in(&global)
-        && global.is_instance_of::<WorkerGlobalScope>()
-    {
-        JsFuture::from(
-            global
-                .unchecked_into::<WorkerGlobalScope>()
-                .fetch_with_request(request),
-        )
-    } else {
-        JsFuture::from(
-            global
-                .unchecked_into::<web_sys::Window>()
-                .fetch_with_request(request),
-        )
-    }
-}
-
-pub async fn fetch(
-    url: &str,
-    method: &str,
-    _gzip: bool,
-    cors_proxy: Option<String>,
-    headers: &http::HeaderMap,
-    data: Option<Vec<u8>>,
-) -> Result<Response, anyhow::Error> {
-    let mut opts = RequestInit::new();
-    opts.method(method);
-    opts.mode(RequestMode::Cors);
-
-    if let Some(data) = data {
-        let data_len = data.len();
-        let array = js_sys::Uint8Array::new_with_length(data_len as u32);
-        array.copy_from(&data[..]);
-
-        opts.body(Some(&array));
-    }
-
-    let request = {
-        let request = Request::new_with_str_and_init(url, &opts)
-            .map_err(|_| anyhow::anyhow!("Could not construct request object"))?;
-
-        let set_headers = request.headers();
-        for (name, val) in headers.iter() {
-            let val = String::from_utf8_lossy(val.as_bytes());
-            set_headers.set(name.as_str(), &val).map_err(|_| {
-                anyhow::anyhow!("could not apply request header: '{name}': '{val}'")
-            })?;
-        }
-        request
-    };
-
-    let resp_value = match fetch_internal(&request).await.ok() {
-        Some(a) => a,
-        None => {
-            // If the request failed it may be because of CORS so if a cors proxy
-            // is configured then try again with the cors proxy
-            let url_store;
-            let url = if let Some(cors_proxy) = cors_proxy {
-                url_store = format!("https://{}/{}", cors_proxy, url);
-                url_store.as_str()
-            } else {
-                // TODO: more descriptive error.
-                return Err(anyhow::anyhow!("Could not fetch '{url}'"));
-            };
-
-            let request = Request::new_with_str_and_init(url, &opts)
-                .map_err(|_| anyhow::anyhow!("Could not construct request for url '{url}'"))?;
-
-            let set_headers = request.headers();
-            for (name, val) in headers.iter() {
-                let value = String::from_utf8_lossy(val.as_bytes());
-                set_headers.set(name.as_str(), &value).map_err(|_| {
-                    anyhow::anyhow!("Could not apply request header: '{name}': '{value}'")
-                })?;
-            }
-
-            fetch_internal(&request).await.map_err(|_| {
-                // TODO: more descriptive error.
-                anyhow::anyhow!("Could not fetch '{url}'")
-            })?
-        }
-    };
-    assert!(resp_value.is_instance_of::<Response>());
-    let resp: Response = resp_value.dyn_into().unwrap();
-
-    if resp.status() < 200 || resp.status() >= 400 {
-        /* debug!("fetch-failed: {}", resp.status_text()); */
-        return Err(anyhow::anyhow!(
-            "Request to '{url}' failed with status {}",
-            resp.status()
-        ));
-    }
-
-    Ok(resp)
-}
-
-pub async fn get_response_data(resp: Response) -> Result<Vec<u8>, anyhow::Error> {
-    let resp = { JsFuture::from(resp.array_buffer().unwrap()) };
-
-    let arrbuff_value = resp.await.map_err(|_| {
-        // TODO: forward error message
-        anyhow::anyhow!("Could not retrieve response body")
-    })?;
-    assert!(arrbuff_value.is_instance_of::<js_sys::ArrayBuffer>());
-    //let arrbuff: js_sys::ArrayBuffer = arrbuff_value.dyn_into().unwrap();
-
-    let typebuff: js_sys::Uint8Array = js_sys::Uint8Array::new(&arrbuff_value);
-    let ret = typebuff.to_vec();
-    Ok(ret)
 }
 
 #[wasm_bindgen]

@@ -2,6 +2,7 @@
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
+mod common;
 mod fs;
 mod io;
 mod module_cache;
