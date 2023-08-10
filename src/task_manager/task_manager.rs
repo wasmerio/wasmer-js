@@ -1,11 +1,7 @@
 use std::{fmt::Debug, future::Future, pin::Pin, time::Duration};
 
-use js_sys::Promise;
-
-use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
 use wasmer_wasix::{runtime::task_manager::TaskWasm, VirtualTaskManager, WasiThreadError};
-use web_sys::{Window, WorkerGlobalScope};
 
 use crate::task_manager::ThreadPool;
 
@@ -42,7 +38,7 @@ impl VirtualTaskManager for TaskManager {
                 } else {
                     i32::MAX
                 };
-                let promise = bindgen_sleep(time);
+                let promise = crate::bindgen_sleep(time);
                 let js_fut = JsFuture::from(promise);
                 let _ = js_fut.await;
                 let _ = tx.send(());
@@ -90,24 +86,6 @@ impl VirtualTaskManager for TaskManager {
     }
 }
 
-pub(crate) fn bindgen_sleep(milliseconds: i32) -> Promise {
-    Promise::new(&mut |resolve, reject| {
-        let global_scope = js_sys::global();
-
-        if let Some(window) = global_scope.dyn_ref::<Window>() {
-            window
-                .set_timeout_with_callback_and_timeout_and_arguments_0(&resolve, milliseconds)
-                .unwrap();
-        } else if let Some(worker_global_scope) = global_scope.dyn_ref::<WorkerGlobalScope>() {
-            worker_global_scope
-                .set_timeout_with_callback_and_timeout_and_arguments_0(&resolve, milliseconds)
-                .unwrap();
-        } else {
-            let error = js_sys::Error::new("Unable to call setTimeout()");
-            reject.call1(&reject, &error).unwrap();
-        }
-    })
-}
 
 #[cfg(test)]
 mod tests {

@@ -11,6 +11,7 @@ crate-type = ["cdylib"]
 anyhow = "1"
 async-trait = "0.1"
 base64 = "0.21"
+bincode = "1.3.3"
 bytes = "1"
 console_error_panic_hook = { version = "0.1", optional = true }
 derivative = { version = "2" }
@@ -24,6 +25,7 @@ tracing = { version = "0.1", features = ["log", "release_max_level_info"] }
 tracing-futures = { version = "0.2" }
 tracing-subscriber = { version = "0.3" }
 tracing-wasm = { version = "0.2" }
+virtual-net = { version = "0.4.0", default-features = false, features = ["remote"]}
 wasm-bindgen = { version = "0.2" }
 wasm-bindgen-downcast = "0.1"
 wasm-bindgen-futures = "0.4"
@@ -49,6 +51,10 @@ features = [
     "RequestInit",
     "RequestMode",
     "Response",
+    "ProgressEvent",
+    "WebSocket",
+    "FileReader",
+    "BinaryType",
     "Url",
     "Window",
     "Worker",
@@ -82,5 +88,6 @@ dwarf-debug-info = false
 wasm-opt = ["--enable-threads", "--enable-bulk-memory", "-Oz"]
 
 [patch.crates-io]
-wasmer-wasix = { git = "https://github.com/wasmerio/wasmer", branch = "deps" }
-wasmer = { git = "https://github.com/wasmerio/wasmer", branch = "deps" }
+virtual-net = { git = "https://github.com/wasmerio/wasmer", branch = "master" }
+wasmer-wasix = { git = "https://github.com/wasmerio/wasmer", branch = "master" }
+wasmer = { git = "https://github.com/wasmerio/wasmer", branch = "master" }
