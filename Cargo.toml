@@ -1,6 +1,6 @@
 [package]
-name = "wasmer-wasi-js"
-version = "1.2.2"
+name = "wasmer-wasix-js"
+version = "0.0.1-alpha.1"
 authors = ["Syrus Akbary <syrus@wasmer.io>"]
 edition = "2021"
 
@@ -8,23 +8,79 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-js-sys = "0.3.55"
-wasm-bindgen = "0.2.73"
-# Using the Wasmer 3.0.0 with the revert on stdin/err/out changes
-# https://github.com/wasmerio/wasmer/pull/3344. Please use stable version as soon
-# as wasmer is released
-wasmer = { version = "3.0.2", default-features = false, features = ["js", "std"] }
-wasmer-wasi = { version = "3.0.2", default-features = false, features = ["js"] }
-wasmer-vfs = { version = "3.0.2", default-features = false, features = ["mem-fs"] }
-wasm-bindgen-downcast = "0.1.1"
+anyhow = "1"
+async-trait = "0.1"
+base64 = "0.21"
+bytes = "1"
+console_error_panic_hook = { version = "0.1", optional = true }
+derivative = { version = "2" }
+futures = "0.3"
+http = "0.2"
+instant = { version = "0.1", features = ["wasm-bindgen"] }
+js-sys = "0.3"
+once_cell = "1.18.0"
+tokio = { version = "1", features = ["rt", "sync", "macros"], default_features = false }
+tracing = { version = "0.1", features = ["log", "release_max_level_info"] }
+tracing-futures = { version = "0.2" }
+tracing-subscriber = { version = "0.3" }
+tracing-wasm = { version = "0.2" }
+wasm-bindgen = { version = "0.2" }
+wasm-bindgen-downcast = "0.1"
+wasm-bindgen-futures = "0.4"
+wasm-bindgen-test = "0.3.37"
+wasmer = { version = "4.1.0", default-features = false, features = ["js", "js-default"] }
+wasmer-wasix = { version = "0.11", default-features = false, features = ["js", "js-default"] }
+wee_alloc = { version = "0.4", optional = true }
+
+[dependencies.web-sys]
+version = "0.3"
+features = [
+    "Blob",
+    "BlobPropertyBag",
+    "console",
+    "DedicatedWorkerGlobalScope",
+    "Headers",
+    "MessageEvent",
+    "Navigator",
+    "ReadableStream",
+    "ReadableStreamDefaultController",
+    "ReadableStreamDefaultReader",
+    "Request",
+    "RequestInit",
+    "RequestMode",
+    "Response",
+    "Url",
+    "Window",
+    "Worker",
+    "WorkerGlobalScope",
+    "WorkerNavigator",
+    "WorkerOptions",
+    "WorkerType",
+    "WritableStream",
+    "WritableStreamDefaultController",
+    "WritableStreamDefaultWriter",
+]
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3"
+
+[features]
+default = ["console_error_panic_hook", "wee_alloc"]
+console_error_panic_hook = ["dep:console_error_panic_hook"]
+wee_alloc = ["dep:wee_alloc"]
 
 [profile.release]
 lto = true
 opt-level = 'z'
 
-# TODO(Michael-F-Bryan): Remove this when Wasmer 3.1 comes out
-# See https://github.com/wasmerio/wasmer-js/issues/312 for more.
+[package.metadata.wasm-pack.profile.release.wasm-bindgen]
+debug-js-glue = false
+demangle-name-section = false
+dwarf-debug-info = false
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = ["--enable-threads", "--enable-bulk-memory", "-Oz"]
+
 [patch.crates-io]
-wasmer = { git = "https://github.com/wasmerio/wasmer", default-features = false, features = ["js", "std"], rev = "ecde2aa" }
-wasmer-wasi = { git = "https://github.com/wasmerio/wasmer", default-features = false, features = ["js"], rev = "ecde2aa" }
-wasmer-vfs = { git = "https://github.com/wasmerio/wasmer", default-features = false, features = ["mem-fs"], rev = "ecde2aa" }
+wasmer-wasix = { git = "https://github.com/wasmerio/wasmer", branch = "deps" }
+wasmer = { git = "https://github.com/wasmerio/wasmer", branch = "deps" }
