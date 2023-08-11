@@ -99,8 +99,8 @@ export default commandLineArgs => {
     const configs = [
         makeConfig(),
         {
-            input: "./pkg/wasmer_wasi_js.d.ts",
-            output: [{ file: "dist/pkg/wasmer_wasi_js.d.ts", format: "es" }],
+            input: "./pkg/wasmer_wasix_js.d.ts",
+            output: [{ file: "dist/pkg/wasmer_wasix_js.d.ts", format: "es" }],
             plugins: [dts()],
         }
     ];

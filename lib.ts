@@ -1,6 +1,6 @@
-export * from "./pkg/wasmer_wasi_js";
-import load from "./pkg/wasmer_wasi_js";
-import wasm_bytes from "./pkg/wasmer_wasi_js_bg.wasm";
+export * from "./pkg/wasmer_wasix_js";
+import load from "./pkg/wasmer_wasix_js";
+import wasm_bytes from "./pkg/wasmer_wasix_js_bg.wasm";
 
 interface MimeBuffer extends Buffer {
 	type: string;
