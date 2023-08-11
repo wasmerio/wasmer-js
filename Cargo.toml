@@ -25,6 +25,7 @@ tracing = { version = "0.1", features = ["log", "release_max_level_info"] }
 tracing-futures = { version = "0.2" }
 tracing-subscriber = { version = "0.3" }
 tracing-wasm = { version = "0.2" }
+url = "2.4.0"
 virtual-net = { version = "0.4.0", default-features = false, features = ["remote"]}
 wasm-bindgen = { version = "0.2" }
 wasm-bindgen-downcast = "0.1"
@@ -88,6 +89,6 @@ dwarf-debug-info = false
 wasm-opt = ["--enable-threads", "--enable-bulk-memory", "-Oz"]
 
 [patch.crates-io]
-virtual-net = { git = "https://github.com/wasmerio/wasmer", branch = "master" }
-wasmer-wasix = { git = "https://github.com/wasmerio/wasmer", branch = "master" }
-wasmer = { git = "https://github.com/wasmerio/wasmer", branch = "master" }
+virtual-net = { git = "https://github.com/wasmerio/wasmer", branch = "web-http-client" }
+wasmer-wasix = { git = "https://github.com/wasmerio/wasmer", branch = "web-http-client" }
+wasmer = { git = "https://github.com/wasmerio/wasmer", branch = "web-http-client" }

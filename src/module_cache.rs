@@ -11,8 +11,8 @@ std::thread_local! {
         = RefCell::new(HashMap::new());
 }
 
-/// A thin wrapper around [`ThreadLocalCache`] that will automatically share
-/// cached modules with other web workers.
+/// A cache that will automatically share cached modules with other web
+/// workers.
 #[derive(Debug, Default)]
 pub(crate) struct ModuleCache {}
 

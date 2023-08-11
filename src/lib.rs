@@ -8,4 +8,6 @@ mod task_manager;
 mod utils;
 mod ws;
 
-pub(crate) use self::utils::{bindgen_sleep, js_error};
+pub(crate) use crate::utils::{bindgen_sleep, js_error};
+
+pub use crate::runtime::Runtime;
