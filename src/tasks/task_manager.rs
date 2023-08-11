@@ -3,7 +3,7 @@ use std::{fmt::Debug, future::Future, pin::Pin, time::Duration};
 use wasm_bindgen_futures::JsFuture;
 use wasmer_wasix::{runtime::task_manager::TaskWasm, VirtualTaskManager, WasiThreadError};
 
-use crate::task_manager::ThreadPool;
+use crate::tasks::ThreadPool;
 
 #[derive(Debug, Clone)]
 pub(crate) struct TaskManager {

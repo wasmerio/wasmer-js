@@ -19,7 +19,7 @@ pub(crate) struct ModuleCache {}
 impl ModuleCache {
     fn cache_in_main(&self, key: ModuleHash, module: &Module, deterministic_id: &str) {
         let deterministic_id = deterministic_id.to_string();
-        let task = Box::new(crate::task_manager::RunCommand::ExecModule {
+        let task = Box::new(crate::tasks::RunCommand::ExecModule {
             run: Box::new(move |module| {
                 let key = (key, deterministic_id);
                 CACHED_MODULES.with(|m| m.borrow_mut().insert(key, module.clone()));
@@ -31,7 +31,7 @@ impl ModuleCache {
         let module = JsValue::from(module.clone())
             .dyn_into::<js_sys::WebAssembly::Module>()
             .unwrap();
-        crate::task_manager::schedule_task(JsValue::from(task as u32), module, JsValue::NULL);
+        crate::tasks::schedule_task(JsValue::from(task as u32), module, JsValue::NULL);
     }
 
     pub fn export() -> JsValue {
