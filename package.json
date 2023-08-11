@@ -31,8 +31,7 @@
     "test": "jest -c jest.config.js",
     "test:watch": "npm run test -- --watch",
     "test:coverage": "npm run test -- --coverage",
-    "clean": "rimraf dist coverage pkg target",
-    "prepare": "npm-run-all clean lint build test"
+    "clean": "rimraf dist coverage pkg target"
   },
   "devDependencies": {
     "@rollup/plugin-node-resolve": "~15.0.1",
