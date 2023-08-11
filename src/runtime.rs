@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use futures::future::BoxFuture;
 use virtual_net::VirtualNetworking;
-use wasm_bindgen::JsCast;
+use wasm_bindgen::{prelude::wasm_bindgen, JsCast};
 use wasm_bindgen_futures::JsFuture;
 use wasmer_wasix::{
     http::{HttpClient, WebHttpClient},
@@ -20,6 +20,7 @@ use crate::{
 
 #[derive(Clone, derivative::Derivative)]
 #[derivative(Debug)]
+#[wasm_bindgen]
 pub struct Runtime {
     pool: ThreadPool,
     task_manager: Arc<dyn VirtualTaskManager>,

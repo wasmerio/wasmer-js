@@ -79,14 +79,12 @@ pub(crate) enum RunCommand {
 trait AssertSendSync: Send + Sync {}
 impl AssertSendSync for ThreadPool {}
 
-#[wasm_bindgen]
 #[derive(Debug)]
 struct ThreadPoolInner {
     pool_reactors: Arc<PoolStateAsync>,
     pool_dedicated: Arc<PoolStateSync>,
 }
 
-#[wasm_bindgen]
 #[derive(Debug, Clone)]
 pub(crate) struct ThreadPool {
     inner: Arc<ThreadPoolInner>,
