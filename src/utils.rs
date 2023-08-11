@@ -1,4 +1,4 @@
-use js_sys::Promise;
+use js_sys::{JsString, Promise};
 
 use wasm_bindgen::{JsCast, JsValue};
 use web_sys::{Window, WorkerGlobalScope};
@@ -34,4 +34,37 @@ pub(crate) fn bindgen_sleep(milliseconds: i32) -> Promise {
             reject.call1(&reject, &error).unwrap();
         }
     })
+}
+
+/// A wrapper around [`anyhow::Error`] that can be returned to JS to raise
+/// an exception.
+#[derive(Debug)]
+pub struct Error(pub anyhow::Error);
+
+impl<E: Into<anyhow::Error>> From<E> for Error {
+    fn from(value: E) -> Self {
+        Error(value.into())
+    }
+}
+
+impl From<Error> for JsValue {
+    fn from(Error(error): Error) -> Self {
+        let custom = js_sys::Object::new();
+
+        let _ = js_sys::Reflect::set(
+            &custom,
+            &JsString::from("detailedMessage"),
+            &JsString::from(format!("{error:?}")),
+        );
+
+        let causes: js_sys::Array = std::iter::successors(error.source(), |e| e.source())
+            .map(|e| JsString::from(e.to_string()))
+            .collect();
+        let _ = js_sys::Reflect::set(&custom, &JsString::from("causes"), &causes);
+
+        let error_prototype = js_sys::Error::new(&error.to_string());
+        let _ = js_sys::Reflect::set_prototype_of(&custom, &error_prototype);
+
+        custom.into()
+    }
 }

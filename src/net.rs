@@ -25,7 +25,7 @@ pub(crate) fn connect_networking(connect: String) -> RemoteNetworkingClient {
             // Exponential backoff prevents thrashing of the connection
             let backoff_ms = backoff.load(Ordering::SeqCst);
             if backoff_ms > 0 {
-                let promise = crate::bindgen_sleep(backoff_ms as i32);
+                let promise = crate::utils::bindgen_sleep(backoff_ms as i32);
                 JsFuture::from(promise).await.ok();
             }
             let new_backoff = 8000usize.min((backoff_ms * 2) + 100);

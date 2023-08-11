@@ -397,7 +397,7 @@ fn _build_ctx_and_store(
             let memory = match Memory::from_jsvalue(&mut temp_store, &ty, &memory) {
                 Ok(a) => a,
                 Err(e) => {
-                    let err = crate::js_error(e.into());
+                    let err = crate::utils::js_error(e.into());
                     tracing::error!(error = &*err, "Failed to receive memory for module");
                     return None;
                 }
@@ -995,9 +995,9 @@ fn new_worker(opts: &WorkerOptions) -> Result<Worker, anyhow::Error> {
 
     let script_url = WORKER_URL
         .get_or_try_init(init_worker_url)
-        .map_err(crate::js_error)?;
+        .map_err(crate::utils::js_error)?;
 
-    Worker::new_with_options(script_url, opts).map_err(crate::js_error)
+    Worker::new_with_options(script_url, opts).map_err(crate::utils::js_error)
 }
 
 fn start_worker(
@@ -1034,7 +1034,7 @@ fn start_worker(
     let on_error: Closure<dyn Fn(MessageEvent) -> Promise + 'static> =
         Closure::new(|msg: MessageEvent| {
             web_sys::console::error_3(&JsValue::from_str("Worker error"), &msg, &msg.data());
-            let err = crate::js_error(msg.into());
+            let err = crate::utils::js_error(msg.into());
             tracing::error!(error = &*err, "Worker error");
             Promise::resolve(&JsValue::UNDEFINED)
         });
@@ -1042,7 +1042,7 @@ fn start_worker(
 
     worker
         .post_message(Array::from_iter([JsValue::from(module), memory, shared_data]).as_ref())
-        .map_err(crate::js_error)
+        .map_err(crate::utils::js_error)
 }
 
 fn start_wasm(
@@ -1109,7 +1109,7 @@ fn start_wasm(
             ])
             .as_ref(),
         )
-        .map_err(crate::js_error)
+        .map_err(crate::utils::js_error)
 }
 
 pub(crate) fn schedule_task(task: JsValue, module: js_sys::WebAssembly::Module, memory: JsValue) {
@@ -1124,7 +1124,7 @@ pub(crate) fn schedule_task(task: JsValue, module: js_sys::WebAssembly::Module, 
     if let Err(err) =
         worker_scope.post_message(Array::from_iter([task, module.into(), memory]).as_ref())
     {
-        let err = crate::js_error(err);
+        let err = crate::utils::js_error(err);
         tracing::error!(error = &*err, "failed to schedule task from worker thread");
     };
 }

@@ -5,9 +5,11 @@ mod module_cache;
 mod net;
 mod runtime;
 mod tasks;
+mod tty;
 mod utils;
 mod ws;
 
-pub(crate) use crate::utils::{bindgen_sleep, js_error};
-
-pub use crate::runtime::Runtime;
+pub use crate::{
+    runtime::Runtime,
+    tty::{Tty, TtyState},
+};

@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use futures::future::BoxFuture;
 use virtual_net::VirtualNetworking;
-use wasm_bindgen::{prelude::wasm_bindgen, JsCast};
+use wasm_bindgen::{prelude::wasm_bindgen, JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
 use wasmer_wasix::{
     http::{HttpClient, WebHttpClient},
@@ -16,8 +16,11 @@ use wasmer_wasix::{
 use crate::{
     module_cache::ModuleCache,
     tasks::{TaskManager, ThreadPool},
+    utils::Error,
+    Tty,
 };
 
+/// Runtime components used when running WebAssembly programs.
 #[derive(Clone, derivative::Derivative)]
 #[derivative(Debug)]
 #[wasm_bindgen]
@@ -33,14 +36,14 @@ pub struct Runtime {
     tty: Option<Arc<dyn wasmer_wasix::os::TtyBridge + Send + Sync>>,
 }
 
+#[wasm_bindgen]
 impl Runtime {
-    pub fn with_pool_size(pool_size: usize) -> Self {
-        let pool = ThreadPool::new(pool_size);
-        Runtime::new(pool)
-    }
-
-    pub fn with_max_threads() -> Result<Self, anyhow::Error> {
-        let pool = ThreadPool::new_with_max_threads()?;
+    #[wasm_bindgen(constructor)]
+    pub fn with_pool_size(pool_size: Option<usize>) -> Result<Runtime, JsValue> {
+        let pool = match pool_size {
+            Some(size) => ThreadPool::new(size),
+            None => ThreadPool::new_with_max_threads().map_err(Error::from)?,
+        };
         Ok(Runtime::new(pool))
     }
 
@@ -63,25 +66,20 @@ impl Runtime {
     }
 
     /// Set the registry that packages will be fetched from.
-    pub fn with_registry(&mut self, url: &str) -> Result<&mut Self, url::ParseError> {
-        let url = url.parse()?;
+    pub fn set_registry(&mut self, url: &str) -> Result<(), Error> {
+        let url = url.parse().map_err(Error::from)?;
         self.source = Arc::new(WapmSource::new(url, self.http_client.clone()));
-        Ok(self)
+        Ok(())
     }
 
     /// Enable networking (i.e. TCP and UDP) via a gateway server.
-    pub fn with_network_gateway(&mut self, gateway_url: impl Into<String>) -> &mut Self {
-        let networking = crate::net::connect_networking(gateway_url.into());
+    pub fn set_network_gateway(&mut self, gateway_url: String) {
+        let networking = crate::net::connect_networking(gateway_url);
         self.networking = Arc::new(networking);
-        self
     }
 
-    pub fn with_tty(
-        &mut self,
-        tty: impl wasmer_wasix::os::TtyBridge + Send + Sync + 'static,
-    ) -> &mut Self {
+    pub fn set_tty(&mut self, tty: Tty) {
         self.tty = Some(Arc::new(tty));
-        self
     }
 }
 
@@ -140,7 +138,7 @@ impl wasmer_wasix::runtime::Runtime for Runtime {
             let result = promise
                 .await
                 .map(|m| wasmer::Module::from(m.unchecked_into::<js_sys::WebAssembly::Module>()))
-                .map_err(crate::js_error);
+                .map_err(crate::utils::js_error);
             let _ = sender.send(result);
         });
 
@@ -175,7 +173,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     async fn execute_a_trivial_module() {
-        let runtime = Runtime::with_pool_size(2);
+        let runtime = Runtime::with_pool_size(Some(2)).unwrap();
         let module = runtime.load_module(TRIVIAL_WAT).await.unwrap();
 
         WasiEnvBuilder::new("trivial")

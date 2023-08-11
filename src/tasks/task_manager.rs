@@ -38,7 +38,7 @@ impl VirtualTaskManager for TaskManager {
                 } else {
                     i32::MAX
                 };
-                let promise = crate::bindgen_sleep(time);
+                let promise = crate::utils::bindgen_sleep(time);
                 let js_fut = JsFuture::from(promise);
                 let _ = js_fut.await;
                 let _ = tx.send(());
