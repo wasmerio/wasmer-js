@@ -86,7 +86,6 @@ impl VirtualTaskManager for TaskManager {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use tokio::sync::oneshot;
