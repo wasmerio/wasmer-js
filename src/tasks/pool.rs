@@ -12,7 +12,7 @@ use std::{
 use anyhow::Context;
 use bytes::Bytes;
 use derivative::*;
-use js_sys::{Array, JsString, Promise, Uint8Array};
+use js_sys::{Array, Promise, Uint8Array};
 use once_cell::sync::OnceCell;
 use tokio::{select, sync::mpsc};
 use wasm_bindgen::{prelude::*, JsCast};
@@ -785,6 +785,7 @@ pub fn wasm_entry_point(
     wasm_memory: JsValue,
     wasm_cache: JsValue,
 ) {
+    tracing::debug!("Wasm entry point");
     // Import the WASM cache
     ModuleCache::import(wasm_cache);
 
@@ -997,12 +998,6 @@ fn new_worker(opts: &WorkerOptions) -> Result<Worker, anyhow::Error> {
         .get_or_try_init(init_worker_url)
         .map_err(crate::utils::js_error)?;
 
-    if web_sys::window().is_none() {
-        // HACK: Passing a script as a data URI to NodeJS requires setting `eval`
-        let eval = JsString::from("eval");
-        let _ = js_sys::Reflect::set(opts, &eval, &JsValue::TRUE);
-    }
-
     Worker::new_with_options(script_url, opts).map_err(crate::utils::js_error)
 }
 
@@ -1032,6 +1027,8 @@ fn start_worker(
             Ok(JsValue::UNDEFINED)
         })
     }
+
+    tracing::debug!("Spawning a worker");
     let worker = new_worker(&opts)?;
 
     let on_message: Closure<dyn Fn(MessageEvent) -> Promise + 'static> = Closure::new(onmessage);

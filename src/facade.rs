@@ -44,6 +44,7 @@ impl Wasmer {
     #[tracing::instrument(level = "debug", skip_all)]
     pub async fn spawn(&self, app_id: String, config: SpawnConfig) -> Result<Instance, Error> {
         let specifier: PackageSpecifier = app_id.parse()?;
+
         let pkg = BinaryPackage::from_registry(&specifier, &self.runtime).await?;
         let command_name = config
             .command()
@@ -58,6 +59,8 @@ impl Wasmer {
         configure_runner(&mut runner, &config)?;
 
         let (sender, receiver) = oneshot::channel();
+
+        tracing::debug!(%specifier, %command_name, "Starting the WASI runner");
 
         // Note: The WasiRunner::run_command() method blocks, so we need to run
         // it on the thread pool.
@@ -75,6 +78,10 @@ impl Wasmer {
             stderr,
             exit: receiver,
         })
+    }
+
+    pub fn runtime(&self) -> Runtime {
+        self.runtime.clone()
     }
 }
 
