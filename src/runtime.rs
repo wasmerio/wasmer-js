@@ -78,8 +78,8 @@ impl Runtime {
         self.networking = Arc::new(networking);
     }
 
-    pub fn set_tty(&mut self, tty: Tty) {
-        self.tty = Some(Arc::new(tty));
+    pub fn set_tty(&mut self, tty: &Tty) {
+        self.tty = Some(tty.bridge());
     }
 }
 

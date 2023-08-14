@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use js_sys::{JsString, Promise};
 
 use wasm_bindgen::{JsCast, JsValue};
@@ -39,32 +41,60 @@ pub(crate) fn bindgen_sleep(milliseconds: i32) -> Promise {
 /// A wrapper around [`anyhow::Error`] that can be returned to JS to raise
 /// an exception.
 #[derive(Debug)]
-pub struct Error(pub anyhow::Error);
+pub enum Error {
+    Rust(anyhow::Error),
+    JavaScript(JsValue),
+}
+
+impl Error {
+    pub(crate) fn js(error: impl Into<JsValue>) -> Self {
+        Error::JavaScript(error.into())
+    }
+}
 
 impl<E: Into<anyhow::Error>> From<E> for Error {
     fn from(value: E) -> Self {
-        Error(value.into())
+        Error::Rust(value.into())
     }
 }
 
 impl From<Error> for JsValue {
-    fn from(Error(error): Error) -> Self {
-        let custom = js_sys::Object::new();
+    fn from(error: Error) -> Self {
+        match error {
+            Error::JavaScript(e) => e,
+            Error::Rust(error) => {
+                let custom = js_sys::Object::new();
 
-        let _ = js_sys::Reflect::set(
-            &custom,
-            &JsString::from("detailedMessage"),
-            &JsString::from(format!("{error:?}")),
-        );
+                let _ = js_sys::Reflect::set(
+                    &custom,
+                    &JsString::from("detailedMessage"),
+                    &JsString::from(format!("{error:?}")),
+                );
 
-        let causes: js_sys::Array = std::iter::successors(error.source(), |e| e.source())
-            .map(|e| JsString::from(e.to_string()))
-            .collect();
-        let _ = js_sys::Reflect::set(&custom, &JsString::from("causes"), &causes);
+                let causes: js_sys::Array = std::iter::successors(error.source(), |e| e.source())
+                    .map(|e| JsString::from(e.to_string()))
+                    .collect();
+                let _ = js_sys::Reflect::set(&custom, &JsString::from("causes"), &causes);
 
-        let error_prototype = js_sys::Error::new(&error.to_string());
-        let _ = js_sys::Reflect::set_prototype_of(&custom, &error_prototype);
+                let error_prototype = js_sys::Error::new(&error.to_string());
+                let _ = js_sys::Reflect::set_prototype_of(&custom, &error_prototype);
 
-        custom.into()
+                custom.into()
+            }
+        }
     }
+}
+
+pub(crate) fn object_entries(obj: &js_sys::Object) -> Result<BTreeMap<JsString, JsValue>, Error> {
+    let mut entries = BTreeMap::new();
+
+    for key in js_sys::Object::keys(obj) {
+        let key: JsString = key
+            .dyn_into()
+            .map_err(|_| Error::js(js_sys::TypeError::new("Object keys should be strings")))?;
+        let value = js_sys::Reflect::get(obj, &key).map_err(Error::js)?;
+        entries.insert(key, value);
+    }
+
+    Ok(entries)
 }
