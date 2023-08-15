@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use futures::future::BoxFuture;
 use virtual_net::VirtualNetworking;
-use wasm_bindgen::{prelude::wasm_bindgen, JsCast, JsValue};
+use wasm_bindgen::{prelude::wasm_bindgen, JsCast};
 use wasm_bindgen_futures::JsFuture;
 use wasmer_wasix::{
     http::{HttpClient, WebHttpClient},
@@ -39,10 +39,10 @@ pub struct Runtime {
 #[wasm_bindgen]
 impl Runtime {
     #[wasm_bindgen(constructor)]
-    pub fn with_pool_size(pool_size: Option<usize>) -> Result<Runtime, JsValue> {
+    pub fn with_pool_size(pool_size: Option<usize>) -> Result<Runtime, Error> {
         let pool = match pool_size {
             Some(size) => ThreadPool::new(size),
-            None => ThreadPool::new_with_max_threads().map_err(Error::from)?,
+            None => ThreadPool::new_with_max_threads()?,
         };
         Ok(Runtime::new(pool))
     }

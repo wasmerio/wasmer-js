@@ -1,8 +1,11 @@
 Error.stackTraceLimit = 50;
+console.log("Worker spawned!!1!");
 
 globalThis.onerror = console.error;
 
 globalThis.onmessage = async ev => {
+    console.log("Worker Event", ev);
+
     if (ev.data.length == 3) {
         let [module, memory, state] = ev.data;
         const { default: init, worker_entry_point } = await import("$IMPORT_META_URL");

@@ -998,6 +998,11 @@ fn new_worker(opts: &WorkerOptions) -> Result<Worker, anyhow::Error> {
         .get_or_try_init(init_worker_url)
         .map_err(crate::utils::js_error)?;
 
+    web_sys::console::log_2(
+        &JsValue::from_str("Spawning..."),
+        &JsValue::from_str(script_url),
+    );
+
     Worker::new_with_options(script_url, opts).map_err(crate::utils::js_error)
 }
 

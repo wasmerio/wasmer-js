@@ -13,6 +13,7 @@ mod utils;
 mod ws;
 
 pub use crate::{
+    facade::{SpawnConfig, Wasmer, WasmerConfig},
     instance::{Instance, JsOutput},
     run::{run, RunConfig},
     runtime::Runtime,

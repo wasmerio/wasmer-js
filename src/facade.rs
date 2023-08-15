@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use anyhow::Context;
 use futures::channel::oneshot;
+use js_sys::JsString;
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 use wasmer_wasix::{
     bin_factory::BinaryPackage,
@@ -22,11 +23,14 @@ pub struct Wasmer {
 #[wasm_bindgen]
 impl Wasmer {
     #[wasm_bindgen(constructor)]
-    pub fn new(pool_size: Option<usize>) -> Result<Wasmer, JsValue> {
-        let runtime = Runtime::with_pool_size(pool_size)?;
+    pub fn new(cfg: Option<WasmerConfig>) -> Result<Wasmer, Error> {
+        let cfg = cfg.unwrap_or_default();
+
+        let runtime = Runtime::with_pool_size(cfg.pool_size())?;
+
         Ok(Wasmer {
             runtime,
-            api_key: None,
+            api_key: cfg.api_key().map(String::from),
         })
     }
 
@@ -42,8 +46,13 @@ impl Wasmer {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub async fn spawn(&self, app_id: String, config: SpawnConfig) -> Result<Instance, Error> {
+    pub async fn spawn(
+        &self,
+        app_id: String,
+        config: Option<SpawnConfig>,
+    ) -> Result<Instance, Error> {
         let specifier: PackageSpecifier = app_id.parse()?;
+        let config = config.unwrap_or_default();
 
         let pkg = BinaryPackage::from_registry(&specifier, &self.runtime).await?;
         let command_name = config
@@ -98,6 +107,7 @@ fn configure_runner(runner: &mut WasiRunner, config: &SpawnConfig) -> Result<(),
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(typescript_type = "SpawnConfig", extends = RunConfig)]
+    #[derive(Default)]
     pub type SpawnConfig;
 
     #[wasm_bindgen(method, getter)]
@@ -106,7 +116,10 @@ extern "C" {
 
 #[wasm_bindgen(typescript_custom_section)]
 const SPAWN_CONFIG_TYPE_DEFINITION: &'static str = r#"
-interface SpawnConfig extends RunConfig {
+/**
+ * Configuration used when starting a WASI program.
+ */
+export type SpawnConfig = RunConfig & {
     /**
      * The name of the command to be run (uses the package's entrypoint if not
      * defined).
@@ -114,3 +127,33 @@ interface SpawnConfig extends RunConfig {
     command?: string;
 }
 "#;
+
+#[wasm_bindgen(typescript_custom_section)]
+const WASMER_CONFIG_TYPE_DEFINITION: &'static str = r#"
+/**
+ * Configuration used when initializing the Wasmer SDK.
+ */
+export type WasmerConfig = {
+    /**
+     * The number of threads to use by default.
+     */
+     poolSize?: number;
+     /**
+      * An API key to use when interacting with the Wasmer registry.
+      */
+      apiKey?: string;
+}
+"#;
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(typescript_type = "WasmerConfig")]
+    #[derive(Default)]
+    pub type WasmerConfig;
+
+    #[wasm_bindgen(method, getter)]
+    fn pool_size(this: &WasmerConfig) -> Option<usize>;
+
+    #[wasm_bindgen(method, getter)]
+    fn api_key(this: &WasmerConfig) -> Option<JsString>;
+}
