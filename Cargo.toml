@@ -86,6 +86,8 @@ wasm-bindgen-test = "0.3"
 default = ["console_error_panic_hook", "wee_alloc"]
 console_error_panic_hook = ["dep:console_error_panic_hook"]
 wee_alloc = ["dep:wee_alloc"]
+wat = ["wasmer/wat"]
+full = ["wat"]
 
 [profile.release]
 lto = true

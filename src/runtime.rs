@@ -120,16 +120,18 @@ impl wasmer_wasix::runtime::Runtime for Runtime {
     ) -> BoxFuture<'a, Result<wasmer::Module, anyhow::Error>> {
         let (sender, receiver) = futures::channel::oneshot::channel();
 
-        if let Err(e) = wasmer::wat2wasm(wasm) {
-            panic!("{e}");
-        }
+        #[cfg(feature = "wat")]
+        let wasm = match wasmer::wat2wasm(wasm) {
+            Ok(wasm) => wasm,
+            Err(_) => return Box::pin(async { anyhow::bail!("Expected wasm or wat") }),
+        };
+        #[cfg(feature = "wat")]
+        let wasm = wasm.as_ref();
 
         let buffer = if wasmer::is_wasm(wasm) {
             js_sys::Uint8Array::from(wasm)
-        } else if let Ok(wasm) = wasmer::wat2wasm(wasm) {
-            js_sys::Uint8Array::from(wasm.as_ref())
         } else {
-            return Box::pin(async { Err(anyhow::Error::msg("Expected either wasm or WAT")) });
+            return Box::pin(async { Err(anyhow::Error::msg("Expected wasm")) });
         };
 
         let promise = JsFuture::from(js_sys::WebAssembly::compile(&buffer));

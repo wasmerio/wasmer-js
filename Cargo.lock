@@ -1941,7 +1941,7 @@ checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
 [[package]]
 name = "virtual-fs"
 version = "0.8.0"
-source = "git+https://github.com/wasmerio/wasmer?branch=optimize-wasix-js-size#90228f91f740b8e6251b0ccf6ae33c9840d136fc"
+source = "git+https://github.com/wasmerio/wasmer?branch=optimize-wasix-js-size#4dd24955eccdaebd1560fefd5c2943143357d342"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1963,7 +1963,7 @@ dependencies = [
 [[package]]
 name = "virtual-mio"
 version = "0.1.0"
-source = "git+https://github.com/wasmerio/wasmer?branch=optimize-wasix-js-size#90228f91f740b8e6251b0ccf6ae33c9840d136fc"
+source = "git+https://github.com/wasmerio/wasmer?branch=optimize-wasix-js-size#4dd24955eccdaebd1560fefd5c2943143357d342"
 dependencies = [
  "async-trait",
  "bytes",
@@ -1977,7 +1977,7 @@ dependencies = [
 [[package]]
 name = "virtual-net"
 version = "0.4.0"
-source = "git+https://github.com/wasmerio/wasmer?branch=optimize-wasix-js-size#90228f91f740b8e6251b0ccf6ae33c9840d136fc"
+source = "git+https://github.com/wasmerio/wasmer?branch=optimize-wasix-js-size#4dd24955eccdaebd1560fefd5c2943143357d342"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2064,7 +2064,7 @@ dependencies = [
 [[package]]
 name = "wai-bindgen-wasmer"
 version = "0.11.0"
-source = "git+https://github.com/wasmerio/wasmer?branch=optimize-wasix-js-size#90228f91f740b8e6251b0ccf6ae33c9840d136fc"
+source = "git+https://github.com/wasmerio/wasmer?branch=optimize-wasix-js-size#4dd24955eccdaebd1560fefd5c2943143357d342"
 dependencies = [
  "anyhow",
  "bitflags 1.3.2",
@@ -2247,7 +2247,7 @@ dependencies = [
 [[package]]
 name = "wasmer"
 version = "4.1.1"
-source = "git+https://github.com/wasmerio/wasmer?branch=optimize-wasix-js-size#90228f91f740b8e6251b0ccf6ae33c9840d136fc"
+source = "git+https://github.com/wasmerio/wasmer?branch=optimize-wasix-js-size#4dd24955eccdaebd1560fefd5c2943143357d342"
 dependencies = [
  "bytes",
  "cfg-if 1.0.0",
@@ -2273,7 +2273,7 @@ dependencies = [
 [[package]]
 name = "wasmer-compiler"
 version = "4.1.1"
-source = "git+https://github.com/wasmerio/wasmer?branch=optimize-wasix-js-size#90228f91f740b8e6251b0ccf6ae33c9840d136fc"
+source = "git+https://github.com/wasmerio/wasmer?branch=optimize-wasix-js-size#4dd24955eccdaebd1560fefd5c2943143357d342"
 dependencies = [
  "backtrace",
  "cfg-if 1.0.0",
@@ -2294,7 +2294,7 @@ dependencies = [
 [[package]]
 name = "wasmer-derive"
 version = "4.1.1"
-source = "git+https://github.com/wasmerio/wasmer?branch=optimize-wasix-js-size#90228f91f740b8e6251b0ccf6ae33c9840d136fc"
+source = "git+https://github.com/wasmerio/wasmer?branch=optimize-wasix-js-size#4dd24955eccdaebd1560fefd5c2943143357d342"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
@@ -2323,7 +2323,7 @@ dependencies = [
 [[package]]
 name = "wasmer-types"
 version = "4.1.1"
-source = "git+https://github.com/wasmerio/wasmer?branch=optimize-wasix-js-size#90228f91f740b8e6251b0ccf6ae33c9840d136fc"
+source = "git+https://github.com/wasmerio/wasmer?branch=optimize-wasix-js-size#4dd24955eccdaebd1560fefd5c2943143357d342"
 dependencies = [
  "bytecheck",
  "enum-iterator",
@@ -2339,7 +2339,7 @@ dependencies = [
 [[package]]
 name = "wasmer-vm"
 version = "4.1.1"
-source = "git+https://github.com/wasmerio/wasmer?branch=optimize-wasix-js-size#90228f91f740b8e6251b0ccf6ae33c9840d136fc"
+source = "git+https://github.com/wasmerio/wasmer?branch=optimize-wasix-js-size#4dd24955eccdaebd1560fefd5c2943143357d342"
 dependencies = [
  "backtrace",
  "cc",
@@ -2365,7 +2365,7 @@ dependencies = [
 [[package]]
 name = "wasmer-wasix"
 version = "0.11.0"
-source = "git+https://github.com/wasmerio/wasmer?branch=optimize-wasix-js-size#90228f91f740b8e6251b0ccf6ae33c9840d136fc"
+source = "git+https://github.com/wasmerio/wasmer?branch=optimize-wasix-js-size#4dd24955eccdaebd1560fefd5c2943143357d342"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2455,7 +2455,7 @@ dependencies = [
 [[package]]
 name = "wasmer-wasix-types"
 version = "0.11.0"
-source = "git+https://github.com/wasmerio/wasmer?branch=optimize-wasix-js-size#90228f91f740b8e6251b0ccf6ae33c9840d136fc"
+source = "git+https://github.com/wasmerio/wasmer?branch=optimize-wasix-js-size#4dd24955eccdaebd1560fefd5c2943143357d342"
 dependencies = [
  "anyhow",
  "bitflags 1.3.2",

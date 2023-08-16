@@ -19,9 +19,11 @@ pub use crate::{
     tty::{Tty, TtyState},
 };
 
+#[cfg(feature = "wat")]
 use js_sys::{JsString, Uint8Array};
 use wasm_bindgen::prelude::wasm_bindgen;
 
+#[cfg(feature = "wat")]
 #[wasm_bindgen]
 pub fn wat2wasm(wat: JsString) -> Result<Uint8Array, utils::Error> {
     let wat = String::from(wat);
