@@ -114,6 +114,7 @@ impl wasmer_wasix::runtime::Runtime for Runtime {
         self.tty.as_deref()
     }
 
+    #[tracing::instrument]
     fn load_module<'a>(
         &'a self,
         wasm: &'a [u8],

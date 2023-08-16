@@ -1,10 +1,11 @@
+console.log("XXX: Inside the worker");
 Error.stackTraceLimit = 50;
-console.log("Worker spawned!!1!");
 
-globalThis.onerror = console.error;
+// globalThis.onerror = console.error;
+// globalThis.onrejectionhandled = console.error;
 
 globalThis.onmessage = async ev => {
-    console.log("Worker Event", ev);
+    console.log("XXX", ev.data);
 
     if (ev.data.length == 3) {
         let [module, memory, state] = ev.data;

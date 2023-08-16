@@ -1,7 +1,5 @@
 use std::{ops::*, sync::Arc};
 
-#[allow(unused_imports, dead_code)]
-use tracing::{debug, error, info, trace, warn};
 use wasm_bindgen::{prelude::*, JsCast};
 use web_sys::{MessageEvent, WebSocket as WebSocketSys};
 
@@ -64,9 +62,9 @@ impl WebSocket {
                 } else if let Ok(blob) = e.data().dyn_into::<web_sys::Blob>() {
                     fr.read_as_array_buffer(&blob).expect("blob not readable");
                 } else if let Ok(txt) = e.data().dyn_into::<js_sys::JsString>() {
-                    debug!("message event, received Text: {:?}", txt);
+                    tracing::debug!(%txt, "message event, received Text");
                 } else {
-                    debug!("websocket received unknown message type");
+                    tracing::debug!("websocket received unknown message type");
                 }
             }) as Box<dyn FnMut(MessageEvent)>)
         };

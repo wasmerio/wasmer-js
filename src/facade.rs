@@ -17,7 +17,7 @@ use crate::{instance::ExitCondition, utils::Error, Instance, RunConfig, Runtime}
 #[wasm_bindgen]
 pub struct Wasmer {
     runtime: Runtime,
-    api_key: Option<String>,
+    _api_key: Option<String>,
 }
 
 #[wasm_bindgen]
@@ -26,23 +26,19 @@ impl Wasmer {
     pub fn new(cfg: Option<WasmerConfig>) -> Result<Wasmer, Error> {
         let cfg = cfg.unwrap_or_default();
 
-        let runtime = Runtime::with_pool_size(cfg.pool_size())?;
+        let mut runtime = Runtime::with_pool_size(cfg.pool_size())?;
+
+        if let Some(registry_url) = cfg.parse_registry_url() {
+            runtime.set_registry(&registry_url)?;
+        }
+        if let Some(gateway) = cfg.network_gateway() {
+            runtime.set_network_gateway(gateway.into());
+        }
 
         Ok(Wasmer {
             runtime,
-            api_key: cfg.api_key().map(String::from),
+            _api_key: cfg.api_key().map(String::from),
         })
-    }
-
-    /// The API key used to communicate with the Wasmer backend.
-    #[wasm_bindgen(getter)]
-    pub fn api_key(&self) -> Option<String> {
-        self.api_key.clone()
-    }
-
-    #[wasm_bindgen(setter)]
-    pub fn set_api_key(&mut self, api_key: Option<String>) {
-        self.api_key = api_key;
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -74,6 +70,7 @@ impl Wasmer {
         // Note: The WasiRunner::run_command() method blocks, so we need to run
         // it on the thread pool.
         tasks.task_dedicated(Box::new(move || {
+            tracing::warn!("XXX: Inside dedicated task");
             let result = runner.run_command(&command_name, &pkg, runtime);
             let _ = sender.send(ExitCondition(result));
         }))?;
@@ -138,17 +135,32 @@ export type WasmerConfig = {
      * The number of threads to use by default.
      */
      poolSize?: number;
+
      /**
       * An API key to use when interacting with the Wasmer registry.
       */
       apiKey?: string;
+
+      /**
+       * Set the registry that packages will be fetched from.
+       *
+       * If null, no registry will be used and looking up packages will always
+       * fail.
+       *
+       * If undefined, will fall back to the default Wasmer registry.
+       */
+      registryUrl: string | null | undefined;
+
+      /**
+       * Enable networking (i.e. TCP and UDP) via a gateway server.
+       */
+      networkGateway?: string;
 }
 "#;
 
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(typescript_type = "WasmerConfig")]
-    #[derive(Default)]
     pub type WasmerConfig;
 
     #[wasm_bindgen(method, getter)]
@@ -156,4 +168,31 @@ extern "C" {
 
     #[wasm_bindgen(method, getter)]
     fn api_key(this: &WasmerConfig) -> Option<JsString>;
+
+    #[wasm_bindgen(method, getter)]
+    fn registry_url(this: &WasmerConfig) -> JsValue;
+
+    #[wasm_bindgen(method, getter)]
+    fn network_gateway(this: &WasmerConfig) -> Option<JsString>;
+}
+
+impl WasmerConfig {
+    fn parse_registry_url(&self) -> Option<String> {
+        let registry_url = self.registry_url();
+        if registry_url.is_null() {
+            None
+        } else if let Some(s) = registry_url.as_string() {
+            Some(s)
+        } else {
+            Some(wasmer_wasix::runtime::resolver::WapmSource::WASMER_PROD_ENDPOINT.to_string())
+        }
+    }
+}
+
+impl Default for WasmerConfig {
+    fn default() -> Self {
+        Self {
+            obj: js_sys::Object::default().into(),
+        }
+    }
 }

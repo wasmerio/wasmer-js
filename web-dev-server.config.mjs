@@ -1,3 +1,4 @@
+import { chromeLauncher } from '@web/test-runner';
 import { esbuildPlugin } from '@web/dev-server-esbuild';
 
 async function add_headers(ctx, next) {
@@ -10,4 +11,5 @@ export default {
   files: ['src/**/*.test.ts', 'src/**/*.spec.ts'],
   plugins: [esbuildPlugin({ ts: true })],
   middlewares: [add_headers],
+  browsers: [chromeLauncher({ launchOptions: { devtools: true } })],
 };
