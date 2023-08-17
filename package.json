@@ -26,9 +26,10 @@
   },
   "scripts": {
     "build": "wasm-pack build --release --target web && wasm-opt pkg/wasmer_wasix_js_bg.wasm -O2 -o pkg/wasmer_wasix_js_bg.wasm && wasm-strip pkg/wasmer_wasix_js_bg.wasm && rollup -c --environment BUILD:production",
+    "build:full": "wasm-pack build --release --target web . -F full && wasm-opt pkg/wasmer_wasix_js_bg.wasm -O2 -o pkg/wasmer_wasix_js_bg.wasm && wasm-strip pkg/wasmer_wasix_js_bg.wasm && rollup -c --environment BUILD:production",
     "dev": "rollup -c -w",
     "lint": "",
-    "test": "jest -c jest.config.js",
+    "test": "npm run build:full && jest -c jest.config.js",
     "test:watch": "npm run test -- --watch",
     "test:coverage": "npm run test -- --coverage",
     "clean": "rimraf dist coverage pkg target"
