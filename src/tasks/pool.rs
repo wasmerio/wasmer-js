@@ -12,7 +12,7 @@ use std::{
 use anyhow::Context;
 use bytes::Bytes;
 use derivative::*;
-use js_sys::{Array, JsString, Promise, Uint8Array};
+use js_sys::{Array, Promise, Uint8Array};
 use once_cell::sync::OnceCell;
 use tokio::{select, sync::mpsc};
 use wasm_bindgen::{prelude::*, JsCast};
@@ -29,7 +29,9 @@ use wasmer_wasix::{
     wasmer::{AsJs, Memory, MemoryType, Module, Store},
     InstanceSnapshot, WasiEnv, WasiFunctionEnv, WasiThreadError,
 };
-use web_sys::{DedicatedWorkerGlobalScope, MessageEvent, Url, Worker, WorkerOptions, WorkerType};
+use web_sys::{
+    DedicatedWorkerGlobalScope, ErrorEvent, MessageEvent, Url, Worker, WorkerOptions, WorkerType,
+};
 
 use crate::module_cache::ModuleCache;
 
@@ -376,7 +378,7 @@ impl ThreadPool {
     }
 }
 
-fn _build_ctx_and_store(
+fn build_ctx_and_store(
     module: js_sys::WebAssembly::Module,
     memory: JsValue,
     module_bytes: Bytes,
@@ -385,6 +387,7 @@ fn _build_ctx_and_store(
     snapshot: Option<InstanceSnapshot>,
     update_layout: bool,
 ) -> Option<(WasiFunctionEnv, Store)> {
+    tracing::debug!("Building context and store");
     // Compile the web assembly module
     let module: Module = (module, module_bytes).into();
 
@@ -419,31 +422,6 @@ fn _build_ctx_and_store(
             }
         };
     Some((ctx, store))
-}
-
-async fn _compile_module(bytes: &[u8]) -> Result<js_sys::WebAssembly::Module, anyhow::Error> {
-    let js_bytes = unsafe { Uint8Array::view(bytes) };
-    Ok(
-        match wasm_bindgen_futures::JsFuture::from(js_sys::WebAssembly::compile(&js_bytes.into()))
-            .await
-        {
-            Ok(a) => match a.dyn_into::<js_sys::WebAssembly::Module>() {
-                Ok(a) => a,
-                Err(err) => {
-                    return Err(anyhow::format_err!(
-                        "Failed to compile module - {}",
-                        err.as_string().unwrap_or_else(|| format!("{:?}", err))
-                    ));
-                }
-            },
-            Err(err) => {
-                return Err(anyhow::format_err!(
-                    "WebAssembly failed to compile - {}",
-                    err.as_string().unwrap_or_else(|| format!("{:?}", err))
-                ));
-            }
-        },
-    )
 }
 
 impl PoolStateAsync {
@@ -482,6 +460,7 @@ impl PoolStateAsync {
 
 impl PoolStateSync {
     fn spawn(&self, task: BoxRun<'static>) {
+        tracing::warn!("XXX: Spawning synchronously");
         for _ in 0..10 {
             if let Ok(mut guard) = self.idle_rx.try_lock() {
                 if let Ok(thread) = guard.try_recv() {
@@ -544,6 +523,7 @@ impl ThreadStateSync {
                 thread_type_=?state.pool.type_,
         )
         .entered();
+        tracing::warn!("Sync");
 
         // Load the work queue receiver where other people will
         // send us the work that needs to be done
@@ -566,13 +546,15 @@ impl ThreadStateSync {
         loop {
             // Process work until we need to go idle
             while let Some(task) = work {
+                tracing::warn!("XXX: Performing work");
                 task();
+                tracing::warn!("XXX: Work performed");
 
                 // Grab the next work
                 work = work_rx.try_recv().ok();
             }
 
-            // If there iss already an idle thread thats older then
+            // If there is already an idle thread thats older then
             // keep that one (otherwise ditch it) - this creates negative
             // pressure on the pool size.
             // The reason we keep older threads is to maximize cache hits such
@@ -766,7 +748,7 @@ pub fn worker_entry_point(state_ptr: u32) {
     let name = js_sys::global()
         .unchecked_into::<DedicatedWorkerGlobalScope>()
         .name();
-    tracing::debug!(%name, "Entry");
+    tracing::debug!(%name, "Worker started");
 
     match state.as_ref() {
         ThreadState::Async(state) => {
@@ -785,6 +767,7 @@ pub fn wasm_entry_point(
     wasm_memory: JsValue,
     wasm_cache: JsValue,
 ) {
+    tracing::debug!("Wasm entry point");
     // Import the WASM cache
     ModuleCache::import(wasm_cache);
 
@@ -815,7 +798,7 @@ pub fn wasm_entry_point(
             }
 
             // Invoke the callback which will run the web assembly module
-            if let Some((ctx, store)) = _build_ctx_and_store(
+            if let Some((ctx, store)) = build_ctx_and_store(
                 wasm_module,
                 wasm_memory,
                 module_bytes,
@@ -997,12 +980,6 @@ fn new_worker(opts: &WorkerOptions) -> Result<Worker, anyhow::Error> {
         .get_or_try_init(init_worker_url)
         .map_err(crate::utils::js_error)?;
 
-    if web_sys::window().is_none() {
-        // HACK: Passing a script as a data URI to NodeJS requires setting `eval`
-        let eval = JsString::from("eval");
-        let _ = js_sys::Reflect::set(opts, &eval, &JsValue::TRUE);
-    }
-
     Worker::new_with_options(script_url, opts).map_err(crate::utils::js_error)
 }
 
@@ -1032,19 +1009,29 @@ fn start_worker(
             Ok(JsValue::UNDEFINED)
         })
     }
+
     let worker = new_worker(&opts)?;
 
     let on_message: Closure<dyn Fn(MessageEvent) -> Promise + 'static> = Closure::new(onmessage);
     worker.set_onmessage(Some(on_message.into_js_value().as_ref().unchecked_ref()));
 
-    let on_error: Closure<dyn Fn(MessageEvent) -> Promise + 'static> =
-        Closure::new(|msg: MessageEvent| {
-            web_sys::console::error_3(&JsValue::from_str("Worker error"), &msg, &msg.data());
-            let err = crate::utils::js_error(msg.into());
-            tracing::error!(error = &*err, "Worker error");
+    let on_error: Closure<dyn Fn(ErrorEvent) -> Promise + 'static> =
+        Closure::new(|msg: ErrorEvent| {
+            let err = crate::utils::js_error(msg.error());
+            tracing::error!(
+                error = &*err,
+                line = msg.lineno(),
+                column = msg.colno(),
+                file = msg.filename(),
+                error_message = %msg.message(),
+                "Worker error",
+            );
+            web_sys::console::error_3(&JsValue::from_str("Worker error"), &msg, &msg.error());
             Promise::resolve(&JsValue::UNDEFINED)
         });
-    worker.set_onerror(Some(on_error.into_js_value().as_ref().unchecked_ref()));
+    let on_error = on_error.into_js_value();
+    worker.set_onerror(Some(on_error.as_ref().unchecked_ref()));
+    worker.set_onmessageerror(Some(on_error.as_ref().unchecked_ref()));
 
     worker
         .post_message(Array::from_iter([JsValue::from(module), memory, shared_data]).as_ref())

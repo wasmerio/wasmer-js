@@ -7,12 +7,18 @@ use wasmer_wasix::{Runtime as _, WasiEnvBuilder};
 
 use crate::{instance::ExitCondition, utils::Error, Instance, Runtime};
 
+const DEFAULT_PROGRAM_NAME: &str = "";
+
 /// Run a WASIX program.
 #[wasm_bindgen]
 #[tracing::instrument(level = "debug", skip_all)]
 pub fn run(module: &Module, runtime: &Runtime, config: RunConfig) -> Result<Instance, Error> {
     let runtime = Arc::new(runtime.clone());
-    let mut builder = WasiEnvBuilder::new(config.program()).runtime(runtime.clone());
+    let program_name = config
+        .program()
+        .as_string()
+        .unwrap_or_else(|| DEFAULT_PROGRAM_NAME.to_string());
+    let mut builder = WasiEnvBuilder::new(program_name).runtime(runtime.clone());
 
     for arg in config.parse_args()? {
         builder.add_arg(arg);
@@ -46,16 +52,17 @@ pub fn run(module: &Module, runtime: &Runtime, config: RunConfig) -> Result<Inst
 
 #[wasm_bindgen(typescript_custom_section)]
 const RUN_CONFIG_TYPE_DEFINITION: &'static str = r#"
-interface RunConfig {
+/** Configuration used when starting a WASI program. */
+export type RunConfig = {
     /** The name of the program being run (passed in as arg 0) */
-    program: string;
+    program?: string;
     /** Additional command-line arguments to be passed to the program. */
     args?: string[];
     /** Environment variables to set. */
     env?: Record<string, string>;
     /** The standard input stream. */
     stdin?: string | ArrayBuffer;
-}
+};
 "#;
 
 #[wasm_bindgen]
@@ -64,7 +71,7 @@ extern "C" {
     pub type RunConfig;
 
     #[wasm_bindgen(method, getter, structural)]
-    fn program(this: &RunConfig) -> JsString;
+    fn program(this: &RunConfig) -> JsValue;
 
     #[wasm_bindgen(method, getter, structural)]
     fn args(this: &RunConfig) -> Option<Array>;
@@ -111,5 +118,14 @@ impl RunConfig {
         }
 
         Ok(parsed)
+    }
+}
+
+impl Default for RunConfig {
+    fn default() -> Self {
+        // Note: all fields are optional, so it's fine to use an empty object.
+        Self {
+            obj: js_sys::Object::new().into(),
+        }
     }
 }

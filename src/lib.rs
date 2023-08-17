@@ -13,6 +13,7 @@ mod utils;
 mod ws;
 
 pub use crate::{
+    facade::{SpawnConfig, Wasmer, WasmerConfig},
     instance::{Instance, JsOutput},
     run::{run, RunConfig},
     runtime::Runtime,
@@ -33,6 +34,8 @@ pub fn wat2wasm(wat: JsString) -> Result<Uint8Array, utils::Error> {
 
 #[wasm_bindgen(start)]
 fn on_start() {
+    console_error_panic_hook::set_once();
+
     if let Some(level) = tracing::level_filters::STATIC_MAX_LEVEL.into_level() {
         let cfg = tracing_wasm::WASMLayerConfigBuilder::new()
             .set_max_level(level)

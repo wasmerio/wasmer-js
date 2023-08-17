@@ -6,13 +6,18 @@ use web_sys::ReadableStream;
 
 use crate::utils::Error;
 
+/// A handle connected to a running WASI program.
 #[derive(Debug)]
 #[wasm_bindgen]
 pub struct Instance {
+    /// The standard input stream, if one wasn't provided when starting the
+    /// instance.
     #[wasm_bindgen(getter_with_clone)]
     pub stdin: Option<web_sys::WritableStream>,
+    /// The WASI program's standard output.
     #[wasm_bindgen(getter_with_clone)]
     pub stdout: web_sys::ReadableStream,
+    /// The WASI program's standard error.
     #[wasm_bindgen(getter_with_clone)]
     pub stderr: web_sys::ReadableStream,
     pub(crate) exit: Receiver<ExitCondition>,
@@ -129,17 +134,17 @@ impl ExitCondition {
     }
 }
 
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(typescript_type = "Output")]
-    pub type JsOutput;
-}
-
 struct Output {
     code: i32,
     ok: bool,
     stdout: Uint8Array,
     stderr: Uint8Array,
+}
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(typescript_type = "Output")]
+    pub type JsOutput;
 }
 
 impl From<Output> for JsOutput {
@@ -171,7 +176,7 @@ impl From<Output> for JsOutput {
 
 #[wasm_bindgen(typescript_custom_section)]
 const OUTPUT_TYPE_DEFINITION: &'static str = r#"
-type Output = {
+export type Output = {
     /* The program's exit code. */
     code: number;
     /* Did the program exit successfully? */

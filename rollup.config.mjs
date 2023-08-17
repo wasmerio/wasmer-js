@@ -9,12 +9,10 @@
 //     ],
 // };
 
-import resolve from '@rollup/plugin-node-resolve';
 import terser from '@rollup/plugin-terser';
 import pkg from './package.json' assert { type: 'json' };
 import dts from "rollup-plugin-dts";
 import typescript from '@rollup/plugin-typescript';
-// import smartAsset from "rollup-plugin-smart-asset"
 import url from '@rollup/plugin-url';
 
 const LIBRARY_NAME = 'Library'; // Change with your library's name
@@ -67,19 +65,10 @@ const makeConfig = (env = 'development') => {
             }
         ],
         plugins: [
-            // wasm({
-            //     maxFileSize: 1000000000,
-            // }),
-            // smartAsset({
-            //     url: 'inline',
-            //     extensions: ['.wasm'],
-            // }),
-            // Uncomment the following 2 lines if your library has external dependencies
             typescript(),
             url({
                 include: ['**/*.wasm'],
-                limit: 14336000,
-                // limit: 0,
+                limit: 1 * 1024 * 1024,
             }),
         ]
     };
