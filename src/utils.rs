@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, num::NonZeroUsize};
 
 use js_sys::{JsString, Promise};
 
@@ -99,4 +99,22 @@ pub(crate) fn object_entries(obj: &js_sys::Object) -> Result<BTreeMap<JsString, 
     }
 
     Ok(entries)
+}
+
+/// The amount of concurrency available on this system.
+///
+/// Returns `None` if unable to determine the available concurrency.
+pub(crate) fn hardware_concurrency() -> Option<NonZeroUsize> {
+    let global = js_sys::global();
+
+    let hardware_concurrency = if let Some(window) = global.dyn_ref::<web_sys::Window>() {
+        window.navigator().hardware_concurrency()
+    } else if let Some(worker_scope) = global.dyn_ref::<web_sys::DedicatedWorkerGlobalScope>() {
+        worker_scope.navigator().hardware_concurrency()
+    } else {
+        return None;
+    };
+
+    let hardware_concurrency = hardware_concurrency as usize;
+    NonZeroUsize::new(hardware_concurrency)
 }

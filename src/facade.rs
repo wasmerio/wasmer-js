@@ -73,6 +73,7 @@ impl Wasmer {
             tracing::warn!("XXX: Inside dedicated task");
             let result = runner.run_command(&command_name, &pkg, runtime);
             let _ = sender.send(ExitCondition(result));
+            tracing::warn!("XXX: Finished dedicated task");
         }))?;
 
         let stdout = web_sys::ReadableStream::new().map_err(Error::js)?;

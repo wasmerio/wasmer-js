@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{num::NonZeroUsize, sync::Arc};
 
 use futures::future::BoxFuture;
 use virtual_net::VirtualNetworking;
@@ -7,6 +7,7 @@ use wasm_bindgen_futures::JsFuture;
 use wasmer_wasix::{
     http::{HttpClient, WebHttpClient},
     runtime::{
+        module_cache::ThreadLocalCache,
         package_loader::{BuiltinPackageLoader, PackageLoader},
         resolver::{PackageSpecifier, PackageSummary, QueryError, Source, WapmSource},
     },
@@ -14,8 +15,7 @@ use wasmer_wasix::{
 };
 
 use crate::{
-    module_cache::ModuleCache,
-    tasks::{TaskManager, ThreadPool},
+    tasks::{pool2::ThreadPool, TaskManager},
     utils::Error,
     Tty,
 };
@@ -31,7 +31,7 @@ pub struct Runtime {
     source: Arc<dyn Source + Send + Sync>,
     http_client: Arc<dyn HttpClient + Send + Sync>,
     package_loader: Arc<dyn PackageLoader + Send + Sync>,
-    module_cache: Arc<ModuleCache>,
+    module_cache: Arc<ThreadLocalCache>,
     #[derivative(Debug = "ignore")]
     tty: Option<Arc<dyn wasmer_wasix::os::TtyBridge + Send + Sync>>,
 }
@@ -41,7 +41,10 @@ impl Runtime {
     #[wasm_bindgen(constructor)]
     pub fn with_pool_size(pool_size: Option<usize>) -> Result<Runtime, Error> {
         let pool = match pool_size {
-            Some(size) => ThreadPool::new(size),
+            Some(size) => match NonZeroUsize::new(size) {
+                Some(size) => ThreadPool::new(size),
+                None => todo!(),
+            },
             None => ThreadPool::new_with_max_threads()?,
         };
         Ok(Runtime::new(pool))
@@ -51,7 +54,7 @@ impl Runtime {
         let task_manager = TaskManager::new(pool.clone());
         let http_client = Arc::new(WebHttpClient::default());
         let package_loader = BuiltinPackageLoader::new_only_client(http_client.clone());
-        let module_cache = ModuleCache::default();
+        let module_cache = ThreadLocalCache::default();
 
         Runtime {
             pool,
@@ -110,6 +113,12 @@ impl wasmer_wasix::runtime::Runtime for Runtime {
         self.module_cache.clone()
     }
 
+    fn load_module_sync(&self, wasm: &[u8]) -> Result<wasmer::Module, anyhow::Error> {
+        let wasm = unsafe { js_sys::Uint8Array::view(wasm) };
+        let module = js_sys::WebAssembly::Module::new(&wasm).map_err(crate::utils::js_error)?;
+        Ok(module.into())
+    }
+
     fn tty(&self) -> Option<&(dyn wasmer_wasix::os::TtyBridge + Send + Sync)> {
         self.tty.as_deref()
     }
@@ -120,10 +129,6 @@ impl wasmer_wasix::runtime::Runtime for Runtime {
         wasm: &'a [u8],
     ) -> BoxFuture<'a, Result<wasmer::Module, anyhow::Error>> {
         let (sender, receiver) = futures::channel::oneshot::channel();
-
-        if let Err(e) = wasmer::wat2wasm(wasm) {
-            panic!("{e}");
-        }
 
         let buffer = if wasmer::is_wasm(wasm) {
             js_sys::Uint8Array::from(wasm)

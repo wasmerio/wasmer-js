@@ -1119,7 +1119,7 @@ pub(crate) fn schedule_task(task: JsValue, module: js_sys::WebAssembly::Module, 
     {
         let err = crate::utils::js_error(err);
         tracing::error!(error = &*err, "failed to schedule task from worker thread");
-    };
+    }
 }
 
 /// Get a reference to the currently running module.

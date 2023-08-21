@@ -3,7 +3,7 @@ use std::{fmt::Debug, future::Future, pin::Pin, time::Duration};
 use wasm_bindgen_futures::JsFuture;
 use wasmer_wasix::{runtime::task_manager::TaskWasm, VirtualTaskManager, WasiThreadError};
 
-use crate::tasks::ThreadPool;
+use crate::tasks::pool2::ThreadPool;
 
 #[derive(Debug, Clone)]
 pub(crate) struct TaskManager {
@@ -31,7 +31,7 @@ impl VirtualTaskManager for TaskManager {
         // JS runtime on the dedicated threads but that will require that
         // processes can be unwound using asyncify
         let (tx, rx) = tokio::sync::oneshot::channel();
-        self.pool.spawn_shared(Box::new(move || {
+        let _ = self.pool.spawn(Box::new(move || {
             Box::pin(async move {
                 let time = if time.as_millis() < i32::MAX as u128 {
                     time.as_millis() as i32
@@ -58,16 +58,14 @@ impl VirtualTaskManager for TaskManager {
         >,
     ) -> Result<(), WasiThreadError> {
         self.pool
-            .spawn_shared(Box::new(move || Box::pin(async move { task().await })));
-        Ok(())
+            .spawn(Box::new(move || Box::pin(async move { task().await })))
     }
 
     /// Starts an asynchronous task will will run on a dedicated thread
     /// pulled from the worker pool that has a stateful thread local variable
     /// It is ok for this task to block execution and any async futures within its scope
     fn task_wasm(&self, task: TaskWasm) -> Result<(), WasiThreadError> {
-        self.pool.spawn_wasm(task)?;
-        Ok(())
+        self.pool.spawn_wasm(task)
     }
 
     /// Starts an asynchronous task will will run on a dedicated thread
@@ -77,12 +75,14 @@ impl VirtualTaskManager for TaskManager {
         &self,
         task: Box<dyn FnOnce() + Send + 'static>,
     ) -> Result<(), WasiThreadError> {
-        self.pool.spawn_dedicated(task);
-        Ok(())
+        self.pool.spawn_blocking(task)
     }
+
     /// Returns the amount of parallelism that is possible on this platform
     fn thread_parallelism(&self) -> Result<usize, WasiThreadError> {
-        Ok(8)
+        crate::utils::hardware_concurrency()
+            .map(|c| c.get())
+            .ok_or(WasiThreadError::Unsupported)
     }
 }
 
@@ -94,7 +94,7 @@ mod tests {
 
     #[wasm_bindgen_test::wasm_bindgen_test]
     async fn spawned_tasks_can_communicate_with_the_main_thread() {
-        let pool = ThreadPool::new(2);
+        let pool = ThreadPool::new(2.try_into().unwrap());
         let task_manager = TaskManager::new(pool);
         let (sender, receiver) = oneshot::channel();
 
