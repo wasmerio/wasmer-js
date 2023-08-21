@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, num::NonZeroUsize};
+use std::{collections::BTreeMap, fmt::Debug, num::NonZeroUsize};
 
 use js_sys::{JsString, Promise};
 
@@ -117,4 +117,33 @@ pub(crate) fn hardware_concurrency() -> Option<NonZeroUsize> {
 
     let hardware_concurrency = hardware_concurrency as usize;
     NonZeroUsize::new(hardware_concurrency)
+}
+
+/// A dummy value that can be used in a [`Debug`] impl instead of showing the
+/// original value.
+pub(crate) struct Hidden;
+
+impl Debug for Hidden {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("_")
+    }
+}
+
+/// Get a reference to the currently running module.
+pub(crate) fn current_module() -> js_sys::WebAssembly::Module {
+    // FIXME: Switch this to something stable and portable
+    //
+    // We use an undocumented API to get a reference to the
+    // WebAssembly module that is being executed right now so start
+    // a new thread by transferring the WebAssembly linear memory and
+    // module to a worker and beginning execution.
+    //
+    // This can only be used in the browser. Trying to build
+    // wasmer-wasix for NodeJS will probably result in the following:
+    //
+    // Error: executing `wasm-bindgen` over the wasm file
+    //   Caused by:
+    //   0: failed to generate bindings for import of `__wbindgen_placeholder__::__wbindgen_module`
+    //   1: `wasm_bindgen::module` is currently only supported with `--target no-modules` and `--tar get web`
+    wasm_bindgen::module().dyn_into().unwrap()
 }

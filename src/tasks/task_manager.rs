@@ -3,7 +3,7 @@ use std::{fmt::Debug, future::Future, pin::Pin, time::Duration};
 use wasm_bindgen_futures::JsFuture;
 use wasmer_wasix::{runtime::task_manager::TaskWasm, VirtualTaskManager, WasiThreadError};
 
-use crate::tasks::pool2::ThreadPool;
+use crate::tasks::pool::ThreadPool;
 
 #[derive(Debug, Clone)]
 pub(crate) struct TaskManager {
@@ -26,24 +26,19 @@ impl VirtualTaskManager for TaskManager {
         &self,
         time: Duration,
     ) -> Pin<Box<dyn Future<Output = ()> + Send + Sync + 'static>> {
-        // The async code itself has to be sent to a main JS thread as this is
-        // where time can be handled properly - later we can look at running a
-        // JS runtime on the dedicated threads but that will require that
-        // processes can be unwound using asyncify
         let (tx, rx) = tokio::sync::oneshot::channel();
-        let _ = self.pool.spawn(Box::new(move || {
-            Box::pin(async move {
-                let time = if time.as_millis() < i32::MAX as u128 {
-                    time.as_millis() as i32
-                } else {
-                    i32::MAX
-                };
-                let promise = crate::utils::bindgen_sleep(time);
-                let js_fut = JsFuture::from(promise);
-                let _ = js_fut.await;
-                let _ = tx.send(());
-            })
-        }));
+
+        let time = if time.as_millis() < i32::MAX as u128 {
+            time.as_millis() as i32
+        } else {
+            i32::MAX
+        };
+
+        wasm_bindgen_futures::spawn_local(async move {
+            let _ = JsFuture::from(crate::utils::bindgen_sleep(time)).await;
+            let _ = tx.send(());
+        });
+
         Box::pin(async move {
             let _ = rx.await;
         })

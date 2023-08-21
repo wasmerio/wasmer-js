@@ -2,15 +2,15 @@ use std::pin::Pin;
 
 use anyhow::{Context, Error};
 use futures::Future;
-use js_sys::{Array, Uint8Array};
-use once_cell::sync::Lazy;
+use js_sys::{Array, JsString, Uint8Array};
+use once_cell::sync::{Lazy, OnceCell};
 use tokio::sync::mpsc::UnboundedSender;
 use wasm_bindgen::{
     prelude::{wasm_bindgen, Closure},
     JsCast, JsValue,
 };
 
-use crate::tasks::pool2::{Message, PostMessagePayload};
+use crate::tasks::pool::{Message, PostMessagePayload};
 
 /// A handle to a running [`web_sys::Worker`].
 ///
@@ -35,6 +35,13 @@ impl WorkerHandle {
         let closures = Closures::new(sender);
         worker.set_onmessage(Some(closures.on_message()));
         worker.set_onerror(Some(closures.on_error()));
+
+        // The worker has technically been started, but it's kinda useless
+        // because it hasn't been initialized with the same WebAssembly module
+        // and linear memory as the scheduler.
+        init_message()
+            .and_then(|msg| worker.post_message(&msg))
+            .map_err(crate::utils::js_error)?;
 
         Ok(WorkerHandle {
             id,
@@ -67,6 +74,39 @@ impl Drop for WorkerHandle {
     }
 }
 
+/// Craft the special `"init"` message.
+fn init_message() -> Result<JsValue, JsValue> {
+    fn init() -> Result<JsValue, JsValue> {
+        let msg = js_sys::Object::new();
+
+        js_sys::Reflect::set(
+            &msg,
+            &JsString::from(wasm_bindgen::intern("type")),
+            &JsString::from(wasm_bindgen::intern("init")),
+        )?;
+        js_sys::Reflect::set(
+            &msg,
+            &JsString::from(wasm_bindgen::intern("memory")),
+            &wasm_bindgen::memory(),
+        )?;
+        js_sys::Reflect::set(
+            &msg,
+            &JsString::from(wasm_bindgen::intern("module")),
+            &crate::utils::current_module(),
+        )?;
+
+        Ok(msg.into())
+    }
+
+    thread_local! {
+    static MSG: OnceCell<JsValue> = OnceCell::new();
+    }
+
+    let msg = MSG.with(|msg| msg.get_or_try_init(init).cloned())?;
+
+    Ok(msg)
+}
+
 /// A data URL containing our worker's bootstrap script.
 static WORKER_URL: Lazy<String> = Lazy::new(|| {
     #[wasm_bindgen]
@@ -95,13 +135,13 @@ static WORKER_URL: Lazy<String> = Lazy::new(|| {
 /// using [`PostMessagePayload::from_raw()`].
 #[derive(serde::Serialize, serde::Deserialize)]
 #[serde(tag = "type", rename_all = "kebab-case")]
-enum PostMessagePayloadRepr {
+pub(crate) enum PostMessagePayloadRepr {
     SpawnAsync { ptr: usize },
     SpawnBlocking { ptr: usize },
 }
 
 impl PostMessagePayloadRepr {
-    unsafe fn reconstitute(self) -> PostMessagePayload {
+    pub(crate) unsafe fn reconstitute(self) -> PostMessagePayload {
         match self {
             PostMessagePayloadRepr::SpawnAsync { ptr } => {
                 let boxed = Box::from_raw(
@@ -238,4 +278,21 @@ impl From<WorkerMessage> for Message {
             WorkerMessage::MarkIdle { worker_id } => Message::MarkIdle { worker_id },
         }
     }
+}
+
+/// The main entrypoint for workers.
+#[wasm_bindgen]
+#[allow(non_snake_case)]
+pub async fn __worker_handle_message(msg: JsValue) -> Result<(), crate::utils::Error> {
+    tracing::info!(?msg, "XXX handling a message");
+    let msg = PostMessagePayloadRepr::try_from(msg).map_err(crate::utils::Error::js)?;
+
+    unsafe {
+        match msg.reconstitute() {
+            PostMessagePayload::SpawnAsync(thunk) => thunk().await,
+            PostMessagePayload::SpawnBlocking(thunk) => thunk(),
+        }
+    }
+
+    Ok(())
 }

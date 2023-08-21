@@ -1,1142 +1,334 @@
 use std::{
-    cell::RefCell,
+    collections::{BTreeMap, VecDeque},
     fmt::Debug,
-    future::Future,
+    num::NonZeroUsize,
     pin::Pin,
-    sync::{
-        atomic::{AtomicUsize, Ordering},
-        Arc, Mutex,
-    },
 };
 
-use anyhow::Context;
-use bytes::Bytes;
-use derivative::*;
-use js_sys::{Array, Promise, Uint8Array};
-use once_cell::sync::OnceCell;
-use tokio::{select, sync::mpsc};
-use wasm_bindgen::{prelude::*, JsCast};
-use wasmer::AsStoreRef;
+use anyhow::{Context, Error};
+use futures::{future::LocalBoxFuture, Future};
+use tokio::sync::mpsc::{self, UnboundedSender};
 use wasmer_wasix::{
-    runtime::{
-        task_manager::{
-            InlineWaker, TaskExecModule, TaskWasm, TaskWasmRun, TaskWasmRunProperties,
-            WasmResumeTrigger,
-        },
-        SpawnMemoryType,
-    },
-    types::wasi::ExitCode,
-    wasmer::{AsJs, Memory, MemoryType, Module, Store},
-    InstanceSnapshot, WasiEnv, WasiFunctionEnv, WasiThreadError,
-};
-use web_sys::{
-    DedicatedWorkerGlobalScope, ErrorEvent, MessageEvent, Url, Worker, WorkerOptions, WorkerType,
+    runtime::{resolver::WebcHash, task_manager::TaskWasm},
+    WasiThreadError,
 };
 
-use crate::module_cache::ModuleCache;
+use crate::{tasks::worker::WorkerHandle, utils::Hidden};
 
-type BoxRun<'a> = Box<dyn FnOnce() + Send + 'a>;
-
-type BoxRunAsync<'a, T> =
-    Box<dyn FnOnce() -> Pin<Box<dyn Future<Output = T> + 'static>> + Send + 'a>;
-
+/// A handle to a threadpool backed by Web Workers.
 #[derive(Debug, Clone)]
-pub(crate) enum WasmMemoryType {
-    CreateMemory,
-    CreateMemoryOfType(MemoryType),
-    ShareMemory(MemoryType),
-}
-
-#[derive(Derivative)]
-#[derivative(Debug)]
-pub(crate) struct WasmRunTrigger {
-    #[derivative(Debug = "ignore")]
-    run: Box<WasmResumeTrigger>,
-    memory_ty: MemoryType,
-    env: WasiEnv,
-}
-
-#[derive(Derivative)]
-#[derivative(Debug)]
-pub(crate) enum RunCommand {
-    ExecModule {
-        #[derivative(Debug = "ignore")]
-        run: Box<TaskExecModule>,
-        module_bytes: Bytes,
-    },
-    SpawnWasm {
-        #[derivative(Debug = "ignore")]
-        run: Box<TaskWasmRun>,
-        run_type: WasmMemoryType,
-        env: WasiEnv,
-        module_bytes: Bytes,
-        snapshot: Option<InstanceSnapshot>,
-        trigger: Option<WasmRunTrigger>,
-        update_layout: bool,
-        result: Option<Result<Bytes, ExitCode>>,
-        pool: ThreadPool,
-    },
-}
-
-trait AssertSendSync: Send + Sync {}
-impl AssertSendSync for ThreadPool {}
-
-#[derive(Debug)]
-struct ThreadPoolInner {
-    pool_reactors: Arc<PoolStateAsync>,
-    pool_dedicated: Arc<PoolStateSync>,
-}
-
-#[derive(Debug, Clone)]
-pub(crate) struct ThreadPool {
-    inner: Arc<ThreadPoolInner>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-enum PoolType {
-    Shared,
-    Dedicated,
-}
-
-#[derive(Derivative)]
-#[derivative(Debug)]
-struct IdleThreadAsync {
-    idx: usize,
-    #[derivative(Debug = "ignore")]
-    work: mpsc::UnboundedSender<BoxRunAsync<'static, ()>>,
-}
-
-impl IdleThreadAsync {
-    #[allow(dead_code)]
-    fn consume(self, task: BoxRunAsync<'static, ()>) {
-        self.work.send(task).unwrap();
-    }
-}
-
-#[derive(Derivative)]
-#[derivative(Debug)]
-struct IdleThreadSync {
-    idx: usize,
-    #[derivative(Debug = "ignore")]
-    work: std::sync::mpsc::Sender<BoxRun<'static>>,
-}
-
-impl IdleThreadSync {
-    #[allow(dead_code)]
-    fn consume(self, task: BoxRun<'static>) {
-        self.work.send(task).unwrap();
-    }
-}
-
-#[derive(Derivative)]
-#[derivative(Debug)]
-struct PoolStateSync {
-    #[derivative(Debug = "ignore")]
-    idle_rx: Mutex<mpsc::UnboundedReceiver<IdleThreadSync>>,
-    idle_tx: mpsc::UnboundedSender<IdleThreadSync>,
-    idx_seed: AtomicUsize,
-    idle_size: usize,
-    blocking: bool,
-    spawn: mpsc::UnboundedSender<BoxRun<'static>>,
-    #[allow(dead_code)]
-    type_: PoolType,
-}
-
-#[derive(Derivative)]
-#[derivative(Debug)]
-struct PoolStateAsync {
-    #[derivative(Debug = "ignore")]
-    idle_rx: Mutex<mpsc::UnboundedReceiver<IdleThreadAsync>>,
-    idle_tx: mpsc::UnboundedSender<IdleThreadAsync>,
-    idx_seed: AtomicUsize,
-    idle_size: usize,
-    blocking: bool,
-    spawn: mpsc::UnboundedSender<BoxRunAsync<'static, ()>>,
-    #[allow(dead_code)]
-    type_: PoolType,
-}
-
-enum ThreadState {
-    Sync(Arc<ThreadStateSync>),
-    Async(Arc<ThreadStateAsync>),
-}
-
-struct ThreadStateSync {
-    pool: Arc<PoolStateSync>,
-    #[allow(dead_code)]
-    idx: usize,
-    tx: std::sync::mpsc::Sender<BoxRun<'static>>,
-    rx: Mutex<Option<std::sync::mpsc::Receiver<BoxRun<'static>>>>,
-    init: Mutex<Option<BoxRun<'static>>>,
-}
-
-struct ThreadStateAsync {
-    pool: Arc<PoolStateAsync>,
-    #[allow(dead_code)]
-    idx: usize,
-    tx: mpsc::UnboundedSender<BoxRunAsync<'static, ()>>,
-    rx: Mutex<Option<mpsc::UnboundedReceiver<BoxRunAsync<'static, ()>>>>,
-    init: Mutex<Option<BoxRunAsync<'static, ()>>>,
-}
-
-fn copy_memory(memory: JsValue, ty: MemoryType) -> Result<JsValue, WasiThreadError> {
-    let memory_js = memory.dyn_into::<js_sys::WebAssembly::Memory>().unwrap();
-
-    let descriptor = js_sys::Object::new();
-
-    // Annotation is here to prevent spurious IDE warnings.
-    #[allow(unused_unsafe)]
-    unsafe {
-        js_sys::Reflect::set(&descriptor, &"initial".into(), &ty.minimum.0.into()).unwrap();
-        if let Some(max) = ty.maximum {
-            js_sys::Reflect::set(&descriptor, &"maximum".into(), &max.0.into()).unwrap();
-        }
-        js_sys::Reflect::set(&descriptor, &"shared".into(), &ty.shared.into()).unwrap();
-    }
-
-    let new_memory = js_sys::WebAssembly::Memory::new(&descriptor).map_err(|_e| {
-        WasiThreadError::MemoryCreateFailed(wasmer::MemoryError::Generic(
-            "Error while creating the memory".to_owned(),
-        ))
-    })?;
-
-    let src_buffer = memory_js.buffer();
-    let src_size: u64 = src_buffer
-        .unchecked_ref::<js_sys::ArrayBuffer>()
-        .byte_length()
-        .into();
-    let src_view = js_sys::Uint8Array::new(&src_buffer);
-
-    let pages = ((src_size as usize - 1) / wasmer::WASM_PAGE_SIZE) + 1;
-    new_memory.grow(pages as u32);
-
-    let dst_buffer = new_memory.buffer();
-    let dst_view = js_sys::Uint8Array::new(&dst_buffer);
-
-    tracing::trace!(%src_size, "memory copy started");
-
-    {
-        let mut offset = 0;
-        let mut chunk = [0u8; 40960];
-        while offset < src_size {
-            let remaining = src_size - offset;
-            let sublen = remaining.min(chunk.len() as u64) as usize;
-            let end = offset.checked_add(sublen.try_into().unwrap()).unwrap();
-            src_view
-                .subarray(offset.try_into().unwrap(), end.try_into().unwrap())
-                .copy_to(&mut chunk[..sublen]);
-            dst_view
-                .subarray(offset.try_into().unwrap(), end.try_into().unwrap())
-                .copy_from(&chunk[..sublen]);
-            offset += sublen as u64;
-        }
-    }
-
-    Ok(new_memory.into())
+pub struct ThreadPool {
+    sender: UnboundedSender<Message>,
 }
 
 impl ThreadPool {
-    pub fn new(size: usize) -> ThreadPool {
-        tracing::info!(size, "pool created");
-
-        let (idle_tx_shared, idle_rx_shared) = mpsc::unbounded_channel();
-        let (idle_tx_dedicated, idle_rx_dedicated) = mpsc::unbounded_channel();
-
-        let (spawn_tx_shared, mut spawn_rx_shared) = mpsc::unbounded_channel();
-        let (spawn_tx_dedicated, mut spawn_rx_dedicated) = mpsc::unbounded_channel();
-
-        let pool_reactors = PoolStateAsync {
-            idle_rx: Mutex::new(idle_rx_shared),
-            idle_tx: idle_tx_shared,
-            idx_seed: AtomicUsize::new(0),
-            blocking: false,
-            idle_size: 2usize.max(size),
-            type_: PoolType::Shared,
-            spawn: spawn_tx_shared,
-        };
-
-        let pool_dedicated = PoolStateSync {
-            idle_rx: Mutex::new(idle_rx_dedicated),
-            idle_tx: idle_tx_dedicated,
-            idx_seed: AtomicUsize::new(0),
-            blocking: true,
-            idle_size: 1usize.max(size),
-            type_: PoolType::Dedicated,
-            spawn: spawn_tx_dedicated,
-        };
-
-        let inner = Arc::new(ThreadPoolInner {
-            pool_dedicated: Arc::new(pool_dedicated),
-            pool_reactors: Arc::new(pool_reactors),
-        });
-
-        let inner1 = inner.clone();
-        let inner3 = inner.clone();
-
-        // The management thread will spawn other threads - this thread is safe from
-        // being blocked by other threads
-        wasm_bindgen_futures::spawn_local(async move {
-            loop {
-                select! {
-                    spawn = spawn_rx_shared.recv() => {
-                        if let Some(spawn) = spawn { inner1.pool_reactors.expand(spawn); } else { break; }
-                    }
-                    spawn = spawn_rx_dedicated.recv() => {
-                        if let Some(spawn) = spawn { inner3.pool_dedicated.expand(spawn); } else { break; }
-                    }
-                }
-            }
-        });
-
-        ThreadPool { inner }
+    pub fn new(capacity: NonZeroUsize) -> Self {
+        let sender = Scheduler::spawn(capacity);
+        ThreadPool { sender }
     }
 
     pub fn new_with_max_threads() -> Result<ThreadPool, anyhow::Error> {
-        let global = js_sys::global();
-
-        let hardware_concurrency = if let Some(window) = global.dyn_ref::<web_sys::Window>() {
-            window.navigator().hardware_concurrency()
-        } else if let Some(worker_scope) = global.dyn_ref::<web_sys::DedicatedWorkerGlobalScope>() {
-            worker_scope.navigator().hardware_concurrency()
-        } else {
-            anyhow::bail!("Unable to determine the available concurrency");
-        };
-
-        let hardware_concurrency = hardware_concurrency as usize;
-        let pool_size = std::cmp::max(hardware_concurrency, 1);
-
-        Ok(ThreadPool::new(pool_size))
+        let concurrency = crate::utils::hardware_concurrency()
+            .context("Unable to determine the hardware concurrency")?;
+        Ok(ThreadPool::new(concurrency))
     }
 
-    pub fn spawn_shared(&self, task: BoxRunAsync<'static, ()>) {
-        self.inner.pool_reactors.spawn(task);
-    }
+    /// Run an `async` function to completion on the threadpool.
+    pub fn spawn(
+        &self,
+        task: Box<dyn FnOnce() -> LocalBoxFuture<'static, ()> + Send>,
+    ) -> Result<(), WasiThreadError> {
+        self.sender
+            .send(Message::SpawnAsync(task))
+            .expect("scheduler is dead");
 
-    pub fn spawn_wasm(&self, task: TaskWasm) -> Result<(), WasiThreadError> {
-        let run = task.run;
-        let env = task.env;
-        let module = task.module;
-        let module_bytes = module.serialize().unwrap();
-        let snapshot = task.snapshot.cloned();
-        let trigger = task.trigger;
-        let update_layout = task.update_layout;
-
-        let mut memory_ty = None;
-        let mut memory = JsValue::null();
-        let run_type = match task.spawn_type {
-            SpawnMemoryType::CreateMemory => WasmMemoryType::CreateMemory,
-            SpawnMemoryType::CreateMemoryOfType(ty) => {
-                memory_ty = Some(ty);
-                WasmMemoryType::CreateMemoryOfType(ty)
-            }
-            SpawnMemoryType::CopyMemory(m, store) => {
-                memory_ty = Some(m.ty(&store));
-                memory = m.as_jsvalue(&store);
-
-                // We copy the memory here rather than later as
-                // the fork syscalls need to copy the memory
-                // synchronously before the next thread accesses
-                // and before the fork parent resumes, otherwise
-                // there will be memory corruption
-                memory = copy_memory(memory, m.ty(&store))?;
-
-                WasmMemoryType::ShareMemory(m.ty(&store))
-            }
-            SpawnMemoryType::ShareMemory(m, store) => {
-                memory_ty = Some(m.ty(&store));
-                memory = m.as_jsvalue(&store);
-                WasmMemoryType::ShareMemory(m.ty(&store))
-            }
-        };
-
-        let task = Box::new(RunCommand::SpawnWasm {
-            trigger: trigger.map(|trigger| WasmRunTrigger {
-                run: trigger,
-                memory_ty: memory_ty.expect("triggers must have the a known memory type"),
-                env: env.clone(),
-            }),
-            run,
-            run_type,
-            env,
-            module_bytes,
-            snapshot,
-            update_layout,
-            result: None,
-            pool: self.clone(),
-        });
-        let task = Box::into_raw(task);
-
-        let module = JsValue::from(module)
-            .dyn_into::<js_sys::WebAssembly::Module>()
-            .unwrap();
-        schedule_task(JsValue::from(task as u32), module, memory);
         Ok(())
     }
 
-    pub fn spawn_dedicated(&self, task: BoxRun<'static>) {
-        self.inner.pool_dedicated.spawn(task);
+    pub fn spawn_wasm(&self, _task: TaskWasm) -> Result<(), WasiThreadError> {
+        todo!();
+    }
+
+    /// Run a blocking task on the threadpool.
+    pub fn spawn_blocking(&self, task: Box<dyn FnOnce() + Send>) -> Result<(), WasiThreadError> {
+        self.sender
+            .send(Message::SpawnBlocking(task))
+            .expect("scheduler is dead");
+
+        Ok(())
     }
 }
 
-fn build_ctx_and_store(
-    module: js_sys::WebAssembly::Module,
-    memory: JsValue,
-    module_bytes: Bytes,
-    env: WasiEnv,
-    run_type: WasmMemoryType,
-    snapshot: Option<InstanceSnapshot>,
-    update_layout: bool,
-) -> Option<(WasiFunctionEnv, Store)> {
-    tracing::debug!("Building context and store");
-    // Compile the web assembly module
-    let module: Module = (module, module_bytes).into();
-
-    // Make a fake store which will hold the memory we just transferred
-    let mut temp_store = env.runtime().new_store();
-    let spawn_type = match run_type {
-        WasmMemoryType::CreateMemory => SpawnMemoryType::CreateMemory,
-        WasmMemoryType::CreateMemoryOfType(mem) => SpawnMemoryType::CreateMemoryOfType(mem),
-        WasmMemoryType::ShareMemory(ty) => {
-            let memory = match Memory::from_jsvalue(&mut temp_store, &ty, &memory) {
-                Ok(a) => a,
-                Err(e) => {
-                    let err = crate::utils::js_error(e.into());
-                    tracing::error!(error = &*err, "Failed to receive memory for module");
-                    return None;
-                }
-            };
-            SpawnMemoryType::ShareMemory(memory, temp_store.as_store_ref())
-        }
-    };
-
-    let snapshot = snapshot.as_ref();
-    let (ctx, store) =
-        match WasiFunctionEnv::new_with_store(module, env, snapshot, spawn_type, update_layout) {
-            Ok(a) => a,
-            Err(err) => {
-                tracing::error!(
-                    error = &err as &dyn std::error::Error,
-                    "Failed to crate wasi context",
-                );
-                return None;
-            }
-        };
-    Some((ctx, store))
+/// Messages sent from the [`ThreadPool`] handle to the [`Scheduler`].
+pub(crate) enum Message {
+    /// Run a promise on a worker thread.
+    SpawnAsync(Box<dyn FnOnce() -> Pin<Box<dyn Future<Output = ()> + 'static>> + Send + 'static>),
+    /// Run a blocking operation on a worker thread.
+    SpawnBlocking(Box<dyn FnOnce() + Send + 'static>),
+    /// Mark a worker as busy.
+    MarkBusy { worker_id: usize },
+    /// Mark a worker as idle.
+    MarkIdle { worker_id: usize },
+    /// Tell all workers to cache a WebAssembly module.
+    CacheModule {
+        hash: WebcHash,
+        module: wasmer::Module,
+    },
 }
 
-impl PoolStateAsync {
-    fn spawn(&self, task: BoxRunAsync<'static, ()>) {
-        for i in 0..10 {
-            if let Ok(mut guard) = self.idle_rx.try_lock() {
-                tracing::trace!(iteration = i, "Trying to push onto the idle queue");
-                if let Ok(thread) = guard.try_recv() {
-                    thread.consume(task);
-                    return;
-                }
-                break;
-            }
-            std::thread::yield_now();
+impl Debug for Message {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Message::SpawnAsync(_) => f.debug_tuple("SpawnAsync").field(&Hidden).finish(),
+            Message::SpawnBlocking(_) => f.debug_tuple("SpawnBlocking").field(&Hidden).finish(),
+            Message::MarkBusy { worker_id } => f
+                .debug_struct("MarkBusy")
+                .field("worker_id", worker_id)
+                .finish(),
+            Message::MarkIdle { worker_id } => f
+                .debug_struct("MarkIdle")
+                .field("worker_id", worker_id)
+                .finish(),
+            Message::CacheModule { hash, module } => f
+                .debug_struct("CacheModule")
+                .field("hash", hash)
+                .field("module", module)
+                .finish(),
         }
-
-        self.spawn.send(task).unwrap();
     }
+}
 
-    fn expand(self: &Arc<Self>, init: BoxRunAsync<'static, ()>) {
-        let idx = self.idx_seed.fetch_add(1usize, Ordering::Release);
+/// The actor in charge of the threadpool.
+#[derive(Debug)]
+struct Scheduler {
+    /// The ID of the next worker to be spawned.
+    next_id: usize,
+    /// The maximum number of workers we will start.
+    capacity: NonZeroUsize,
+    /// Workers that are able to receive work.
+    idle: VecDeque<WorkerHandle>,
+    /// Workers that are currently blocked on synchronous operations and can't
+    /// receive work at this time.
+    busy: VecDeque<WorkerHandle>,
+    /// An [`UnboundedSender`] used to send the [`Scheduler`] more messages.
+    mailbox: UnboundedSender<Message>,
+    cached_modules: BTreeMap<WebcHash, js_sys::WebAssembly::Module>,
+}
 
-        let (tx, rx) = mpsc::unbounded_channel();
+impl Scheduler {
+    /// Spin up a scheduler on the current thread and get a channel that can be
+    /// used to communicate with it.
+    fn spawn(capacity: NonZeroUsize) -> UnboundedSender<Message> {
+        let (sender, mut receiver) = mpsc::unbounded_channel();
+        let mut scheduler = Scheduler::new(capacity, sender.clone());
+        tracing::warn!("XXX spawning the scheduler");
 
-        let state_inner = Arc::new(ThreadStateAsync {
-            pool: Arc::clone(self),
-            idx,
-            tx,
-            rx: Mutex::new(Some(rx)),
-            init: Mutex::new(Some(init)),
+        wasm_bindgen_futures::spawn_local(async move {
+            let _span = tracing::debug_span!("scheduler").entered();
+            tracing::warn!("XXX STARTED LOOP");
+
+            while let Some(msg) = receiver.recv().await {
+                tracing::warn!(?msg, "XXX RECEIVED MESSAGE");
+                tracing::debug!(?msg, "Executing");
+
+                if let Err(e) = scheduler.execute(msg) {
+                    tracing::warn!(error = &*e, "An error occurred while handling a message");
+                }
+            }
         });
-        let state = Arc::new(ThreadState::Async(state_inner.clone()));
-        start_worker_now(idx, state, state_inner.pool.type_ /* , None */);
-    }
-}
 
-impl PoolStateSync {
-    fn spawn(&self, task: BoxRun<'static>) {
-        tracing::warn!("XXX: Spawning synchronously");
-        for _ in 0..10 {
-            if let Ok(mut guard) = self.idle_rx.try_lock() {
-                if let Ok(thread) = guard.try_recv() {
-                    thread.consume(task);
-                    return;
-                }
-                break;
-            }
-            std::thread::yield_now();
+        sender
+    }
+
+    fn new(capacity: NonZeroUsize, mailbox: UnboundedSender<Message>) -> Self {
+        Scheduler {
+            next_id: 0,
+            capacity,
+            idle: VecDeque::new(),
+            busy: VecDeque::new(),
+            mailbox,
+            cached_modules: BTreeMap::new(),
         }
-
-        self.spawn.send(task).unwrap();
     }
 
-    fn expand(self: &Arc<Self>, init: BoxRun<'static>) {
-        let idx = self.idx_seed.fetch_add(1usize, Ordering::Release);
-
-        let (tx, rx) = std::sync::mpsc::channel();
-
-        let state_inner = Arc::new(ThreadStateSync {
-            pool: Arc::clone(self),
-            idx,
-            tx,
-            rx: Mutex::new(Some(rx)),
-            init: Mutex::new(Some(init)),
-        });
-        let state = Arc::new(ThreadState::Sync(state_inner.clone()));
-        start_worker_now(idx, state, state_inner.pool.type_ /* , None */);
-    }
-}
-
-fn start_worker_now(idx: usize, state: Arc<ThreadState>, type_: PoolType) {
-    let mut opts = WorkerOptions::new();
-    opts.type_(WorkerType::Module);
-    let name = format!("Worker-{:?}-{}", type_, idx);
-    opts.name(&name);
-
-    let ptr = Arc::into_raw(state);
-
-    tracing::debug!(%name, "Spawning a new worker");
-
-    let result = start_worker(
-        current_module(),
-        wasm_bindgen::memory(),
-        JsValue::from(ptr as u32),
-        opts,
-    );
-
-    if let Err(err) = result {
-        tracing::error!(error = &*err, "failed to start worker thread");
-    };
-}
-
-impl ThreadStateSync {
-    fn work(state: Arc<ThreadStateSync>) {
-        let thread_index = state.idx;
-
-        let _span = tracing::info_span!("dedicated_worker",
-                thread.index=thread_index,
-                thread_type_=?state.pool.type_,
-        )
-        .entered();
-        tracing::warn!("Sync");
-
-        // Load the work queue receiver where other people will
-        // send us the work that needs to be done
-        let work_rx = {
-            let mut lock = state.rx.lock().unwrap();
-            lock.take().unwrap()
-        };
-
-        // Load the initial work
-        let mut work = {
-            let mut lock = state.init.lock().unwrap();
-            lock.take()
-        };
-
-        // The work is done in an asynchronous engine (that supports Javascript)
-        let work_tx = state.tx.clone();
-        let pool = Arc::clone(&state.pool);
-        let global = js_sys::global().unchecked_into::<DedicatedWorkerGlobalScope>();
-
-        loop {
-            // Process work until we need to go idle
-            while let Some(task) = work {
-                tracing::warn!("XXX: Performing work");
-                task();
-                tracing::warn!("XXX: Work performed");
-
-                // Grab the next work
-                work = work_rx.try_recv().ok();
+    fn execute(&mut self, message: Message) -> Result<(), Error> {
+        match message {
+            Message::SpawnAsync(task) => self.post_message(PostMessagePayload::SpawnAsync(task)),
+            Message::SpawnBlocking(task) => {
+                self.post_message(PostMessagePayload::SpawnBlocking(task))
             }
+            Message::MarkBusy { worker_id } => {
+                move_worker(worker_id, &mut self.idle, &mut self.busy)
+            }
+            Message::MarkIdle { worker_id } => {
+                move_worker(worker_id, &mut self.busy, &mut self.idle)
+            }
+            Message::CacheModule { hash, module } => {
+                let module = js_sys::WebAssembly::Module::from(module);
+                self.cached_modules.insert(hash, module.clone());
 
-            // If there is already an idle thread thats older then
-            // keep that one (otherwise ditch it) - this creates negative
-            // pressure on the pool size.
-            // The reason we keep older threads is to maximize cache hits such
-            // as module compile caches.
-            if let Ok(mut lock) = state.pool.idle_rx.try_lock() {
-                let mut others = Vec::new();
-                while let Ok(other) = lock.try_recv() {
-                    others.push(other);
+                for worker in self.idle.iter().chain(self.busy.iter()) {
+                    worker.send(PostMessagePayload::CacheModule {
+                        hash,
+                        module: module.clone(),
+                    })?;
                 }
 
-                // Sort them in the order of index (so older ones come first)
-                others.sort_by_key(|k| k.idx);
-
-                // If the number of others (plus us) exceeds the maximum then
-                // we either drop ourselves or one of the others
-                if others.len() + 1 > pool.idle_size {
-                    // How many are there already there that have a lower index - are we the one without a chair?
-                    let existing = others
-                        .iter()
-                        .map(|a| a.idx)
-                        .filter(|a| *a < thread_index)
-                        .count();
-                    if existing >= pool.idle_size {
-                        for other in others {
-                            state.pool.idle_tx.send(other).unwrap();
-                        }
-                        tracing::info!("worker closed");
-                        break;
-                    } else {
-                        // Someone else is the one (the last one)
-                        let leftover_chairs = others.len() - 1;
-                        for other in others.into_iter().take(leftover_chairs) {
-                            state.pool.idle_tx.send(other).unwrap();
-                        }
-                    }
-                } else {
-                    // Add them all back in again (but in the right order)
-                    for other in others {
-                        state.pool.idle_tx.send(other).unwrap();
-                    }
-                }
+                Ok(())
             }
-            let idle = IdleThreadSync {
-                idx: thread_index,
-                work: work_tx.clone(),
-            };
-            if state.pool.idle_tx.send(idle).is_err() {
-                tracing::info!("pool is closed");
-                break;
-            }
-
-            // Do a blocking recv (if this fails the thread is closed)
-            work = match work_rx.recv() {
-                Ok(a) => Some(a),
-                Err(err) => {
-                    tracing::info!(error = &err as &dyn std::error::Error, "worker closed");
-                    break;
-                }
-            };
-        }
-
-        global.close();
-    }
-}
-
-impl ThreadStateAsync {
-    fn work(state: Arc<ThreadStateAsync>) {
-        let thread_index = state.idx;
-        let _span = tracing::info_span!("shared_worker",
-                thread.index=thread_index,
-                thread_type_=?state.pool.type_,
-        )
-        .entered();
-
-        // Load the work queue receiver where other people will
-        // send us the work that needs to be done
-        let mut work_rx = {
-            let mut lock = state.rx.lock().unwrap();
-            lock.take().unwrap()
-        };
-
-        // Load the initial work
-        let mut work = {
-            let mut lock = state.init.lock().unwrap();
-            lock.take()
-        };
-
-        // The work is done in an asynchronous engine (that supports Javascript)
-        let work_tx = state.tx.clone();
-        let pool = Arc::clone(&state.pool);
-        let driver = async move {
-            let global = js_sys::global().unchecked_into::<DedicatedWorkerGlobalScope>();
-
-            loop {
-                // Process work until we need to go idle
-                while let Some(task) = work {
-                    let future = task();
-                    if pool.blocking {
-                        future.await;
-                    } else {
-                        wasm_bindgen_futures::spawn_local(async move {
-                            future.await;
-                        });
-                    }
-
-                    // Grab the next work
-                    work = work_rx.try_recv().ok();
-                }
-
-                // If there iss already an idle thread thats older then
-                // keep that one (otherwise ditch it) - this creates negative
-                // pressure on the pool size.
-                // The reason we keep older threads is to maximize cache hits such
-                // as module compile caches.
-                if let Ok(mut lock) = state.pool.idle_rx.try_lock() {
-                    let mut others = Vec::new();
-                    while let Ok(other) = lock.try_recv() {
-                        others.push(other);
-                    }
-
-                    // Sort them in the order of index (so older ones come first)
-                    others.sort_by_key(|k| k.idx);
-
-                    // If the number of others (plus us) exceeds the maximum then
-                    // we either drop ourselves or one of the others
-                    if others.len() + 1 > pool.idle_size {
-                        // How many are there already there that have a lower index - are we the one without a chair?
-                        let existing = others
-                            .iter()
-                            .map(|a| a.idx)
-                            .filter(|a| *a < thread_index)
-                            .count();
-                        if existing >= pool.idle_size {
-                            for other in others {
-                                state.pool.idle_tx.send(other).unwrap();
-                            }
-                            tracing::info!("worker closed");
-                            break;
-                        } else {
-                            // Someone else is the one (the last one)
-                            let leftover_chairs = others.len() - 1;
-                            for other in others.into_iter().take(leftover_chairs) {
-                                state.pool.idle_tx.send(other).unwrap();
-                            }
-                        }
-                    } else {
-                        // Add them all back in again (but in the right order)
-                        for other in others {
-                            state.pool.idle_tx.send(other).unwrap();
-                        }
-                    }
-                }
-
-                // Now register ourselves as idle
-                /*
-                trace!(
-                    "pool is idle (thread_index={}, type={:?})",
-                    thread_index,
-                    pool.type_
-                );
-                */
-                let idle = IdleThreadAsync {
-                    idx: thread_index,
-                    work: work_tx.clone(),
-                };
-                if state.pool.idle_tx.send(idle).is_err() {
-                    tracing::info!("pool is closed");
-                    break;
-                }
-
-                // Do a blocking recv (if this fails the thread is closed)
-                work = match work_rx.recv().await {
-                    Some(a) => Some(a),
-                    None => {
-                        tracing::info!("worker closed");
-                        break;
-                    }
-                };
-            }
-
-            global.close();
-        };
-        wasm_bindgen_futures::spawn_local(driver);
-    }
-}
-
-#[wasm_bindgen(skip_typescript)]
-pub fn worker_entry_point(state_ptr: u32) {
-    let state = unsafe { Arc::<ThreadState>::from_raw(state_ptr as *const ThreadState) };
-
-    let name = js_sys::global()
-        .unchecked_into::<DedicatedWorkerGlobalScope>()
-        .name();
-    tracing::debug!(%name, "Worker started");
-
-    match state.as_ref() {
-        ThreadState::Async(state) => {
-            ThreadStateAsync::work(state.clone());
-        }
-        ThreadState::Sync(state) => {
-            ThreadStateSync::work(state.clone());
         }
     }
-}
 
-#[wasm_bindgen(skip_typescript)]
-pub fn wasm_entry_point(
-    task_ptr: u32,
-    wasm_module: js_sys::WebAssembly::Module,
-    wasm_memory: JsValue,
-    wasm_cache: JsValue,
-) {
-    tracing::debug!("Wasm entry point");
-    // Import the WASM cache
-    ModuleCache::import(wasm_cache);
+    /// Send a task to one of the worker threads, preferring workers that aren't
+    /// running synchronous work.
+    fn post_message(&mut self, msg: PostMessagePayload) -> Result<(), Error> {
+        // First, try to send the message to an idle worker
+        if let Some(worker) = self.idle.pop_front() {
+            tracing::trace!(
+                worker.id = worker.id(),
+                "Sending the message to an idle worker"
+            );
 
-    // Grab the run wrapper that passes us the rust variables (and extract the callback)
-    let task = task_ptr as *mut RunCommand;
-    let task = unsafe { Box::from_raw(task) };
-    match *task {
-        RunCommand::ExecModule { run, module_bytes } => {
-            let module: Module = (wasm_module, module_bytes).into();
-            run(module);
-        }
-        RunCommand::SpawnWasm {
-            run,
-            run_type,
-            env,
-            module_bytes,
-            snapshot,
-            mut trigger,
-            update_layout,
-            mut result,
-            ..
-        } => {
-            // If there is a trigger then run it
-            let trigger = trigger.take();
-            if let Some(trigger) = trigger {
-                let trigger_run = trigger.run;
-                result = Some(InlineWaker::block_on(trigger_run()));
-            }
+            // send the job to the worker and move it to the back of the queue
+            worker.send(msg)?;
+            self.idle.push_back(worker);
 
-            // Invoke the callback which will run the web assembly module
-            if let Some((ctx, store)) = build_ctx_and_store(
-                wasm_module,
-                wasm_memory,
-                module_bytes,
-                env,
-                run_type,
-                snapshot,
-                update_layout,
-            ) {
-                run(TaskWasmRunProperties {
-                    ctx,
-                    store,
-                    trigger_result: result,
-                });
-            };
-        }
-    }
-}
-
-struct WebWorker {
-    worker: Worker,
-    available: bool,
-}
-
-std::thread_local! {
-    static WEB_WORKER_POOL: RefCell<Vec<WebWorker>>
-        = RefCell::new(Vec::new());
-}
-
-fn register_web_worker(web_worker: Worker) -> usize {
-    WEB_WORKER_POOL.with(|u| {
-        let mut workers = u.borrow_mut();
-        workers.push(WebWorker {
-            worker: web_worker,
-            available: false,
-        });
-        workers.len() - 1
-    })
-}
-
-fn return_web_worker(id: usize) {
-    WEB_WORKER_POOL.with(|u| {
-        let mut workers = u.borrow_mut();
-        let worker = workers.get_mut(id);
-        if let Some(worker) = worker {
-            worker.available = true;
-        }
-    });
-}
-
-fn get_web_worker(id: usize) -> Option<Worker> {
-    WEB_WORKER_POOL.with(|u| {
-        let workers = u.borrow();
-        workers.get(id).map(|worker| worker.worker.clone())
-    })
-}
-
-fn claim_web_worker() -> Option<usize> {
-    WEB_WORKER_POOL.with(|u| {
-        let mut workers = u.borrow_mut();
-        for (n, worker) in workers.iter_mut().enumerate() {
-            if worker.available {
-                worker.available = false;
-                return Some(n);
-            }
-        }
-        None
-    })
-}
-
-async fn schedule_wasm_task(
-    task_ptr: u32,
-    wasm_module: js_sys::WebAssembly::Module,
-    wasm_memory: JsValue,
-) -> Result<(), anyhow::Error> {
-    // Grab the run wrapper that passes us the rust variables
-    let task = task_ptr as *mut RunCommand;
-    let task = unsafe { Box::from_raw(task) };
-    match *task {
-        RunCommand::ExecModule { run, module_bytes } => {
-            let module: Module = (wasm_module, module_bytes).into();
-            run(module);
-            Ok(())
-        }
-        RunCommand::SpawnWasm {
-            run,
-            run_type,
-            env,
-            module_bytes,
-            snapshot,
-            mut trigger,
-            update_layout,
-            mut result,
-            pool,
-        } => {
-            // We will pass it on now
-            let trigger = trigger.take();
-            let trigger_rx = if let Some(trigger) = trigger {
-                let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
-
-                // We execute the trigger on another thread as any atomic operations (such as wait)
-                // are not allowed on the main thread and even through the tokio is asynchronous that
-                // does not mean it does not have short synchronous blocking events (which it does)
-                pool.spawn_shared(Box::new(|| {
-                    Box::pin(async move {
-                        let run = trigger.run;
-                        let ret = run().await;
-                        tx.send(ret).ok();
-                    })
-                }));
-                Some(rx)
-            } else {
-                None
-            };
-
-            // Export the cache
-            let wasm_cache = ModuleCache::export();
-
-            // We will now spawn the process in its own thread
-            let mut opts = WorkerOptions::new();
-            opts.type_(WorkerType::Module);
-            opts.name("Wasm-Thread");
-
-            if let Some(mut trigger_rx) = trigger_rx {
-                result = trigger_rx.recv().await;
-            }
-
-            let task = Box::new(RunCommand::SpawnWasm {
-                run,
-                run_type,
-                env,
-                module_bytes,
-                snapshot,
-                trigger: None,
-                update_layout,
-                result,
-                pool,
-            });
-            let task = Box::into_raw(task);
-
-            start_wasm(
-                wasm_bindgen::module()
-                    .dyn_into::<js_sys::WebAssembly::Module>()
-                    .unwrap(),
-                wasm_bindgen::memory(),
-                JsValue::from(task as u32),
-                opts,
-                wasm_module,
-                wasm_memory,
-                wasm_cache,
-            )
-        }
-    }
-}
-
-fn new_worker(opts: &WorkerOptions) -> Result<Worker, anyhow::Error> {
-    static WORKER_URL: OnceCell<String> = OnceCell::new();
-
-    fn init_worker_url() -> Result<String, JsValue> {
-        #[wasm_bindgen]
-        #[allow(non_snake_case)]
-        extern "C" {
-            #[wasm_bindgen(js_namespace = ["import", "meta"], js_name = url)]
-            static IMPORT_META_URL: String;
+            return Ok(());
         }
 
-        tracing::debug!(import_url = IMPORT_META_URL.as_str());
+        if self.busy.len() + self.idle.len() < self.capacity.get() {
+            // Rather than sending the task to one of the blocking workers,
+            // let's spawn a new worker
 
-        let script = include_str!("worker.js").replace("$IMPORT_META_URL", &IMPORT_META_URL);
+            let worker = self.start_worker()?;
+            tracing::trace!(
+                worker.id = worker.id(),
+                "Sending the message to a new worker"
+            );
 
-        let blob = web_sys::Blob::new_with_u8_array_sequence_and_options(
-            Array::from_iter([Uint8Array::from(script.as_bytes())]).as_ref(),
-            web_sys::BlobPropertyBag::new().type_("application/javascript"),
+            worker.send(msg)?;
+
+            // Make sure the worker starts off in the idle queue
+            self.idle.push_back(worker);
+
+            return Ok(());
+        }
+
+        // Oh well, looks like there aren't any more idle workers and we can't
+        // spin up any new workers, so we'll need to add load to a worker that
+        // is already blocking.
+        //
+        // Note: This shouldn't panic because if there were no idle workers and
+        // we didn't start a new worker, there should always be at least one
+        // busy worker because our capacity is non-zero.
+        let worker = self.busy.pop_front().unwrap();
+
+        tracing::trace!(
+            worker.id = worker.id(),
+            "Sending the message to a busy worker"
         );
 
-        Url::create_object_url_with_blob(&blob?)
+        // send the job to the worker
+        worker.send(msg)?;
+
+        // Put the worker back in the queue
+        self.busy.push_back(worker);
+
+        Ok(())
     }
 
-    let script_url = WORKER_URL
-        .get_or_try_init(init_worker_url)
-        .map_err(crate::utils::js_error)?;
+    fn start_worker(&mut self) -> Result<WorkerHandle, Error> {
+        let id = self.next_id;
+        self.next_id += 1;
+        let handle = WorkerHandle::spawn(id, self.mailbox.clone())?;
 
-    Worker::new_with_options(script_url, opts).map_err(crate::utils::js_error)
-}
-
-fn start_worker(
-    module: js_sys::WebAssembly::Module,
-    memory: JsValue,
-    shared_data: JsValue,
-    opts: WorkerOptions,
-) -> Result<(), anyhow::Error> {
-    fn onmessage(event: MessageEvent) -> Promise {
-        if let Ok(payload) = js_sys::JSON::stringify(&event.data()) {
-            let payload = String::from(payload);
-            tracing::debug!(%payload, "Received a message from the worker");
+        for (hash, module) in &self.cached_modules {
+            todo!();
         }
 
-        let data = event.data().unchecked_into::<Array>();
-        let task = data.get(0).unchecked_into_f64() as u32;
-        let module = data.get(1).dyn_into().unwrap();
-        let memory = data.get(2);
-        wasm_bindgen_futures::future_to_promise(async move {
-            if let Err(e) = schedule_wasm_task(task, module, memory).await {
-                tracing::error!(error = &*e, "Unable to schedule a task");
-                let error_msg = e.to_string();
-                return Err(js_sys::Error::new(&error_msg).into());
+        Ok(handle)
+    }
+}
+
+fn move_worker(
+    worker_id: usize,
+    from: &mut VecDeque<WorkerHandle>,
+    to: &mut VecDeque<WorkerHandle>,
+) -> Result<(), Error> {
+    let ix = from
+        .iter()
+        .position(|w| w.id() == worker_id)
+        .with_context(|| format!("Unable to move worker #{worker_id}"))?;
+
+    let worker = from.remove(ix).unwrap();
+    to.push_back(worker);
+
+    Ok(())
+}
+
+/// A message that will be sent to a worker using `postMessage()`.
+pub(crate) enum PostMessagePayload {
+    SpawnAsync(Box<dyn FnOnce() -> Pin<Box<dyn Future<Output = ()> + 'static>> + Send + 'static>),
+    SpawnBlocking(Box<dyn FnOnce() + Send + 'static>),
+    CacheModule {
+        hash: WebcHash,
+        module: js_sys::WebAssembly::Module,
+    },
+}
+
+impl Debug for PostMessagePayload {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PostMessagePayload::SpawnAsync(_) => {
+                f.debug_tuple("SpawnAsync").field(&Hidden).finish()
             }
-
-            Ok(JsValue::UNDEFINED)
-        })
+            PostMessagePayload::SpawnBlocking(_) => {
+                f.debug_tuple("SpawnBlocking").field(&Hidden).finish()
+            }
+            PostMessagePayload::CacheModule { hash, module } => f
+                .debug_struct("CacheModule")
+                .field("hash", hash)
+                .field("module", module)
+                .finish(),
+        }
     }
-
-    let worker = new_worker(&opts)?;
-
-    let on_message: Closure<dyn Fn(MessageEvent) -> Promise + 'static> = Closure::new(onmessage);
-    worker.set_onmessage(Some(on_message.into_js_value().as_ref().unchecked_ref()));
-
-    let on_error: Closure<dyn Fn(ErrorEvent) -> Promise + 'static> =
-        Closure::new(|msg: ErrorEvent| {
-            let err = crate::utils::js_error(msg.error());
-            tracing::error!(
-                error = &*err,
-                line = msg.lineno(),
-                column = msg.colno(),
-                file = msg.filename(),
-                error_message = %msg.message(),
-                "Worker error",
-            );
-            web_sys::console::error_3(&JsValue::from_str("Worker error"), &msg, &msg.error());
-            Promise::resolve(&JsValue::UNDEFINED)
-        });
-    let on_error = on_error.into_js_value();
-    worker.set_onerror(Some(on_error.as_ref().unchecked_ref()));
-    worker.set_onmessageerror(Some(on_error.as_ref().unchecked_ref()));
-
-    worker
-        .post_message(Array::from_iter([JsValue::from(module), memory, shared_data]).as_ref())
-        .map_err(crate::utils::js_error)
 }
 
-fn start_wasm(
-    module: js_sys::WebAssembly::Module,
-    memory: JsValue,
-    ctx: JsValue,
-    opts: WorkerOptions,
-    wasm_module: js_sys::WebAssembly::Module,
-    wasm_memory: JsValue,
-    wasm_cache: JsValue,
-) -> Result<(), anyhow::Error> {
-    fn onmessage(event: MessageEvent) -> Promise {
-        if let Ok(stringified) = js_sys::JSON::stringify(&event) {
-            let event = String::from(stringified);
-            tracing::debug!(%event, "Received a message from the main thread");
-        }
+#[cfg(test)]
+mod tests {
+    use tokio::sync::oneshot;
+    use wasm_bindgen_test::wasm_bindgen_test;
 
-        let data = event.data().unchecked_into::<Array>();
-        if data.length() == 3 {
-            let task = data.get(0).unchecked_into_f64() as u32;
-            let module = data.get(1).dyn_into().unwrap();
-            let memory = data.get(2);
-            wasm_bindgen_futures::future_to_promise(async move {
-                if let Err(e) = schedule_wasm_task(task, module, memory).await {
-                    tracing::error!(error = &*e, "Unable to schedule a task");
-                    let error_msg = e.to_string();
-                    return Err(js_sys::Error::new(&error_msg).into());
-                }
+    use super::*;
 
-                Ok(JsValue::UNDEFINED)
+    #[wasm_bindgen_test]
+    async fn spawn_an_async_function() {
+        let (sender, receiver) = oneshot::channel();
+        let (tx, _) = mpsc::unbounded_channel();
+        let mut scheduler = Scheduler::new(NonZeroUsize::MAX, tx);
+        let message = Message::SpawnAsync(Box::new(move || {
+            Box::pin(async move {
+                let _ = sender.send(42);
             })
-        } else {
-            let id = data.get(0).unchecked_into_f64() as usize;
-            return_web_worker(id);
-            Promise::resolve(&JsValue::UNDEFINED)
-        }
+        }));
+
+        // we start off with no workers
+        assert_eq!(scheduler.idle.len(), 0);
+        assert_eq!(scheduler.busy.len(), 0);
+        assert_eq!(scheduler.next_id, 0);
+
+        // then we run the message, which should start up a worker and send it
+        // the job
+        scheduler.execute(message).unwrap();
+
+        // One worker should have been created and added to the "ready" queue
+        // because it's just handling async workloads.
+        assert_eq!(scheduler.idle.len(), 1);
+        assert_eq!(scheduler.busy.len(), 0);
+        assert_eq!(scheduler.next_id, 1);
+
+        // Make sure the background thread actually ran something and sent us
+        // back a result
+        assert_eq!(receiver.await.unwrap(), 42);
     }
-    let (worker, worker_id) = if let Some(id) = claim_web_worker() {
-        let worker = get_web_worker(id).context("failed to retrieve worker from worker pool")?;
-        (worker, id)
-    } else {
-        let worker = new_worker(&opts)?;
-        let worker_id = register_web_worker(worker.clone());
-        (worker, worker_id)
-    };
-
-    tracing::trace!(worker_id, "Retrieved worker from the pool");
-
-    worker.set_onmessage(Some(
-        Closure::<dyn Fn(MessageEvent) -> Promise + 'static>::new(onmessage)
-            .as_ref()
-            .unchecked_ref(),
-    ));
-    worker
-        .post_message(
-            Array::from_iter([
-                JsValue::from(worker_id),
-                JsValue::from(module),
-                memory,
-                ctx,
-                JsValue::from(wasm_module),
-                wasm_memory,
-                wasm_cache,
-            ])
-            .as_ref(),
-        )
-        .map_err(crate::utils::js_error)
-}
-
-pub(crate) fn schedule_task(task: JsValue, module: js_sys::WebAssembly::Module, memory: JsValue) {
-    let worker_scope = match js_sys::global().dyn_into::<DedicatedWorkerGlobalScope>() {
-        Ok(s) => s,
-        Err(_) => {
-            tracing::error!("Trying to schedule a task from outside a Worker");
-            return;
-        }
-    };
-
-    if let Err(err) =
-        worker_scope.post_message(Array::from_iter([task, module.into(), memory]).as_ref())
-    {
-        let err = crate::utils::js_error(err);
-        tracing::error!(error = &*err, "failed to schedule task from worker thread");
-    }
-}
-
-/// Get a reference to the currently running module.
-fn current_module() -> js_sys::WebAssembly::Module {
-    // FIXME: Switch this to something stable and portable
-    //
-    // We use an undocumented API to get a reference to the
-    // WebAssembly module that is being executed right now so start
-    // a new thread by transferring the WebAssembly linear memory and
-    // module to a worker and beginning execution.
-    //
-    // This can only be used in the browser. Trying to build
-    // wasmer-wasix for NodeJS will probably result in the following:
-    //
-    // Error: executing `wasm-bindgen` over the wasm file
-    //   Caused by:
-    //   0: failed to generate bindings for import of `__wbindgen_placeholder__::__wbindgen_module`
-    //   1: `wasm_bindgen::module` is currently only supported with `--target no-modules` and `--tar get web`
-    wasm_bindgen::module().dyn_into().unwrap()
 }

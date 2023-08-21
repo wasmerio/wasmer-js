@@ -17,22 +17,7 @@ std::thread_local! {
 pub(crate) struct ModuleCache {}
 
 impl ModuleCache {
-    fn cache_in_main(&self, key: ModuleHash, module: &Module, deterministic_id: &str) {
-        let deterministic_id = deterministic_id.to_string();
-        let task = Box::new(crate::tasks::RunCommand::ExecModule {
-            run: Box::new(move |module| {
-                let key = (key, deterministic_id);
-                CACHED_MODULES.with(|m| m.borrow_mut().insert(key, module.clone()));
-            }),
-            module_bytes: module.serialize().unwrap(),
-        });
-        let task = Box::into_raw(task);
-
-        let module = JsValue::from(module.clone())
-            .dyn_into::<js_sys::WebAssembly::Module>()
-            .unwrap();
-        crate::tasks::schedule_task(JsValue::from(task as u32), module, JsValue::NULL);
-    }
+    fn cache_in_main(&self, key: ModuleHash, module: &Module, deterministic_id: &str) {}
 
     pub fn export() -> JsValue {
         CACHED_MODULES.with(|m| {

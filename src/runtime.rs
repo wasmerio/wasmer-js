@@ -15,7 +15,7 @@ use wasmer_wasix::{
 };
 
 use crate::{
-    tasks::{pool2::ThreadPool, TaskManager},
+    tasks::{TaskManager, ThreadPool},
     utils::Error,
     Tty,
 };
@@ -41,12 +41,13 @@ impl Runtime {
     #[wasm_bindgen(constructor)]
     pub fn with_pool_size(pool_size: Option<usize>) -> Result<Runtime, Error> {
         let pool = match pool_size {
-            Some(size) => match NonZeroUsize::new(size) {
-                Some(size) => ThreadPool::new(size),
-                None => todo!(),
-            },
+            Some(size) => {
+                let size = NonZeroUsize::new(size).unwrap_or(NonZeroUsize::MIN);
+                ThreadPool::new(size)
+            }
             None => ThreadPool::new_with_max_threads()?,
         };
+
         Ok(Runtime::new(pool))
     }
 

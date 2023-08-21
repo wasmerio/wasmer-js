@@ -26,7 +26,9 @@ impl Wasmer {
     pub fn new(cfg: Option<WasmerConfig>) -> Result<Wasmer, Error> {
         let cfg = cfg.unwrap_or_default();
 
+        tracing::warn!("XXX Before Runtime::with_pool_size()");
         let mut runtime = Runtime::with_pool_size(cfg.pool_size())?;
+        tracing::warn!("XXX After Runtime::with_pool_size()");
 
         if let Some(registry_url) = cfg.parse_registry_url() {
             runtime.set_registry(&registry_url)?;
@@ -50,7 +52,9 @@ impl Wasmer {
         let specifier: PackageSpecifier = app_id.parse()?;
         let config = config.unwrap_or_default();
 
+        tracing::warn!("XXX Before BinaryPackage::from_registry()");
         let pkg = BinaryPackage::from_registry(&specifier, &self.runtime).await?;
+        tracing::warn!("XXX After BinaryPackage::from_registry()");
         let command_name = config
             .command()
             .as_string()
