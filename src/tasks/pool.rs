@@ -8,6 +8,7 @@ use std::{
 use anyhow::{Context, Error};
 use futures::{future::LocalBoxFuture, Future};
 use tokio::sync::mpsc::{self, UnboundedSender};
+use wasm_bindgen::{JsCast, JsValue};
 use wasmer_wasix::{
     runtime::{resolver::WebcHash, task_manager::TaskWasm},
     WasiThreadError,
@@ -164,7 +165,7 @@ impl Scheduler {
                 move_worker(worker_id, &mut self.busy, &mut self.idle)
             }
             Message::CacheModule { hash, module } => {
-                let module = js_sys::WebAssembly::Module::from(module);
+                let module: js_sys::WebAssembly::Module = JsValue::from(module).unchecked_into();
                 self.cached_modules.insert(hash, module.clone());
 
                 for worker in self.idle.iter().chain(self.busy.iter()) {
@@ -242,8 +243,13 @@ impl Scheduler {
         self.next_id += 1;
         let handle = WorkerHandle::spawn(id, self.mailbox.clone())?;
 
-        for (hash, module) in &self.cached_modules {
-            todo!();
+        // Prime the worker's module cache
+        for (&hash, module) in &self.cached_modules {
+            let msg = PostMessagePayload::CacheModule {
+                hash,
+                module: module.clone(),
+            };
+            handle.send(msg)?;
         }
 
         Ok(handle)

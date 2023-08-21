@@ -3,7 +3,6 @@ wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
 mod facade;
 mod instance;
-mod module_cache;
 mod net;
 mod run;
 mod runtime;

@@ -1,4 +1,4 @@
-use std::pin::Pin;
+use std::{mem::ManuallyDrop, pin::Pin};
 
 use anyhow::{Context, Error};
 use futures::Future;
@@ -9,6 +9,7 @@ use wasm_bindgen::{
     prelude::{wasm_bindgen, Closure},
     JsCast, JsValue,
 };
+use wasmer_wasix::runtime::resolver::WebcHash;
 
 use crate::tasks::pool::{Message, PostMessagePayload};
 
@@ -118,7 +119,7 @@ static WORKER_URL: Lazy<String> = Lazy::new(|| {
 
     tracing::debug!(import_url = IMPORT_META_URL.as_str());
 
-    let script = include_str!("worker2.js").replace("$IMPORT_META_URL", &IMPORT_META_URL);
+    let script = include_str!("worker.js").replace("$IMPORT_META_URL", &IMPORT_META_URL);
 
     let blob = web_sys::Blob::new_with_u8_array_sequence_and_options(
         Array::from_iter([Uint8Array::from(script.as_bytes())]).as_ref(),
@@ -136,29 +137,44 @@ static WORKER_URL: Lazy<String> = Lazy::new(|| {
 #[derive(serde::Serialize, serde::Deserialize)]
 #[serde(tag = "type", rename_all = "kebab-case")]
 pub(crate) enum PostMessagePayloadRepr {
-    SpawnAsync { ptr: usize },
-    SpawnBlocking { ptr: usize },
+    SpawnAsync {
+        ptr: usize,
+    },
+    SpawnBlocking {
+        ptr: usize,
+    },
+    #[serde(skip)]
+    CacheModule {
+        hash: WebcHash,
+        module: js_sys::WebAssembly::Module,
+    },
 }
 
 impl PostMessagePayloadRepr {
     pub(crate) unsafe fn reconstitute(self) -> PostMessagePayload {
-        match self {
+        let this = ManuallyDrop::new(self);
+
+        match &*this {
             PostMessagePayloadRepr::SpawnAsync { ptr } => {
                 let boxed = Box::from_raw(
-                    ptr as *mut Box<
+                    *ptr as *mut Box<
                         dyn FnOnce() -> Pin<Box<dyn Future<Output = ()> + 'static>>
                             + Send
                             + 'static,
                     >,
                 );
-                std::mem::forget(self);
                 PostMessagePayload::SpawnAsync(*boxed)
             }
 
             PostMessagePayloadRepr::SpawnBlocking { ptr } => {
-                let boxed = Box::from_raw(ptr as *mut Box<dyn FnOnce() + Send + 'static>);
-                std::mem::forget(self);
+                let boxed = Box::from_raw(*ptr as *mut Box<dyn FnOnce() + Send + 'static>);
                 PostMessagePayload::SpawnBlocking(*boxed)
+            }
+            PostMessagePayloadRepr::CacheModule { hash, ref module } => {
+                PostMessagePayload::CacheModule {
+                    hash: std::ptr::read(hash),
+                    module: std::ptr::read(module),
+                }
             }
         }
     }
@@ -181,6 +197,9 @@ impl From<PostMessagePayload> for PostMessagePayloadRepr {
                 PostMessagePayloadRepr::SpawnBlocking {
                     ptr: Box::into_raw(boxed) as usize,
                 }
+            }
+            PostMessagePayload::CacheModule { hash, module } => {
+                PostMessagePayloadRepr::CacheModule { hash, module }
             }
         }
     }
@@ -291,6 +310,9 @@ pub async fn __worker_handle_message(msg: JsValue) -> Result<(), crate::utils::E
         match msg.reconstitute() {
             PostMessagePayload::SpawnAsync(thunk) => thunk().await,
             PostMessagePayload::SpawnBlocking(thunk) => thunk(),
+            PostMessagePayload::CacheModule { hash, .. } => {
+                tracing::warn!(%hash, "XXX Caching module");
+            }
         }
     }
 
