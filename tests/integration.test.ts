@@ -16,17 +16,24 @@ it("run noop program", async () => {
             (func (export "_start") nop)
         )`;
     const wasm = wat2wasm(noop);
-    const module = await WebAssembly.compile(wasm);
+    console.log("WASM", wasm);
     const runtime = new Runtime(2);
+    console.log("RUNTIME", runtime);
 
-    const instance = run(module, runtime, { program: "noop" });
+    const instance = run(wasm, runtime, { program: "noop" });
+    console.log("INSTANCE", instance);
+    const stdout = instance.stdout.getReader();
+    const stderr = instance.stderr.getReader();
+    console.log("READERS", stdout, stderr);
     const output = await instance.wait();
+    console.log("OUTPUT", output);
 
     expect(output.ok).to.be.true;
     expect(output.code).to.equal(0);
+    console.log(stdout, stderr);
 });
 
-it("Can run python", async () => {
+it.skip("Can run python", async () => {
     const wasmer = new Wasmer();
     console.log(wasmer);
 

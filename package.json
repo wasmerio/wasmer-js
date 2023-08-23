@@ -26,7 +26,7 @@
   },
   "scripts": {
     "build": "wasm-pack build --release --target=web && wasm-opt pkg/wasmer_wasix_js_bg.wasm -O2 -o pkg/wasmer_wasix_js_bg.wasm && wasm-strip pkg/wasmer_wasix_js_bg.wasm && rollup -c --environment BUILD:production",
-    "build:dev": "wasm-pack build --profiling --target=web && rollup -c --environment BUILD:development",
+    "build:dev": "wasm-pack build --dev --target=web && rollup -c --environment BUILD:development",
     "dev": "rollup -c -w",
     "test": "web-test-runner 'tests/**/*.test.ts' --node-resolve --esbuild-target auto --config ./web-dev-server.config.mjs",
     "clean": "rimraf dist coverage pkg target"

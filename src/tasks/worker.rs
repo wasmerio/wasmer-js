@@ -18,13 +18,13 @@ use crate::tasks::pool::{Message, PostMessagePayload};
 /// This will automatically terminate the worker when dropped.
 #[derive(Debug)]
 pub(crate) struct WorkerHandle {
-    id: usize,
+    id: u64,
     inner: web_sys::Worker,
     _closures: Closures,
 }
 
 impl WorkerHandle {
-    pub(crate) fn spawn(id: usize, sender: UnboundedSender<Message>) -> Result<Self, Error> {
+    pub(crate) fn spawn(id: u64, sender: UnboundedSender<Message>) -> Result<Self, Error> {
         let name = format!("worker-{id}");
 
         let worker = web_sys::Worker::new_with_options(
@@ -51,7 +51,7 @@ impl WorkerHandle {
         })
     }
 
-    pub(crate) fn id(&self) -> usize {
+    pub(crate) fn id(&self) -> u64 {
         self.id
     }
 
@@ -286,8 +286,8 @@ impl Closures {
 #[derive(serde::Serialize, serde::Deserialize)]
 #[serde(tag = "type", rename_all = "kebab-case")]
 enum WorkerMessage {
-    MarkBusy { worker_id: usize },
-    MarkIdle { worker_id: usize },
+    MarkBusy { worker_id: u64 },
+    MarkIdle { worker_id: u64 },
 }
 
 impl From<WorkerMessage> for Message {

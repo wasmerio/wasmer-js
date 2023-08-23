@@ -26,8 +26,9 @@ pub struct Instance {
 #[wasm_bindgen]
 impl Instance {
     /// Wait for the process to exit.
-    #[tracing::instrument(level = "debug", skip_all)]
     pub async fn wait(self) -> Result<JsOutput, Error> {
+        let _span = tracing::debug_span!("wait").entered();
+
         let Instance {
             stdin,
             stdout,

@@ -1,9 +1,7 @@
 use std::{num::NonZeroUsize, sync::Arc};
 
-use futures::future::BoxFuture;
 use virtual_net::VirtualNetworking;
-use wasm_bindgen::{prelude::wasm_bindgen, JsCast};
-use wasm_bindgen_futures::JsFuture;
+use wasm_bindgen::prelude::wasm_bindgen;
 use wasmer_wasix::{
     http::{HttpClient, WebHttpClient},
     runtime::{
@@ -122,34 +120,6 @@ impl wasmer_wasix::runtime::Runtime for Runtime {
 
     fn tty(&self) -> Option<&(dyn wasmer_wasix::os::TtyBridge + Send + Sync)> {
         self.tty.as_deref()
-    }
-
-    #[tracing::instrument]
-    fn load_module<'a>(
-        &'a self,
-        wasm: &'a [u8],
-    ) -> BoxFuture<'a, Result<wasmer::Module, anyhow::Error>> {
-        let (sender, receiver) = futures::channel::oneshot::channel();
-
-        let buffer = if wasmer::is_wasm(wasm) {
-            js_sys::Uint8Array::from(wasm)
-        } else if let Ok(wasm) = wasmer::wat2wasm(wasm) {
-            js_sys::Uint8Array::from(wasm.as_ref())
-        } else {
-            return Box::pin(async { Err(anyhow::Error::msg("Expected either wasm or WAT")) });
-        };
-
-        let promise = JsFuture::from(js_sys::WebAssembly::compile(&buffer));
-
-        wasm_bindgen_futures::spawn_local(async move {
-            let result = promise
-                .await
-                .map(|m| wasmer::Module::from(m.unchecked_into::<js_sys::WebAssembly::Module>()))
-                .map_err(crate::utils::js_error);
-            let _ = sender.send(result);
-        });
-
-        Box::pin(async move { receiver.await? })
     }
 }
 

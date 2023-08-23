@@ -36,6 +36,7 @@ fn on_start() {
     if let Some(level) = tracing::level_filters::STATIC_MAX_LEVEL.into_level() {
         let cfg = tracing_wasm::WASMLayerConfigBuilder::new()
             .set_max_level(level)
+            .set_max_level(tracing::Level::INFO)
             .build();
         tracing_wasm::set_as_global_default_with_config(cfg);
     }

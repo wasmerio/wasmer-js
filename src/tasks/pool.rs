@@ -3,6 +3,7 @@ use std::{
     fmt::Debug,
     num::NonZeroUsize,
     pin::Pin,
+    sync::atomic::{AtomicU64, Ordering},
 };
 
 use anyhow::{Context, Error};
@@ -67,9 +68,9 @@ pub(crate) enum Message {
     /// Run a blocking operation on a worker thread.
     SpawnBlocking(Box<dyn FnOnce() + Send + 'static>),
     /// Mark a worker as busy.
-    MarkBusy { worker_id: usize },
+    MarkBusy { worker_id: u64 },
     /// Mark a worker as idle.
-    MarkIdle { worker_id: usize },
+    MarkIdle { worker_id: u64 },
     /// Tell all workers to cache a WebAssembly module.
     CacheModule {
         hash: WebcHash,
@@ -102,8 +103,6 @@ impl Debug for Message {
 /// The actor in charge of the threadpool.
 #[derive(Debug)]
 struct Scheduler {
-    /// The ID of the next worker to be spawned.
-    next_id: usize,
     /// The maximum number of workers we will start.
     capacity: NonZeroUsize,
     /// Workers that are able to receive work.
@@ -143,7 +142,6 @@ impl Scheduler {
 
     fn new(capacity: NonZeroUsize, mailbox: UnboundedSender<Message>) -> Self {
         Scheduler {
-            next_id: 0,
             capacity,
             idle: VecDeque::new(),
             busy: VecDeque::new(),
@@ -239,8 +237,9 @@ impl Scheduler {
     }
 
     fn start_worker(&mut self) -> Result<WorkerHandle, Error> {
-        let id = self.next_id;
-        self.next_id += 1;
+        static NEXT_ID: AtomicU64 = AtomicU64::new(0);
+        let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
+
         let handle = WorkerHandle::spawn(id, self.mailbox.clone())?;
 
         // Prime the worker's module cache
@@ -257,7 +256,7 @@ impl Scheduler {
 }
 
 fn move_worker(
-    worker_id: usize,
+    worker_id: u64,
     from: &mut VecDeque<WorkerHandle>,
     to: &mut VecDeque<WorkerHandle>,
 ) -> Result<(), Error> {
@@ -321,7 +320,6 @@ mod tests {
         // we start off with no workers
         assert_eq!(scheduler.idle.len(), 0);
         assert_eq!(scheduler.busy.len(), 0);
-        assert_eq!(scheduler.next_id, 0);
 
         // then we run the message, which should start up a worker and send it
         // the job
@@ -331,7 +329,6 @@ mod tests {
         // because it's just handling async workloads.
         assert_eq!(scheduler.idle.len(), 1);
         assert_eq!(scheduler.busy.len(), 0);
-        assert_eq!(scheduler.next_id, 1);
 
         // Make sure the background thread actually ran something and sent us
         // back a result
