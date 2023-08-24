@@ -6,11 +6,11 @@ mod instance;
 mod net;
 mod run;
 mod runtime;
+mod streams;
 mod tasks;
 mod tty;
 mod utils;
 mod ws;
-mod streams;
 
 pub use crate::{
     facade::{SpawnConfig, Wasmer, WasmerConfig},
@@ -30,7 +30,7 @@ pub fn wat2wasm(wat: JsString) -> Result<Uint8Array, utils::Error> {
     Ok(Uint8Array::from(wasm.as_ref()))
 }
 
-#[wasm_bindgen(start)]
+#[wasm_bindgen(start, skip_typescript)]
 fn on_start() {
     console_error_panic_hook::set_once();
 

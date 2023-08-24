@@ -300,7 +300,7 @@ impl From<WorkerMessage> for Message {
 }
 
 /// The main entrypoint for workers.
-#[wasm_bindgen]
+#[wasm_bindgen(skip_typescript)]
 #[allow(non_snake_case)]
 pub async fn __worker_handle_message(msg: JsValue) -> Result<(), crate::utils::Error> {
     tracing::info!(?msg, "XXX handling a message");

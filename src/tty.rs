@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use wasm_bindgen::prelude::wasm_bindgen;
+use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 use wasmer_wasix::os::TtyBridge as _;
 
 #[wasm_bindgen]
@@ -22,14 +22,20 @@ impl Tty {
         self.state.reset();
     }
 
+    /// Set/Get the TTY state.
     #[wasm_bindgen(getter)]
-    pub fn state(&self) -> TtyState {
-        self.state.tty_get().into()
+    pub fn state(&self) -> Result<TtyState, JsValue> {
+        let state: TtyStateRepr = self.state.tty_get().into();
+        let value = serde_wasm_bindgen::to_value(&state)?;
+
+        Ok(value.into())
     }
 
     #[wasm_bindgen(setter)]
-    pub fn set_state(&mut self, state: TtyState) {
+    pub fn set_state(&mut self, state: TtyState) -> Result<(), JsValue> {
+        let state: TtyStateRepr = serde_wasm_bindgen::from_value(state.into())?;
         self.state.tty_set(state.into());
+        Ok(())
     }
 
     pub(crate) fn bridge(&self) -> Arc<dyn wasmer_wasix::os::TtyBridge + Send + Sync> {
@@ -54,27 +60,53 @@ impl wasmer_wasix::os::TtyBridge for TtyBridge {
     }
 }
 
-#[wasm_bindgen(inspectable)]
-pub struct TtyState {
-    pub cols: u32,
-    pub rows: u32,
-    pub width: u32,
-    pub height: u32,
-    pub stdin_tty: bool,
-    pub stdout_tty: bool,
-    pub stderr_tty: bool,
-    pub echo: bool,
-    pub line_buffered: bool,
-    pub line_feeds: bool,
+#[wasm_bindgen(typescript_custom_section)]
+const TTY_STATE_TYPE_DEFINITION: &'static str = r#"
+/**
+ * The state of a TTY.
+ */
+export type TtyState = {
+    readonly cols: number;
+    readonly rows: number;
+    readonly width: number;
+    readonly height: number;
+    readonly stdin_tty: boolean;
+    readonly stdout_tty: boolean;
+    readonly stderr_tty: boolean;
+    readonly echo: boolean;
+    readonly line_buffered: boolean;
+    readonly line_feeds: boolean;
+}
+"#;
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(typescript_type = "TtyState")]
+    pub type TtyState;
 }
 
-impl Default for TtyState {
+/// The deserialized version of [`TtyState`].
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+struct TtyStateRepr {
+    cols: u32,
+    rows: u32,
+    width: u32,
+    height: u32,
+    stdin_tty: bool,
+    stdout_tty: bool,
+    stderr_tty: bool,
+    echo: bool,
+    line_buffered: bool,
+    line_feeds: bool,
+}
+
+impl Default for TtyStateRepr {
     fn default() -> Self {
         wasmer_wasix::WasiTtyState::default().into()
     }
 }
 
-impl From<wasmer_wasix::WasiTtyState> for TtyState {
+impl From<wasmer_wasix::WasiTtyState> for TtyStateRepr {
     fn from(value: wasmer_wasix::WasiTtyState) -> Self {
         let wasmer_wasix::WasiTtyState {
             cols,
@@ -88,7 +120,7 @@ impl From<wasmer_wasix::WasiTtyState> for TtyState {
             line_buffered,
             line_feeds,
         } = value;
-        TtyState {
+        TtyStateRepr {
             cols,
             rows,
             width,
@@ -103,9 +135,9 @@ impl From<wasmer_wasix::WasiTtyState> for TtyState {
     }
 }
 
-impl From<TtyState> for wasmer_wasix::WasiTtyState {
-    fn from(value: TtyState) -> Self {
-        let TtyState {
+impl From<TtyStateRepr> for wasmer_wasix::WasiTtyState {
+    fn from(value: TtyStateRepr) -> Self {
+        let TtyStateRepr {
             cols,
             rows,
             width,
