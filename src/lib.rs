@@ -10,6 +10,7 @@ mod tasks;
 mod tty;
 mod utils;
 mod ws;
+mod streams;
 
 pub use crate::{
     facade::{SpawnConfig, Wasmer, WasmerConfig},

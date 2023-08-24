@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, sync::Arc};
 
-use futures::channel::oneshot::{self};
+use futures::channel::oneshot;
 use js_sys::{Array, JsString, TypeError};
 use wasm_bindgen::{prelude::wasm_bindgen, JsCast, JsValue};
 use wasmer_wasix::{Runtime as _, WasiEnvBuilder};
@@ -11,7 +11,11 @@ const DEFAULT_PROGRAM_NAME: &str = "";
 
 /// Run a WASIX program.
 #[wasm_bindgen]
-pub fn run(wasm: Vec<u8>, runtime: &Runtime, config: RunConfig) -> Result<Instance, Error> {
+pub fn run(
+    wasm: js_sys::WebAssembly::Module,
+    runtime: &Runtime,
+    config: RunConfig,
+) -> Result<Instance, Error> {
     let _span = tracing::debug_span!("run").entered();
 
     let runtime = Arc::new(runtime.clone());
@@ -29,29 +33,39 @@ pub fn run(wasm: Vec<u8>, runtime: &Runtime, config: RunConfig) -> Result<Instan
         builder.add_env(key, value);
     }
 
+    let stdin = match config.read_stdin() {
+        Some(stdin) => {
+            let f = virtual_fs::StaticFile::new(stdin.into());
+            builder.set_stdin(Box::new(f));
+            None
+        }
+        None => {
+            let (f, stdin) = crate::streams::readable_pipe();
+            builder.set_stdin(Box::new(f));
+            Some(stdin)
+        }
+    };
+
+    let (stdout_file, stdout) = crate::streams::writable_pipe();
+    builder.set_stdout(Box::new(stdout_file));
+
+    let (stderr_file, stderr) = crate::streams::writable_pipe();
+    builder.set_stderr(Box::new(stderr_file));
+
     let (sender, receiver) = oneshot::channel();
+    let module = wasmer::Module::from(wasm);
 
     // Note: The WasiEnvBuilder::run() method blocks, so we need to run it on
     // the thread pool.
     let tasks = runtime.task_manager().clone();
     tasks.task_dedicated(Box::new(move || {
         let _span = tracing::debug_span!("run").entered();
-
-        // HACK: ideally the user would pass in a &Module that we could reuse,
-        // but then this closure would crash because it's passing a
-        // wasmer::Module to a background thread without going through
-        // postMessage().
-        let module = runtime.load_module_sync(&wasm).unwrap();
-
         let result = builder.run(module).map_err(anyhow::Error::new);
         let _ = sender.send(ExitCondition(result));
     }))?;
 
-    let stdout = web_sys::ReadableStream::new().map_err(Error::js)?;
-    let stderr = web_sys::ReadableStream::new().map_err(Error::js)?;
-
     Ok(Instance {
-        stdin: None,
+        stdin,
         stdout,
         stderr,
         exit: receiver,
@@ -126,6 +140,19 @@ impl RunConfig {
         }
 
         Ok(parsed)
+    }
+
+    pub(crate) fn read_stdin(&self) -> Option<Vec<u8>> {
+        let stdin = self.stdin();
+
+        if let Some(s) = stdin.as_string() {
+            return Some(s.into_bytes());
+        }
+
+        stdin
+            .dyn_into::<js_sys::Uint8Array>()
+            .map(|buf| buf.to_vec())
+            .ok()
     }
 }
 

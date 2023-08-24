@@ -1,8 +1,7 @@
-use futures::{channel::oneshot::Receiver, future::Either, Stream, StreamExt};
+use futures::{channel::oneshot::Receiver, StreamExt};
 use js_sys::Uint8Array;
 use wasm_bindgen::{prelude::wasm_bindgen, JsCast, JsValue};
 use wasmer_wasix::WasiError;
-use web_sys::ReadableStream;
 
 use crate::utils::Error;
 
@@ -43,8 +42,8 @@ impl Instance {
                 .map_err(Error::js)?;
         }
 
-        let stdout_chunks = read_stream(stdout).fuse();
-        let stderr_chunks = read_stream(stderr).fuse();
+        let stdout_chunks = crate::streams::read_to_end(stdout).fuse();
+        let stderr_chunks = crate::streams::read_to_end(stderr).fuse();
         futures::pin_mut!(stdout_chunks);
         futures::pin_mut!(stderr_chunks);
         let mut stdout_buffer = Vec::new();
@@ -80,44 +79,6 @@ impl Instance {
 
         Ok(output.into())
     }
-}
-
-fn read_stream(stream: ReadableStream) -> impl Stream<Item = Result<Vec<u8>, Error>> {
-    let reader = match web_sys::ReadableStreamDefaultReader::new(&stream) {
-        Ok(reader) => reader,
-        Err(_) => {
-            // The stream is either locked and therefore it's the user's
-            // responsibility to consume its contents.
-            return Either::Left(futures::stream::empty());
-        }
-    };
-
-    let stream = futures::stream::try_unfold(reader, move |reader| async {
-        let next_chunk = wasm_bindgen_futures::JsFuture::from(reader.read())
-            .await
-            .map_err(Error::js)?;
-
-        let chunk = get_chunk(next_chunk)?;
-
-        Ok(chunk.map(|c| (c, reader)))
-    });
-
-    Either::Right(stream)
-}
-
-fn get_chunk(next_chunk: JsValue) -> Result<Option<Vec<u8>>, Error> {
-    let done = JsValue::from_str(wasm_bindgen::intern("done"));
-    let value = JsValue::from_str(wasm_bindgen::intern("value"));
-
-    let done = js_sys::Reflect::get(&next_chunk, &done).map_err(Error::js)?;
-    if done.is_truthy() {
-        return Ok(None);
-    }
-
-    let chunk = js_sys::Reflect::get(&next_chunk, &value).map_err(Error::js)?;
-    let chunk = Uint8Array::new(&chunk);
-
-    Ok(Some(chunk.to_vec()))
 }
 
 #[derive(Debug)]

@@ -17,10 +17,11 @@ it("run noop program", async () => {
         )`;
     const wasm = wat2wasm(noop);
     console.log("WASM", wasm);
+    const module = await WebAssembly.compile(wasm);
     const runtime = new Runtime(2);
     console.log("RUNTIME", runtime);
 
-    const instance = run(wasm, runtime, { program: "noop" });
+    const instance = run(module, runtime, { program: "noop" });
     console.log("INSTANCE", instance);
     const stdout = instance.stdout.getReader();
     const stderr = instance.stderr.getReader();
@@ -33,7 +34,7 @@ it("run noop program", async () => {
     console.log(stdout, stderr);
 });
 
-it.skip("Can run python", async () => {
+it("Can run python", async () => {
     const wasmer = new Wasmer();
     console.log(wasmer);
 
@@ -48,7 +49,7 @@ it.skip("Can run python", async () => {
     expect(decoder.decode(output.stdout)).to.equal("Hello, World!");
 }).timeout(10*1000);
 
-it.skip("Can communicate via stdin", async () => {
+it("Can communicate via stdin", async () => {
     const wasmer = new Wasmer();
 
     // First, start python up in the background

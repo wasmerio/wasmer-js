@@ -27,13 +27,14 @@ tracing = { version = "0.1", features = ["log", "release_max_level_info"] }
 tracing-futures = { version = "0.2" }
 tracing-wasm = { version = "0.2" }
 url = "2.4.0"
-virtual-net = { version = "0.4.0", default-features = false, features = ["remote"]}
+virtual-net = { version = "0.5.0", default-features = false, features = ["remote"] }
+virtual-fs = { version = "0.8.0", default-features = false }
 wasm-bindgen = { version = "0.2" }
 wasm-bindgen-downcast = "0.1"
 wasm-bindgen-futures = "0.4"
 wasm-bindgen-test = "0.3.37"
-wasmer = { version = "4.1.0", default-features = false, features = ["js", "js-default"] }
-wasmer-wasix = { version = "0.11", default-features = false, features = ["js", "js-default"] }
+wasmer = { version = "4.1", default-features = false, features = ["js", "js-default"] }
+wasmer-wasix = { version = "0.12", default-features = false, features = ["js", "js-default"] }
 wee_alloc = { version = "0.4", optional = true }
 
 [dependencies.web-sys]
@@ -52,6 +53,7 @@ features = [
     "ProgressEvent",
     "ReadableStream",
     "ReadableStreamDefaultController",
+    "ReadableByteStreamController",
     "ReadableStreamDefaultReader",
     "Request",
     "RequestInit",
@@ -94,6 +96,7 @@ dwarf-debug-info = false
 wasm-opt = ["--enable-threads", "--enable-bulk-memory", "-Oz"]
 
 [patch.crates-io]
-virtual-net = { git = "https://github.com/wasmerio/wasmer", rev = "64ab03788e" }
-wasmer-wasix = { git = "https://github.com/wasmerio/wasmer", rev = "64ab03788e" }
-wasmer = { git = "https://github.com/wasmerio/wasmer", rev = "64ab03788e" }
+virtual-net = { git = "https://github.com/wasmerio/wasmer", rev = "71c0ade" }
+virtual-fs = { git = "https://github.com/wasmerio/wasmer", rev = "71c0ade" }
+wasmer-wasix = { git = "https://github.com/wasmerio/wasmer", rev = "71c0ade" }
+wasmer = { git = "https://github.com/wasmerio/wasmer", rev = "71c0ade" }
