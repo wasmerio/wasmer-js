@@ -23,34 +23,9 @@ pub fn run(
         .program()
         .as_string()
         .unwrap_or_else(|| DEFAULT_PROGRAM_NAME.to_string());
+
     let mut builder = WasiEnvBuilder::new(program_name).runtime(runtime.clone());
-
-    for arg in config.parse_args()? {
-        builder.add_arg(arg);
-    }
-
-    for (key, value) in config.parse_env()? {
-        builder.add_env(key, value);
-    }
-
-    let stdin = match config.read_stdin() {
-        Some(stdin) => {
-            let f = virtual_fs::StaticFile::new(stdin.into());
-            builder.set_stdin(Box::new(f));
-            None
-        }
-        None => {
-            let (f, stdin) = crate::streams::readable_pipe();
-            builder.set_stdin(Box::new(f));
-            Some(stdin)
-        }
-    };
-
-    let (stdout_file, stdout) = crate::streams::writable_pipe();
-    builder.set_stdout(Box::new(stdout_file));
-
-    let (stderr_file, stderr) = crate::streams::writable_pipe();
-    builder.set_stderr(Box::new(stderr_file));
+    let (stdin, stdout, stderr) = config.configure_builder(&mut builder)?;
 
     let (sender, receiver) = oneshot::channel();
     let module = wasmer::Module::from(wasm_module);
@@ -111,6 +86,47 @@ extern "C" {
 }
 
 impl RunConfig {
+    pub(crate) fn configure_builder(
+        &self,
+        builder: &mut WasiEnvBuilder,
+    ) -> Result<
+        (
+            Option<web_sys::WritableStream>,
+            web_sys::ReadableStream,
+            web_sys::ReadableStream,
+        ),
+        Error,
+    > {
+        for arg in self.parse_args()? {
+            builder.add_arg(arg);
+        }
+
+        for (key, value) in self.parse_env()? {
+            builder.add_env(key, value);
+        }
+
+        let stdin = match self.read_stdin() {
+            Some(stdin) => {
+                let f = virtual_fs::StaticFile::new(stdin.into());
+                builder.set_stdin(Box::new(f));
+                None
+            }
+            None => {
+                let (f, stdin) = crate::streams::readable_pipe();
+                builder.set_stdin(Box::new(f));
+                Some(stdin)
+            }
+        };
+
+        let (stdout_file, stdout) = crate::streams::writable_pipe();
+        builder.set_stdout(Box::new(stdout_file));
+
+        let (stderr_file, stderr) = crate::streams::writable_pipe();
+        builder.set_stderr(Box::new(stderr_file));
+
+        Ok((stdin, stdout, stderr))
+    }
+
     pub(crate) fn parse_args(&self) -> Result<Vec<String>, Error> {
         let mut parsed = Vec::new();
 

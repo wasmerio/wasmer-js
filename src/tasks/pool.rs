@@ -144,20 +144,20 @@ impl Scheduler {
     fn spawn(capacity: NonZeroUsize) -> UnboundedSender<Message> {
         let (sender, mut receiver) = mpsc::unbounded_channel();
         let mut scheduler = Scheduler::new(capacity, sender.clone());
-        tracing::warn!("XXX spawning the scheduler");
 
         wasm_bindgen_futures::spawn_local(async move {
             let _span = tracing::debug_span!("scheduler").entered();
-            tracing::warn!("XXX STARTED LOOP");
 
             while let Some(msg) = receiver.recv().await {
-                tracing::warn!(?msg, "XXX RECEIVED MESSAGE");
-                tracing::debug!(?msg, "Executing");
+                tracing::trace!(?msg, "Executing a message");
 
                 if let Err(e) = scheduler.execute(msg) {
                     tracing::warn!(error = &*e, "An error occurred while handling a message");
                 }
             }
+
+            tracing::debug!("Shutting down the scheduler");
+            drop(scheduler);
         });
 
         sender
@@ -339,6 +339,7 @@ impl Debug for PostMessagePayload {
 
 #[cfg(test)]
 mod tests {
+    use js_sys::Uint8Array;
     use tokio::sync::oneshot;
     use wasm_bindgen_test::wasm_bindgen_test;
 
@@ -371,5 +372,32 @@ mod tests {
         // Make sure the background thread actually ran something and sent us
         // back a result
         assert_eq!(receiver.await.unwrap(), 42);
+    }
+
+    #[wasm_bindgen_test]
+    async fn transfer_module_to_worker() {
+        let wasm: &[u8] = include_bytes!("../../tests/envvar.wasm");
+        let data = Uint8Array::from(wasm);
+        let module: js_sys::WebAssembly::Module =
+            wasm_bindgen_futures::JsFuture::from(js_sys::WebAssembly::compile(&data))
+                .await
+                .unwrap()
+                .dyn_into()
+                .unwrap();
+        let module = wasmer::Module::from(module);
+        let pool = ThreadPool::new_with_max_threads().unwrap();
+
+        let (sender, receiver) = oneshot::channel();
+        pool.spawn_with_module(
+            module.clone(),
+            Box::new(move |module| {
+                let exports = module.exports().count();
+                sender.send(exports).unwrap();
+            }),
+        )
+        .unwrap();
+
+        let exports = receiver.await.unwrap();
+        assert_eq!(exports, 5);
     }
 }

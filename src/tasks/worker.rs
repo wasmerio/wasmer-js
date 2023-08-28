@@ -39,7 +39,7 @@ impl WorkerHandle {
 
         // The worker has technically been started, but it's kinda useless
         // because it hasn't been initialized with the same WebAssembly module
-        // and linear memory as the scheduler.
+        // and linear memory as the scheduler. We need to initialize explicitly.
         init_message()
             .and_then(|msg| worker.post_message(&msg))
             .map_err(crate::utils::js_error)?;
@@ -289,8 +289,14 @@ impl Closures {
             }),
             on_error: Closure::new({
                 let _sender = sender.clone();
-                |msg| {
-                    todo!("Handle {msg:?}");
+                |msg: web_sys::ErrorEvent| {
+                    tracing::error!(
+                        error = %msg.message(),
+                        filename = %msg.filename(),
+                        line_number = %msg.lineno(),
+                        column = %msg.colno(),
+                        "An error occurred",
+                    );
                 }
             }),
         }
@@ -328,7 +334,6 @@ impl From<WorkerMessage> for Message {
 pub async fn __worker_handle_message(msg: JsValue) -> Result<(), crate::utils::Error> {
     let _span = tracing::debug_span!("worker_handle_message").entered();
     let msg = PostMessagePayload::try_from_js(msg)?;
-    tracing::info!(?msg, "XXX handling a message");
 
     match msg {
         PostMessagePayload::SpawnAsync(thunk) => thunk().await,
@@ -340,8 +345,6 @@ pub async fn __worker_handle_message(msg: JsValue) -> Result<(), crate::utils::E
             task(module.into());
         }
     }
-
-    tracing::info!("XXX handled");
 
     Ok(())
 }

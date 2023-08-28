@@ -26,9 +26,7 @@ impl Wasmer {
     pub fn new(cfg: Option<WasmerConfig>) -> Result<Wasmer, Error> {
         let cfg = cfg.unwrap_or_default();
 
-        tracing::warn!("XXX Before Runtime::with_pool_size()");
         let mut runtime = Runtime::with_pool_size(cfg.pool_size())?;
-        tracing::warn!("XXX After Runtime::with_pool_size()");
 
         if let Some(registry_url) = cfg.parse_registry_url() {
             runtime.set_registry(&registry_url)?;
@@ -53,9 +51,7 @@ impl Wasmer {
         let specifier: PackageSpecifier = app_id.parse()?;
         let config = config.unwrap_or_default();
 
-        tracing::warn!("XXX Before BinaryPackage::from_registry()");
         let pkg = BinaryPackage::from_registry(&specifier, &self.runtime).await?;
-        tracing::warn!("XXX After BinaryPackage::from_registry()");
         let command_name = config
             .command()
             .as_string()
@@ -66,7 +62,7 @@ impl Wasmer {
         let tasks = Arc::clone(runtime.task_manager());
 
         let mut runner = WasiRunner::new();
-        configure_runner(&mut runner, &config)?;
+        config.configure_runner(&mut runner)?;
 
         tracing::debug!(%specifier, %command_name, "Starting the WASI runner");
 
@@ -75,10 +71,8 @@ impl Wasmer {
         // Note: The WasiRunner::run_command() method blocks, so we need to run
         // it on the thread pool.
         tasks.task_dedicated(Box::new(move || {
-            tracing::warn!("XXX: Inside dedicated task");
             let result = runner.run_command(&command_name, &pkg, runtime);
             let _ = sender.send(ExitCondition(result));
-            tracing::warn!("XXX: Finished dedicated task");
         }))?;
 
         let stdout = web_sys::ReadableStream::new().map_err(Error::js)?;
@@ -103,16 +97,6 @@ impl Wasmer {
     }
 }
 
-fn configure_runner(runner: &mut WasiRunner, config: &SpawnConfig) -> Result<(), Error> {
-    let args = config.parse_args()?;
-    runner.set_args(args);
-
-    let env = config.parse_env()?;
-    runner.set_envs(env);
-
-    Ok(())
-}
-
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(typescript_type = "SpawnConfig", extends = RunConfig)]
@@ -121,6 +105,47 @@ extern "C" {
 
     #[wasm_bindgen(method, getter)]
     fn command(this: &SpawnConfig) -> JsValue;
+}
+
+impl SpawnConfig {
+    pub(crate) fn configure_runner(
+        &self,
+        runner: &mut WasiRunner,
+    ) -> Result<
+        (
+            Option<web_sys::WritableStream>,
+            web_sys::ReadableStream,
+            web_sys::ReadableStream,
+        ),
+        Error,
+    > {
+        let args = self.parse_args()?;
+        runner.set_args(args);
+
+        let env = self.parse_env()?;
+        runner.set_envs(env);
+
+        let stdin = match self.read_stdin() {
+            Some(stdin) => {
+                let f = virtual_fs::StaticFile::new(stdin.into());
+                runner.set_stdin(Box::new(f));
+                None
+            }
+            None => {
+                let (f, stdin) = crate::streams::readable_pipe();
+                runner.set_stdin(Box::new(f));
+                Some(stdin)
+            }
+        };
+
+        let (stdout_file, stdout) = crate::streams::writable_pipe();
+        runner.set_stdout(Box::new(stdout_file));
+
+        let (stderr_file, stderr) = crate::streams::writable_pipe();
+        runner.set_stderr(Box::new(stderr_file));
+
+        Ok((stdin, stdout, stderr))
+    }
 }
 
 #[wasm_bindgen(typescript_custom_section)]

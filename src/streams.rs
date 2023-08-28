@@ -115,25 +115,27 @@ impl ReadableStreamSource {
     /// pull() implementation will not be continually called.
     pub fn pull(&mut self, controller: ReadableByteStreamController) -> Promise {
         let mut pipe = self.pipe.clone();
+        tracing::warn!("XXX Pull...");
 
         wasm_bindgen_futures::future_to_promise(async move {
             let _span = tracing::trace_span!("pull").entered();
-            tracing::trace!("Reading");
+            tracing::warn!("XXX Reading");
 
             let mut buffer = BytesMut::new();
             let result = pipe.read_buf(&mut buffer).await.context("Read failed");
 
             match result {
                 Ok(0) => {
-                    tracing::trace!("EOF");
+                    tracing::warn!("XXX EOF");
                     controller.close()?;
                 }
                 Ok(bytes_read) => {
-                    tracing::trace!(bytes_read, "Read complete");
+                    tracing::warn!(bytes_read, "XXX Read complete");
                     let buffer = Uint8Array::from(&buffer[..bytes_read]);
                     controller.enqueue_with_array_buffer_view(&buffer)?;
                 }
                 Err(e) => {
+                    tracing::warn!(error = &*e, "XXX Errored");
                     let err = JsValue::from(Error::from(e));
                     controller.error_with_e(&err);
                 }
@@ -151,6 +153,7 @@ impl ReadableStreamSource {
     /// reason parameter contains a string describing why the stream was
     /// cancelled.
     pub fn cancel(&mut self) {
+        tracing::warn!("Cancel");
         self.pipe.close();
     }
 

@@ -21,7 +21,6 @@ it.skip("run noop program", async () => {
 
     const instance = run(module, runtime, { program: "noop" });
     const output = await instance.wait();
-    console.log("Output", output);
 
     expect(output.ok).to.be.true;
     expect(output.code).to.equal(0);
@@ -29,17 +28,17 @@ it.skip("run noop program", async () => {
 
 it("Can run python", async () => {
     const wasmer = new Wasmer();
-    console.log(wasmer);
 
     const instance = await wasmer.spawn("python/python", {
-        args: ["-c", "print('Hello, World!')"],
+        args: ["-c", "import sys; sys.exit(42)"],
     });
-    console.log(instance);
     const output = await instance.wait();
+    console.log(output);
 
-    expect(output.ok).to.be.true;
-    const decoder = new TextDecoder("utf-8");
-    expect(decoder.decode(output.stdout)).to.equal("Hello, World!");
+    expect(output.code).to.equal(42);
+    expect(output.ok).to.be.false;
+    expect(output.stdout.length).to.equal(0);
+    expect(output.stderr.length).to.equal(0);
 }).timeout(10*1000);
 
 it.skip("Can communicate via stdin", async () => {

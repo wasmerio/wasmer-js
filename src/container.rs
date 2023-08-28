@@ -11,7 +11,7 @@ use crate::{utils::Error, Runtime};
 
 #[wasm_bindgen]
 pub struct Container {
-    raw: Bytes,
+    _raw: Bytes,
     webc: webc::Container,
     atoms: BTreeMap<String, OwnedBuffer>,
     volumes: BTreeMap<String, webc::Volume>,
@@ -29,7 +29,7 @@ impl Container {
         let volumes = webc.volumes();
 
         Ok(Container {
-            raw,
+            _raw: raw,
             webc,
             atoms,
             volumes,

@@ -141,7 +141,7 @@ mod tests {
 
     use super::*;
 
-    const TRIVIAL_WAT: &[u8] = br#"(
+    pub(crate) const TRIVIAL_WAT: &[u8] = br#"(
         module
             (memory $memory 0)
             (export "memory" (memory $memory))
