@@ -1,8 +1,8 @@
-use std::{mem::ManuallyDrop, pin::Pin};
+use std::pin::Pin;
 
 use anyhow::{Context, Error};
 use futures::Future;
-use js_sys::{Array, JsString, Uint8Array};
+use js_sys::{Array, BigInt, JsString, Reflect, Uint8Array};
 use once_cell::sync::{Lazy, OnceCell};
 use tokio::sync::mpsc::UnboundedSender;
 use wasm_bindgen::{
@@ -57,8 +57,7 @@ impl WorkerHandle {
 
     /// Send a message to the worker.
     pub(crate) fn send(&self, msg: PostMessagePayload) -> Result<(), Error> {
-        let repr: PostMessagePayloadRepr = msg.into();
-        let js = JsValue::from(repr);
+        let js = msg.into_js().map_err(|e| e.into_anyhow())?;
 
         self.inner
             .post_message(&js)
@@ -130,106 +129,130 @@ static WORKER_URL: Lazy<String> = Lazy::new(|| {
     web_sys::Url::create_object_url_with_blob(&blob).unwrap()
 });
 
-/// The object that will actually be sent to worker threads via `postMessage()`.
-///
-/// On the other side, you'll want to convert back to a [`PostMessagePayload`]
-/// using [`PostMessagePayload::from_raw()`].
-#[derive(serde::Serialize, serde::Deserialize)]
-#[serde(tag = "type", rename_all = "kebab-case")]
-pub(crate) enum PostMessagePayloadRepr {
-    SpawnAsync {
-        ptr: usize,
-    },
-    SpawnBlocking {
-        ptr: usize,
-    },
-    #[serde(skip)]
-    CacheModule {
-        hash: WebcHash,
-        module: js_sys::WebAssembly::Module,
-    },
-}
+const SPAWN_ASYNC: &str = "spawn-async";
+const SPAWN_BLOCKING: &str = "spawn-blocking";
+const CACHE_MODULE: &str = "cache-module";
+const SPAWN_WITH_MODULE: &str = "spawn-with-module";
+const PTR: &str = "ptr";
+const MODULE: &str = "module";
+const MODULE_HASH: &str = "module-hash";
+const TYPE: &str = "type";
 
-impl PostMessagePayloadRepr {
-    pub(crate) unsafe fn reconstitute(self) -> PostMessagePayload {
-        let this = ManuallyDrop::new(self);
+impl PostMessagePayload {
+    fn into_js(self) -> Result<JsValue, crate::utils::Error> {
+        fn set(
+            obj: &JsValue,
+            field: &str,
+            value: impl Into<JsValue>,
+        ) -> Result<(), crate::utils::Error> {
+            Reflect::set(
+                obj,
+                &JsValue::from_str(wasm_bindgen::intern(field)),
+                &value.into(),
+            )
+            .map_err(crate::utils::js_error)
+            .with_context(|| format!("Unable to set \"{field}\""))?;
+            Ok(())
+        }
 
-        match &*this {
-            PostMessagePayloadRepr::SpawnAsync { ptr } => {
-                let boxed = Box::from_raw(
-                    *ptr as *mut Box<
+        let obj = js_sys::Object::new();
+
+        // Note: double-box any callable so we get a thin pointer
+
+        match self {
+            PostMessagePayload::SpawnAsync(task) => {
+                let ptr = Box::into_raw(Box::new(task)) as usize;
+                set(&obj, TYPE, wasm_bindgen::intern(SPAWN_ASYNC))?;
+                set(&obj, PTR, BigInt::from(ptr))?;
+            }
+            PostMessagePayload::SpawnBlocking(task) => {
+                let ptr = Box::into_raw(Box::new(task)) as usize;
+                set(&obj, TYPE, wasm_bindgen::intern(SPAWN_BLOCKING))?;
+                set(&obj, PTR, BigInt::from(ptr))?;
+            }
+            PostMessagePayload::CacheModule { hash, module } => {
+                set(&obj, TYPE, wasm_bindgen::intern(CACHE_MODULE))?;
+                set(&obj, MODULE_HASH, hash.to_string())?;
+                set(&obj, MODULE, module)?;
+            }
+            PostMessagePayload::SpawnWithModule { module, task } => {
+                let ptr = Box::into_raw(Box::new(task)) as usize;
+                set(&obj, TYPE, wasm_bindgen::intern(SPAWN_WITH_MODULE))?;
+                set(&obj, PTR, BigInt::from(ptr))?;
+                set(&obj, MODULE, module)?;
+            }
+        }
+
+        Ok(obj.into())
+    }
+
+    fn try_from_js(value: JsValue) -> Result<Self, crate::utils::Error> {
+        fn get_js<T>(value: &JsValue, field: &str) -> Result<T, crate::utils::Error>
+        where
+            T: JsCast,
+        {
+            let value = Reflect::get(value, &JsValue::from_str(wasm_bindgen::intern(field)))
+                .map_err(crate::utils::Error::js)?;
+            let value = value.dyn_into().map_err(|_| {
+                anyhow::anyhow!(
+                    "The \"{field}\" field isn't a \"{}\"",
+                    std::any::type_name::<T>()
+                )
+            })?;
+            Ok(value)
+        }
+        fn get_string(value: &JsValue, field: &str) -> Result<String, crate::utils::Error> {
+            let string: JsString = get_js(value, field)?;
+            Ok(string.into())
+        }
+        fn get_usize(value: &JsValue, field: &str) -> Result<usize, crate::utils::Error> {
+            let ptr: BigInt = get_js(value, field)?;
+            let ptr = u64::try_from(ptr)
+                .ok()
+                .and_then(|ptr| usize::try_from(ptr).ok())
+                .context("Unable to convert back to a usize")?;
+            Ok(ptr)
+        }
+
+        let ty = get_string(&value, TYPE)?;
+
+        // Safety: Keep this in sync with PostMessagePayload::to_js()
+
+        match ty.as_str() {
+            self::SPAWN_ASYNC => {
+                let ptr = get_usize(&value, PTR)?
+                    as *mut Box<
                         dyn FnOnce() -> Pin<Box<dyn Future<Output = ()> + 'static>>
                             + Send
                             + 'static,
-                    >,
-                );
-                PostMessagePayload::SpawnAsync(*boxed)
-            }
+                    >;
+                let task = unsafe { *Box::from_raw(ptr) };
 
-            PostMessagePayloadRepr::SpawnBlocking { ptr } => {
-                let boxed = Box::from_raw(*ptr as *mut Box<dyn FnOnce() + Send + 'static>);
-                PostMessagePayload::SpawnBlocking(*boxed)
+                Ok(PostMessagePayload::SpawnAsync(task))
             }
-            PostMessagePayloadRepr::CacheModule { hash, ref module } => {
-                PostMessagePayload::CacheModule {
-                    hash: std::ptr::read(hash),
-                    module: std::ptr::read(module),
-                }
+            self::SPAWN_BLOCKING => {
+                let ptr = get_usize(&value, PTR)? as *mut Box<dyn FnOnce() + Send + 'static>;
+                let task = unsafe { *Box::from_raw(ptr) };
+
+                Ok(PostMessagePayload::SpawnBlocking(task))
             }
+            self::CACHE_MODULE => {
+                let module = get_js(&value, MODULE)?;
+                let hash = get_string(&value, MODULE_HASH)?;
+                let hash = WebcHash::parse_hex(&hash)?;
+
+                Ok(PostMessagePayload::CacheModule { hash, module })
+            }
+            self::SPAWN_WITH_MODULE => {
+                let ptr = get_usize(&value, PTR)?
+                    as *mut Box<dyn FnOnce(wasmer::Module) + Send + 'static>;
+                let task = unsafe { *Box::from_raw(ptr) };
+                let module = get_js(&value, MODULE)?;
+
+                Ok(PostMessagePayload::SpawnWithModule { module, task })
+            }
+            other => Err(anyhow::anyhow!("Unknown message type: {other}").into()),
         }
-    }
-}
-
-impl From<PostMessagePayload> for PostMessagePayloadRepr {
-    fn from(value: PostMessagePayload) -> Self {
-        // Note: Where applicable, we use Box<Box<_>> to make sure we have a
-        // thin pointer to the Box<dyn ...> fat pointer.
-
-        match value {
-            PostMessagePayload::SpawnAsync(task) => {
-                let boxed: Box<Box<_>> = Box::new(task);
-                PostMessagePayloadRepr::SpawnAsync {
-                    ptr: Box::into_raw(boxed) as usize,
-                }
-            }
-            PostMessagePayload::SpawnBlocking(task) => {
-                let boxed: Box<Box<_>> = Box::new(task);
-                PostMessagePayloadRepr::SpawnBlocking {
-                    ptr: Box::into_raw(boxed) as usize,
-                }
-            }
-            PostMessagePayload::CacheModule { hash, module } => {
-                PostMessagePayloadRepr::CacheModule { hash, module }
-            }
-        }
-    }
-}
-
-impl From<PostMessagePayloadRepr> for JsValue {
-    fn from(value: PostMessagePayloadRepr) -> Self {
-        let js = serde_wasm_bindgen::to_value(&value).unwrap();
-        // Note: We don't want to invoke drop() because the worker will receive
-        // a free'd pointer.
-        std::mem::forget(value);
-        js
-    }
-}
-
-impl TryFrom<JsValue> for PostMessagePayloadRepr {
-    type Error = serde_wasm_bindgen::Error;
-
-    fn try_from(value: JsValue) -> Result<Self, Self::Error> {
-        serde_wasm_bindgen::from_value(value)
-    }
-}
-
-impl Drop for PostMessagePayloadRepr {
-    fn drop(&mut self) {
-        // We implement drop by swapping in something that doesn't need any
-        // deallocation then converting the original value to a
-        // PostMessagePayload so it can be deallocated as usual.
-        let to_drop = std::mem::replace(self, PostMessagePayloadRepr::SpawnAsync { ptr: 0 });
-        let _ = unsafe { to_drop.reconstitute() };
     }
 }
 
@@ -303,18 +326,22 @@ impl From<WorkerMessage> for Message {
 #[wasm_bindgen(skip_typescript)]
 #[allow(non_snake_case)]
 pub async fn __worker_handle_message(msg: JsValue) -> Result<(), crate::utils::Error> {
+    let _span = tracing::debug_span!("worker_handle_message").entered();
+    let msg = PostMessagePayload::try_from_js(msg)?;
     tracing::info!(?msg, "XXX handling a message");
-    let msg = PostMessagePayloadRepr::try_from(msg).map_err(crate::utils::Error::js)?;
 
-    unsafe {
-        match msg.reconstitute() {
-            PostMessagePayload::SpawnAsync(thunk) => thunk().await,
-            PostMessagePayload::SpawnBlocking(thunk) => thunk(),
-            PostMessagePayload::CacheModule { hash, .. } => {
-                tracing::warn!(%hash, "XXX Caching module");
-            }
+    match msg {
+        PostMessagePayload::SpawnAsync(thunk) => thunk().await,
+        PostMessagePayload::SpawnBlocking(thunk) => thunk(),
+        PostMessagePayload::CacheModule { hash, .. } => {
+            tracing::warn!(%hash, "XXX Caching module");
+        }
+        PostMessagePayload::SpawnWithModule { module, task } => {
+            task(module.into());
         }
     }
+
+    tracing::info!("XXX handled");
 
     Ok(())
 }

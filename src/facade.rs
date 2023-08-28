@@ -82,7 +82,13 @@ impl Wasmer {
         }))?;
 
         let stdout = web_sys::ReadableStream::new().map_err(Error::js)?;
+        wasm_bindgen_futures::JsFuture::from(stdout.cancel())
+            .await
+            .map_err(Error::js)?;
         let stderr = web_sys::ReadableStream::new().map_err(Error::js)?;
+        wasm_bindgen_futures::JsFuture::from(stderr.cancel())
+            .await
+            .map_err(Error::js)?;
 
         Ok(Instance {
             stdin: None,

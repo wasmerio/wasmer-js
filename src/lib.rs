@@ -1,6 +1,7 @@
 #[cfg(test)]
 wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
+mod container;
 mod facade;
 mod instance;
 mod net;
@@ -13,6 +14,7 @@ mod utils;
 mod ws;
 
 pub use crate::{
+    container::{Container, Manifest, Volume},
     facade::{SpawnConfig, Wasmer, WasmerConfig},
     instance::{Instance, JsOutput},
     run::{run, RunConfig},

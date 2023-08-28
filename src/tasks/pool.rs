@@ -59,6 +59,18 @@ impl ThreadPool {
 
         Ok(())
     }
+
+    pub fn spawn_with_module(
+        &self,
+        module: wasmer::Module,
+        task: Box<dyn FnOnce(wasmer::Module) + Send + 'static>,
+    ) -> Result<(), WasiThreadError> {
+        self.sender
+            .send(Message::SpawnWithModule { task, module })
+            .expect("scheduler is dead");
+
+        Ok(())
+    }
 }
 
 /// Messages sent from the [`ThreadPool`] handle to the [`Scheduler`].
@@ -75,6 +87,12 @@ pub(crate) enum Message {
     CacheModule {
         hash: WebcHash,
         module: wasmer::Module,
+    },
+    /// Run a task in the background, explicitly transferring the
+    /// [`js_sys::WebAssembly::Module`] to the worker.
+    SpawnWithModule {
+        module: wasmer::Module,
+        task: Box<dyn FnOnce(wasmer::Module) + Send + 'static>,
     },
 }
 
@@ -95,6 +113,11 @@ impl Debug for Message {
                 .debug_struct("CacheModule")
                 .field("hash", hash)
                 .field("module", module)
+                .finish(),
+            Message::SpawnWithModule { module, task: _ } => f
+                .debug_struct("SpawnWithModule")
+                .field("module", module)
+                .field("task", &Hidden)
                 .finish(),
         }
     }
@@ -174,6 +197,12 @@ impl Scheduler {
                 }
 
                 Ok(())
+            }
+            Message::SpawnWithModule { module, task } => {
+                self.post_message(PostMessagePayload::SpawnWithModule {
+                    module: JsValue::from(module).unchecked_into(),
+                    task,
+                })
             }
         }
     }
@@ -279,6 +308,10 @@ pub(crate) enum PostMessagePayload {
         hash: WebcHash,
         module: js_sys::WebAssembly::Module,
     },
+    SpawnWithModule {
+        module: js_sys::WebAssembly::Module,
+        task: Box<dyn FnOnce(wasmer::Module) + Send + 'static>,
+    },
 }
 
 impl Debug for PostMessagePayload {
@@ -294,6 +327,11 @@ impl Debug for PostMessagePayload {
                 .debug_struct("CacheModule")
                 .field("hash", hash)
                 .field("module", module)
+                .finish(),
+            PostMessagePayload::SpawnWithModule { module, task: _ } => f
+                .debug_struct("CacheModule")
+                .field("module", module)
+                .field("task", &Hidden)
                 .finish(),
         }
     }

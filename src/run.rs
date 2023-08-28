@@ -12,7 +12,7 @@ const DEFAULT_PROGRAM_NAME: &str = "";
 /// Run a WASIX program.
 #[wasm_bindgen]
 pub fn run(
-    wasm: js_sys::WebAssembly::Module,
+    wasm_module: js_sys::WebAssembly::Module,
     runtime: &Runtime,
     config: RunConfig,
 ) -> Result<Instance, Error> {
@@ -53,16 +53,21 @@ pub fn run(
     builder.set_stderr(Box::new(stderr_file));
 
     let (sender, receiver) = oneshot::channel();
-    let module = wasmer::Module::from(wasm);
+    let module = wasmer::Module::from(wasm_module);
 
     // Note: The WasiEnvBuilder::run() method blocks, so we need to run it on
     // the thread pool.
     let tasks = runtime.task_manager().clone();
-    tasks.task_dedicated(Box::new(move || {
-        let _span = tracing::debug_span!("run").entered();
-        let result = builder.run(module).map_err(anyhow::Error::new);
-        let _ = sender.send(ExitCondition(result));
-    }))?;
+    tasks.spawn_with_module(
+        module,
+        Box::new(move |module| {
+            let _span = tracing::debug_span!("run").entered();
+            tracing::warn!("XXX Starting the WASI instance");
+            let result = builder.run(module).map_err(anyhow::Error::new);
+            tracing::warn!(?result, "XXX Done");
+            let _ = sender.send(ExitCondition(result));
+        }),
+    )?;
 
     Ok(Instance {
         stdin,

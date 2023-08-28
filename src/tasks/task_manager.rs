@@ -79,6 +79,14 @@ impl VirtualTaskManager for TaskManager {
             .map(|c| c.get())
             .ok_or(WasiThreadError::Unsupported)
     }
+
+    fn spawn_with_module(
+        &self,
+        module: wasmer::Module,
+        task: Box<dyn FnOnce(wasmer::Module) + Send + 'static>,
+    ) -> Result<(), WasiThreadError> {
+        self.pool.spawn_with_module(module, task)
+    }
 }
 
 #[cfg(test)]

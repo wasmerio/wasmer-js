@@ -52,6 +52,13 @@ impl Error {
     pub(crate) fn js(error: impl Into<JsValue>) -> Self {
         Error::JavaScript(error.into())
     }
+
+    pub(crate) fn into_anyhow(self) -> anyhow::Error {
+        match self {
+            Error::Rust(e) => e,
+            Error::JavaScript(js) => js_error(js),
+        }
+    }
 }
 
 impl<E: Into<anyhow::Error>> From<E> for Error {
