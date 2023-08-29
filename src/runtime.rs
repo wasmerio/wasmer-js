@@ -1,12 +1,13 @@
 use std::{num::NonZeroUsize, sync::Arc};
 
+use http::HeaderValue;
 use virtual_net::VirtualNetworking;
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasmer_wasix::{
     http::{HttpClient, WebHttpClient},
     runtime::{
         module_cache::ThreadLocalCache,
-        package_loader::{BuiltinPackageLoader, PackageLoader},
+        package_loader::PackageLoader,
         resolver::{PackageSpecifier, PackageSummary, QueryError, Source, WapmSource},
     },
     VirtualTaskManager,
@@ -51,9 +52,16 @@ impl Runtime {
 
     pub(crate) fn new(pool: ThreadPool) -> Self {
         let task_manager = TaskManager::new(pool.clone());
-        let http_client = Arc::new(WebHttpClient::default());
-        let package_loader = BuiltinPackageLoader::new_only_client(http_client.clone());
+
+        let mut http_client = WebHttpClient::default();
+        http_client.with_default_header(
+            http::header::USER_AGENT,
+            HeaderValue::from_static(crate::USER_AGENT),
+        );
+        let http_client = Arc::new(http_client);
+
         let module_cache = ThreadLocalCache::default();
+        let package_loader = crate::package_loader::PackageLoader::new(http_client.clone());
 
         Runtime {
             pool,

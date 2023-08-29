@@ -5,6 +5,7 @@ mod container;
 mod facade;
 mod instance;
 mod net;
+mod package_loader;
 mod run;
 mod runtime;
 mod streams;
@@ -24,6 +25,8 @@ pub use crate::{
 
 use js_sys::{JsString, Uint8Array};
 use wasm_bindgen::prelude::wasm_bindgen;
+
+pub(crate) const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "-", env!("CARGO_PKG_VERSION"));
 
 #[wasm_bindgen]
 pub fn wat2wasm(wat: JsString) -> Result<Uint8Array, utils::Error> {
