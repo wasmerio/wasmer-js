@@ -37,9 +37,7 @@ pub fn run(
         module,
         Box::new(move |module| {
             let _span = tracing::debug_span!("run").entered();
-            tracing::warn!("XXX Starting the WASI instance");
             let result = builder.run(module).map_err(anyhow::Error::new);
-            tracing::warn!(?result, "XXX Done");
             let _ = sender.send(ExitCondition(result));
         }),
     )?;

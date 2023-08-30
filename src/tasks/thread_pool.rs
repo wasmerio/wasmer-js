@@ -1,23 +1,49 @@
-use std::{fmt::Debug, future::Future, pin::Pin, time::Duration};
+use std::{fmt::Debug, future::Future, num::NonZeroUsize, pin::Pin};
 
+use anyhow::Context;
+use futures::future::LocalBoxFuture;
+use instant::Duration;
+use tokio::sync::mpsc::UnboundedSender;
 use wasm_bindgen_futures::JsFuture;
 use wasmer_wasix::{runtime::task_manager::TaskWasm, VirtualTaskManager, WasiThreadError};
 
-use crate::tasks::pool::ThreadPool;
+use crate::tasks::{Scheduler, SchedulerMessage};
 
+/// A handle to a threadpool backed by Web Workers.
 #[derive(Debug, Clone)]
-pub(crate) struct TaskManager {
-    pool: ThreadPool,
+pub struct ThreadPool {
+    sender: UnboundedSender<SchedulerMessage>,
 }
 
-impl TaskManager {
-    pub fn new(pool: ThreadPool) -> Self {
-        TaskManager { pool }
+impl ThreadPool {
+    pub fn new(capacity: NonZeroUsize) -> Self {
+        let sender = Scheduler::spawn(capacity);
+        ThreadPool { sender }
+    }
+
+    pub fn new_with_max_threads() -> Result<ThreadPool, anyhow::Error> {
+        let concurrency = crate::utils::hardware_concurrency()
+            .context("Unable to determine the hardware concurrency")?;
+        Ok(ThreadPool::new(concurrency))
+    }
+
+    /// Run an `async` function to completion on the threadpool.
+    pub fn spawn(
+        &self,
+        task: Box<dyn FnOnce() -> LocalBoxFuture<'static, ()> + Send>,
+    ) -> Result<(), WasiThreadError> {
+        self.send(SchedulerMessage::SpawnAsync(task));
+
+        Ok(())
+    }
+
+    pub(crate) fn send(&self, msg: SchedulerMessage) {
+        self.sender.send(msg).expect("scheduler is dead");
     }
 }
 
 #[async_trait::async_trait]
-impl VirtualTaskManager for TaskManager {
+impl VirtualTaskManager for ThreadPool {
     /// Invokes whenever a WASM thread goes idle. In some runtimes (like
     /// singlethreaded execution environments) they will need to do asynchronous
     /// work whenever the main thread goes idle and this is the place to hook
@@ -52,15 +78,14 @@ impl VirtualTaskManager for TaskManager {
             dyn FnOnce() -> Pin<Box<dyn Future<Output = ()> + Send + 'static>> + Send + 'static,
         >,
     ) -> Result<(), WasiThreadError> {
-        self.pool
-            .spawn(Box::new(move || Box::pin(async move { task().await })))
+        self.spawn(Box::new(move || Box::pin(async move { task().await })))
     }
 
     /// Starts an asynchronous task will will run on a dedicated thread
     /// pulled from the worker pool that has a stateful thread local variable
     /// It is ok for this task to block execution and any async futures within its scope
     fn task_wasm(&self, task: TaskWasm) -> Result<(), WasiThreadError> {
-        self.pool.spawn_wasm(task)
+        todo!();
     }
 
     /// Starts an asynchronous task will will run on a dedicated thread
@@ -70,7 +95,9 @@ impl VirtualTaskManager for TaskManager {
         &self,
         task: Box<dyn FnOnce() + Send + 'static>,
     ) -> Result<(), WasiThreadError> {
-        self.pool.spawn_blocking(task)
+        self.send(SchedulerMessage::SpawnBlocking(task));
+
+        Ok(())
     }
 
     /// Returns the amount of parallelism that is possible on this platform
@@ -85,29 +112,60 @@ impl VirtualTaskManager for TaskManager {
         module: wasmer::Module,
         task: Box<dyn FnOnce(wasmer::Module) + Send + 'static>,
     ) -> Result<(), WasiThreadError> {
-        self.pool.spawn_with_module(module, task)
+        self.send(SchedulerMessage::SpawnWithModule { task, module });
+
+        Ok(())
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use tokio::sync::oneshot;
+    use futures::channel::oneshot;
+    use js_sys::Uint8Array;
+    use wasm_bindgen::JsCast;
+    use wasm_bindgen_futures::JsFuture;
+    use wasm_bindgen_test::wasm_bindgen_test;
 
     use super::*;
+
+    #[wasm_bindgen_test]
+    async fn transfer_module_to_worker() {
+        let wasm: &[u8] = include_bytes!("../../tests/envvar.wasm");
+        let data = Uint8Array::from(wasm);
+        let module: js_sys::WebAssembly::Module =
+            JsFuture::from(js_sys::WebAssembly::compile(&data))
+                .await
+                .unwrap()
+                .dyn_into()
+                .unwrap();
+        let module = wasmer::Module::from(module);
+        let pool = ThreadPool::new_with_max_threads().unwrap();
+
+        let (sender, receiver) = oneshot::channel();
+        pool.spawn_with_module(
+            module.clone(),
+            Box::new(move |module| {
+                let exports = module.exports().count();
+                sender.send(exports).unwrap();
+            }),
+        )
+        .unwrap();
+
+        let exports = receiver.await.unwrap();
+        assert_eq!(exports, 5);
+    }
 
     #[wasm_bindgen_test::wasm_bindgen_test]
     async fn spawned_tasks_can_communicate_with_the_main_thread() {
         let pool = ThreadPool::new(2.try_into().unwrap());
-        let task_manager = TaskManager::new(pool);
         let (sender, receiver) = oneshot::channel();
 
-        task_manager
-            .task_shared(Box::new(move || {
-                Box::pin(async move {
-                    sender.send(42_u32).unwrap();
-                })
-            }))
-            .unwrap();
+        pool.task_shared(Box::new(move || {
+            Box::pin(async move {
+                sender.send(42_u32).unwrap();
+            })
+        }))
+        .unwrap();
 
         tracing::info!("Waiting for result");
         let result = receiver.await.unwrap();

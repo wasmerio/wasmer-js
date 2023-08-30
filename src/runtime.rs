@@ -13,11 +13,7 @@ use wasmer_wasix::{
     VirtualTaskManager,
 };
 
-use crate::{
-    tasks::{TaskManager, ThreadPool},
-    utils::Error,
-    Tty,
-};
+use crate::{tasks::ThreadPool, utils::Error, Tty};
 
 /// Runtime components used when running WebAssembly programs.
 #[derive(Clone, derivative::Derivative)]
@@ -51,7 +47,7 @@ impl Runtime {
     }
 
     pub(crate) fn new(pool: ThreadPool) -> Self {
-        let task_manager = TaskManager::new(pool.clone());
+        let task_manager = Arc::new(pool.clone());
 
         let mut http_client = WebHttpClient::default();
         http_client.with_default_header(

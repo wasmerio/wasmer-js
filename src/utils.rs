@@ -8,8 +8,6 @@ use web_sys::{Window, WorkerGlobalScope};
 /// Try to extract the most appropriate error message from a [`JsValue`],
 /// falling back to a generic error message.
 pub(crate) fn js_error(value: JsValue) -> anyhow::Error {
-    web_sys::console::warn_1(&value);
-
     if let Some(e) = value.dyn_ref::<js_sys::Error>() {
         anyhow::Error::msg(String::from(e.message()))
     } else if let Some(obj) = value.dyn_ref::<js_sys::Object>() {

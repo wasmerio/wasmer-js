@@ -9,13 +9,15 @@ let handleMessage = async data => {
 
 globalThis.onmessage = async ev => {
     if (ev.data.type == "init") {
-        const { memory, module } = ev.data;
-        const { default: init, __worker_handle_message } = await import("$IMPORT_META_URL");
+        const { memory, module, id } = ev.data;
+        const { default: init, WorkerState } = await import("$IMPORT_META_URL");
         await init(module, memory);
+
+        const worker = new WorkerState(id);
 
         // Now that we're initialized, we can switch over to the "real" handler
         // function and handle any buffered messages
-        handleMessage = __worker_handle_message;
+        handleMessage = msg => worker.handle(msg);
         for (const msg of pendingMessages.splice(0, pendingMessages.length)) {
             await handleMessage(msg);
         }

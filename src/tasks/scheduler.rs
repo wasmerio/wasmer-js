@@ -1,131 +1,26 @@
 use std::{
     collections::{BTreeMap, VecDeque},
     fmt::Debug,
+    future::Future,
     num::NonZeroUsize,
     pin::Pin,
     sync::atomic::{AtomicU64, Ordering},
 };
 
 use anyhow::{Context, Error};
-use futures::{future::LocalBoxFuture, Future};
 use tokio::sync::mpsc::{self, UnboundedSender};
+use tracing::Instrument;
 use wasm_bindgen::{JsCast, JsValue};
-use wasmer_wasix::{
-    runtime::{resolver::WebcHash, task_manager::TaskWasm},
-    WasiThreadError,
+use wasmer_wasix::runtime::resolver::WebcHash;
+
+use crate::{
+    tasks::{PostMessagePayload, WorkerHandle, WorkerMessage},
+    utils::Hidden,
 };
-
-use crate::{tasks::worker::WorkerHandle, utils::Hidden};
-
-/// A handle to a threadpool backed by Web Workers.
-#[derive(Debug, Clone)]
-pub struct ThreadPool {
-    sender: UnboundedSender<Message>,
-}
-
-impl ThreadPool {
-    pub fn new(capacity: NonZeroUsize) -> Self {
-        let sender = Scheduler::spawn(capacity);
-        ThreadPool { sender }
-    }
-
-    pub fn new_with_max_threads() -> Result<ThreadPool, anyhow::Error> {
-        let concurrency = crate::utils::hardware_concurrency()
-            .context("Unable to determine the hardware concurrency")?;
-        Ok(ThreadPool::new(concurrency))
-    }
-
-    /// Run an `async` function to completion on the threadpool.
-    pub fn spawn(
-        &self,
-        task: Box<dyn FnOnce() -> LocalBoxFuture<'static, ()> + Send>,
-    ) -> Result<(), WasiThreadError> {
-        self.sender
-            .send(Message::SpawnAsync(task))
-            .expect("scheduler is dead");
-
-        Ok(())
-    }
-
-    pub fn spawn_wasm(&self, _task: TaskWasm) -> Result<(), WasiThreadError> {
-        todo!();
-    }
-
-    /// Run a blocking task on the threadpool.
-    pub fn spawn_blocking(&self, task: Box<dyn FnOnce() + Send>) -> Result<(), WasiThreadError> {
-        self.sender
-            .send(Message::SpawnBlocking(task))
-            .expect("scheduler is dead");
-
-        Ok(())
-    }
-
-    pub fn spawn_with_module(
-        &self,
-        module: wasmer::Module,
-        task: Box<dyn FnOnce(wasmer::Module) + Send + 'static>,
-    ) -> Result<(), WasiThreadError> {
-        self.sender
-            .send(Message::SpawnWithModule { task, module })
-            .expect("scheduler is dead");
-
-        Ok(())
-    }
-}
-
-/// Messages sent from the [`ThreadPool`] handle to the [`Scheduler`].
-pub(crate) enum Message {
-    /// Run a promise on a worker thread.
-    SpawnAsync(Box<dyn FnOnce() -> Pin<Box<dyn Future<Output = ()> + 'static>> + Send + 'static>),
-    /// Run a blocking operation on a worker thread.
-    SpawnBlocking(Box<dyn FnOnce() + Send + 'static>),
-    /// Mark a worker as busy.
-    MarkBusy { worker_id: u64 },
-    /// Mark a worker as idle.
-    MarkIdle { worker_id: u64 },
-    /// Tell all workers to cache a WebAssembly module.
-    CacheModule {
-        hash: WebcHash,
-        module: wasmer::Module,
-    },
-    /// Run a task in the background, explicitly transferring the
-    /// [`js_sys::WebAssembly::Module`] to the worker.
-    SpawnWithModule {
-        module: wasmer::Module,
-        task: Box<dyn FnOnce(wasmer::Module) + Send + 'static>,
-    },
-}
-
-impl Debug for Message {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Message::SpawnAsync(_) => f.debug_tuple("SpawnAsync").field(&Hidden).finish(),
-            Message::SpawnBlocking(_) => f.debug_tuple("SpawnBlocking").field(&Hidden).finish(),
-            Message::MarkBusy { worker_id } => f
-                .debug_struct("MarkBusy")
-                .field("worker_id", worker_id)
-                .finish(),
-            Message::MarkIdle { worker_id } => f
-                .debug_struct("MarkIdle")
-                .field("worker_id", worker_id)
-                .finish(),
-            Message::CacheModule { hash, module } => f
-                .debug_struct("CacheModule")
-                .field("hash", hash)
-                .field("module", module)
-                .finish(),
-            Message::SpawnWithModule { module, task: _ } => f
-                .debug_struct("SpawnWithModule")
-                .field("module", module)
-                .field("task", &Hidden)
-                .finish(),
-        }
-    }
-}
 
 /// The actor in charge of the threadpool.
 #[derive(Debug)]
-struct Scheduler {
+pub(crate) struct Scheduler {
     /// The maximum number of workers we will start.
     capacity: NonZeroUsize,
     /// Workers that are able to receive work.
@@ -134,36 +29,40 @@ struct Scheduler {
     /// receive work at this time.
     busy: VecDeque<WorkerHandle>,
     /// An [`UnboundedSender`] used to send the [`Scheduler`] more messages.
-    mailbox: UnboundedSender<Message>,
+    mailbox: UnboundedSender<SchedulerMessage>,
     cached_modules: BTreeMap<WebcHash, js_sys::WebAssembly::Module>,
 }
 
 impl Scheduler {
     /// Spin up a scheduler on the current thread and get a channel that can be
     /// used to communicate with it.
-    fn spawn(capacity: NonZeroUsize) -> UnboundedSender<Message> {
+    pub(crate) fn spawn(capacity: NonZeroUsize) -> UnboundedSender<SchedulerMessage> {
         let (sender, mut receiver) = mpsc::unbounded_channel();
         let mut scheduler = Scheduler::new(capacity, sender.clone());
 
-        wasm_bindgen_futures::spawn_local(async move {
-            let _span = tracing::debug_span!("scheduler").entered();
+        wasm_bindgen_futures::spawn_local(
+            async move {
+                let _span = tracing::debug_span!("scheduler").entered();
 
-            while let Some(msg) = receiver.recv().await {
-                tracing::trace!(?msg, "Executing a message");
+                while let Some(msg) = receiver.recv().await {
+                    tracing::warn!(?msg, "XXX Executing a message");
+                    tracing::trace!(?msg, "Executing a message");
 
-                if let Err(e) = scheduler.execute(msg) {
-                    tracing::warn!(error = &*e, "An error occurred while handling a message");
+                    if let Err(e) = scheduler.execute(msg) {
+                        tracing::warn!(error = &*e, "An error occurred while handling a message");
+                    }
                 }
-            }
 
-            tracing::debug!("Shutting down the scheduler");
-            drop(scheduler);
-        });
+                tracing::debug!("Shutting down the scheduler");
+                drop(scheduler);
+            }
+            .in_current_span(),
+        );
 
         sender
     }
 
-    fn new(capacity: NonZeroUsize, mailbox: UnboundedSender<Message>) -> Self {
+    fn new(capacity: NonZeroUsize, mailbox: UnboundedSender<SchedulerMessage>) -> Self {
         Scheduler {
             capacity,
             idle: VecDeque::new(),
@@ -173,19 +72,15 @@ impl Scheduler {
         }
     }
 
-    fn execute(&mut self, message: Message) -> Result<(), Error> {
+    fn execute(&mut self, message: SchedulerMessage) -> Result<(), Error> {
         match message {
-            Message::SpawnAsync(task) => self.post_message(PostMessagePayload::SpawnAsync(task)),
-            Message::SpawnBlocking(task) => {
+            SchedulerMessage::SpawnAsync(task) => {
+                self.post_message(PostMessagePayload::SpawnAsync(task))
+            }
+            SchedulerMessage::SpawnBlocking(task) => {
                 self.post_message(PostMessagePayload::SpawnBlocking(task))
             }
-            Message::MarkBusy { worker_id } => {
-                move_worker(worker_id, &mut self.idle, &mut self.busy)
-            }
-            Message::MarkIdle { worker_id } => {
-                move_worker(worker_id, &mut self.busy, &mut self.idle)
-            }
-            Message::CacheModule { hash, module } => {
+            SchedulerMessage::CacheModule { hash, module } => {
                 let module: js_sys::WebAssembly::Module = JsValue::from(module).unchecked_into();
                 self.cached_modules.insert(hash, module.clone());
 
@@ -198,12 +93,20 @@ impl Scheduler {
 
                 Ok(())
             }
-            Message::SpawnWithModule { module, task } => {
+            SchedulerMessage::SpawnWithModule { module, task } => {
                 self.post_message(PostMessagePayload::SpawnWithModule {
                     module: JsValue::from(module).unchecked_into(),
                     task,
                 })
             }
+            SchedulerMessage::Worker {
+                worker_id,
+                msg: WorkerMessage::MarkBusy,
+            } => move_worker(worker_id, &mut self.idle, &mut self.busy),
+            SchedulerMessage::Worker {
+                worker_id,
+                msg: WorkerMessage::MarkIdle,
+            } => move_worker(worker_id, &mut self.busy, &mut self.idle),
         }
     }
 
@@ -266,7 +169,11 @@ impl Scheduler {
     }
 
     fn start_worker(&mut self) -> Result<WorkerHandle, Error> {
+        // Note: By using a monotonically incrementing counter, we can make sure
+        // every single worker created with this shared linear memory will get a
+        // unique ID.
         static NEXT_ID: AtomicU64 = AtomicU64::new(0);
+
         let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
 
         let handle = WorkerHandle::spawn(id, self.mailbox.clone())?;
@@ -300,36 +207,51 @@ fn move_worker(
     Ok(())
 }
 
-/// A message that will be sent to a worker using `postMessage()`.
-pub(crate) enum PostMessagePayload {
+/// Messages sent from the thread pool handle to the [`Scheduler`].
+pub(crate) enum SchedulerMessage {
+    /// Run a promise on a worker thread.
     SpawnAsync(Box<dyn FnOnce() -> Pin<Box<dyn Future<Output = ()> + 'static>> + Send + 'static>),
+    /// Run a blocking operation on a worker thread.
     SpawnBlocking(Box<dyn FnOnce() + Send + 'static>),
+    /// A message sent from a worker thread.
+    Worker {
+        /// The worker ID.
+        worker_id: u64,
+        /// The message.
+        msg: WorkerMessage,
+    },
+    /// Tell all workers to cache a WebAssembly module.
     CacheModule {
         hash: WebcHash,
-        module: js_sys::WebAssembly::Module,
+        module: wasmer::Module,
     },
+    /// Run a task in the background, explicitly transferring the
+    /// [`js_sys::WebAssembly::Module`] to the worker.
     SpawnWithModule {
-        module: js_sys::WebAssembly::Module,
+        module: wasmer::Module,
         task: Box<dyn FnOnce(wasmer::Module) + Send + 'static>,
     },
 }
 
-impl Debug for PostMessagePayload {
+impl Debug for SchedulerMessage {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            PostMessagePayload::SpawnAsync(_) => {
-                f.debug_tuple("SpawnAsync").field(&Hidden).finish()
-            }
-            PostMessagePayload::SpawnBlocking(_) => {
+            SchedulerMessage::SpawnAsync(_) => f.debug_tuple("SpawnAsync").field(&Hidden).finish(),
+            SchedulerMessage::SpawnBlocking(_) => {
                 f.debug_tuple("SpawnBlocking").field(&Hidden).finish()
             }
-            PostMessagePayload::CacheModule { hash, module } => f
+            SchedulerMessage::Worker { worker_id: id, msg } => f
+                .debug_struct("Worker")
+                .field("worker_id", id)
+                .field("msg", msg)
+                .finish(),
+            SchedulerMessage::CacheModule { hash, module } => f
                 .debug_struct("CacheModule")
                 .field("hash", hash)
                 .field("module", module)
                 .finish(),
-            PostMessagePayload::SpawnWithModule { module, task: _ } => f
-                .debug_struct("CacheModule")
+            SchedulerMessage::SpawnWithModule { module, task: _ } => f
+                .debug_struct("SpawnWithModule")
                 .field("module", module)
                 .field("task", &Hidden)
                 .finish(),
@@ -339,7 +261,6 @@ impl Debug for PostMessagePayload {
 
 #[cfg(test)]
 mod tests {
-    use js_sys::Uint8Array;
     use tokio::sync::oneshot;
     use wasm_bindgen_test::wasm_bindgen_test;
 
@@ -350,7 +271,7 @@ mod tests {
         let (sender, receiver) = oneshot::channel();
         let (tx, _) = mpsc::unbounded_channel();
         let mut scheduler = Scheduler::new(NonZeroUsize::MAX, tx);
-        let message = Message::SpawnAsync(Box::new(move || {
+        let message = SchedulerMessage::SpawnAsync(Box::new(move || {
             Box::pin(async move {
                 let _ = sender.send(42);
             })
@@ -372,32 +293,5 @@ mod tests {
         // Make sure the background thread actually ran something and sent us
         // back a result
         assert_eq!(receiver.await.unwrap(), 42);
-    }
-
-    #[wasm_bindgen_test]
-    async fn transfer_module_to_worker() {
-        let wasm: &[u8] = include_bytes!("../../tests/envvar.wasm");
-        let data = Uint8Array::from(wasm);
-        let module: js_sys::WebAssembly::Module =
-            wasm_bindgen_futures::JsFuture::from(js_sys::WebAssembly::compile(&data))
-                .await
-                .unwrap()
-                .dyn_into()
-                .unwrap();
-        let module = wasmer::Module::from(module);
-        let pool = ThreadPool::new_with_max_threads().unwrap();
-
-        let (sender, receiver) = oneshot::channel();
-        pool.spawn_with_module(
-            module.clone(),
-            Box::new(move |module| {
-                let exports = module.exports().count();
-                sender.send(exports).unwrap();
-            }),
-        )
-        .unwrap();
-
-        let exports = receiver.await.unwrap();
-        assert_eq!(exports, 5);
     }
 }

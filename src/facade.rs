@@ -62,7 +62,7 @@ impl Wasmer {
         let tasks = Arc::clone(runtime.task_manager());
 
         let mut runner = WasiRunner::new();
-        config.configure_runner(&mut runner)?;
+        let (stdin, stdout, stderr) = config.configure_runner(&mut runner)?;
 
         tracing::debug!(%specifier, %command_name, "Starting the WASI runner");
 
@@ -75,17 +75,8 @@ impl Wasmer {
             let _ = sender.send(ExitCondition(result));
         }))?;
 
-        let stdout = web_sys::ReadableStream::new().map_err(Error::js)?;
-        wasm_bindgen_futures::JsFuture::from(stdout.cancel())
-            .await
-            .map_err(Error::js)?;
-        let stderr = web_sys::ReadableStream::new().map_err(Error::js)?;
-        wasm_bindgen_futures::JsFuture::from(stderr.cancel())
-            .await
-            .map_err(Error::js)?;
-
         Ok(Instance {
-            stdin: None,
+            stdin,
             stdout,
             stderr,
             exit: receiver,

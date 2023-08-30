@@ -2,6 +2,7 @@ use anyhow::Context;
 use bytes::BytesMut;
 use futures::{future::Either, Stream};
 use js_sys::{JsString, Promise, Reflect, Uint8Array};
+use tracing::Instrument;
 use virtual_fs::{AsyncReadExt, AsyncWriteExt, Pipe};
 use wasm_bindgen::{prelude::wasm_bindgen, JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
@@ -40,14 +41,20 @@ impl WritableStreamSink {
     pub fn close(&mut self) -> Promise {
         let mut pipe = self.pipe.clone();
 
-        wasm_bindgen_futures::future_to_promise(async move {
-            pipe.flush()
-                .await
-                .context("Flushing failed")
-                .map_err(Error::from)?;
-            pipe.close();
-            Ok(JsValue::UNDEFINED)
-        })
+        wasm_bindgen_futures::future_to_promise(
+            async move {
+                tracing::trace!("Closing the pipe");
+
+                pipe.flush()
+                    .await
+                    .context("Flushing failed")
+                    .map_err(Error::from)?;
+                pipe.close();
+
+                Ok(JsValue::UNDEFINED)
+            }
+            .in_current_span(),
+        )
     }
 
     /// This method, also defined by the developer, will be called if the app
@@ -72,13 +79,16 @@ impl WritableStreamSink {
         let mut pipe = self.pipe.clone();
         let data = chunk.to_vec();
 
-        wasm_bindgen_futures::future_to_promise(async move {
-            pipe.write_all(&data)
-                .await
-                .context("Write failed")
-                .map_err(Error::from)?;
-            Ok(JsValue::UNDEFINED)
-        })
+        wasm_bindgen_futures::future_to_promise(
+            async move {
+                pipe.write_all(&data)
+                    .await
+                    .context("Write failed")
+                    .map_err(Error::from)?;
+                Ok(JsValue::UNDEFINED)
+            }
+            .in_current_span(),
+        )
     }
 }
 
@@ -115,34 +125,35 @@ impl ReadableStreamSource {
     /// pull() implementation will not be continually called.
     pub fn pull(&mut self, controller: ReadableByteStreamController) -> Promise {
         let mut pipe = self.pipe.clone();
-        tracing::warn!("XXX Pull...");
 
-        wasm_bindgen_futures::future_to_promise(async move {
-            let _span = tracing::trace_span!("pull").entered();
-            tracing::warn!("XXX Reading");
+        wasm_bindgen_futures::future_to_promise(
+            async move {
+                let _span = tracing::trace_span!("pull").entered();
 
-            let mut buffer = BytesMut::new();
-            let result = pipe.read_buf(&mut buffer).await.context("Read failed");
+                let mut buffer = BytesMut::new();
+                let result = pipe.read_buf(&mut buffer).await.context("Read failed");
 
-            match result {
-                Ok(0) => {
-                    tracing::warn!("XXX EOF");
-                    controller.close()?;
+                match result {
+                    Ok(0) => {
+                        tracing::trace!("EOF");
+                        controller.close()?;
+                    }
+                    Ok(bytes_read) => {
+                        tracing::trace!(bytes_read);
+                        let buffer = Uint8Array::from(&buffer[..bytes_read]);
+                        controller.enqueue_with_array_buffer_view(&buffer)?;
+                    }
+                    Err(e) => {
+                        tracing::trace!(error = &*e);
+                        let err = JsValue::from(Error::from(e));
+                        controller.error_with_e(&err);
+                    }
                 }
-                Ok(bytes_read) => {
-                    tracing::warn!(bytes_read, "XXX Read complete");
-                    let buffer = Uint8Array::from(&buffer[..bytes_read]);
-                    controller.enqueue_with_array_buffer_view(&buffer)?;
-                }
-                Err(e) => {
-                    tracing::warn!(error = &*e, "XXX Errored");
-                    let err = JsValue::from(Error::from(e));
-                    controller.error_with_e(&err);
-                }
+
+                Ok(JsValue::UNDEFINED)
             }
-
-            Ok(JsValue::UNDEFINED)
-        })
+            .in_current_span(),
+        )
     }
 
     /// This method, also defined by the developer, will be called if the app
@@ -153,13 +164,13 @@ impl ReadableStreamSource {
     /// reason parameter contains a string describing why the stream was
     /// cancelled.
     pub fn cancel(&mut self) {
-        tracing::warn!("Cancel");
+        tracing::trace!("Read stream cancelled");
         self.pipe.close();
     }
 
     #[wasm_bindgen(getter, js_name = "type")]
     pub fn type_(&self) -> JsString {
-        JsString::from(wasm_bindgen::intern("bytes"))
+        JsString::from("bytes")
     }
 }
 
@@ -167,8 +178,8 @@ pub(crate) fn read_to_end(stream: ReadableStream) -> impl Stream<Item = Result<V
     let reader = match ReadableStreamDefaultReader::new(&stream) {
         Ok(reader) => reader,
         Err(_) => {
-            // The stream is either locked and therefore it's the user's
-            // responsibility to consume its contents.
+            // The stream is locked and therefore it's the user's responsibility
+            // to consume its contents.
             return Either::Left(futures::stream::empty());
         }
     };
@@ -185,8 +196,8 @@ pub(crate) fn read_to_end(stream: ReadableStream) -> impl Stream<Item = Result<V
 }
 
 fn get_chunk(next_chunk: JsValue) -> Result<Option<Vec<u8>>, Error> {
-    let done = JsValue::from_str(wasm_bindgen::intern("done"));
-    let value = JsValue::from_str(wasm_bindgen::intern("value"));
+    let done = JsValue::from_str("done");
+    let value = JsValue::from_str("value");
 
     let done = Reflect::get(&next_chunk, &done).map_err(Error::js)?;
     if done.is_truthy() {

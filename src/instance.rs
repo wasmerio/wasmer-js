@@ -11,13 +11,13 @@ use crate::utils::Error;
 pub struct Instance {
     /// The standard input stream, if one wasn't provided when starting the
     /// instance.
-    #[wasm_bindgen(getter_with_clone)]
+    #[wasm_bindgen(getter_with_clone, readonly)]
     pub stdin: Option<web_sys::WritableStream>,
     /// The WASI program's standard output.
-    #[wasm_bindgen(getter_with_clone)]
+    #[wasm_bindgen(getter_with_clone, readonly)]
     pub stdout: web_sys::ReadableStream,
     /// The WASI program's standard error.
-    #[wasm_bindgen(getter_with_clone)]
+    #[wasm_bindgen(getter_with_clone, readonly)]
     pub stderr: web_sys::ReadableStream,
     pub(crate) exit: Receiver<ExitCondition>,
 }
@@ -36,10 +36,15 @@ impl Instance {
         } = self;
 
         if let Some(stdin) = stdin {
-            tracing::debug!("Closed stdin");
-            wasm_bindgen_futures::JsFuture::from(stdin.close())
-                .await
-                .map_err(Error::js)?;
+            if stdin.locked() {
+                // The caller has already acquired a writer so it's their
+                // responsibility to close the stream.
+            } else {
+                tracing::debug!("Closing stdin");
+                wasm_bindgen_futures::JsFuture::from(stdin.close())
+                    .await
+                    .map_err(Error::js)?;
+            }
         }
 
         let stdout_chunks = crate::streams::read_to_end(stdout).fuse();
@@ -96,6 +101,7 @@ impl ExitCondition {
     }
 }
 
+#[derive(Debug)]
 struct Output {
     code: i32,
     ok: bool,
@@ -121,16 +127,8 @@ impl From<Output> for JsOutput {
         let output = js_sys::Object::new();
         let _ = js_sys::Reflect::set(&output, &JsValue::from_str("code"), &JsValue::from(code));
         let _ = js_sys::Reflect::set(&output, &JsValue::from_str("ok"), &JsValue::from(ok));
-        let _ = js_sys::Reflect::set(
-            &output,
-            &JsValue::from_str("stdout"),
-            &JsValue::from(stdout),
-        );
-        let _ = js_sys::Reflect::set(
-            &output,
-            &JsValue::from_str("stderr"),
-            &JsValue::from(stderr),
-        );
+        let _ = js_sys::Reflect::set(&output, &JsValue::from_str("stdout"), &stdout);
+        let _ = js_sys::Reflect::set(&output, &JsValue::from_str("stderr"), &stderr);
 
         output.unchecked_into()
     }
