@@ -123,16 +123,16 @@ impl SpawnConfig {
                 None
             }
             None => {
-                let (f, stdin) = crate::streams::readable_pipe();
+                let (f, stdin) = crate::streams::input_pipe();
                 runner.set_stdin(Box::new(f));
                 Some(stdin)
             }
         };
 
-        let (stdout_file, stdout) = crate::streams::writable_pipe();
+        let (stdout_file, stdout) = crate::streams::output_pipe();
         runner.set_stdout(Box::new(stdout_file));
 
-        let (stderr_file, stderr) = crate::streams::writable_pipe();
+        let (stderr_file, stderr) = crate::streams::output_pipe();
         runner.set_stderr(Box::new(stderr_file));
 
         Ok((stdin, stdout, stderr))

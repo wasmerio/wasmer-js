@@ -14,7 +14,7 @@ use crate::utils::Error;
 
 /// Set up a pipe where data written from JavaScript can be read by the WASIX
 /// process.
-pub(crate) fn readable_pipe() -> (Pipe, WritableStream) {
+pub(crate) fn input_pipe() -> (Pipe, WritableStream) {
     let (left, right) = Pipe::channel();
 
     let sink = JsValue::from(WritableStreamSink { pipe: right });
@@ -43,17 +43,16 @@ impl WritableStreamSink {
 
         wasm_bindgen_futures::future_to_promise(
             async move {
-                tracing::trace!("Closing the pipe");
-
                 pipe.flush()
                     .await
                     .context("Flushing failed")
                     .map_err(Error::from)?;
                 pipe.close();
+                tracing::trace!("Pipe closed");
 
                 Ok(JsValue::UNDEFINED)
             }
-            .in_current_span(),
+            .instrument(tracing::trace_span!("close")),
         )
     }
 
@@ -87,14 +86,14 @@ impl WritableStreamSink {
                     .map_err(Error::from)?;
                 Ok(JsValue::UNDEFINED)
             }
-            .in_current_span(),
+            .instrument(tracing::trace_span!("write")),
         )
     }
 }
 
 /// Set up a pipe where the WASIX pipe writes data that will be read from
 /// JavaScript.
-pub(crate) fn writable_pipe() -> (Pipe, ReadableStream) {
+pub(crate) fn output_pipe() -> (Pipe, ReadableStream) {
     let (left, right) = Pipe::channel();
 
     let source = JsValue::from(ReadableStreamSource { pipe: right });
@@ -128,8 +127,6 @@ impl ReadableStreamSource {
 
         wasm_bindgen_futures::future_to_promise(
             async move {
-                let _span = tracing::trace_span!("pull").entered();
-
                 let mut buffer = BytesMut::new();
                 let result = pipe.read_buf(&mut buffer).await.context("Read failed");
 
@@ -152,7 +149,7 @@ impl ReadableStreamSource {
 
                 Ok(JsValue::UNDEFINED)
             }
-            .in_current_span(),
+            .instrument(tracing::trace_span!("pull")),
         )
     }
 
@@ -178,17 +175,23 @@ pub(crate) fn read_to_end(stream: ReadableStream) -> impl Stream<Item = Result<V
     let reader = match ReadableStreamDefaultReader::new(&stream) {
         Ok(reader) => reader,
         Err(_) => {
-            // The stream is locked and therefore it's the user's responsibility
-            // to consume its contents.
+            tracing::trace!("The stream is already locked. Leaving it up to the user to consume.");
             return Either::Left(futures::stream::empty());
         }
     };
 
-    let stream = futures::stream::try_unfold(reader, move |reader| async {
-        let next_chunk = JsFuture::from(reader.read()).await.map_err(Error::js)?;
+    struct DropGuard(ReadableStreamDefaultReader);
+    impl Drop for DropGuard {
+        fn drop(&mut self) {
+            // Make sure the reader lock always gets released so the caller
+            // isn't left with an unusable stream
+            self.0.release_lock();
+        }
+    }
 
+    let stream = futures::stream::try_unfold(DropGuard(reader), move |reader| async {
+        let next_chunk = JsFuture::from(reader.0.read()).await.map_err(Error::js)?;
         let chunk = get_chunk(next_chunk)?;
-
         Ok(chunk.map(|c| (c, reader)))
     });
 
@@ -220,7 +223,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     async fn writing_to_the_pipe_is_readable_from_js() {
-        let (mut pipe, stream) = writable_pipe();
+        let (mut pipe, stream) = output_pipe();
 
         pipe.write_all(b"Hello, World!").await.unwrap();
         pipe.close();
@@ -237,7 +240,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     async fn data_written_by_js_is_readable_from_the_pipe() {
-        let (mut pipe, stream) = readable_pipe();
+        let (mut pipe, stream) = input_pipe();
         let chunk = Uint8Array::from(b"Hello, World!".as_ref());
 
         let writer = stream.get_writer().unwrap();

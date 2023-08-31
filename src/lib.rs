@@ -24,9 +24,11 @@ pub use crate::{
 };
 
 use js_sys::{JsString, Uint8Array};
+use tracing_subscriber::{prelude::__tracing_subscriber_SubscriberExt, EnvFilter};
 use wasm_bindgen::prelude::wasm_bindgen;
 
 pub(crate) const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "-", env!("CARGO_PKG_VERSION"));
+const RUST_LOG: &[&str] = &["warn", "wasmer_wasix=info", "wasmer_wasix_js=debug"];
 
 #[wasm_bindgen]
 pub fn wat2wasm(wat: JsString) -> Result<Uint8Array, utils::Error> {
@@ -39,11 +41,8 @@ pub fn wat2wasm(wat: JsString) -> Result<Uint8Array, utils::Error> {
 fn on_start() {
     console_error_panic_hook::set_once();
 
-    if let Some(level) = tracing::level_filters::STATIC_MAX_LEVEL.into_level() {
-        let cfg = tracing_wasm::WASMLayerConfigBuilder::new()
-            .set_max_level(level)
-            .set_max_level(tracing::Level::INFO)
-            .build();
-        tracing_wasm::set_as_global_default_with_config(cfg);
-    }
+    let registry = tracing_subscriber::Registry::default()
+        .with(EnvFilter::new(RUST_LOG.join(",")))
+        .with(tracing_wasm::WASMLayer::default());
+    tracing::subscriber::set_global_default(registry).unwrap();
 }
