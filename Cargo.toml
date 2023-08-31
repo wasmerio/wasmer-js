@@ -99,7 +99,7 @@ dwarf-debug-info = false
 wasm-opt = ["--enable-threads", "--enable-bulk-memory", "-Oz"]
 
 [patch.crates-io]
-virtual-net = { git = "https://github.com/wasmerio/wasmer", branch = "master" }
-virtual-fs = { git = "https://github.com/wasmerio/wasmer", branch = "master" }
-wasmer-wasix = { git = "https://github.com/wasmerio/wasmer", branch = "master" }
-wasmer = { git = "https://github.com/wasmerio/wasmer", branch = "master" }
+virtual-net = { git = "https://github.com/wasmerio/wasmer", branch = "wasmer-js-fixes" }
+virtual-fs = { git = "https://github.com/wasmerio/wasmer", branch = "wasmer-js-fixes" }
+wasmer-wasix = { git = "https://github.com/wasmerio/wasmer", branch = "wasmer-js-fixes" }
+wasmer = { git = "https://github.com/wasmerio/wasmer", branch = "wasmer-js-fixes" }

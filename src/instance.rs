@@ -1,7 +1,7 @@
 use futures::{channel::oneshot::Receiver, Stream, StreamExt, TryFutureExt};
 use js_sys::Uint8Array;
 use wasm_bindgen::{prelude::wasm_bindgen, JsCast, JsValue};
-use wasmer_wasix::WasiError;
+use wasmer_wasix::WasiRuntimeError;
 
 use crate::utils::Error;
 
@@ -61,9 +61,8 @@ impl Instance {
 
         // Note: this relies on the underlying instance closing stdout and
         // stderr when it exits. Failing to do this will block forever.
-        let (_, _, exit_condition) =
+        let (_, _, ExitCondition(code)) =
             futures::try_join!(stdout_done, stderr_done, exit.map_err(Error::from))?;
-        let code = exit_condition.into_exit_code()?;
 
         let output = Output {
             code,
@@ -89,16 +88,27 @@ async fn copy_to_buffer(
 }
 
 #[derive(Debug)]
-pub(crate) struct ExitCondition(pub Result<(), anyhow::Error>);
+pub(crate) struct ExitCondition(i32);
 
 impl ExitCondition {
-    fn into_exit_code(self) -> Result<i32, Error> {
-        match self.0 {
-            Ok(_) => Ok(0),
-            Err(e) => match e.chain().find_map(|e| e.downcast_ref::<WasiError>()) {
-                Some(WasiError::Exit(exit_code)) => Ok(exit_code.raw()),
-                _ => Err(e.into()),
-            },
+    pub(crate) fn from_result(result: Result<(), anyhow::Error>) -> Self {
+        let err = match result {
+            Ok(_) => return ExitCondition(0),
+            Err(e) => e,
+        };
+
+        // looks like some sort of error occurred.
+        let error_code = err
+            .chain()
+            .find_map(|e| e.downcast_ref::<WasiRuntimeError>())
+            .and_then(|runtime_error| runtime_error.as_exit_code());
+
+        match error_code {
+            Some(code) => ExitCondition(code.raw()),
+            None => {
+                tracing::debug!(error = &*err, "Process exited unexpectedly");
+                ExitCondition(1)
+            }
         }
     }
 }
@@ -164,18 +174,11 @@ mod tests {
     use virtual_fs::AsyncReadExt;
     use virtual_fs::AsyncWriteExt;
     use wasm_bindgen_test::wasm_bindgen_test;
-    use wasmer_wasix::{wasmer_wasix_types::wasi::ExitCode, WasiRuntimeError};
 
     use super::*;
 
     #[wasm_bindgen_test]
     async fn read_stdout_and_stderr_when_waiting_for_completion() {
-        tracing_wasm::set_as_global_default_with_config(
-            tracing_wasm::WASMLayerConfigBuilder::default()
-                .set_console_config(tracing_wasm::ConsoleConfig::ReportWithoutConsoleColor)
-                .build(),
-        );
-
         let (mut stdin, stdin_stream) = crate::streams::input_pipe();
         let (mut stdout, stdout_stream) = crate::streams::output_pipe();
         let (mut stderr, stderr_stream) = crate::streams::output_pipe();
@@ -197,11 +200,7 @@ mod tests {
         // Now, we pretend the WASIX process exited
         stdout.close();
         stderr.close();
-        sender
-            .send(ExitCondition(Err(anyhow::Error::from(
-                WasiRuntimeError::Wasi(WasiError::Exit(ExitCode::Other(42))),
-            ))))
-            .unwrap();
+        sender.send(ExitCondition(42)).unwrap();
 
         // and wait for the result
         let output = instance.wait().await.unwrap();

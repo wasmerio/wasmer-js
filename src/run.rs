@@ -38,7 +38,7 @@ pub fn run(
         Box::new(move |module| {
             let _span = tracing::debug_span!("run").entered();
             let result = builder.run(module).map_err(anyhow::Error::new);
-            let _ = sender.send(ExitCondition(result));
+            let _ = sender.send(ExitCondition::from_result(result));
         }),
     )?;
 

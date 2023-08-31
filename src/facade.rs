@@ -41,13 +41,23 @@ impl Wasmer {
         })
     }
 
-    pub async fn spawn(
+    #[wasm_bindgen(js_name = "spawn")]
+    pub async fn js_spawn(
         &self,
         app_id: String,
         config: Option<SpawnConfig>,
     ) -> Result<Instance, Error> {
-        let _span = tracing::debug_span!("spawn").entered();
+        self.spawn(app_id, config).await
+    }
 
+    pub fn runtime(&self) -> Runtime {
+        self.runtime.clone()
+    }
+}
+
+impl Wasmer {
+    #[tracing::instrument(skip_all)]
+    async fn spawn(&self, app_id: String, config: Option<SpawnConfig>) -> Result<Instance, Error> {
         let specifier: PackageSpecifier = app_id.parse()?;
         let config = config.unwrap_or_default();
 
@@ -72,7 +82,7 @@ impl Wasmer {
         // it on the thread pool.
         tasks.task_dedicated(Box::new(move || {
             let result = runner.run_command(&command_name, &pkg, runtime);
-            let _ = sender.send(ExitCondition(result));
+            let _ = sender.send(ExitCondition::from_result(result));
         }))?;
 
         Ok(Instance {
@@ -81,10 +91,6 @@ impl Wasmer {
             stderr,
             exit: receiver,
         })
-    }
-
-    pub fn runtime(&self) -> Runtime {
-        self.runtime.clone()
     }
 }
 

@@ -62,6 +62,20 @@ describe("Wasmer.spawn", function() {
         expect(output.stderr.length).to.equal(0);
     });
 
+    it("Can capture exit codes", async () => {
+        const wasmer = new Wasmer();
+
+        const instance = await wasmer.spawn("python/python", {
+            args: ["-c", "import sys; sys.exit(42)"],
+        });
+        const output = await instance.wait();
+
+        expect(output.code).to.equal(42);
+        expect(output.ok).to.be.false;
+        expect(output.stdout.length).to.equal(0);
+        expect(output.stderr.length).to.equal(0);
+    });
+
     it("Can communicate via stdin", async () => {
         const wasmer = new Wasmer();
 
