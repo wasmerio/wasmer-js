@@ -1,6 +1,6 @@
 {
-  "name": "@wasmer/wasi",
-  "version": "1.2.2",
+  "name": "@wasmer/wasix",
+  "version": "0.1.0",
   "main": "dist/Library.cjs.min.js",
   "module": "dist/Library.esm.min.js",
   "unpkg": "dist/Library.umd.min.js",
@@ -8,7 +8,8 @@
   "keywords": [
     "webassembly",
     "wasm",
-    "wasi"
+    "wasi",
+    "wasix"
   ],
   "description": "Isomorphic Javascript library for interacting with WASI Modules in Node.js and the Browser.",
   "author": "Wasmer Engineering Team <engineering@wasmer.io>",

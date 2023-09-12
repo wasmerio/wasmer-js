@@ -1,0 +1,18 @@
+{
+  "name": "@wasmer/shell",
+  "version": "1.0.0",
+  "description": "A Bash terminal in your browser, powered by WebAssembly and WASIX.",
+  "source": "index.html",
+  "scripts": {
+    "dev": "parcel",
+    "build": "parcel build"
+  },
+  "dependencies": {
+    "@wasmer/wasix": "file:../..",
+    "xterm": "^5.3.0"
+  },
+  "devDependencies": {
+    "parcel": "^2.9.3"
+  },
+  "browserslist": "> 0.5%, last 2 versions, not dead"
+}
