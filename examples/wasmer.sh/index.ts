@@ -1,5 +1,5 @@
+import { SpawnConfig, Wasmer, init } from "@wasmer/wasix";
 import { Terminal } from "xterm";
-import init, { SpawnConfig, Wasmer } from "@wasmer/wasix";
 
 const encoder = new TextEncoder();
 
