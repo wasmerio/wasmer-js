@@ -3,7 +3,7 @@ import init, { Runtime, run, wat2wasm, Wasmer, Container } from "../pkg/wasmer_w
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder("utf-8");
-const wasmerPython = "https://storage.googleapis.com/wapm-registry-prod/packages/_/python/python-0.1.0.webc";
+const wasmerPython = "https://wasmer.io/python/python@0.1.0";
 
 before(async () => {
     await init();
@@ -114,7 +114,9 @@ async function readToEnd(stream: ReadableStream<Uint8Array>): Promise<string> {
 }
 
 async function getPython(): Promise<{container: Container, python: Uint8Array, module: WebAssembly.Module}> {
-        const response = await fetch(wasmerPython);
+        const response = await fetch(wasmerPython, {
+            headers: { "Accept": "application/webc" }
+        });
         const raw = await response.arrayBuffer();
         const container = new Container(new Uint8Array(raw));
         const python = container.get_atom("python");
