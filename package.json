@@ -2,7 +2,7 @@
   "name": "@wasmer/wasix",
   "version": "0.1.0",
   "main": "dist/Library.cjs.min.js",
-  "module": "dist/Library.esm.min.js",
+  "module": "dist/Library.esm.js",
   "unpkg": "dist/Library.umd.min.js",
   "types": "dist/lib.d.ts",
   "keywords": [
@@ -45,6 +45,7 @@
     "rimraf": "~3.0.2",
     "rollup": "~3.5.1",
     "rollup-plugin-dts": "^5.0.0",
+    "rollup-plugin-node-polyfills": "^0.2.1",
     "rollup-plugin-typescript2": "^0.34.1",
     "ts-loader": "^9.2.6",
     "tslib": "^2.3.1",

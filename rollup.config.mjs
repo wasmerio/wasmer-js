@@ -9,6 +9,7 @@
 //     ],
 // };
 
+import nodePolyfills from 'rollup-plugin-node-polyfills';
 import terser from '@rollup/plugin-terser';
 import pkg from './package.json' assert { type: 'json' };
 import dts from "rollup-plugin-dts";
@@ -68,8 +69,9 @@ const makeConfig = (env = 'development') => {
             typescript(),
             url({
                 include: ['**/*.wasm'],
-                limit: 1 * 1024 * 1024,
+                limit: 100 * 1000 * 1000,
             }),
+            nodePolyfills(),
         ]
     };
 
