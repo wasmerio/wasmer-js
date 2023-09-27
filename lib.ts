@@ -17,7 +17,6 @@ interface MimeBuffer extends Buffer {
  * @api public
  */
 function dataUriToBuffer(uri: string): MimeBuffer {
-	console.log(uri, Buffer);
 	if (!/^data:/i.test(uri)) {
 		throw new TypeError(
 			'`uri` does not appear to be a Data URI (must begin with "data:")'

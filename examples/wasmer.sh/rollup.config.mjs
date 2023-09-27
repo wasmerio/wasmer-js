@@ -22,7 +22,13 @@ export default function configure() {
     };
 
     if (process.env.ROLLUP_WATCH) {
-        config.plugins.push(serve("dist"));
+        config.plugins.push(serve({
+            contentBase: "dist",
+            headers: {
+                "Cross-Origin-Opener-Policy": "same-origin",
+                "Cross-Origin-Embedder-Policy": "require-corp",
+            }
+        }));
     }
 
     return config;
