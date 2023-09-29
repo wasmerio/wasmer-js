@@ -2,7 +2,7 @@
   "name": "@wasmer/wasix",
   "version": "0.1.0",
   "main": "dist/Library.cjs.min.js",
-  "module": "dist/Library.esm.js",
+  "module": "dist/Library.esm.min.js",
   "unpkg": "dist/Library.umd.min.js",
   "types": "dist/lib.d.ts",
   "keywords": [

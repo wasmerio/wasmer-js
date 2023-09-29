@@ -4,6 +4,9 @@ import { Terminal } from "xterm";
 const encoder = new TextEncoder();
 
 async function main() {
+    console.log("Initializing");
+    await init();
+
     const packageName = "sharrattj/bash";
     const args: string[] = [];
     const uses: string[] = [];
@@ -11,11 +14,10 @@ async function main() {
     const term = new Terminal();
 
     const element = document.getElementById("app")!;
+    console.log(element, element.clientWidth, element.clientHeight);
     term.open(element);
 
     term.writeln("Starting...");
-
-    await init();
 
     const wasmer = new Wasmer();
 
@@ -57,4 +59,4 @@ async function copyStream(reader: ReadableStreamDefaultReader<Uint8Array>, cb: (
     }
 }
 
-main();
+addEventListener("DOMContentLoaded", () => main());

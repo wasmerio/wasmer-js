@@ -1,5 +1,5 @@
 import { expect } from '@esm-bundle/chai';
-import init, { Runtime, run, wat2wasm, Wasmer, Container } from "../pkg/wasmer_wasix_js";
+import { Runtime, run, wat2wasm, Wasmer, Container, init } from "..";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder("utf-8");
