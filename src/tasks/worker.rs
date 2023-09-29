@@ -11,14 +11,17 @@ pub struct WorkerState {
 }
 
 impl WorkerState {
-    fn emit(&self, msg: WorkerMessage) -> Result<(), Error> {
-        let scope: DedicatedWorkerGlobalScope = js_sys::global().dyn_into().unwrap();
+    fn busy(&self) -> impl Drop {
+        struct BusyGuard;
+        impl Drop for BusyGuard {
+            fn drop(&mut self) {
+                let _ = emit(WorkerMessage::MarkIdle);
+            }
+        }
 
-        let value =
-            serde_wasm_bindgen::to_value(&msg).map_err(|e| crate::utils::js_error(e.into()))?;
-        scope.post_message(&value).map_err(crate::utils::js_error)?;
+        let _ = emit(WorkerMessage::MarkBusy);
 
-        Ok(())
+        BusyGuard
     }
 }
 
@@ -37,9 +40,8 @@ impl WorkerState {
         match msg {
             PostMessagePayload::SpawnAsync(thunk) => thunk().await,
             PostMessagePayload::SpawnBlocking(thunk) => {
-                self.emit(WorkerMessage::MarkBusy)?;
+                let _guard = self.busy();
                 thunk();
-                self.emit(WorkerMessage::MarkIdle)?;
             }
             PostMessagePayload::CacheModule { hash, .. } => {
                 tracing::warn!(%hash, "XXX Caching module");
@@ -61,4 +63,14 @@ pub(crate) enum WorkerMessage {
     MarkBusy,
     /// Mark this worker as idle.
     MarkIdle,
+}
+
+/// Send a message to the scheduler.
+fn emit(msg: WorkerMessage) -> Result<(), Error> {
+    let scope: DedicatedWorkerGlobalScope = js_sys::global().dyn_into().unwrap();
+
+    let value = serde_wasm_bindgen::to_value(&msg).map_err(|e| crate::utils::js_error(e.into()))?;
+    scope.post_message(&value).map_err(crate::utils::js_error)?;
+
+    Ok(())
 }
