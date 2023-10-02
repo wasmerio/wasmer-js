@@ -15,7 +15,7 @@ let handleMessage = async data => {
 globalThis.onmessage = async ev => {
     if (ev.data.type == "init") {
         const { memory, module, id } = ev.data;
-        // Note: This populates global variables as a side-effect
+        // HACK: This populates global variables as a side-effect
         await import("$IMPORT_META_URL");
         const { init, WorkerState } = globalThis["__WASMER_INTERNALS__"];
         await init(module, memory);

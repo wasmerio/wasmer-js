@@ -78,12 +78,12 @@ let inited: Promise<any> | null = null;
 /**
  * Initialize the underlying WebAssembly module.
 */
-export const init = async (input?: InitInput | Promise<InitInput>, force?: boolean) => {
+export const init = async (input?: InitInput | Promise<InitInput>, maybe_memory?: WebAssembly.Memory, force?: boolean) => {
     if (inited === null || force === true) {
 		if (!input) {
 			input = await WebAssembly.compile(dataUriToBuffer(wasm_bytes as any as string));
 		}
-        inited = load(input);
+        inited = load(input, maybe_memory);
     }
     await inited;
 }

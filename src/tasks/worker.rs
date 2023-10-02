@@ -38,7 +38,9 @@ impl WorkerState {
         tracing::trace!(?msg, "Handling a message");
 
         match msg {
-            PostMessagePayload::SpawnAsync(thunk) => thunk().await,
+            PostMessagePayload::SpawnAsync(thunk) => {
+                thunk().await;
+            }
             PostMessagePayload::SpawnBlocking(thunk) => {
                 let _guard = self.busy();
                 thunk();
