@@ -70,10 +70,17 @@ impl From<Error> for JsValue {
         match error {
             Error::JavaScript(e) => e,
             Error::Rust(error) => {
-                let custom = js_sys::Object::new();
+                let message = error.to_string();
+                let js_error = js_sys::Error::new(&message);
 
                 let _ = js_sys::Reflect::set(
-                    &custom,
+                    &js_error,
+                    &JsString::from("message"),
+                    &JsString::from(error.to_string()),
+                );
+
+                let _ = js_sys::Reflect::set(
+                    &js_error,
                     &JsString::from("detailedMessage"),
                     &JsString::from(format!("{error:?}")),
                 );
@@ -81,12 +88,9 @@ impl From<Error> for JsValue {
                 let causes: js_sys::Array = std::iter::successors(error.source(), |e| e.source())
                     .map(|e| JsString::from(e.to_string()))
                     .collect();
-                let _ = js_sys::Reflect::set(&custom, &JsString::from("causes"), &causes);
+                let _ = js_sys::Reflect::set(&js_error, &JsString::from("causes"), &causes);
 
-                let error_prototype = js_sys::Error::new(&error.to_string());
-                let _ = js_sys::Reflect::set_prototype_of(&custom, &error_prototype);
-
-                custom.into()
+                js_error.into()
             }
         }
     }
