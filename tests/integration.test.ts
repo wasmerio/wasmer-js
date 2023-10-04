@@ -69,6 +69,10 @@ describe("Wasmer.spawn", function() {
             args: ["-c", "import sys; sys.exit(42)"],
         });
         const output = await instance.wait();
+        console.log({
+            stdout: decoder.decode(output.stdout),
+            stderr: decoder.decode(output.stderr),
+        });
 
         expect(output.code).to.equal(42);
         expect(output.ok).to.be.false;
@@ -94,9 +98,22 @@ describe("Wasmer.spawn", function() {
         expect(output.ok).to.be.true;
         expect(await stdout).to.equal("2\n");
     });
+
+    it("can start run a bash session", async () => {
+        const wasmer = new Wasmer();
+
+        // First, start python up in the background
+        const instance = await wasmer.spawn("sharrattj/bash", {
+            uses: ["sharrattj/coreutils"],
+        });
+        // Then, send the command to the REPL
+        const stdin = instance.stdin!.getWriter();
+        await stdin.write(encoder.encode("1 + 1\n"));
+    });
 });
 
-async function readToEnd(stream: ReadableStream<Uint8Array>): Promise<string> {
+
+async function readUntil(stream: ReadableStream<Uint8Array>, predicate: (chunk: ReadableStreamReadResult<Uint8Array>) => boolean): Promise<string> {
     let reader = stream.getReader();
     let pieces: string[] =[];
     let chunk: ReadableStreamReadResult<Uint8Array>;
@@ -108,9 +125,13 @@ async function readToEnd(stream: ReadableStream<Uint8Array>): Promise<string> {
             const sentence = decoder.decode(chunk.value);
             pieces.push(sentence);
         }
-    } while(!chunk.done);
+    } while(predicate(chunk));
 
     return pieces.join("");
+}
+
+async function readToEnd(stream: ReadableStream<Uint8Array>): Promise<string> {
+    return await readUntil(stream, chunk => !chunk.done);
 }
 
 async function getPython(): Promise<{container: Container, python: Uint8Array, module: WebAssembly.Module}> {

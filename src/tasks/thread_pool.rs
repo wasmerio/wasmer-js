@@ -84,8 +84,8 @@ impl VirtualTaskManager for ThreadPool {
     /// Starts an asynchronous task will will run on a dedicated thread
     /// pulled from the worker pool that has a stateful thread local variable
     /// It is ok for this task to block execution and any async futures within its scope
-    fn task_wasm(&self, task: TaskWasm) -> Result<(), WasiThreadError> {
-        todo!();
+    fn task_wasm(&self, _task: TaskWasm) -> Result<(), WasiThreadError> {
+        todo!("TaskWasm isn't implemented");
     }
 
     /// Starts an asynchronous task will will run on a dedicated thread

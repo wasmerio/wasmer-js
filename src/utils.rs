@@ -156,3 +156,39 @@ pub(crate) fn current_module() -> js_sys::WebAssembly::Module {
     //   1: `wasm_bindgen::module` is currently only supported with `--target no-modules` and `--tar get web`
     wasm_bindgen::module().dyn_into().unwrap()
 }
+
+pub(crate) fn js_string_array(array: js_sys::Array) -> Result<Vec<String>, Error> {
+    let mut parsed = Vec::new();
+
+    for arg in array {
+        match arg.dyn_into::<JsString>() {
+            Ok(arg) => parsed.push(String::from(arg)),
+            Err(_) => {
+                return Err(Error::js(js_sys::TypeError::new(
+                    "Expected an array of strings",
+                )));
+            }
+        }
+    }
+
+    Ok(parsed)
+}
+
+pub(crate) fn js_record_of_strings(obj: &js_sys::Object) -> Result<Vec<(String, String)>, Error> {
+    let mut parsed = Vec::new();
+
+    for (key, value) in crate::utils::object_entries(obj)? {
+        let key: String = key.into();
+        let value: String = value
+            .dyn_into::<JsString>()
+            .map_err(|_| {
+                Error::js(js_sys::TypeError::new(
+                    "Expected an object mapping strings to strings",
+                ))
+            })?
+            .into();
+        parsed.push((key, value));
+    }
+
+    Ok(parsed)
+}

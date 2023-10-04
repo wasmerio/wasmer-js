@@ -1,7 +1,7 @@
 use std::{collections::BTreeMap, sync::Arc};
 
 use futures::channel::oneshot;
-use js_sys::{Array, JsString, TypeError};
+use js_sys::Array;
 use wasm_bindgen::{prelude::wasm_bindgen, JsCast, JsValue};
 use wasmer_wasix::{Runtime as _, WasiEnvBuilder};
 
@@ -126,39 +126,20 @@ impl RunConfig {
     }
 
     pub(crate) fn parse_args(&self) -> Result<Vec<String>, Error> {
-        let mut parsed = Vec::new();
-
-        if let Some(args) = self.args() {
-            for arg in args {
-                match arg.dyn_into::<JsString>() {
-                    Ok(arg) => parsed.push(String::from(arg)),
-                    Err(_) => {
-                        return Err(Error::js(TypeError::new("Arguments must be strings")));
-                    }
-                }
-            }
+        match self.args() {
+            Some(args) => crate::utils::js_string_array(args),
+            None => Ok(Vec::new()),
         }
-
-        Ok(parsed)
     }
 
     pub(crate) fn parse_env(&self) -> Result<BTreeMap<String, String>, Error> {
-        let mut parsed = BTreeMap::new();
-
-        if let Some(env) = self.env().dyn_ref() {
-            for (key, value) in crate::utils::object_entries(env)? {
-                let key: String = key.into();
-                let value: String = value
-                    .dyn_into::<JsString>()
-                    .map_err(|_| {
-                        Error::js(TypeError::new("Environment variables must be strings"))
-                    })?
-                    .into();
-                parsed.insert(key, value);
+        match self.env().dyn_ref() {
+            Some(env) => {
+                let vars = crate::utils::js_record_of_strings(env)?;
+                Ok(vars.into_iter().collect())
             }
+            None => Ok(BTreeMap::new()),
         }
-
-        Ok(parsed)
     }
 
     pub(crate) fn read_stdin(&self) -> Option<Vec<u8>> {

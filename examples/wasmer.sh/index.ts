@@ -1,33 +1,39 @@
+import "xterm/css/xterm.css";
+
 import { SpawnConfig, Wasmer, init } from "@wasmer/wasix";
 import { Terminal } from "xterm";
 
 const encoder = new TextEncoder();
 
+const packageName = "sharrattj/bash";
+const args: string[] = [];
+const uses: string[] = ["sharrattj/coreutils"];
+
 async function main() {
     console.log("Initializing");
     await init();
 
-    const packageName = "sharrattj/bash";
-    const args: string[] = [];
-    const uses: string[] = [];
-
     const term = new Terminal();
 
     const element = document.getElementById("app")!;
-    console.log(element, element.clientWidth, element.clientHeight);
     term.open(element);
-
+    term.onResize(console.log);
     term.writeln("Starting...");
+    term.onData(console.error);
+
+    console.log("Starting instance");
 
     const wasmer = new Wasmer();
 
     while (true) {
-        await runInstance(term, wasmer, packageName, { args });
+        await runInstance(term, wasmer, packageName, { args, uses });
+        console.log("Rebooting...");
     }
 }
 
 async function runInstance(term: Terminal, wasmer: Wasmer, packageName: string, config: SpawnConfig) {
     const instance = await wasmer.spawn(packageName, config);
+    term.clear();
 
     const stdin: WritableStreamDefaultWriter<Uint8Array> = instance.stdin!.getWriter();
     term.onData(line => { stdin.write(encoder.encode(line)); });

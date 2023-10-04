@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use anyhow::Context;
-use futures::channel::oneshot;
+use futures::{channel::oneshot, TryStreamExt};
 use js_sys::JsString;
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 use wasmer_wasix::{
@@ -72,7 +72,7 @@ impl Wasmer {
         let tasks = Arc::clone(runtime.task_manager());
 
         let mut runner = WasiRunner::new();
-        let (stdin, stdout, stderr) = config.configure_runner(&mut runner)?;
+        let (stdin, stdout, stderr) = config.configure_runner(&mut runner, &runtime).await?;
 
         tracing::debug!(%specifier, %command_name, "Starting the WASI runner");
 
@@ -102,12 +102,15 @@ extern "C" {
 
     #[wasm_bindgen(method, getter)]
     fn command(this: &SpawnConfig) -> JsValue;
+    #[wasm_bindgen(method, getter)]
+    fn uses(this: &SpawnConfig) -> Option<js_sys::Array>;
 }
 
 impl SpawnConfig {
-    pub(crate) fn configure_runner(
+    pub(crate) async fn configure_runner(
         &self,
         runner: &mut WasiRunner,
+        runtime: &Runtime,
     ) -> Result<
         (
             Option<web_sys::WritableStream>,
@@ -121,6 +124,12 @@ impl SpawnConfig {
 
         let env = self.parse_env()?;
         runner.set_envs(env);
+
+        if let Some(uses) = self.uses() {
+            let uses = crate::utils::js_string_array(uses)?;
+            let packages = load_injected_packages(uses, runtime).await?;
+            runner.add_injected_packages(packages);
+        }
 
         let stdin = match self.read_stdin() {
             Some(stdin) => {
@@ -145,6 +154,29 @@ impl SpawnConfig {
     }
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
+async fn load_injected_packages(
+    packages: Vec<String>,
+    runtime: &Runtime,
+) -> Result<Vec<BinaryPackage>, Error> {
+    let futures: futures::stream::FuturesOrdered<_> = packages
+        .into_iter()
+        .map(|pkg| async move { load_package(&pkg, runtime).await })
+        .collect();
+
+    let packages = futures.try_collect().await?;
+
+    Ok(packages)
+}
+
+#[tracing::instrument(level = "debug", skip(runtime))]
+async fn load_package(pkg: &str, runtime: &Runtime) -> Result<BinaryPackage, Error> {
+    let specifier: PackageSpecifier = pkg.parse()?;
+    let pkg = BinaryPackage::from_registry(&specifier, runtime).await?;
+
+    Ok(pkg)
+}
+
 #[wasm_bindgen(typescript_custom_section)]
 const SPAWN_CONFIG_TYPE_DEFINITION: &'static str = r#"
 /**
@@ -156,6 +188,10 @@ export type SpawnConfig = RunConfig & {
      * defined).
      */
     command?: string;
+    /**
+     * Packages that should also be loaded into the WASIX environment.
+     */
+    uses?: string[];
 }
 "#;
 

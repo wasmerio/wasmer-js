@@ -4,6 +4,7 @@ import commonjs from "@rollup/plugin-commonjs";
 import { nodeResolve } from "@rollup/plugin-node-resolve";
 import url from "@rollup/plugin-url";
 import serve from "rollup-plugin-serve";
+import css from "rollup-plugin-import-css";
 
 export default function configure() {
     const config = {
@@ -18,6 +19,7 @@ export default function configure() {
                 include: ["**/*.wasm"],
                 limit: 1 * 1024 * 1024,
             }),
+            css(),
         ],
     };
 
