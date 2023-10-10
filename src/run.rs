@@ -28,6 +28,7 @@ pub fn run(
     let (stdin, stdout, stderr) = config.configure_builder(&mut builder)?;
 
     let (sender, receiver) = oneshot::channel();
+
     let module = wasmer::Module::from(wasm_module);
 
     // Note: The WasiEnvBuilder::run() method blocks, so we need to run it on

@@ -13,6 +13,8 @@ let handleMessage = async data => {
 };
 
 globalThis.onmessage = async ev => {
+    console.log(globalThis.name, ev.data);
+
     if (ev.data.type == "init") {
         const { memory, module, id } = ev.data;
         // HACK: This populates global variables as a side-effect

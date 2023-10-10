@@ -119,7 +119,17 @@ impl wasmer_wasix::runtime::Runtime for Runtime {
     fn load_module_sync(&self, wasm: &[u8]) -> Result<wasmer::Module, anyhow::Error> {
         let wasm = unsafe { js_sys::Uint8Array::view(wasm) };
         let module = js_sys::WebAssembly::Module::new(&wasm).map_err(crate::utils::js_error)?;
-        Ok(module.into())
+        // Note: We need to use this From impl because it will use the
+        // wasm-types-polyfill to parse the *.wasm file's import section.
+        //
+        // The browser doesn't give you any way to inspect the imports at the
+        // moment, so without the polyfill we'll always assume the module wants
+        // a minimum of 1 page of memory. This causes modules that want more
+        // memory by default (e.g. sharrattj/bash) to fail with an instantiation
+        // error.
+        //
+        // https://github.com/wasmerio/wasmer/blob/8ec4f1d76062e2a612ac2f70f4a73eaf59f8fe9f/lib/api/src/js/module.rs#L323-L328
+        Ok(wasmer::Module::from((module, wasm.to_vec())))
     }
 
     fn tty(&self) -> Option<&(dyn wasmer_wasix::os::TtyBridge + Send + Sync)> {

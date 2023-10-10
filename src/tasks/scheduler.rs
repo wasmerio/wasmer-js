@@ -221,6 +221,7 @@ pub(crate) enum SchedulerMessage {
         msg: WorkerMessage,
     },
     /// Tell all workers to cache a WebAssembly module.
+    #[allow(dead_code)]
     CacheModule {
         hash: WebcHash,
         module: wasmer::Module,

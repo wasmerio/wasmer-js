@@ -17,17 +17,15 @@ async function main() {
 
     const element = document.getElementById("app")!;
     term.open(element);
-    term.onResize(console.log);
+
     term.writeln("Starting...");
-    term.onData(console.error);
-
-    console.log("Starting instance");
-
     const wasmer = new Wasmer();
 
     while (true) {
+        console.log("Starting instance");
         await runInstance(term, wasmer, packageName, { args, uses });
         console.log("Rebooting...");
+        term.writeln("Rebooting...");
     }
 }
 

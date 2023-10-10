@@ -27,8 +27,13 @@ use js_sys::{JsString, Uint8Array};
 use tracing_subscriber::{prelude::__tracing_subscriber_SubscriberExt, EnvFilter};
 use wasm_bindgen::prelude::wasm_bindgen;
 
-pub(crate) const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "-", env!("CARGO_PKG_VERSION"));
-const RUST_LOG: &[&str] = &["warn", "wasmer_wasix=info", "wasmer_wasix_js=debug"];
+pub(crate) const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));
+const RUST_LOG: &[&str] = &[
+    "info",
+    "wasmer_wasix=debug",
+    "wasmer_wasix_js=debug",
+    "wasmer=debug",
+];
 
 #[wasm_bindgen]
 pub fn wat2wasm(wat: JsString) -> Result<Uint8Array, utils::Error> {
