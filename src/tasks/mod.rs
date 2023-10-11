@@ -23,6 +23,7 @@ mod scheduler;
 mod thread_pool;
 mod worker;
 mod worker_handle;
+mod task_wasm;
 
 pub(crate) use self::{
     scheduler::{Scheduler, SchedulerMessage},

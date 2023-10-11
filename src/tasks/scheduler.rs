@@ -11,6 +11,7 @@ use anyhow::{Context, Error};
 use tokio::sync::mpsc::{self, UnboundedSender};
 use tracing::Instrument;
 use wasm_bindgen::{JsCast, JsValue};
+use wasmer::AsJs;
 use wasmer_wasix::runtime::resolver::WebcHash;
 
 use crate::{
@@ -96,6 +97,20 @@ impl Scheduler {
             SchedulerMessage::SpawnWithModule { module, task } => {
                 self.post_message(PostMessagePayload::SpawnWithModule {
                     module: JsValue::from(module).unchecked_into(),
+                    task,
+                })
+            }
+            SchedulerMessage::SpawnWithModuleAndMemory {
+                module,
+                memory,
+                task,
+            } => {
+                let temp_store = wasmer::Store::default();
+                let memory = memory.map(|m| m.as_jsvalue(&temp_store).unchecked_into());
+
+                self.post_message(PostMessagePayload::SpawnWithModuleAndMemory {
+                    module: JsValue::from(module).unchecked_into(),
+                    memory,
                     task,
                 })
             }
@@ -207,7 +222,7 @@ fn move_worker(
     Ok(())
 }
 
-/// Messages sent from the thread pool handle to the [`Scheduler`].
+/// Messages sent from the [`crate::tasks::ThreadPool`] handle to the [`Scheduler`].
 pub(crate) enum SchedulerMessage {
     /// Run a promise on a worker thread.
     SpawnAsync(Box<dyn FnOnce() -> Pin<Box<dyn Future<Output = ()> + 'static>> + Send + 'static>),
@@ -232,6 +247,13 @@ pub(crate) enum SchedulerMessage {
         module: wasmer::Module,
         task: Box<dyn FnOnce(wasmer::Module) + Send + 'static>,
     },
+    /// Run a task in the background, explicitly transferring the
+    /// [`js_sys::WebAssembly::Module`] to the worker.
+    SpawnWithModuleAndMemory {
+        module: wasmer::Module,
+        memory: Option<wasmer::Memory>,
+        task: Box<dyn FnOnce(wasmer::Module, wasmer::Memory) + Send + 'static>,
+    },
 }
 
 impl Debug for SchedulerMessage {
@@ -254,6 +276,16 @@ impl Debug for SchedulerMessage {
             SchedulerMessage::SpawnWithModule { module, task: _ } => f
                 .debug_struct("SpawnWithModule")
                 .field("module", module)
+                .field("task", &Hidden)
+                .finish(),
+            SchedulerMessage::SpawnWithModuleAndMemory {
+                module,
+                memory,
+                task: _,
+            } => f
+                .debug_struct("SpawnWithModule")
+                .field("module", module)
+                .field("memory", memory)
                 .field("task", &Hidden)
                 .finish(),
         }

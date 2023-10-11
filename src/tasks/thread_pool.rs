@@ -84,8 +84,10 @@ impl VirtualTaskManager for ThreadPool {
     /// Starts an asynchronous task will will run on a dedicated thread
     /// pulled from the worker pool that has a stateful thread local variable
     /// It is ok for this task to block execution and any async futures within its scope
-    fn task_wasm(&self, _task: TaskWasm) -> Result<(), WasiThreadError> {
-        todo!("TaskWasm isn't implemented");
+    fn task_wasm(&self, task: TaskWasm<'_, '_>) -> Result<(), WasiThreadError> {
+        let msg = crate::tasks::task_wasm::to_scheduler_message(task, self.sender.clone())?;
+        self.send(msg);
+        Ok(())
     }
 
     /// Starts an asynchronous task will will run on a dedicated thread

@@ -1,7 +1,7 @@
 use std::{fmt::Debug, future::Future, pin::Pin};
 
 use anyhow::{Context, Error};
-use js_sys::{Array, JsString, Uint8Array};
+use js_sys::{Array, JsString, Uint8Array, WebAssembly};
 use once_cell::sync::Lazy;
 use tokio::sync::mpsc::UnboundedSender;
 use wasm_bindgen::{
@@ -67,6 +67,7 @@ impl WorkerHandle {
     /// Send a message to the worker.
     pub(crate) fn send(&self, msg: PostMessagePayload) -> Result<(), Error> {
         let js = msg.into_js().map_err(|e| e.into_anyhow())?;
+        web_sys::console::error_2(&format!("Sending to {}", self.id).into(), &js);
 
         self.inner
             .post_message(&js)
@@ -157,11 +158,18 @@ pub(crate) enum PostMessagePayload {
     SpawnBlocking(Box<dyn FnOnce() + Send + 'static>),
     CacheModule {
         hash: WebcHash,
-        module: js_sys::WebAssembly::Module,
+        module: WebAssembly::Module,
     },
     SpawnWithModule {
-        module: js_sys::WebAssembly::Module,
+        module: WebAssembly::Module,
         task: Box<dyn FnOnce(wasmer::Module) + Send + 'static>,
+    },
+    SpawnWithModuleAndMemory {
+        module: WebAssembly::Module,
+        /// An instance of the WebAssembly linear memory that has already been
+        /// created.
+        memory: Option<WebAssembly::Memory>,
+        task: Box<dyn FnOnce(wasmer::Module, wasmer::Memory) + Send + 'static>,
     },
 }
 
@@ -170,8 +178,10 @@ mod consts {
     pub(crate) const SPAWN_BLOCKING: &str = "spawn-blocking";
     pub(crate) const CACHE_MODULE: &str = "cache-module";
     pub(crate) const SPAWN_WITH_MODULE: &str = "spawn-with-module";
+    pub(crate) const SPAWN_WITH_MODULE_AND_MEMORY: &str = "spawn-with-module-and-memory";
     pub(crate) const PTR: &str = "ptr";
     pub(crate) const MODULE: &str = "module";
+    pub(crate) const MEMORY: &str = "memory";
     pub(crate) const MODULE_HASH: &str = "module-hash";
     pub(crate) const TYPE: &str = "type";
 }
@@ -214,6 +224,17 @@ impl PostMessagePayload {
                 set(&obj, consts::TYPE, consts::SPAWN_WITH_MODULE)?;
                 set(&obj, consts::PTR, BigInt::from(ptr))?;
                 set(&obj, consts::MODULE, module)?;
+            }
+            PostMessagePayload::SpawnWithModuleAndMemory {
+                module,
+                memory,
+                task,
+            } => {
+                let ptr = Box::into_raw(Box::new(task)) as usize;
+                set(&obj, consts::TYPE, consts::SPAWN_WITH_MODULE)?;
+                set(&obj, consts::PTR, BigInt::from(ptr))?;
+                set(&obj, consts::MODULE, module)?;
+                set(&obj, consts::MEMORY, memory)?;
             }
         }
 
@@ -286,6 +307,19 @@ impl PostMessagePayload {
 
                 Ok(PostMessagePayload::SpawnWithModule { module, task })
             }
+            consts::SPAWN_WITH_MODULE_AND_MEMORY => {
+                let ptr = get_usize(&value, consts::PTR)?
+                    as *mut Box<dyn FnOnce(wasmer::Module, wasmer::Memory) + Send + 'static>;
+                let task = unsafe { *Box::from_raw(ptr) };
+                let module = get_js(&value, consts::MODULE)?;
+                let memory = get_js(&value, consts::MEMORY).ok();
+
+                Ok(PostMessagePayload::SpawnWithModuleAndMemory {
+                    module,
+                    memory,
+                    task,
+                })
+            }
             other => Err(anyhow::anyhow!("Unknown message type: {other}").into()),
         }
     }
@@ -308,6 +342,16 @@ impl Debug for PostMessagePayload {
             PostMessagePayload::SpawnWithModule { module, task: _ } => f
                 .debug_struct("CacheModule")
                 .field("module", module)
+                .field("task", &Hidden)
+                .finish(),
+            PostMessagePayload::SpawnWithModuleAndMemory {
+                module,
+                memory,
+                task: _,
+            } => f
+                .debug_struct("CacheModule")
+                .field("module", module)
+                .field("memory", memory)
                 .field("task", &Hidden)
                 .finish(),
         }

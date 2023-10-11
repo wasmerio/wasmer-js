@@ -1,8 +1,11 @@
 use anyhow::Error;
+use bytes::Bytes;
 use wasm_bindgen::{prelude::wasm_bindgen, JsCast, JsValue};
+use wasmer::{AsJs, AsStoreRef, Memory, Module, Store};
+use wasmer_wasix::{runtime::SpawnMemoryType, InstanceSnapshot, WasiEnv, WasiFunctionEnv};
 use web_sys::DedicatedWorkerGlobalScope;
 
-use crate::tasks::PostMessagePayload;
+use crate::tasks::{task_wasm::WasmMemoryType, PostMessagePayload};
 
 #[wasm_bindgen(skip_typescript)]
 #[derive(Debug)]
@@ -51,6 +54,15 @@ impl WorkerState {
             PostMessagePayload::SpawnWithModule { module, task } => {
                 task(module.into());
             }
+            PostMessagePayload::SpawnWithModuleAndMemory {
+                module,
+                memory,
+                task,
+            } => {
+                tracing::warn!("Spawn with module and memory");
+                todo!();
+                // task(module.into(), memory.into());
+            }
         }
 
         Ok(())
@@ -75,4 +87,49 @@ fn emit(msg: WorkerMessage) -> Result<(), Error> {
     scope.post_message(&value).map_err(crate::utils::js_error)?;
 
     Ok(())
+}
+
+fn build_ctx_and_store(
+    module: js_sys::WebAssembly::Module,
+    memory: JsValue,
+    module_bytes: Bytes,
+    env: WasiEnv,
+    run_type: WasmMemoryType,
+    snapshot: Option<InstanceSnapshot>,
+    update_layout: bool,
+) -> Option<(WasiFunctionEnv, Store)> {
+    // Convert back to a wasmer::Module
+    let module: Module = (module, module_bytes).into();
+
+    // Make a fake store which will hold the memory we just transferred
+    let mut temp_store = env.runtime().new_store();
+    let spawn_type = match run_type {
+        WasmMemoryType::CreateMemory => SpawnMemoryType::CreateMemory,
+        WasmMemoryType::CreateMemoryOfType(mem) => SpawnMemoryType::CreateMemoryOfType(mem),
+        WasmMemoryType::ShareMemory(ty) => {
+            let memory = match Memory::from_jsvalue(&mut temp_store, &ty, &memory) {
+                Ok(a) => a,
+                Err(err) => {
+                    let err = crate::utils::js_error(err.into());
+                    tracing::error!(error = &*err, "Failed to receive memory for module");
+                    return None;
+                }
+            };
+            SpawnMemoryType::ShareMemory(memory, temp_store.as_store_ref())
+        }
+    };
+
+    let snapshot = snapshot.as_ref();
+    let (ctx, store) =
+        match WasiFunctionEnv::new_with_store(module, env, snapshot, spawn_type, update_layout) {
+            Ok(a) => a,
+            Err(err) => {
+                tracing::error!(
+                    error = &err as &dyn std::error::Error,
+                    "Failed to crate wasi context",
+                );
+                return None;
+            }
+        };
+    Some((ctx, store))
 }

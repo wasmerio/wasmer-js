@@ -51,7 +51,7 @@ describe("Wasmer.spawn", function() {
     it("Can run python", async () => {
         const wasmer = new Wasmer();
 
-        const instance = await wasmer.spawn("python/python", {
+        const instance = await wasmer.spawn("python/python@0.1.0", {
             args: ["--version"],
         });
         const output = await instance.wait();
@@ -65,7 +65,7 @@ describe("Wasmer.spawn", function() {
     it("Can capture exit codes", async () => {
         const wasmer = new Wasmer();
 
-        const instance = await wasmer.spawn("python/python", {
+        const instance = await wasmer.spawn("python/python@0.1.0", {
             args: ["-c", "import sys; sys.exit(42)"],
         });
         const output = await instance.wait();
@@ -84,7 +84,7 @@ describe("Wasmer.spawn", function() {
         const wasmer = new Wasmer();
 
         // First, start python up in the background
-        const instance = await wasmer.spawn("python/python");
+        const instance = await wasmer.spawn("python/python@0.1.0");
         // Then, send the command to the REPL
         const stdin = instance.stdin!.getWriter();
         await stdin.write(encoder.encode("1 + 1\n"));
@@ -99,7 +99,7 @@ describe("Wasmer.spawn", function() {
         expect(await stdout).to.equal("2\n");
     });
 
-    it("can start run a bash session", async () => {
+    it("can run a bash session", async () => {
         const wasmer = new Wasmer();
 
         // First, start python up in the background
@@ -108,7 +108,17 @@ describe("Wasmer.spawn", function() {
         });
         // Then, send the command to the REPL
         const stdin = instance.stdin!.getWriter();
-        await stdin.write(encoder.encode("1 + 1\n"));
+        await stdin.write(encoder.encode("ls\nexit 42\n"));
+        await stdin.close();
+        const { code, stdout, stderr } = await instance.wait();
+        console.log({
+            code,
+            stdout: decoder.decode(stdout),
+            stderr: decoder.decode(stderr),
+        });
+
+        expect(code).to.equal(42);
+        expect(decoder.decode(stdout)).to.equal("bin\nlib\ntmp\n");
     });
 });
 
