@@ -1,14 +1,3 @@
-// import rust from "@wasm-tool/rollup-plugin-rust";
-
-// export default {
-//     input: {
-//         foo: "Cargo.toml",
-//     },
-//     plugins: [
-//         rust(),
-//     ],
-// };
-
 import nodePolyfills from 'rollup-plugin-node-polyfills';
 import terser from '@rollup/plugin-terser';
 import pkg from './package.json' assert { type: 'json' };
@@ -32,12 +21,6 @@ const banner = `/*!
  */`;
 
 const makeConfig = (env = 'development') => {
-    let bundleSuffix = '';
-
-    if (env === 'production') {
-        bundleSuffix = 'min.';
-    }
-
     const config = {
         input: 'lib.ts',
         external: EXTERNAL,
@@ -45,21 +28,21 @@ const makeConfig = (env = 'development') => {
             {
                 banner,
                 name: LIBRARY_NAME,
-                file: `dist/${LIBRARY_NAME}.umd.${bundleSuffix}js`, // UMD
+                file: `dist/${LIBRARY_NAME}.umd.js`,
                 format: 'umd',
                 exports: 'auto',
                 globals: GLOBALS
             },
             {
                 banner,
-                file: `dist/${LIBRARY_NAME}.cjs.${bundleSuffix}js`, // CommonJS
+                file: `dist/${LIBRARY_NAME}.cjs`,
                 format: 'cjs',
                 exports: 'auto',
                 globals: GLOBALS
             },
             {
                 banner,
-                file: `dist/${LIBRARY_NAME}.esm.${bundleSuffix}js`, // ESM
+                file: `dist/${LIBRARY_NAME}.mjs`,
                 format: 'es',
                 exports: 'named',
                 globals: GLOBALS
