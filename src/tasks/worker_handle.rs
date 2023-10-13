@@ -1,19 +1,19 @@
-use std::{fmt::Debug, future::Future, pin::Pin};
+use std::fmt::Debug;
 
 use anyhow::{Context, Error};
 use js_sys::{Array, JsString, Uint8Array, WebAssembly};
 use once_cell::sync::Lazy;
-use tokio::sync::mpsc::UnboundedSender;
 use wasm_bindgen::{
     prelude::{wasm_bindgen, Closure},
     JsCast, JsValue,
 };
-
-use js_sys::{BigInt, Reflect};
-use wasmer_wasix::runtime::resolver::WebcHash;
+use wasmer_wasix::runtime::module_cache::ModuleHash;
 
 use crate::{
-    tasks::{SchedulerMessage, WorkerMessage},
+    tasks::{
+        interop::Serializer, task_wasm::SpawnWasm, AsyncTask, BlockingModuleTask, BlockingTask,
+        SchedulerChannel, SchedulerMessage, WorkerMessage,
+    },
     utils::Hidden,
 };
 
@@ -23,12 +23,12 @@ use crate::{
 /// automatically call [`web_sys::Worker::terminate()`] when dropped.
 #[derive(Debug)]
 pub(crate) struct WorkerHandle {
-    id: u64,
+    id: u32,
     inner: web_sys::Worker,
 }
 
 impl WorkerHandle {
-    pub(crate) fn spawn(id: u64, sender: UnboundedSender<SchedulerMessage>) -> Result<Self, Error> {
+    pub(crate) fn spawn(id: u32, sender: SchedulerChannel) -> Result<Self, Error> {
         let name = format!("worker-{id}");
 
         let worker = web_sys::Worker::new_with_options(
@@ -60,14 +60,13 @@ impl WorkerHandle {
         Ok(WorkerHandle { id, inner: worker })
     }
 
-    pub(crate) fn id(&self) -> u64 {
+    pub(crate) fn id(&self) -> u32 {
         self.id
     }
 
     /// Send a message to the worker.
     pub(crate) fn send(&self, msg: PostMessagePayload) -> Result<(), Error> {
         let js = msg.into_js().map_err(|e| e.into_anyhow())?;
-        web_sys::console::error_2(&format!("Sending to {}", self.id).into(), &js);
 
         self.inner
             .post_message(&js)
@@ -87,7 +86,7 @@ fn on_error(msg: web_sys::ErrorEvent) {
     );
 }
 
-fn on_message(msg: web_sys::MessageEvent, sender: &UnboundedSender<SchedulerMessage>, id: u64) {
+fn on_message(msg: web_sys::MessageEvent, sender: &SchedulerChannel, id: u32) {
     let result = serde_wasm_bindgen::from_value::<WorkerMessage>(msg.data())
         .map_err(|e| crate::utils::js_error(e.into()))
         .context("Unknown message")
@@ -115,12 +114,12 @@ impl Drop for WorkerHandle {
 }
 
 /// Craft the special `"init"` message.
-fn init_message(id: u64) -> Result<JsValue, JsValue> {
+fn init_message(id: u32) -> Result<JsValue, JsValue> {
     let msg = js_sys::Object::new();
 
     js_sys::Reflect::set(&msg, &JsString::from("type"), &JsString::from("init"))?;
     js_sys::Reflect::set(&msg, &JsString::from("memory"), &wasm_bindgen::memory())?;
-    js_sys::Reflect::set(&msg, &JsString::from("id"), &BigInt::from(id))?;
+    js_sys::Reflect::set(&msg, &JsString::from("id"), &JsValue::from(id))?;
     js_sys::Reflect::set(
         &msg,
         &JsString::from("module"),
@@ -154,22 +153,22 @@ static WORKER_URL: Lazy<String> = Lazy::new(|| {
 
 /// A message that will be sent to a worker using `postMessage()`.
 pub(crate) enum PostMessagePayload {
-    SpawnAsync(Box<dyn FnOnce() -> Pin<Box<dyn Future<Output = ()> + 'static>> + Send + 'static>),
-    SpawnBlocking(Box<dyn FnOnce() + Send + 'static>),
+    SpawnAsync(AsyncTask),
+    SpawnBlocking(BlockingTask),
     CacheModule {
-        hash: WebcHash,
+        hash: ModuleHash,
         module: WebAssembly::Module,
     },
     SpawnWithModule {
         module: WebAssembly::Module,
-        task: Box<dyn FnOnce(wasmer::Module) + Send + 'static>,
+        task: BlockingModuleTask,
     },
     SpawnWithModuleAndMemory {
         module: WebAssembly::Module,
         /// An instance of the WebAssembly linear memory that has already been
         /// created.
         memory: Option<WebAssembly::Memory>,
-        task: Box<dyn FnOnce(wasmer::Module, wasmer::Memory) + Send + 'static>,
+        spawn_wasm: SpawnWasm,
     },
 }
 
@@ -183,141 +182,82 @@ mod consts {
     pub(crate) const MODULE: &str = "module";
     pub(crate) const MEMORY: &str = "memory";
     pub(crate) const MODULE_HASH: &str = "module-hash";
-    pub(crate) const TYPE: &str = "type";
 }
 
 impl PostMessagePayload {
     pub(crate) fn into_js(self) -> Result<JsValue, crate::utils::Error> {
-        fn set(
-            obj: &JsValue,
-            field: &str,
-            value: impl Into<JsValue>,
-        ) -> Result<(), crate::utils::Error> {
-            Reflect::set(obj, &JsValue::from_str(field), &value.into())
-                .map_err(crate::utils::js_error)
-                .with_context(|| format!("Unable to set \"{field}\""))?;
-            Ok(())
-        }
-
-        let obj = js_sys::Object::new();
-
-        // Note: double-box any callable so we get a thin pointer
-
         match self {
-            PostMessagePayload::SpawnAsync(task) => {
-                let ptr = Box::into_raw(Box::new(task)) as usize;
-                set(&obj, consts::TYPE, consts::SPAWN_ASYNC)?;
-                set(&obj, consts::PTR, BigInt::from(ptr))?;
-            }
-            PostMessagePayload::SpawnBlocking(task) => {
-                let ptr = Box::into_raw(Box::new(task)) as usize;
-                set(&obj, consts::TYPE, consts::SPAWN_BLOCKING)?;
-                set(&obj, consts::PTR, BigInt::from(ptr))?;
-            }
+            PostMessagePayload::SpawnAsync(task) => Serializer::new(consts::SPAWN_ASYNC)
+                .boxed(consts::PTR, task)
+                .finish(),
+            PostMessagePayload::SpawnBlocking(task) => Serializer::new(consts::SPAWN_BLOCKING)
+                .boxed(consts::PTR, task)
+                .finish(),
             PostMessagePayload::CacheModule { hash, module } => {
-                set(&obj, consts::TYPE, consts::CACHE_MODULE)?;
-                set(&obj, consts::MODULE_HASH, hash.to_string())?;
-                set(&obj, consts::MODULE, module)?;
+                Serializer::new(consts::CACHE_MODULE)
+                    .set(consts::MODULE_HASH, hash.to_string())
+                    .set(consts::MODULE, module)
+                    .finish()
             }
             PostMessagePayload::SpawnWithModule { module, task } => {
-                let ptr = Box::into_raw(Box::new(task)) as usize;
-                set(&obj, consts::TYPE, consts::SPAWN_WITH_MODULE)?;
-                set(&obj, consts::PTR, BigInt::from(ptr))?;
-                set(&obj, consts::MODULE, module)?;
+                Serializer::new(consts::SPAWN_WITH_MODULE)
+                    .boxed(consts::PTR, task)
+                    .set(consts::MODULE, module)
+                    .finish()
             }
             PostMessagePayload::SpawnWithModuleAndMemory {
                 module,
                 memory,
-                task,
-            } => {
-                let ptr = Box::into_raw(Box::new(task)) as usize;
-                set(&obj, consts::TYPE, consts::SPAWN_WITH_MODULE)?;
-                set(&obj, consts::PTR, BigInt::from(ptr))?;
-                set(&obj, consts::MODULE, module)?;
-                set(&obj, consts::MEMORY, memory)?;
-            }
+                spawn_wasm,
+            } => Serializer::new(consts::SPAWN_WITH_MODULE_AND_MEMORY)
+                .boxed(consts::PTR, spawn_wasm)
+                .set(consts::MODULE, module)
+                .set(consts::MEMORY, memory)
+                .finish(),
         }
-
-        Ok(obj.into())
     }
 
-    pub(crate) fn try_from_js(value: JsValue) -> Result<Self, crate::utils::Error> {
-        fn get_js<T>(value: &JsValue, field: &str) -> Result<T, crate::utils::Error>
-        where
-            T: JsCast,
-        {
-            let value =
-                Reflect::get(value, &JsValue::from_str(field)).map_err(crate::utils::Error::js)?;
-            let value = value.dyn_into().map_err(|_| {
-                anyhow::anyhow!(
-                    "The \"{field}\" field isn't a \"{}\"",
-                    std::any::type_name::<T>()
-                )
-            })?;
-            Ok(value)
-        }
-        fn get_string(value: &JsValue, field: &str) -> Result<String, crate::utils::Error> {
-            let string: JsString = get_js(value, field)?;
-            Ok(string.into())
-        }
-        fn get_usize(value: &JsValue, field: &str) -> Result<usize, crate::utils::Error> {
-            let ptr: BigInt = get_js(value, field)?;
-            let ptr = u64::try_from(ptr)
-                .ok()
-                .and_then(|ptr| usize::try_from(ptr).ok())
-                .context("Unable to convert back to a usize")?;
-            Ok(ptr)
-        }
-
-        let ty = get_string(&value, consts::TYPE)?;
+    /// Try to convert a [`PostMessagePayload`] back from a [`JsValue`].
+    ///
+    /// # Safety
+    ///
+    /// This can only be called if the original [`JsValue`] was created using
+    /// [`PostMessagePayload::into_js()`].
+    pub(crate) unsafe fn try_from_js(value: JsValue) -> Result<Self, crate::utils::Error> {
+        let de = crate::tasks::interop::Deserializer::new(value);
 
         // Safety: Keep this in sync with PostMessagePayload::to_js()
-
-        match ty.as_str() {
+        match de.ty()?.as_str() {
             consts::SPAWN_ASYNC => {
-                let ptr = get_usize(&value, consts::PTR)?
-                    as *mut Box<
-                        dyn FnOnce() -> Pin<Box<dyn Future<Output = ()> + 'static>>
-                            + Send
-                            + 'static,
-                    >;
-                let task = unsafe { *Box::from_raw(ptr) };
-
+                let task = de.get_boxed(consts::PTR)?;
                 Ok(PostMessagePayload::SpawnAsync(task))
             }
             consts::SPAWN_BLOCKING => {
-                let ptr =
-                    get_usize(&value, consts::PTR)? as *mut Box<dyn FnOnce() + Send + 'static>;
-                let task = unsafe { *Box::from_raw(ptr) };
-
+                let task = de.get_boxed(consts::PTR)?;
                 Ok(PostMessagePayload::SpawnBlocking(task))
             }
             consts::CACHE_MODULE => {
-                let module = get_js(&value, consts::MODULE)?;
-                let hash = get_string(&value, consts::MODULE_HASH)?;
-                let hash = WebcHash::parse_hex(&hash)?;
+                let module = de.get_js(consts::MODULE)?;
+                let hash = de.get_string(consts::MODULE_HASH)?;
+                let hash = ModuleHash::parse_hex(&hash)?;
 
                 Ok(PostMessagePayload::CacheModule { hash, module })
             }
             consts::SPAWN_WITH_MODULE => {
-                let ptr = get_usize(&value, consts::PTR)?
-                    as *mut Box<dyn FnOnce(wasmer::Module) + Send + 'static>;
-                let task = unsafe { *Box::from_raw(ptr) };
-                let module = get_js(&value, consts::MODULE)?;
+                let task = de.get_boxed(consts::PTR)?;
+                let module = de.get_js(consts::MODULE)?;
 
                 Ok(PostMessagePayload::SpawnWithModule { module, task })
             }
             consts::SPAWN_WITH_MODULE_AND_MEMORY => {
-                let ptr = get_usize(&value, consts::PTR)?
-                    as *mut Box<dyn FnOnce(wasmer::Module, wasmer::Memory) + Send + 'static>;
-                let task = unsafe { *Box::from_raw(ptr) };
-                let module = get_js(&value, consts::MODULE)?;
-                let memory = get_js(&value, consts::MEMORY).ok();
+                let module = de.get_js(consts::MODULE)?;
+                let memory = de.get_js(consts::MEMORY).ok();
+                let spawn_wasm = de.get_boxed(consts::PTR)?;
 
                 Ok(PostMessagePayload::SpawnWithModuleAndMemory {
                     module,
                     memory,
-                    task,
+                    spawn_wasm,
                 })
             }
             other => Err(anyhow::anyhow!("Unknown message type: {other}").into()),
@@ -347,13 +287,134 @@ impl Debug for PostMessagePayload {
             PostMessagePayload::SpawnWithModuleAndMemory {
                 module,
                 memory,
-                task: _,
+                spawn_wasm,
             } => f
                 .debug_struct("CacheModule")
                 .field("module", module)
                 .field("memory", memory)
-                .field("task", &Hidden)
+                .field("spawn_wasm", &spawn_wasm)
                 .finish(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    };
+
+    use futures::channel::oneshot;
+    use wasm_bindgen_test::wasm_bindgen_test;
+    use wasmer_wasix::runtime::module_cache::ModuleHash;
+
+    use super::*;
+
+    #[wasm_bindgen_test]
+    async fn round_trip_spawn_blocking() {
+        let flag = Arc::new(AtomicBool::new(false));
+        let msg = PostMessagePayload::SpawnBlocking({
+            let flag = Arc::clone(&flag);
+            Box::new(move || {
+                flag.store(true, Ordering::SeqCst);
+            })
+        });
+
+        let js = msg.into_js().unwrap();
+        let round_tripped = unsafe { PostMessagePayload::try_from_js(js).unwrap() };
+
+        match round_tripped {
+            PostMessagePayload::SpawnBlocking(task) => {
+                task();
+                assert!(flag.load(Ordering::SeqCst));
+            }
+            _ => unreachable!(),
+        }
+    }
+
+    #[wasm_bindgen_test]
+    async fn round_trip_spawn_async() {
+        let flag = Arc::new(AtomicBool::new(false));
+        let msg = PostMessagePayload::SpawnAsync({
+            let flag = Arc::clone(&flag);
+            Box::new(move || {
+                Box::pin(async move {
+                    flag.store(true, Ordering::SeqCst);
+                })
+            })
+        });
+
+        let js = msg.into_js().unwrap();
+        let round_tripped = unsafe { PostMessagePayload::try_from_js(js).unwrap() };
+
+        match round_tripped {
+            PostMessagePayload::SpawnAsync(task) => {
+                task().await;
+                assert!(flag.load(Ordering::SeqCst));
+            }
+            _ => unreachable!(),
+        }
+    }
+
+    #[wasm_bindgen_test]
+    async fn round_trip_spawn_with_module() {
+        let wasm: &[u8] = include_bytes!("../../tests/envvar.wasm");
+        let engine = wasmer::Engine::default();
+        let module = wasmer::Module::new(&engine, wasm).unwrap();
+        let (sender, receiver) = oneshot::channel();
+        let msg = PostMessagePayload::SpawnWithModule {
+            module: JsValue::from(module).dyn_into().unwrap(),
+            task: Box::new(|m| {
+                sender
+                    .send(
+                        m.exports()
+                            .map(|e| e.name().to_string())
+                            .collect::<Vec<String>>(),
+                    )
+                    .unwrap();
+            }),
+        };
+
+        let js = msg.into_js().unwrap();
+        let round_tripped = unsafe { PostMessagePayload::try_from_js(js).unwrap() };
+
+        let (module, task) = match round_tripped {
+            PostMessagePayload::SpawnWithModule { module, task } => (module, task),
+            _ => unreachable!(),
+        };
+        task(module.into());
+        let name = receiver.await.unwrap();
+        assert_eq!(
+            name,
+            vec![
+                "memory".to_string(),
+                "__heap_base".to_string(),
+                "__data_end".to_string(),
+                "_start".to_string(),
+                "main".to_string()
+            ]
+        );
+    }
+
+    #[wasm_bindgen_test]
+    async fn round_trip_cache_module() {
+        let wasm: &[u8] = include_bytes!("../../tests/envvar.wasm");
+        let engine = wasmer::Engine::default();
+        let module = wasmer::Module::new(&engine, wasm).unwrap();
+        let msg = PostMessagePayload::CacheModule {
+            hash: ModuleHash::sha256(wasm),
+            module: module.into(),
+        };
+
+        let js = msg.into_js().unwrap();
+        let round_tripped = unsafe { PostMessagePayload::try_from_js(js).unwrap() };
+
+        match round_tripped {
+            PostMessagePayload::CacheModule { hash, module: _ } => {
+                assert_eq!(hash, ModuleHash::sha256(wasm));
+            }
+            _ => unreachable!(),
+        };
     }
 }

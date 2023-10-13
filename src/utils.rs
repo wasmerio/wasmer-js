@@ -1,4 +1,8 @@
-use std::{collections::BTreeMap, fmt::Debug, num::NonZeroUsize};
+use std::{
+    collections::BTreeMap,
+    fmt::{Debug, Display},
+    num::NonZeroUsize,
+};
 
 use js_sys::{JsString, Promise};
 
@@ -96,6 +100,25 @@ impl From<Error> for JsValue {
     }
 }
 
+impl Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Error::Rust(e) => Display::fmt(e, f),
+            Error::JavaScript(js) => {
+                if let Some(e) = js.dyn_ref::<js_sys::Error>() {
+                    write!(f, "{}", String::from(e.message()))
+                } else if let Some(obj) = js.dyn_ref::<js_sys::Object>() {
+                    write!(f, "{}", String::from(obj.to_string()))
+                } else if let Some(s) = js.dyn_ref::<js_sys::JsString>() {
+                    write!(f, "{}", String::from(s))
+                } else {
+                    write!(f, "A JavaScript error occurred")
+                }
+            }
+        }
+    }
+}
+
 pub(crate) fn object_entries(obj: &js_sys::Object) -> Result<BTreeMap<JsString, JsValue>, Error> {
     let mut entries = BTreeMap::new();
 
@@ -134,8 +157,12 @@ pub(crate) struct Hidden;
 
 impl Debug for Hidden {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str("_")
+        hidden(self, f)
     }
+}
+
+pub(crate) fn hidden<T>(_value: T, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.write_str("_")
 }
 
 /// Get a reference to the currently running module.

@@ -3,22 +3,19 @@ use std::{fmt::Debug, future::Future, num::NonZeroUsize, pin::Pin};
 use anyhow::Context;
 use futures::future::LocalBoxFuture;
 use instant::Duration;
-use tokio::sync::mpsc::UnboundedSender;
 use wasm_bindgen_futures::JsFuture;
 use wasmer_wasix::{runtime::task_manager::TaskWasm, VirtualTaskManager, WasiThreadError};
 
-use crate::tasks::{Scheduler, SchedulerMessage};
+use crate::tasks::{Scheduler, SchedulerChannel, SchedulerMessage};
 
 /// A handle to a threadpool backed by Web Workers.
 #[derive(Debug, Clone)]
-pub struct ThreadPool {
-    sender: UnboundedSender<SchedulerMessage>,
-}
+pub struct ThreadPool(SchedulerChannel);
 
 impl ThreadPool {
     pub fn new(capacity: NonZeroUsize) -> Self {
         let sender = Scheduler::spawn(capacity);
-        ThreadPool { sender }
+        ThreadPool(sender)
     }
 
     pub fn new_with_max_threads() -> Result<ThreadPool, anyhow::Error> {
@@ -38,7 +35,7 @@ impl ThreadPool {
     }
 
     pub(crate) fn send(&self, msg: SchedulerMessage) {
-        self.sender.send(msg).expect("scheduler is dead");
+        self.0.send(msg).expect("scheduler is dead");
     }
 }
 
@@ -85,7 +82,7 @@ impl VirtualTaskManager for ThreadPool {
     /// pulled from the worker pool that has a stateful thread local variable
     /// It is ok for this task to block execution and any async futures within its scope
     fn task_wasm(&self, task: TaskWasm<'_, '_>) -> Result<(), WasiThreadError> {
-        let msg = crate::tasks::task_wasm::to_scheduler_message(task, self.sender.clone())?;
+        let msg = crate::tasks::task_wasm::to_scheduler_message(task)?;
         self.send(msg);
         Ok(())
     }
@@ -157,7 +154,7 @@ mod tests {
         assert_eq!(exports, 5);
     }
 
-    #[wasm_bindgen_test::wasm_bindgen_test]
+    #[wasm_bindgen_test]
     async fn spawned_tasks_can_communicate_with_the_main_thread() {
         let pool = ThreadPool::new(2.try_into().unwrap());
         let (sender, receiver) = oneshot::channel();

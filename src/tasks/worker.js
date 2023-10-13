@@ -17,9 +17,26 @@ globalThis.onmessage = async ev => {
 
     if (ev.data.type == "init") {
         const { memory, module, id } = ev.data;
-        // HACK: This populates global variables as a side-effect
-        await import("$IMPORT_META_URL");
-        const { init, WorkerState } = globalThis["__WASMER_INTERNALS__"];
+        const imported = await import("$IMPORT_META_URL");
+
+        // HACK: How we load our imports will change depending on how the code
+        // is deployed. If we are being used in "wasm-pack test" then we can
+        // access the things we want from the imported object. Otherwise, if we
+        // are being used from a bundler, chances are those things are no longer
+        // directly accessible and we need to get them from the
+        // __WASMER_INTERNALS__ object stashed on the global scope when the
+        // package was imported.
+        let init;
+        let WorkerState;
+
+        if ('default' in imported && 'WorkerState' in imported) {
+            init = imported.default;
+            WorkerState = imported.WorkerState;
+        } else {
+            init = globalThis["__WASMER_INTERNALS__"].init;
+            WorkerState = globalThis["__WASMER_INTERNALS__"].WorkerState;
+        }
+
         await init(module, memory);
 
         worker = new WorkerState(id);

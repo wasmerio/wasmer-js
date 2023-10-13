@@ -1,21 +1,23 @@
 use std::{
     collections::{BTreeMap, VecDeque},
     fmt::Debug,
-    future::Future,
+    marker::PhantomData,
     num::NonZeroUsize,
-    pin::Pin,
-    sync::atomic::{AtomicU64, Ordering},
+    sync::atomic::{AtomicU32, Ordering},
 };
 
 use anyhow::{Context, Error};
-use tokio::sync::mpsc::{self, UnboundedSender};
+use tokio::sync::mpsc::{self};
 use tracing::Instrument;
 use wasm_bindgen::{JsCast, JsValue};
 use wasmer::AsJs;
-use wasmer_wasix::runtime::resolver::WebcHash;
+use wasmer_wasix::runtime::module_cache::ModuleHash;
 
 use crate::{
-    tasks::{PostMessagePayload, WorkerHandle, WorkerMessage},
+    tasks::{
+        task_wasm::SpawnWasm, AsyncTask, BlockingModuleTask, BlockingTask, PostMessagePayload,
+        SchedulerChannel, WorkerHandle, WorkerMessage,
+    },
     utils::Hidden,
 };
 
@@ -29,16 +31,21 @@ pub(crate) struct Scheduler {
     /// Workers that are currently blocked on synchronous operations and can't
     /// receive work at this time.
     busy: VecDeque<WorkerHandle>,
-    /// An [`UnboundedSender`] used to send the [`Scheduler`] more messages.
-    mailbox: UnboundedSender<SchedulerMessage>,
-    cached_modules: BTreeMap<WebcHash, js_sys::WebAssembly::Module>,
+    /// An [`SchedulerChannel`] used to send the [`Scheduler`] more messages.
+    mailbox: SchedulerChannel,
+    cached_modules: BTreeMap<ModuleHash, js_sys::WebAssembly::Module>,
 }
 
 impl Scheduler {
     /// Spin up a scheduler on the current thread and get a channel that can be
     /// used to communicate with it.
-    pub(crate) fn spawn(capacity: NonZeroUsize) -> UnboundedSender<SchedulerMessage> {
+    pub(crate) fn spawn(capacity: NonZeroUsize) -> SchedulerChannel {
         let (sender, mut receiver) = mpsc::unbounded_channel();
+
+        let thread_id = wasmer::current_thread_id();
+        // Safety: we just got the thread ID.
+        let sender = unsafe { SchedulerChannel::new(sender, thread_id) };
+
         let mut scheduler = Scheduler::new(capacity, sender.clone());
 
         wasm_bindgen_futures::spawn_local(
@@ -63,7 +70,7 @@ impl Scheduler {
         sender
     }
 
-    fn new(capacity: NonZeroUsize, mailbox: UnboundedSender<SchedulerMessage>) -> Self {
+    fn new(capacity: NonZeroUsize, mailbox: SchedulerChannel) -> Self {
         Scheduler {
             capacity,
             idle: VecDeque::new(),
@@ -103,15 +110,16 @@ impl Scheduler {
             SchedulerMessage::SpawnWithModuleAndMemory {
                 module,
                 memory,
-                task,
+                spawn_wasm,
             } => {
                 let temp_store = wasmer::Store::default();
-                let memory = memory.map(|m| m.as_jsvalue(&temp_store).unchecked_into());
+                let memory = memory.map(|m| m.as_jsvalue(&temp_store).dyn_into().unwrap());
+                let module = JsValue::from(module).dyn_into().unwrap();
 
                 self.post_message(PostMessagePayload::SpawnWithModuleAndMemory {
-                    module: JsValue::from(module).unchecked_into(),
+                    module,
                     memory,
-                    task,
+                    spawn_wasm,
                 })
             }
             SchedulerMessage::Worker {
@@ -122,6 +130,7 @@ impl Scheduler {
                 worker_id,
                 msg: WorkerMessage::MarkIdle,
             } => move_worker(worker_id, &mut self.busy, &mut self.idle),
+            SchedulerMessage::Markers { uninhabited, .. } => match uninhabited {},
         }
     }
 
@@ -187,7 +196,7 @@ impl Scheduler {
         // Note: By using a monotonically incrementing counter, we can make sure
         // every single worker created with this shared linear memory will get a
         // unique ID.
-        static NEXT_ID: AtomicU64 = AtomicU64::new(0);
+        static NEXT_ID: AtomicU32 = AtomicU32::new(0);
 
         let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
 
@@ -207,7 +216,7 @@ impl Scheduler {
 }
 
 fn move_worker(
-    worker_id: u64,
+    worker_id: u32,
     from: &mut VecDeque<WorkerHandle>,
     to: &mut VecDeque<WorkerHandle>,
 ) -> Result<(), Error> {
@@ -225,34 +234,42 @@ fn move_worker(
 /// Messages sent from the [`crate::tasks::ThreadPool`] handle to the [`Scheduler`].
 pub(crate) enum SchedulerMessage {
     /// Run a promise on a worker thread.
-    SpawnAsync(Box<dyn FnOnce() -> Pin<Box<dyn Future<Output = ()> + 'static>> + Send + 'static>),
+    SpawnAsync(AsyncTask),
     /// Run a blocking operation on a worker thread.
-    SpawnBlocking(Box<dyn FnOnce() + Send + 'static>),
+    SpawnBlocking(BlockingTask),
     /// A message sent from a worker thread.
     Worker {
         /// The worker ID.
-        worker_id: u64,
+        worker_id: u32,
         /// The message.
         msg: WorkerMessage,
     },
     /// Tell all workers to cache a WebAssembly module.
     #[allow(dead_code)]
     CacheModule {
-        hash: WebcHash,
+        hash: ModuleHash,
         module: wasmer::Module,
     },
     /// Run a task in the background, explicitly transferring the
     /// [`js_sys::WebAssembly::Module`] to the worker.
     SpawnWithModule {
         module: wasmer::Module,
-        task: Box<dyn FnOnce(wasmer::Module) + Send + 'static>,
+        task: BlockingModuleTask,
     },
     /// Run a task in the background, explicitly transferring the
     /// [`js_sys::WebAssembly::Module`] to the worker.
     SpawnWithModuleAndMemory {
         module: wasmer::Module,
         memory: Option<wasmer::Memory>,
-        task: Box<dyn FnOnce(wasmer::Module, wasmer::Memory) + Send + 'static>,
+        spawn_wasm: SpawnWasm,
+    },
+    #[doc(hidden)]
+    #[allow(dead_code)]
+    Markers {
+        /// [`wasmer::Module`] and friends are `!Send` in practice.
+        not_send: PhantomData<*const ()>,
+        /// Mark this variant as unreachable.
+        uninhabited: std::convert::Infallible,
     },
 }
 
@@ -281,13 +298,14 @@ impl Debug for SchedulerMessage {
             SchedulerMessage::SpawnWithModuleAndMemory {
                 module,
                 memory,
-                task: _,
+                spawn_wasm,
             } => f
                 .debug_struct("SpawnWithModule")
                 .field("module", module)
                 .field("memory", memory)
-                .field("task", &Hidden)
+                .field("spawn_wasm", spawn_wasm)
                 .finish(),
+            SchedulerMessage::Markers { uninhabited, .. } => match *uninhabited {},
         }
     }
 }
@@ -303,6 +321,7 @@ mod tests {
     async fn spawn_an_async_function() {
         let (sender, receiver) = oneshot::channel();
         let (tx, _) = mpsc::unbounded_channel();
+        let tx = unsafe { SchedulerChannel::new(tx, wasmer::current_thread_id()) };
         let mut scheduler = Scheduler::new(NonZeroUsize::MAX, tx);
         let message = SchedulerMessage::SpawnAsync(Box::new(move || {
             Box::pin(async move {
