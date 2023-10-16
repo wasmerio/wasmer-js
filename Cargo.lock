@@ -1514,6 +1514,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_bytes"
+version = "0.11.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ab33ec92f677585af6d88c65593ae2375adde54efdbf16d597f2cbc7a6d368ff"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "serde_cbor"
 version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2422,6 +2431,8 @@ dependencies = [
  "region",
  "rkyv",
  "self_cell",
+ "serde",
+ "serde_bytes",
  "shared-buffer",
  "smallvec",
  "thiserror",
@@ -2469,6 +2480,7 @@ dependencies = [
  "more-asserts",
  "rkyv",
  "serde",
+ "serde_bytes",
  "target-lexicon",
  "thiserror",
 ]
@@ -2494,6 +2506,7 @@ dependencies = [
  "more-asserts",
  "region",
  "scopeguard",
+ "serde",
  "thiserror",
  "wasmer-types",
  "winapi",

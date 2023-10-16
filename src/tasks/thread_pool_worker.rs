@@ -1,35 +1,34 @@
-use anyhow::Error;
-use wasm_bindgen::{prelude::wasm_bindgen, JsCast, JsValue};
-use web_sys::DedicatedWorkerGlobalScope;
+use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
-use crate::tasks::PostMessagePayload;
+use crate::tasks::{PostMessagePayload, WorkerMessage};
 
+/// The Rust state for a worker in the threadpool.
 #[wasm_bindgen(skip_typescript)]
 #[derive(Debug)]
-pub struct WorkerState {
+pub struct ThreadPoolWorker {
     id: u32,
 }
 
-impl WorkerState {
+impl ThreadPoolWorker {
     fn busy(&self) -> impl Drop {
         struct BusyGuard;
         impl Drop for BusyGuard {
             fn drop(&mut self) {
-                let _ = emit(WorkerMessage::MarkIdle);
+                let _ = WorkerMessage::MarkIdle.emit();
             }
         }
 
-        let _ = emit(WorkerMessage::MarkBusy);
+        let _ = WorkerMessage::MarkBusy.emit();
 
         BusyGuard
     }
 }
 
 #[wasm_bindgen]
-impl WorkerState {
+impl ThreadPoolWorker {
     #[wasm_bindgen(constructor)]
-    pub fn new(id: u32) -> WorkerState {
-        WorkerState { id }
+    pub fn new(id: u32) -> ThreadPoolWorker {
+        ThreadPoolWorker { id }
     }
 
     pub async fn handle(&mut self, msg: JsValue) -> Result<(), crate::utils::Error> {
@@ -66,24 +65,4 @@ impl WorkerState {
 
         Ok(())
     }
-}
-
-/// A message the worker sends back to the scheduler.
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
-#[serde(tag = "type", rename_all = "kebab-case")]
-pub(crate) enum WorkerMessage {
-    /// Mark this worker as busy.
-    MarkBusy,
-    /// Mark this worker as idle.
-    MarkIdle,
-}
-
-/// Send a message to the scheduler.
-fn emit(msg: WorkerMessage) -> Result<(), Error> {
-    let scope: DedicatedWorkerGlobalScope = js_sys::global().dyn_into().unwrap();
-
-    let value = serde_wasm_bindgen::to_value(&msg).map_err(|e| crate::utils::js_error(e.into()))?;
-    scope.post_message(&value).map_err(crate::utils::js_error)?;
-
-    Ok(())
 }

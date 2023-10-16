@@ -1,7 +1,6 @@
 use std::{
     collections::{BTreeMap, VecDeque},
     fmt::Debug,
-    marker::PhantomData,
     num::NonZeroUsize,
     sync::atomic::{AtomicU32, Ordering},
 };
@@ -13,12 +12,8 @@ use wasm_bindgen::{JsCast, JsValue};
 use wasmer::AsJs;
 use wasmer_wasix::runtime::module_cache::ModuleHash;
 
-use crate::{
-    tasks::{
-        task_wasm::SpawnWasm, AsyncTask, BlockingModuleTask, BlockingTask, PostMessagePayload,
-        SchedulerChannel, WorkerHandle, WorkerMessage,
-    },
-    utils::Hidden,
+use crate::tasks::{
+    scheduler_message::SchedulerMessage, PostMessagePayload, SchedulerChannel, WorkerHandle,
 };
 
 /// The actor in charge of the threadpool.
@@ -122,14 +117,12 @@ impl Scheduler {
                     spawn_wasm,
                 })
             }
-            SchedulerMessage::Worker {
-                worker_id,
-                msg: WorkerMessage::MarkBusy,
-            } => move_worker(worker_id, &mut self.idle, &mut self.busy),
-            SchedulerMessage::Worker {
-                worker_id,
-                msg: WorkerMessage::MarkIdle,
-            } => move_worker(worker_id, &mut self.busy, &mut self.idle),
+            SchedulerMessage::WorkerBusy { worker_id } => {
+                move_worker(worker_id, &mut self.idle, &mut self.busy)
+            }
+            SchedulerMessage::WorkerIdle { worker_id } => {
+                move_worker(worker_id, &mut self.busy, &mut self.idle)
+            }
             SchedulerMessage::Markers { uninhabited, .. } => match uninhabited {},
         }
     }
@@ -229,85 +222,6 @@ fn move_worker(
     to.push_back(worker);
 
     Ok(())
-}
-
-/// Messages sent from the [`crate::tasks::ThreadPool`] handle to the [`Scheduler`].
-pub(crate) enum SchedulerMessage {
-    /// Run a promise on a worker thread.
-    SpawnAsync(AsyncTask),
-    /// Run a blocking operation on a worker thread.
-    SpawnBlocking(BlockingTask),
-    /// A message sent from a worker thread.
-    Worker {
-        /// The worker ID.
-        worker_id: u32,
-        /// The message.
-        msg: WorkerMessage,
-    },
-    /// Tell all workers to cache a WebAssembly module.
-    #[allow(dead_code)]
-    CacheModule {
-        hash: ModuleHash,
-        module: wasmer::Module,
-    },
-    /// Run a task in the background, explicitly transferring the
-    /// [`js_sys::WebAssembly::Module`] to the worker.
-    SpawnWithModule {
-        module: wasmer::Module,
-        task: BlockingModuleTask,
-    },
-    /// Run a task in the background, explicitly transferring the
-    /// [`js_sys::WebAssembly::Module`] to the worker.
-    SpawnWithModuleAndMemory {
-        module: wasmer::Module,
-        memory: Option<wasmer::Memory>,
-        spawn_wasm: SpawnWasm,
-    },
-    #[doc(hidden)]
-    #[allow(dead_code)]
-    Markers {
-        /// [`wasmer::Module`] and friends are `!Send` in practice.
-        not_send: PhantomData<*const ()>,
-        /// Mark this variant as unreachable.
-        uninhabited: std::convert::Infallible,
-    },
-}
-
-impl Debug for SchedulerMessage {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            SchedulerMessage::SpawnAsync(_) => f.debug_tuple("SpawnAsync").field(&Hidden).finish(),
-            SchedulerMessage::SpawnBlocking(_) => {
-                f.debug_tuple("SpawnBlocking").field(&Hidden).finish()
-            }
-            SchedulerMessage::Worker { worker_id: id, msg } => f
-                .debug_struct("Worker")
-                .field("worker_id", id)
-                .field("msg", msg)
-                .finish(),
-            SchedulerMessage::CacheModule { hash, module } => f
-                .debug_struct("CacheModule")
-                .field("hash", hash)
-                .field("module", module)
-                .finish(),
-            SchedulerMessage::SpawnWithModule { module, task: _ } => f
-                .debug_struct("SpawnWithModule")
-                .field("module", module)
-                .field("task", &Hidden)
-                .finish(),
-            SchedulerMessage::SpawnWithModuleAndMemory {
-                module,
-                memory,
-                spawn_wasm,
-            } => f
-                .debug_struct("SpawnWithModule")
-                .field("module", module)
-                .field("memory", memory)
-                .field("spawn_wasm", spawn_wasm)
-                .finish(),
-            SchedulerMessage::Markers { uninhabited, .. } => match *uninhabited {},
-        }
-    }
 }
 
 #[cfg(test)]

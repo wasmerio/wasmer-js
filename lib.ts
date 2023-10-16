@@ -1,7 +1,7 @@
 import { Buffer } from "buffer";
 export * from "./pkg/wasmer_wasix_js";
 // @ts-ignore
-import load, { WorkerState } from "./pkg/wasmer_wasix_js";
+import load, { ThreadPoolWorker } from "./pkg/wasmer_wasix_js";
 import wasm_bytes from "./pkg/wasmer_wasix_js_bg.wasm";
 
 interface MimeBuffer extends Buffer {
@@ -91,4 +91,4 @@ export const init = async (input?: InitInput | Promise<InitInput>, maybe_memory?
 // HACK: We save these to the global scope because it's the most reliable way to
 // make sure worker.js gets access to them. Normal exports are removed when
 // using a bundler.
-(globalThis as any)["__WASMER_INTERNALS__"] = { WorkerState, init };
+(globalThis as any)["__WASMER_INTERNALS__"] = { ThreadPoolWorker, init };

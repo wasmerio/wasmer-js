@@ -13,26 +13,38 @@
 //!   sending messages to the [`Scheduler`]
 //! - [`WorkerHandle`] - a `!Send` handle used by the [`Scheduler`] to manage
 //!   a worker's lifecycle and communicate back and forth with it
-//! - [`worker::WorkerState`] - a worker's internal state
+//! - [`worker::Worker`] - a worker's internal state
 //!
 //! Communicating with workers is a bit tricky because of their asynchronous
 //! nature and the requirement to use `postMessage()` when transferring certain
-//! JavaScript objects between workers and the main thread.
+//! JavaScript objects between workers and the main thread. Often, this requires
+//! the message to go through some `postMessage()`-friendly intermediate
+//! representation.
+//!
+//! The main message types:
+//! - [`SchedulerMessage`] - messages sent from the [`ThreadPool`] and
+//!   [`crate::Runtime`] to the [`Scheduler`]
+//! - [`PostMessagePayload`] - messages the [`Scheduler`] sends to a
+//!   [`Worker`]
+//! - [`WorkerMessage`] - messages a [`Worker`] sends back to the [`Scheduler`]
+//!
+//! [`Worker`]: thread_pool_worker::ThreadPoolWorker
 
 mod interop;
+mod post_message_payload;
 mod scheduler;
 mod scheduler_channel;
+mod scheduler_message;
 mod task_wasm;
 mod thread_pool;
-mod worker;
+mod thread_pool_worker;
 mod worker_handle;
+mod worker_message;
 
 pub(crate) use self::{
-    scheduler::{Scheduler, SchedulerMessage},
-    scheduler_channel::SchedulerChannel,
-    thread_pool::ThreadPool,
-    worker::WorkerMessage,
-    worker_handle::{PostMessagePayload, WorkerHandle},
+    post_message_payload::PostMessagePayload, scheduler::Scheduler,
+    scheduler_channel::SchedulerChannel, scheduler_message::SchedulerMessage,
+    thread_pool::ThreadPool, worker_handle::WorkerHandle, worker_message::WorkerMessage,
 };
 
 use std::{future::Future, pin::Pin};

@@ -1,7 +1,7 @@
 use anyhow::Error;
 use tokio::sync::mpsc::UnboundedSender;
 
-use crate::tasks::SchedulerMessage;
+use crate::tasks::{SchedulerMessage, WorkerMessage};
 
 /// A fancy [`UnboundedSender`] which sends messages to the scheduler.
 ///
@@ -42,12 +42,18 @@ impl SchedulerChannel {
                 .map_err(|_| Error::msg("Scheduler is dead"))?;
             Ok(())
         } else {
-            // We are in a child worker and need to go through postMessage()
-            todo!();
+            // We are in a child worker so we need to emit the message via
+            // postMessage() and let the WorkerHandle forward it to the
+            // scheduler.
+            WorkerMessage::Scheduler(msg)
+                .emit()
+                .map_err(|e| e.into_anyhow())?;
+            Ok(())
         }
     }
 }
 
-// Safety: The only way the channel can be used is if we are on the same
+// Safety: The only way our !Send messages will be sent to the scheduler is if
+// they are on the same thread.
 unsafe impl Send for SchedulerChannel {}
 unsafe impl Sync for SchedulerChannel {}

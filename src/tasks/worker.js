@@ -27,19 +27,19 @@ globalThis.onmessage = async ev => {
         // __WASMER_INTERNALS__ object stashed on the global scope when the
         // package was imported.
         let init;
-        let WorkerState;
+        let ThreadPoolWorker;
 
-        if ('default' in imported && 'WorkerState' in imported) {
+        if ('default' in imported && 'ThreadPoolWorker' in imported) {
             init = imported.default;
-            WorkerState = imported.WorkerState;
+            ThreadPoolWorker = imported.ThreadPoolWorker;
         } else {
             init = globalThis["__WASMER_INTERNALS__"].init;
-            WorkerState = globalThis["__WASMER_INTERNALS__"].WorkerState;
+            ThreadPoolWorker = globalThis["__WASMER_INTERNALS__"].ThreadPoolWorker;
         }
 
         await init(module, memory);
 
-        worker = new WorkerState(id);
+        worker = new ThreadPoolWorker(id);
 
         // Now that we're initialized, we need to handle any buffered messages
         for (const msg of pendingMessages.splice(0, pendingMessages.length)) {
