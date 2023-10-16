@@ -80,16 +80,19 @@ fn on_error(msg: web_sys::ErrorEvent) {
 }
 
 fn on_message(msg: web_sys::MessageEvent, sender: &SchedulerChannel, id: u32) {
-    web_sys::console::log_3(
-        &JsValue::from("received message from worker"),
-        &JsValue::from(id),
-        &msg.data(),
-    );
-
-    let result = WorkerMessage::try_from_js(msg.data())
+    // Safety: The only way we can receive this message is if it was from the
+    // worker, because we are the ones that spawned the worker, we can trust
+    // the messages it emits.
+    let result = unsafe { WorkerMessage::try_from_js(msg.data()) }
         .map_err(|e| crate::utils::js_error(e.into()))
         .context("Unknown message")
         .and_then(|msg| {
+            web_sys::console::log_3(
+                &JsValue::from("received message from worker"),
+                &JsValue::from(id),
+                &JsValue::from(format!("{msg:#?}")),
+            );
+
             let msg = match msg {
                 WorkerMessage::MarkBusy => SchedulerMessage::WorkerBusy { worker_id: id },
                 WorkerMessage::MarkIdle => SchedulerMessage::WorkerIdle { worker_id: id },

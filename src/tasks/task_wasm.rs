@@ -206,6 +206,17 @@ pub(crate) struct SpawnWasm {
 }
 
 impl SpawnWasm {
+    pub(crate) fn module_bytes(&self) -> Bytes {
+        self.module_bytes.clone()
+    }
+
+    pub(crate) fn shared_memory_type(&self) -> Option<MemoryType> {
+        match self.run_type {
+            WasmMemoryType::ShareMemory(ty) => Some(ty),
+            WasmMemoryType::CreateMemory | WasmMemoryType::CreateMemoryOfType(_) => None,
+        }
+    }
+
     /// Run the WebAssembly task.
     ///
     /// Note that this **will** block while the `run` callback is executing.

@@ -20,7 +20,7 @@ pub(crate) enum WorkerMessage {
 }
 
 impl WorkerMessage {
-    pub(crate) fn try_from_js(value: JsValue) -> Result<Self, Error> {
+    pub(crate) unsafe fn try_from_js(value: JsValue) -> Result<Self, Error> {
         let de = Deserializer::new(value);
 
         match de.ty()?.as_str() {
@@ -77,7 +77,7 @@ mod tests {
         let msg = WorkerMessage::MarkBusy;
 
         let js = msg.into_js().unwrap();
-        let round_tripped = WorkerMessage::try_from_js(js).unwrap();
+        let round_tripped = unsafe { WorkerMessage::try_from_js(js).unwrap() };
 
         assert!(matches!(round_tripped, WorkerMessage::MarkBusy));
     }
@@ -87,8 +87,21 @@ mod tests {
         let msg = WorkerMessage::MarkIdle;
 
         let js = msg.into_js().unwrap();
-        let round_tripped = WorkerMessage::try_from_js(js).unwrap();
+        let round_tripped = unsafe { WorkerMessage::try_from_js(js).unwrap() };
 
         assert!(matches!(round_tripped, WorkerMessage::MarkIdle));
+    }
+
+    #[test]
+    fn round_trip_scheduler_message() {
+        let msg = WorkerMessage::Scheduler(SchedulerMessage::WorkerBusy { worker_id: 42 });
+
+        let js = msg.into_js().unwrap();
+        let round_tripped = unsafe { WorkerMessage::try_from_js(js).unwrap() };
+
+        assert!(matches!(
+            round_tripped,
+            WorkerMessage::Scheduler(SchedulerMessage::WorkerBusy { worker_id: 42 })
+        ));
     }
 }

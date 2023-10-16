@@ -1,11 +1,17 @@
 use std::marker::PhantomData;
 
 use derivative::Derivative;
+use js_sys::WebAssembly;
 use wasm_bindgen::JsValue;
+use wasmer::AsJs;
 use wasmer_wasix::runtime::module_cache::ModuleHash;
 
 use crate::{
-    tasks::{task_wasm::SpawnWasm, AsyncTask, BlockingModuleTask, BlockingTask},
+    tasks::{
+        interop::{Deserializer, Serializer},
+        task_wasm::SpawnWasm,
+        AsyncTask, BlockingModuleTask, BlockingTask,
+    },
     utils::Error,
 };
 
@@ -53,25 +59,93 @@ pub(crate) enum SchedulerMessage {
 }
 
 impl SchedulerMessage {
-    pub(crate) fn try_from_js(value: JsValue) -> Result<Self, Error> {
-        todo!();
+    pub(crate) unsafe fn try_from_js(value: JsValue) -> Result<Self, Error> {
+        let de = Deserializer::new(value);
+
+        match de.ty()?.as_str() {
+            consts::TYPE_SPAWN_WITH_MODULE_AND_MEMORY => {
+                let spawn_wasm: SpawnWasm = de.boxed(consts::PTR)?;
+                let module: WebAssembly::Module = de.js(consts::MODULE)?;
+                let module_bytes = spawn_wasm.module_bytes();
+                let module = wasmer::Module::from((module, module_bytes));
+
+                let memory = match spawn_wasm.shared_memory_type() {
+                    Some(ty) => {
+                        let memory: JsValue = de.js(consts::MEMORY)?;
+                        let mut store = wasmer::Store::default();
+                        wasmer::Memory::from_jsvalue(&mut store, &ty, &memory).ok()
+                    }
+                    None => None,
+                };
+
+                Ok(SchedulerMessage::SpawnWithModuleAndMemory {
+                    module,
+                    memory,
+                    spawn_wasm,
+                })
+            }
+            other => Err(anyhow::anyhow!("Unknown message type, \"{other}\"").into()),
+        }
     }
 
     pub(crate) fn into_js(self) -> Result<JsValue, Error> {
         match self {
-            SchedulerMessage::SpawnAsync(_) => todo!(),
-            SchedulerMessage::SpawnBlocking(_) => todo!(),
-            SchedulerMessage::WorkerIdle { worker_id } => todo!(),
-            SchedulerMessage::WorkerBusy { worker_id } => todo!(),
-            SchedulerMessage::CacheModule { hash, module } => todo!(),
-            SchedulerMessage::SpawnWithModule { module, task } => todo!(),
-            SchedulerMessage::SpawnWithModuleAndMemory { module, memory, spawn_wasm } => todo!(),
-            SchedulerMessage::Markers { not_send, uninhabited } => todo!(),
+            SchedulerMessage::SpawnAsync(task) => Serializer::new(consts::TYPE_SPAWN_ASYNC)
+                .boxed(consts::PTR, task)
+                .finish(),
+            SchedulerMessage::SpawnBlocking(task) => Serializer::new(consts::TYPE_SPAWN_BLOCKING)
+                .boxed(consts::PTR, task)
+                .finish(),
+            SchedulerMessage::WorkerIdle { worker_id } => Serializer::new(consts::TYPE_WORKER_IDLE)
+                .set(consts::WORKER_ID, worker_id)
+                .finish(),
+            SchedulerMessage::WorkerBusy { worker_id } => Serializer::new(consts::TYPE_WORKER_BUSY)
+                .set(consts::WORKER_ID, worker_id)
+                .finish(),
+            SchedulerMessage::CacheModule { hash, module } => {
+                Serializer::new(consts::TYPE_CACHE_MODULE)
+                    .set(consts::MODULE_HASH, hash.to_string())
+                    .set(consts::MODULE, module)
+                    .finish()
+            }
+            SchedulerMessage::SpawnWithModule { module, task } => {
+                Serializer::new(consts::TYPE_SPAWN_WITH_MODULE)
+                    .set(consts::MODULE, module)
+                    .boxed(consts::PTR, task)
+                    .finish()
+            }
+            SchedulerMessage::SpawnWithModuleAndMemory {
+                module,
+                memory,
+                spawn_wasm,
+            } => {
+                let mut ser = Serializer::new(consts::TYPE_SPAWN_WITH_MODULE_AND_MEMORY)
+                    .set(consts::MODULE, module)
+                    .boxed(consts::PTR, spawn_wasm);
+
+                if let Some(memory) = memory {
+                    let store = wasmer::Store::default();
+                    ser = ser.set(consts::MEMORY, memory.as_jsvalue(&store));
+                }
+
+                ser.finish()
+            }
+            SchedulerMessage::Markers { uninhabited, .. } => match uninhabited {},
         }
     }
 }
 
 mod consts {
-    const TYPE_SPAWN_ASYNC: &str = "spawn-async";
-    const TYPE_SPAWN_WITH_MODULE_AND_MEMORY: &str = "spawn-with-module-and-memory";
+    pub const TYPE_SPAWN_ASYNC: &str = "spawn-async";
+    pub const TYPE_SPAWN_BLOCKING: &str = "spawn-blocking";
+    pub const TYPE_WORKER_IDLE: &str = "worker-idle";
+    pub const TYPE_WORKER_BUSY: &str = "worker-busy";
+    pub const TYPE_CACHE_MODULE: &str = "cache-module";
+    pub const TYPE_SPAWN_WITH_MODULE: &str = "spawn-with-module";
+    pub const TYPE_SPAWN_WITH_MODULE_AND_MEMORY: &str = "spawn-with-module-and-memory";
+    pub const MEMORY: &str = "memory";
+    pub const MODULE_HASH: &str = "module-hash";
+    pub const MODULE: &str = "module";
+    pub const PTR: &str = "ptr";
+    pub const WORKER_ID: &str = "worker-id";
 }
