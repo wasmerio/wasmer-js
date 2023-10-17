@@ -6,22 +6,18 @@ use instant::Duration;
 use wasm_bindgen_futures::JsFuture;
 use wasmer_wasix::{runtime::task_manager::TaskWasm, VirtualTaskManager, WasiThreadError};
 
-use crate::tasks::{Scheduler, SchedulerChannel, SchedulerMessage};
+use crate::tasks::{Scheduler, SchedulerMessage, };
 
 /// A handle to a threadpool backed by Web Workers.
 #[derive(Debug, Clone)]
 pub struct ThreadPool {
-    scheduler: SchedulerChannel,
-    capacity: NonZeroUsize,
+    scheduler: Scheduler,
 }
 
 impl ThreadPool {
     pub fn new(capacity: NonZeroUsize) -> Self {
         let sender = Scheduler::spawn(capacity);
-        ThreadPool {
-            scheduler: sender,
-            capacity,
-        }
+        ThreadPool { scheduler: sender }
     }
 
     pub fn new_with_max_threads() -> Result<ThreadPool, anyhow::Error> {
@@ -112,7 +108,7 @@ impl VirtualTaskManager for ThreadPool {
 
     /// Returns the amount of parallelism that is possible on this platform
     fn thread_parallelism(&self) -> Result<usize, WasiThreadError> {
-        Ok(self.capacity.get())
+        Ok(self.scheduler.capacity().get())
     }
 
     fn spawn_with_module(

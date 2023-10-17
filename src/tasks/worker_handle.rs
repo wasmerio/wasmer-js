@@ -8,7 +8,7 @@ use wasm_bindgen::{
     JsCast, JsValue,
 };
 
-use crate::tasks::{PostMessagePayload, SchedulerChannel, SchedulerMessage, WorkerMessage};
+use crate::tasks::{PostMessagePayload, Scheduler, SchedulerMessage, WorkerMessage};
 
 /// A handle to a running [`web_sys::Worker`].
 ///
@@ -21,7 +21,7 @@ pub(crate) struct WorkerHandle {
 }
 
 impl WorkerHandle {
-    pub(crate) fn spawn(worker_id: u32, sender: SchedulerChannel) -> Result<Self, Error> {
+    pub(crate) fn spawn(worker_id: u32, sender: Scheduler) -> Result<Self, Error> {
         let name = format!("worker-{worker_id}");
 
         let worker = web_sys::Worker::new_with_options(
@@ -86,7 +86,7 @@ fn on_error(msg: web_sys::ErrorEvent, worker_id: u32) {
 }
 
 #[tracing::instrument(level = "trace", skip(msg, sender))]
-fn on_message(msg: web_sys::MessageEvent, sender: &SchedulerChannel, worker_id: u32) {
+fn on_message(msg: web_sys::MessageEvent, sender: &Scheduler, worker_id: u32) {
     // Safety: The only way we can receive this message is if it was from the
     // worker, because we are the ones that spawned the worker, we can trust
     // the messages it emits.

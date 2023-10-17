@@ -33,7 +33,6 @@
 mod interop;
 mod post_message_payload;
 mod scheduler;
-mod scheduler_channel;
 mod scheduler_message;
 mod task_wasm;
 mod thread_pool;
@@ -43,8 +42,8 @@ mod worker_message;
 
 pub(crate) use self::{
     post_message_payload::PostMessagePayload, scheduler::Scheduler,
-    scheduler_channel::SchedulerChannel, scheduler_message::SchedulerMessage,
-    thread_pool::ThreadPool, worker_handle::WorkerHandle, worker_message::WorkerMessage,
+    scheduler_message::SchedulerMessage, thread_pool::ThreadPool, worker_handle::WorkerHandle,
+    worker_message::WorkerMessage,
 };
 
 use std::{future::Future, pin::Pin};

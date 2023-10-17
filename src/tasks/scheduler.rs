@@ -6,42 +6,34 @@ use std::{
 };
 
 use anyhow::{Context, Error};
+use tokio::sync::mpsc::UnboundedSender;
 use tokio::sync::mpsc::{self};
 use tracing::Instrument;
 use wasm_bindgen::{JsCast, JsValue};
 use wasmer::AsJs;
 use wasmer_wasix::runtime::module_cache::ModuleHash;
 
-use crate::tasks::{
-    scheduler_message::SchedulerMessage, PostMessagePayload, SchedulerChannel, WorkerHandle,
-};
+use crate::tasks::{PostMessagePayload, SchedulerMessage, WorkerHandle, WorkerMessage};
 
-/// The actor in charge of the threadpool.
-#[derive(Debug)]
+/// A handle for interacting with the threadpool's scheduler.
+#[derive(Debug, Clone)]
 pub(crate) struct Scheduler {
-    /// The maximum number of workers we will start.
+    scheduler_thread_id: u32,
     capacity: NonZeroUsize,
-    /// Workers that are able to receive work.
-    idle: VecDeque<WorkerHandle>,
-    /// Workers that are currently blocked on synchronous operations and can't
-    /// receive work at this time.
-    busy: VecDeque<WorkerHandle>,
-    /// An [`SchedulerChannel`] used to send the [`Scheduler`] more messages.
-    mailbox: SchedulerChannel,
-    cached_modules: BTreeMap<ModuleHash, js_sys::WebAssembly::Module>,
+    channel: UnboundedSender<SchedulerMessage>,
 }
 
 impl Scheduler {
     /// Spin up a scheduler on the current thread and get a channel that can be
     /// used to communicate with it.
-    pub(crate) fn spawn(capacity: NonZeroUsize) -> SchedulerChannel {
+    pub(crate) fn spawn(capacity: NonZeroUsize) -> Scheduler {
         let (sender, mut receiver) = mpsc::unbounded_channel();
 
         let thread_id = wasmer::current_thread_id();
         // Safety: we just got the thread ID.
-        let sender = unsafe { SchedulerChannel::new(sender, thread_id) };
+        let sender = unsafe { Scheduler::new(sender, thread_id, capacity) };
 
-        let mut scheduler = Scheduler::new(capacity, sender.clone());
+        let mut scheduler = SchedulerState::new(capacity, sender.clone());
 
         wasm_bindgen_futures::spawn_local(
             async move {
@@ -64,8 +56,73 @@ impl Scheduler {
         sender
     }
 
-    fn new(capacity: NonZeroUsize, mailbox: SchedulerChannel) -> Self {
+    /// # Safety
+    ///
+    /// The [`SchedulerMessage`] type is marked as `!Send` because
+    /// [`wasmer::Module`] and friends are `!Send` when compiled for the
+    /// browser.
+    ///
+    /// The `scheduler_thread_id` must match the [`wasmer::current_thread_id()`]
+    /// otherwise these `!Send` values will be sent between threads.
+    unsafe fn new(
+        channel: UnboundedSender<SchedulerMessage>,
+        scheduler_thread_id: u32,
+        capacity: NonZeroUsize,
+    ) -> Self {
         Scheduler {
+            channel,
+            scheduler_thread_id,
+            capacity,
+        }
+    }
+
+    pub fn send(&self, msg: SchedulerMessage) -> Result<(), Error> {
+        if wasmer::current_thread_id() == self.scheduler_thread_id {
+            // It's safe to send the message to the scheduler.
+            self.channel
+                .send(msg)
+                .map_err(|_| Error::msg("Scheduler is dead"))?;
+            Ok(())
+        } else {
+            // We are in a child worker so we need to emit the message via
+            // postMessage() and let the WorkerHandle forward it to the
+            // scheduler.
+            WorkerMessage::Scheduler(msg)
+                .emit()
+                .map_err(|e| e.into_anyhow())?;
+            Ok(())
+        }
+    }
+
+    pub(crate) fn capacity(&self) -> NonZeroUsize {
+        self.capacity
+    }
+}
+
+// Safety: The only way our !Send messages will be sent to the scheduler is if
+// they are on the same thread. This is enforced via Scheduler::new()'s
+// invariants.
+unsafe impl Send for Scheduler {}
+unsafe impl Sync for Scheduler {}
+
+/// The state for the actor in charge of the threadpool.
+#[derive(Debug)]
+struct SchedulerState {
+    /// The maximum number of workers we will start.
+    capacity: NonZeroUsize,
+    /// Workers that are able to receive work.
+    idle: VecDeque<WorkerHandle>,
+    /// Workers that are currently blocked on synchronous operations and can't
+    /// receive work at this time.
+    busy: VecDeque<WorkerHandle>,
+    /// A channel that can be used to send messages to this scheduler.
+    mailbox: Scheduler,
+    cached_modules: BTreeMap<ModuleHash, js_sys::WebAssembly::Module>,
+}
+
+impl SchedulerState {
+    fn new(capacity: NonZeroUsize, mailbox: Scheduler) -> Self {
+        SchedulerState {
             capacity,
             idle: VecDeque::new(),
             busy: VecDeque::new(),
@@ -248,8 +305,8 @@ mod tests {
     async fn spawn_an_async_function() {
         let (sender, receiver) = oneshot::channel();
         let (tx, _) = mpsc::unbounded_channel();
-        let tx = unsafe { SchedulerChannel::new(tx, wasmer::current_thread_id()) };
-        let mut scheduler = Scheduler::new(NonZeroUsize::MAX, tx);
+        let tx = unsafe { Scheduler::new(tx, wasmer::current_thread_id(), NonZeroUsize::MAX) };
+        let mut scheduler = SchedulerState::new(NonZeroUsize::MAX, tx);
         let message = SchedulerMessage::SpawnAsync(Box::new(move || {
             Box::pin(async move {
                 let _ = sender.send(42);

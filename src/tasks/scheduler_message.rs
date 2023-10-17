@@ -63,8 +63,6 @@ impl SchedulerMessage {
     pub(crate) unsafe fn try_from_js(value: JsValue) -> Result<Self, Error> {
         let de = Deserializer::new(value);
 
-        let ty = de.ty()?;
-
         match de.ty()?.as_str() {
             consts::TYPE_SPAWN_WITH_MODULE_AND_MEMORY => {
                 let spawn_wasm: SpawnWasm = de.boxed(consts::PTR)?;
