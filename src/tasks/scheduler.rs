@@ -48,7 +48,6 @@ impl Scheduler {
                 let _span = tracing::debug_span!("scheduler").entered();
 
                 while let Some(msg) = receiver.recv().await {
-                    tracing::warn!(?msg, "XXX Executing a message");
                     tracing::trace!(?msg, "Executing a message");
 
                     if let Err(e) = scheduler.execute(msg) {
@@ -118,10 +117,24 @@ impl Scheduler {
                 })
             }
             SchedulerMessage::WorkerBusy { worker_id } => {
-                move_worker(worker_id, &mut self.idle, &mut self.busy)
+                move_worker(worker_id, &mut self.idle, &mut self.busy)?;
+                tracing::trace!(
+                    worker_id,
+                    idle_workers=?self.idle.iter().map(|w| w.id()).collect::<Vec<_>>(),
+                    busy_workers=?self.busy.iter().map(|w| w.id()).collect::<Vec<_>>(),
+                    "Worker marked as busy",
+                );
+                Ok(())
             }
             SchedulerMessage::WorkerIdle { worker_id } => {
-                move_worker(worker_id, &mut self.busy, &mut self.idle)
+                move_worker(worker_id, &mut self.busy, &mut self.idle)?;
+                tracing::trace!(
+                    worker_id,
+                    idle_workers=?self.idle.iter().map(|w| w.id()).collect::<Vec<_>>(),
+                    busy_workers=?self.busy.iter().map(|w| w.id()).collect::<Vec<_>>(),
+                    "Worker marked as idle",
+                );
+                Ok(())
             }
             SchedulerMessage::Markers { uninhabited, .. } => match uninhabited {},
         }
@@ -189,7 +202,7 @@ impl Scheduler {
         // Note: By using a monotonically incrementing counter, we can make sure
         // every single worker created with this shared linear memory will get a
         // unique ID.
-        static NEXT_ID: AtomicU32 = AtomicU32::new(0);
+        static NEXT_ID: AtomicU32 = AtomicU32::new(1);
 
         let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
 

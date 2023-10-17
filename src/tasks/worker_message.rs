@@ -20,6 +20,7 @@ pub(crate) enum WorkerMessage {
 }
 
 impl WorkerMessage {
+    #[tracing::instrument(level = "debug")]
     pub(crate) unsafe fn try_from_js(value: JsValue) -> Result<Self, Error> {
         let de = Deserializer::new(value);
 
@@ -35,6 +36,7 @@ impl WorkerMessage {
         }
     }
 
+    #[tracing::instrument(level = "debug")]
     pub(crate) fn into_js(self) -> Result<JsValue, Error> {
         match self {
             WorkerMessage::MarkBusy => Serializer::new(consts::TYPE_BUSY).finish(),

@@ -92,3 +92,8 @@ export const init = async (input?: InitInput | Promise<InitInput>, maybe_memory?
 // make sure worker.js gets access to them. Normal exports are removed when
 // using a bundler.
 (globalThis as any)["__WASMER_INTERNALS__"] = { ThreadPoolWorker, init };
+
+// HACK: Temporary polyfill so console.log() will work with BigInt.
+(BigInt as any).prototype.toJSON = function () {
+	return this.toString();
+  };

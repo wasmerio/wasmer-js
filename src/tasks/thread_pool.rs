@@ -10,17 +10,28 @@ use crate::tasks::{Scheduler, SchedulerChannel, SchedulerMessage};
 
 /// A handle to a threadpool backed by Web Workers.
 #[derive(Debug, Clone)]
-pub struct ThreadPool(SchedulerChannel);
+pub struct ThreadPool {
+    scheduler: SchedulerChannel,
+    capacity: NonZeroUsize,
+}
 
 impl ThreadPool {
     pub fn new(capacity: NonZeroUsize) -> Self {
         let sender = Scheduler::spawn(capacity);
-        ThreadPool(sender)
+        ThreadPool {
+            scheduler: sender,
+            capacity,
+        }
     }
 
     pub fn new_with_max_threads() -> Result<ThreadPool, anyhow::Error> {
         let concurrency = crate::utils::hardware_concurrency()
             .context("Unable to determine the hardware concurrency")?;
+        // Note: We want to deliberately over-commit to avoid accidental
+        // deadlocks.
+        let concurrency = concurrency
+            .checked_mul(NonZeroUsize::new(16).unwrap())
+            .unwrap();
         Ok(ThreadPool::new(concurrency))
     }
 
@@ -35,7 +46,7 @@ impl ThreadPool {
     }
 
     pub(crate) fn send(&self, msg: SchedulerMessage) {
-        self.0.send(msg).expect("scheduler is dead");
+        self.scheduler.send(msg).expect("scheduler is dead");
     }
 }
 
@@ -101,9 +112,7 @@ impl VirtualTaskManager for ThreadPool {
 
     /// Returns the amount of parallelism that is possible on this platform
     fn thread_parallelism(&self) -> Result<usize, WasiThreadError> {
-        crate::utils::hardware_concurrency()
-            .map(|c| c.get())
-            .ok_or(WasiThreadError::Unsupported)
+        Ok(self.capacity.get())
     }
 
     fn spawn_with_module(

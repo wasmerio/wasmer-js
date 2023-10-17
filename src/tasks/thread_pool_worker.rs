@@ -31,7 +31,7 @@ impl ThreadPoolWorker {
         ThreadPoolWorker { id }
     }
 
-    pub async fn handle(&mut self, msg: JsValue) -> Result<(), crate::utils::Error> {
+    pub async fn handle(&self, msg: JsValue) -> Result<(), crate::utils::Error> {
         let _span = tracing::debug_span!("handle", worker_id = self.id).entered();
 
         // Safety: The message was created using PostMessagePayload::to_js()
@@ -58,8 +58,9 @@ impl ThreadPoolWorker {
                 memory,
                 spawn_wasm,
             } => {
-                tracing::warn!("Spawn with module and memory");
-                spawn_wasm.execute(module, memory.into()).await?;
+                let task = spawn_wasm.begin().await;
+                let _guard = self.busy();
+                task.execute(module, memory.into())?;
             }
         }
 

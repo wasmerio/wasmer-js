@@ -21,8 +21,8 @@ pub(crate) struct WorkerHandle {
 }
 
 impl WorkerHandle {
-    pub(crate) fn spawn(id: u32, sender: SchedulerChannel) -> Result<Self, Error> {
-        let name = format!("worker-{id}");
+    pub(crate) fn spawn(worker_id: u32, sender: SchedulerChannel) -> Result<Self, Error> {
+        let name = format!("worker-{worker_id}");
 
         let worker = web_sys::Worker::new_with_options(
             &WORKER_URL,
@@ -33,24 +33,28 @@ impl WorkerHandle {
         let on_message: Closure<dyn FnMut(web_sys::MessageEvent)> = Closure::new({
             let sender = sender.clone();
             move |msg: web_sys::MessageEvent| {
-                on_message(msg, &sender, id);
+                on_message(msg, &sender, worker_id);
             }
         });
         let on_message: js_sys::Function = on_message.into_js_value().unchecked_into();
         worker.set_onmessage(Some(&on_message));
 
-        let on_error: Closure<dyn FnMut(web_sys::ErrorEvent)> = Closure::new(on_error);
+        let on_error: Closure<dyn FnMut(web_sys::ErrorEvent)> =
+            Closure::new(move |msg| on_error(msg, worker_id));
         let on_error: js_sys::Function = on_error.into_js_value().unchecked_into();
         worker.set_onerror(Some(&on_error));
 
         // The worker has technically been started, but it's kinda useless
         // because it hasn't been initialized with the same WebAssembly module
         // and linear memory as the scheduler. We need to initialize explicitly.
-        init_message(id)
+        init_message(worker_id)
             .and_then(|msg| worker.post_message(&msg))
             .map_err(crate::utils::js_error)?;
 
-        Ok(WorkerHandle { id, inner: worker })
+        Ok(WorkerHandle {
+            id: worker_id,
+            inner: worker,
+        })
     }
 
     pub(crate) fn id(&self) -> u32 {
@@ -59,6 +63,7 @@ impl WorkerHandle {
 
     /// Send a message to the worker.
     pub(crate) fn send(&self, msg: PostMessagePayload) -> Result<(), Error> {
+        tracing::trace!(?msg, worker_id = self.id(), "sending a message to a worker");
         let js = msg.into_js().map_err(|e| e.into_anyhow())?;
 
         self.inner
@@ -69,7 +74,8 @@ impl WorkerHandle {
     }
 }
 
-fn on_error(msg: web_sys::ErrorEvent) {
+#[tracing::instrument(level = "trace", skip(msg))]
+fn on_error(msg: web_sys::ErrorEvent, worker_id: u32) {
     tracing::error!(
         error = %msg.message(),
         filename = %msg.filename(),
@@ -79,7 +85,8 @@ fn on_error(msg: web_sys::ErrorEvent) {
     );
 }
 
-fn on_message(msg: web_sys::MessageEvent, sender: &SchedulerChannel, id: u32) {
+#[tracing::instrument(level = "trace", skip(msg, sender))]
+fn on_message(msg: web_sys::MessageEvent, sender: &SchedulerChannel, worker_id: u32) {
     // Safety: The only way we can receive this message is if it was from the
     // worker, because we are the ones that spawned the worker, we can trust
     // the messages it emits.
@@ -87,15 +94,11 @@ fn on_message(msg: web_sys::MessageEvent, sender: &SchedulerChannel, id: u32) {
         .map_err(|e| crate::utils::js_error(e.into()))
         .context("Unknown message")
         .and_then(|msg| {
-            web_sys::console::log_3(
-                &JsValue::from("received message from worker"),
-                &JsValue::from(id),
-                &JsValue::from(format!("{msg:#?}")),
-            );
+            tracing::trace!(?msg, worker_id, "Received a message from worker");
 
             let msg = match msg {
-                WorkerMessage::MarkBusy => SchedulerMessage::WorkerBusy { worker_id: id },
-                WorkerMessage::MarkIdle => SchedulerMessage::WorkerIdle { worker_id: id },
+                WorkerMessage::MarkBusy => SchedulerMessage::WorkerBusy { worker_id },
+                WorkerMessage::MarkIdle => SchedulerMessage::WorkerIdle { worker_id },
                 WorkerMessage::Scheduler(msg) => msg,
             };
             sender.send(msg).map_err(|_| Error::msg("Send failed"))
@@ -143,7 +146,7 @@ static WORKER_URL: Lazy<String> = Lazy::new(|| {
         static IMPORT_META_URL: String;
     }
 
-    tracing::debug!(import_url = IMPORT_META_URL.as_str());
+    tracing::trace!(import_url = IMPORT_META_URL.as_str());
 
     let script = include_str!("worker.js").replace("$IMPORT_META_URL", &IMPORT_META_URL);
 

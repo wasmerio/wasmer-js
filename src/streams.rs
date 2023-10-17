@@ -80,6 +80,12 @@ impl WritableStreamSink {
 
         wasm_bindgen_futures::future_to_promise(
             async move {
+                tracing::trace!(
+                    bytes_written = data.len(),
+                    ?data,
+                    data_utf8 = String::from_utf8_lossy(&data).as_ref(),
+                );
+
                 pipe.write_all(&data)
                     .await
                     .context("Write failed")
@@ -136,8 +142,14 @@ impl ReadableStreamSource {
                         controller.close()?;
                     }
                     Ok(bytes_read) => {
-                        tracing::trace!(bytes_read);
-                        let buffer = Uint8Array::from(&buffer[..bytes_read]);
+                        let data = &buffer[..bytes_read];
+                        tracing::trace!(
+                            bytes_read,
+                            ?data,
+                            data_utf8 = String::from_utf8_lossy(data).as_ref()
+                        );
+
+                        let buffer = Uint8Array::from(data);
                         controller.enqueue_with_array_buffer_view(&buffer)?;
                     }
                     Err(e) => {
@@ -175,7 +187,7 @@ pub(crate) fn read_to_end(stream: ReadableStream) -> impl Stream<Item = Result<V
     let reader = match ReadableStreamDefaultReader::new(&stream) {
         Ok(reader) => reader,
         Err(_) => {
-            tracing::trace!("The stream is already locked. Leaving it up to the user to consume.");
+            tracing::trace!("The ReadableStream is already locked. Leaving it up to the user to consume.");
             return Either::Left(futures::stream::empty());
         }
     };

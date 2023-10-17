@@ -37,6 +37,7 @@ impl Runtime {
     pub fn with_pool_size(pool_size: Option<usize>) -> Result<Runtime, Error> {
         let pool = match pool_size {
             Some(size) => {
+                // Note:
                 let size = NonZeroUsize::new(size).unwrap_or(NonZeroUsize::MIN);
                 ThreadPool::new(size)
             }

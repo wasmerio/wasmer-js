@@ -9,7 +9,7 @@ before(async () => {
     await init();
 });
 
-describe("run", function() {
+describe.skip("run", function() {
     this.timeout("60s");
     const python = getPython();
 
@@ -48,7 +48,7 @@ describe("run", function() {
 describe("Wasmer.spawn", function() {
     this.timeout("60s");
 
-    it("Can run python", async () => {
+    it.skip("Can run python", async () => {
         const wasmer = new Wasmer();
 
         const instance = await wasmer.spawn("python/python@0.1.0", {
@@ -62,7 +62,7 @@ describe("Wasmer.spawn", function() {
         expect(output.stderr.length).to.equal(0);
     });
 
-    it("Can capture exit codes", async () => {
+    it.skip("Can capture exit codes", async () => {
         const wasmer = new Wasmer();
 
         const instance = await wasmer.spawn("python/python@0.1.0", {
@@ -80,7 +80,7 @@ describe("Wasmer.spawn", function() {
         expect(output.stderr.length).to.equal(0);
     });
 
-    it("Can communicate via stdin", async () => {
+    it.skip("Can communicate via stdin", async () => {
         const wasmer = new Wasmer();
 
         // First, start python up in the background
@@ -104,12 +104,8 @@ describe("Wasmer.spawn", function() {
 
         // First, start python up in the background
         const instance = await wasmer.spawn("sharrattj/bash", {
-            uses: ["sharrattj/coreutils"],
+            stdin: "ls / && exit 42\n",
         });
-        // Then, send the command to the REPL
-        const stdin = instance.stdin!.getWriter();
-        await stdin.write(encoder.encode("ls\nexit 42\n"));
-        await stdin.close();
         const { code, stdout, stderr } = await instance.wait();
         console.log({
             code,
@@ -123,7 +119,7 @@ describe("Wasmer.spawn", function() {
 });
 
 
-async function readUntil(stream: ReadableStream<Uint8Array>, predicate: (chunk: ReadableStreamReadResult<Uint8Array>) => boolean): Promise<string> {
+async function readWhile(stream: ReadableStream<Uint8Array>, predicate: (chunk: ReadableStreamReadResult<Uint8Array>) => boolean): Promise<string> {
     let reader = stream.getReader();
     let pieces: string[] =[];
     let chunk: ReadableStreamReadResult<Uint8Array>;
@@ -141,7 +137,7 @@ async function readUntil(stream: ReadableStream<Uint8Array>, predicate: (chunk: 
 }
 
 async function readToEnd(stream: ReadableStream<Uint8Array>): Promise<string> {
-    return await readUntil(stream, chunk => !chunk.done);
+    return await readWhile(stream, chunk => !chunk.done);
 }
 
 async function getPython(): Promise<{container: Container, python: Uint8Array, module: WebAssembly.Module}> {

@@ -202,7 +202,14 @@ const WASMER_CONFIG_TYPE_DEFINITION: &'static str = r#"
  */
 export type WasmerConfig = {
     /**
-     * The number of threads to use by default.
+     * The maximum number of threads to use.
+     *
+     * Note that setting this value too low may starve the threadpool of CPU
+     * resources, which may lead to deadlocks (e.g. one blocking operation waits
+     * on the result of another, but that other operation never gets a chance to
+     * run because there aren't any free threads).
+     *
+     * If not provided, this defaults to `16 * navigator.hardwareConcurrency`.
      */
      poolSize?: number;
 

@@ -18,6 +18,10 @@ impl Deserializer {
         Deserializer { value }
     }
 
+    pub fn value(&self) -> &JsValue {
+        &self.value
+    }
+
     pub fn string(&self, field: &str) -> Result<String, Error> {
         let string: JsString = self.js(field)?;
         Ok(string.into())
