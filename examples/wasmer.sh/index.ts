@@ -2,6 +2,7 @@ import "xterm/css/xterm.css";
 
 import { SpawnConfig, Tty, Wasmer, init } from "@wasmer/wasix";
 import { Terminal } from "xterm";
+import { FitAddon } from "xterm-addon-fit";
 
 const encoder = new TextEncoder();
 
@@ -13,9 +14,12 @@ async function main() {
     await init();
 
     const term = new Terminal({ cursorBlink: true, convertEol: true });
+    const fit = new FitAddon();
+    term.loadAddon(fit);
 
     const element = document.getElementById("app")!;
     term.open(element);
+    fit.fit();
 
     term.writeln("Starting...");
     const wasmer = new Wasmer();
