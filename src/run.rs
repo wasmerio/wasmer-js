@@ -11,14 +11,13 @@ const DEFAULT_PROGRAM_NAME: &str = "";
 
 /// Run a WASIX program.
 #[wasm_bindgen]
-pub fn run(
-    wasm_module: js_sys::WebAssembly::Module,
-    runtime: &Runtime,
-    config: RunConfig,
-) -> Result<Instance, Error> {
+pub fn run(wasm_module: js_sys::WebAssembly::Module, config: RunConfig) -> Result<Instance, Error> {
     let _span = tracing::debug_span!("run").entered();
 
-    let runtime = Arc::new(runtime.clone());
+    let runtime = match config.runtime() {
+        Some(rt) => Arc::new(rt.clone()),
+        None => Arc::new(Runtime::with_pool_size(None)?),
+    };
     let program_name = config
         .program()
         .as_string()
@@ -63,6 +62,14 @@ export type RunConfig = {
     env?: Record<string, string>;
     /** The standard input stream. */
     stdin?: string | ArrayBuffer;
+    /**
+     * The WASIX runtime to use.
+     *
+     * Providing a `Runtime` allows multiple WASIX instances to share things
+     * like caches and threadpools. If not provided, a default `Runtime` will be
+     * created.
+     */
+    runtime?: Runtime;
 };
 "#;
 
@@ -71,17 +78,20 @@ extern "C" {
     #[wasm_bindgen(typescript_type = "RunConfig")]
     pub type RunConfig;
 
-    #[wasm_bindgen(method, getter, structural)]
+    #[wasm_bindgen(method, getter)]
     fn program(this: &RunConfig) -> JsValue;
 
-    #[wasm_bindgen(method, getter, structural)]
+    #[wasm_bindgen(method, getter)]
     fn args(this: &RunConfig) -> Option<Array>;
 
-    #[wasm_bindgen(method, getter, structural)]
+    #[wasm_bindgen(method, getter)]
     fn env(this: &RunConfig) -> JsValue;
 
-    #[wasm_bindgen(method, getter, structural)]
+    #[wasm_bindgen(method, getter)]
     fn stdin(this: &RunConfig) -> JsValue;
+
+    #[wasm_bindgen(method, getter)]
+    fn runtime(this: &RunConfig) -> Option<Runtime>;
 }
 
 impl RunConfig {
