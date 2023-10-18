@@ -61,9 +61,43 @@ pub(crate) enum SchedulerMessage {
 impl SchedulerMessage {
     #[tracing::instrument(level = "debug")]
     pub(crate) unsafe fn try_from_js(value: JsValue) -> Result<Self, Error> {
+        web_sys::console::log_1(&value);
         let de = Deserializer::new(value);
 
         match de.ty()?.as_str() {
+            consts::TYPE_SPAWN_ASYNC => {
+                let task = de.boxed(consts::PTR)?;
+                Ok(SchedulerMessage::SpawnAsync(task))
+            }
+            consts::TYPE_SPAWN_BLOCKING => {
+                let task = de.boxed(consts::PTR)?;
+                Ok(SchedulerMessage::SpawnBlocking(task))
+            }
+            consts::TYPE_WORKER_IDLE => {
+                let worker_id = de.serde(consts::WORKER_ID)?;
+                Ok(SchedulerMessage::WorkerIdle { worker_id })
+            }
+            consts::TYPE_WORKER_BUSY => {
+                let worker_id = de.serde(consts::WORKER_ID)?;
+                Ok(SchedulerMessage::WorkerBusy { worker_id })
+            }
+            consts::TYPE_CACHE_MODULE => {
+                let hash = de.string(consts::MODULE_HASH)?;
+                let hash = ModuleHash::parse_hex(&hash)?;
+                let module: WebAssembly::Module = de.js(consts::MODULE)?;
+                Ok(SchedulerMessage::CacheModule {
+                    hash,
+                    module: module.into(),
+                })
+            }
+            consts::TYPE_SPAWN_WITH_MODULE => {
+                let module: WebAssembly::Module = de.js(consts::MODULE)?;
+                let task = de.boxed(consts::PTR)?;
+                Ok(SchedulerMessage::SpawnWithModule {
+                    module: module.into(),
+                    task,
+                })
+            }
             consts::TYPE_SPAWN_WITH_MODULE_AND_MEMORY => {
                 let spawn_wasm: SpawnWasm = de.boxed(consts::PTR)?;
                 let module: WebAssembly::Module = de.js(consts::MODULE)?;
