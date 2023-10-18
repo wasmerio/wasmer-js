@@ -51,10 +51,12 @@ impl Runtime {
         let task_manager = Arc::new(pool.clone());
 
         let mut http_client = WebHttpClient::default();
-        http_client.with_default_header(
-            http::header::USER_AGENT,
-            HeaderValue::from_static(crate::USER_AGENT),
-        );
+        http_client
+            .with_default_header(
+                http::header::USER_AGENT,
+                HeaderValue::from_static(crate::USER_AGENT),
+            )
+            .with_task_manager(task_manager.clone());
         let http_client = Arc::new(http_client);
 
         let module_cache = ThreadLocalCache::default();
