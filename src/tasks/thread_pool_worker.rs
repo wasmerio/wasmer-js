@@ -32,7 +32,7 @@ impl ThreadPoolWorker {
     }
 
     pub async fn handle(&self, msg: JsValue) -> Result<(), crate::utils::Error> {
-        let _span = tracing::debug_span!("handle", worker_id = self.id).entered();
+        let _span = tracing::debug_span!("handle", worker.id = self.id).entered();
 
         // Safety: The message was created using PostMessagePayload::to_js()
         let msg = unsafe { PostMessagePayload::try_from_js(msg)? };

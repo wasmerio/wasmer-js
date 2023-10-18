@@ -13,8 +13,6 @@ let handleMessage = async data => {
 };
 
 globalThis.onmessage = async ev => {
-    console.log(globalThis.name, ev.data);
-
     if (ev.data.type == "init") {
         const { memory, module, id } = ev.data;
         const imported = await import("$IMPORT_META_URL");

@@ -85,7 +85,10 @@ impl SchedulerMessage {
                     spawn_wasm,
                 })
             }
-            other => Err(anyhow::anyhow!("Unknown message type, \"{other}\"").into()),
+            other => {
+                tracing::warn!(r#type = other, "Unknown message type");
+                Err(anyhow::anyhow!("Unknown message type, \"{other}\"").into())
+            }
         }
     }
 

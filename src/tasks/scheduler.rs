@@ -176,7 +176,7 @@ impl SchedulerState {
             SchedulerMessage::WorkerBusy { worker_id } => {
                 move_worker(worker_id, &mut self.idle, &mut self.busy)?;
                 tracing::trace!(
-                    worker_id,
+                    worker.id=worker_id,
                     idle_workers=?self.idle.iter().map(|w| w.id()).collect::<Vec<_>>(),
                     busy_workers=?self.busy.iter().map(|w| w.id()).collect::<Vec<_>>(),
                     "Worker marked as busy",
@@ -186,7 +186,7 @@ impl SchedulerState {
             SchedulerMessage::WorkerIdle { worker_id } => {
                 move_worker(worker_id, &mut self.busy, &mut self.idle)?;
                 tracing::trace!(
-                    worker_id,
+                    worker.id=worker_id,
                     idle_workers=?self.idle.iter().map(|w| w.id()).collect::<Vec<_>>(),
                     busy_workers=?self.busy.iter().map(|w| w.id()).collect::<Vec<_>>(),
                     "Worker marked as idle",

@@ -63,7 +63,7 @@ impl WorkerHandle {
 
     /// Send a message to the worker.
     pub(crate) fn send(&self, msg: PostMessagePayload) -> Result<(), Error> {
-        tracing::trace!(?msg, worker_id = self.id(), "sending a message to a worker");
+        tracing::trace!(?msg, worker.id = self.id(), "sending a message to a worker");
         let js = msg.into_js().map_err(|e| e.into_anyhow())?;
 
         self.inner
@@ -92,9 +92,13 @@ fn on_message(msg: web_sys::MessageEvent, sender: &Scheduler, worker_id: u32) {
     // the messages it emits.
     let result = unsafe { WorkerMessage::try_from_js(msg.data()) }
         .map_err(|e| crate::utils::js_error(e.into()))
-        .context("Unknown message")
+        .context("Unable to parse the worker message")
         .and_then(|msg| {
-            tracing::trace!(?msg, worker_id, "Received a message from worker");
+            tracing::trace!(
+                ?msg,
+                worker.id = worker_id,
+                "Received a message from worker"
+            );
 
             let msg = match msg {
                 WorkerMessage::MarkBusy => SchedulerMessage::WorkerBusy { worker_id },

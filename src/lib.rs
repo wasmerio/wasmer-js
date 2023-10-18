@@ -30,8 +30,8 @@ use wasm_bindgen::prelude::wasm_bindgen;
 pub(crate) const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));
 const RUST_LOG: &[&str] = &[
     "info",
-    "wasmer_wasix=info",
-    "wasmer_wasix_js=debug",
+    "wasmer_wasix=debug",
+    "wasmer_wasix_js=trace",
     "wasmer=debug",
 ];
 

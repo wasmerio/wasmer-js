@@ -9,7 +9,7 @@ before(async () => {
     await init();
 });
 
-describe.skip("run", function() {
+describe("run", function() {
     this.timeout("60s");
     const python = getPython();
 
@@ -24,7 +24,7 @@ describe.skip("run", function() {
         const module = await WebAssembly.compile(wasm);
         const runtime = new Runtime(2);
 
-        const instance = run(module, runtime, { program: "noop" });
+        const instance = run(module, { program: "noop", runtime });
         const output = await instance.wait();
 
         expect(output.ok).to.be.true;
@@ -35,7 +35,7 @@ describe.skip("run", function() {
         const runtime = new Runtime(2);
         const { module } = await python;
 
-        const instance = run(module, runtime, { program: "python", args: ["--version"] });
+        const instance = run(module, { program: "python", args: ["--version"], runtime });
         const output = await instance.wait();
 
         expect(output.ok).to.be.true;
@@ -48,7 +48,7 @@ describe.skip("run", function() {
 describe("Wasmer.spawn", function() {
     this.timeout("60s");
 
-    it.skip("Can run python", async () => {
+    it("Can run python", async () => {
         const wasmer = new Wasmer();
 
         const instance = await wasmer.spawn("python/python@0.1.0", {
@@ -62,17 +62,13 @@ describe("Wasmer.spawn", function() {
         expect(output.stderr.length).to.equal(0);
     });
 
-    it.skip("Can capture exit codes", async () => {
+    it("Can capture exit codes", async () => {
         const wasmer = new Wasmer();
 
         const instance = await wasmer.spawn("python/python@0.1.0", {
             args: ["-c", "import sys; sys.exit(42)"],
         });
         const output = await instance.wait();
-        console.log({
-            stdout: decoder.decode(output.stdout),
-            stderr: decoder.decode(output.stderr),
-        });
 
         expect(output.code).to.equal(42);
         expect(output.ok).to.be.false;
@@ -80,7 +76,7 @@ describe("Wasmer.spawn", function() {
         expect(output.stderr.length).to.equal(0);
     });
 
-    it.skip("Can communicate via stdin", async () => {
+    it("Can communicate via stdin", async () => {
         const wasmer = new Wasmer();
 
         // First, start python up in the background
@@ -107,14 +103,10 @@ describe("Wasmer.spawn", function() {
             stdin: "ls / && exit 42\n",
         });
         const { code, stdout, stderr } = await instance.wait();
-        console.log({
-            code,
-            stdout: decoder.decode(stdout),
-            stderr: decoder.decode(stderr),
-        });
 
         expect(code).to.equal(42);
         expect(decoder.decode(stdout)).to.equal("bin\nlib\ntmp\n");
+        expect(decoder.decode(stderr)).to.equal("");
     });
 });
 
