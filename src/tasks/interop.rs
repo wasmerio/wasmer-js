@@ -1,8 +1,7 @@
 use anyhow::Context;
-use js_sys::{BigInt, JsString, Object, Reflect, WebAssembly};
+use js_sys::{BigInt, JsString, Object, Reflect};
 use serde::de::DeserializeOwned;
 use wasm_bindgen::{JsCast, JsValue};
-use wasmer::AsJs;
 
 use crate::utils::Error;
 
@@ -16,10 +15,6 @@ pub(crate) struct Deserializer {
 impl Deserializer {
     pub fn new(value: JsValue) -> Self {
         Deserializer { value }
-    }
-
-    pub fn value(&self) -> &JsValue {
-        &self.value
     }
 
     pub fn string(&self, field: &str) -> Result<String, Error> {
@@ -64,19 +59,6 @@ impl Deserializer {
         })?;
         Ok(value)
     }
-
-    pub fn memory(&self, field: &str) -> Result<wasmer::Memory, Error> {
-        let memory: WebAssembly::Memory = self.js(field)?;
-        let ty_name = format!("{field}_ty");
-        let ty: wasmer::MemoryType = self.serde(&ty_name)?;
-
-        // HACK: The store isn't used when converting memories, so it's fine to
-        // use a dummy one.
-        let mut store = wasmer::Store::default();
-        let memory = wasmer::Memory::from_jsvalue(&mut store, &ty, &memory).map_err(Error::js)?;
-
-        Ok(memory)
-    }
 }
 
 #[derive(Debug)]
@@ -113,39 +95,11 @@ impl Serializer {
         self
     }
 
-    /// Set a field by using serde to serialize it to a JavaScript object.
-    pub fn serde(mut self, field: impl AsRef<str>, value: &impl serde::Serialize) -> Self {
-        if self.error.is_some() {
-            // Short-circuit.
-            return self;
-        }
-
-        match serde_wasm_bindgen::to_value(value) {
-            Ok(value) => self.set(field, value),
-            Err(err) => {
-                self.error = Some(Error::js(err));
-                self
-            }
-        }
-    }
-
     /// Serialize a field by boxing it and passing the address to
     /// `postMessage()`.
     pub fn boxed<T: Send>(self, field: &str, value: T) -> Self {
         let ptr = Box::into_raw(Box::new(value));
         self.set(field, BigInt::from(ptr as usize))
-    }
-
-    pub fn module(self, field: &str, m: wasmer::Module) -> Self {
-        let module = WebAssembly::Module::from(m);
-        self.set(field, module)
-    }
-
-    pub fn memory(self, field: &str, memory: wasmer::Memory) -> Self {
-        let dummy_store = wasmer::Store::default();
-        let ty = memory.ty(&dummy_store);
-        let memory = memory.as_jsvalue(&dummy_store);
-        self.set(field, memory).serde(format!("{field}_ty"), &ty)
     }
 
     pub fn finish(self) -> Result<JsValue, Error> {
