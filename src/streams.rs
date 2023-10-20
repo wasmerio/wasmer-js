@@ -7,7 +7,7 @@ use virtual_fs::{AsyncReadExt, AsyncWriteExt, Pipe};
 use wasm_bindgen::{prelude::wasm_bindgen, JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{
-    ReadableByteStreamController, ReadableStream, ReadableStreamDefaultReader, WritableStream,
+    ReadableStreamDefaultController, ReadableStream, ReadableStreamDefaultReader, WritableStream,
 };
 
 use crate::utils::Error;
@@ -127,7 +127,7 @@ impl ReadableStreamSource {
     /// successfully completes. Additionally, it will only be called repeatedly
     /// if it enqueues at least one chunk or fulfills a BYOB request; a no-op
     /// pull() implementation will not be continually called.
-    pub fn pull(&mut self, controller: ReadableByteStreamController) -> Promise {
+    pub fn pull(&mut self, controller: ReadableStreamDefaultController) -> Promise {
         let mut pipe = self.pipe.clone();
 
         wasm_bindgen_futures::future_to_promise(
@@ -149,7 +149,7 @@ impl ReadableStreamSource {
                         );
 
                         let buffer = Uint8Array::from(data);
-                        controller.enqueue_with_array_buffer_view(&buffer)?;
+                        controller.enqueue_with_chunk(&buffer.into())?;
                     }
                     Err(e) => {
                         tracing::trace!(error = &*e);
