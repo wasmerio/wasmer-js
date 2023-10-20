@@ -18,7 +18,6 @@ pub(crate) fn input_pipe() -> (Pipe, WritableStream) {
     let (left, right) = Pipe::channel();
 
     let sink = JsValue::from(WritableStreamSink { pipe: right });
-
     let stream = WritableStream::new_with_underlying_sink(sink.unchecked_ref()).unwrap();
 
     (left, stream)
@@ -187,7 +186,9 @@ pub(crate) fn read_to_end(stream: ReadableStream) -> impl Stream<Item = Result<V
     let reader = match ReadableStreamDefaultReader::new(&stream) {
         Ok(reader) => reader,
         Err(_) => {
-            tracing::trace!("The ReadableStream is already locked. Leaving it up to the user to consume.");
+            tracing::trace!(
+                "The ReadableStream is already locked. Leaving it up to the user to consume."
+            );
             return Either::Left(futures::stream::empty());
         }
     };

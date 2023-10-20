@@ -31,7 +31,9 @@ pub(crate) const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("C
 const RUST_LOG: &[&str] = &[
     "info",
     "wasmer_wasix=debug",
+    "wasmer_wasix::syscalls::wasi::fd_read=trace",
     "wasmer_wasix_js=debug",
+    "wasmer_wasix_js::streams=trace",
     "wasmer=debug",
 ];
 
@@ -48,6 +50,8 @@ fn on_start() {
 
     let registry = tracing_subscriber::Registry::default()
         .with(EnvFilter::new(RUST_LOG.join(",")))
-        .with(tracing_wasm::WASMLayer::default());
+        .with(
+            tracing_browser_subscriber::BrowserLayer::new().with_max_level(tracing::Level::TRACE),
+        );
     tracing::subscriber::set_global_default(registry).unwrap();
 }

@@ -37,8 +37,6 @@ impl Scheduler {
 
         wasm_bindgen_futures::spawn_local(
             async move {
-                let _span = tracing::debug_span!("scheduler").entered();
-
                 while let Some(msg) = receiver.recv().await {
                     tracing::trace!(?msg, "Executing a message");
 
@@ -50,7 +48,7 @@ impl Scheduler {
                 tracing::debug!("Shutting down the scheduler");
                 drop(scheduler);
             }
-            .in_current_span(),
+            .instrument(tracing::debug_span!("scheduler")),
         );
 
         sender

@@ -6,7 +6,7 @@ use instant::Duration;
 use wasm_bindgen_futures::JsFuture;
 use wasmer_wasix::{runtime::task_manager::TaskWasm, VirtualTaskManager, WasiThreadError};
 
-use crate::tasks::{Scheduler, SchedulerMessage, };
+use crate::tasks::{Scheduler, SchedulerMessage};
 
 /// A handle to a threadpool backed by Web Workers.
 #[derive(Debug, Clone)]
