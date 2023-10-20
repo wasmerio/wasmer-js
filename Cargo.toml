@@ -83,9 +83,6 @@ default = ["console_error_panic_hook", "wee_alloc"]
 console_error_panic_hook = ["dep:console_error_panic_hook"]
 wee_alloc = ["dep:wee_alloc"]
 
-[profile.dev]
-opt-level = 1
-
 [profile.release]
 lto = true
 opt-level = 'z'
