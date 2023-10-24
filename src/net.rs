@@ -7,7 +7,7 @@ use tokio::sync::mpsc;
 use virtual_net::{meta::MessageRequest, RemoteNetworkingClient};
 use wasm_bindgen_futures::JsFuture;
 
-use crate::ws::WebSocket;
+use crate::{utils::GlobalScope, ws::WebSocket};
 
 pub(crate) fn connect_networking(connect: String) -> RemoteNetworkingClient {
     let (recv_tx, recv_rx) = mpsc::channel(100);
@@ -25,7 +25,7 @@ pub(crate) fn connect_networking(connect: String) -> RemoteNetworkingClient {
             // Exponential backoff prevents thrashing of the connection
             let backoff_ms = backoff.load(Ordering::SeqCst);
             if backoff_ms > 0 {
-                let promise = crate::utils::bindgen_sleep(backoff_ms as i32);
+                let promise = GlobalScope::current().sleep(backoff_ms as i32);
                 JsFuture::from(promise).await.ok();
             }
             let new_backoff = 8000usize.min((backoff_ms * 2) + 100);

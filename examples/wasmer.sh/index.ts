@@ -1,6 +1,6 @@
 import "xterm/css/xterm.css";
 
-import { Instance, SpawnConfig, Tty, Wasmer, init } from "@wasmer/wasix";
+import { Wasmer, init } from "@wasmer/wasix";
 import { Terminal } from "xterm";
 import { FitAddon } from "xterm-addon-fit";
 
@@ -18,25 +18,22 @@ async function main() {
 
     const wasmer = new Wasmer();
 
-    // Create a TTY and attach it to the terminal
-    const tty = new Tty();
-    tty.state = {...tty.state, cols: term.cols, rows: term.rows};
-    term.onResize(({cols, rows}) => {
-        tty.state = {...tty.state, cols, rows};
-    });
-    wasmer.runtime().set_tty(tty);
+    const runtime = wasmer.runtime();
 
     term.writeln("Starting...");
 
     while (true) {
         const instance = await wasmer.spawn("sharrattj/bash", {
             args: [],
-            uses: ["python/python@0.1.0"],
+            runtime,
         });
 
         // Connect stdin/stdout/stderr to the terminal
         const stdin: WritableStreamDefaultWriter<Uint8Array> = instance.stdin!.getWriter();
-        term.onData(line => { stdin.write(encoder.encode(line)); });
+        term.onData(async line => {
+            if(line.includes("\n")) runtime.print_tty_options();
+            await stdin.write(encoder.encode(line));
+        });
         copyStream(instance.stdout, term);
         copyStream(instance.stderr, term);
 
@@ -51,7 +48,9 @@ async function main() {
 }
 
 async function copyStream(reader: ReadableStream, term: Terminal) {
-    const writer = new WritableStream({ write: chunk => term.write(chunk) });
+    const writer = new WritableStream({
+        write: chunk => { term.write(chunk); }
+    });
     reader.pipeTo(writer);
 
 }

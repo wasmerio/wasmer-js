@@ -2,7 +2,7 @@ use std::{collections::BTreeMap, sync::Arc};
 
 use futures::channel::oneshot;
 use js_sys::Array;
-use wasm_bindgen::{prelude::wasm_bindgen, JsCast, JsValue};
+use wasm_bindgen::{prelude::wasm_bindgen, JsCast, JsValue, UnwrapThrowExt};
 use wasmer_wasix::{Runtime as _, WasiEnvBuilder};
 
 use crate::{instance::ExitCondition, utils::Error, Instance, Runtime};
@@ -14,7 +14,7 @@ const DEFAULT_PROGRAM_NAME: &str = "wasm";
 pub fn run(wasm_module: js_sys::WebAssembly::Module, config: RunConfig) -> Result<Instance, Error> {
     let _span = tracing::debug_span!("run").entered();
 
-    let runtime = match config.runtime() {
+    let runtime = match config.runtime().as_runtime() {
         Some(rt) => Arc::new(rt.clone()),
         None => Arc::new(Runtime::with_pool_size(None)?),
     };
@@ -91,7 +91,11 @@ extern "C" {
     fn stdin(this: &RunConfig) -> JsValue;
 
     #[wasm_bindgen(method, getter)]
-    pub(crate) fn runtime(this: &RunConfig) -> Option<Runtime>;
+    pub(crate) fn runtime(this: &RunConfig) -> OptionalRuntime;
+
+    /// A proxy for `Option<&Runtime>`.
+    #[wasm_bindgen(typescript_type = "Runtime | undefined")]
+    pub(crate) type OptionalRuntime;
 }
 
 impl RunConfig {
@@ -174,6 +178,19 @@ impl Default for RunConfig {
         // Note: all fields are optional, so it's fine to use an empty object.
         Self {
             obj: js_sys::Object::new().into(),
+        }
+    }
+}
+
+impl OptionalRuntime {
+    pub(crate) fn as_runtime(&self) -> Option<Runtime> {
+        let js_value: &JsValue = self.as_ref();
+
+        if js_value.is_undefined() {
+            None
+        } else {
+            let rt = Runtime::try_from(js_value).expect_throw("Expected a runtime");
+            Some(rt)
         }
     }
 }

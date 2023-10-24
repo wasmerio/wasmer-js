@@ -23,23 +23,74 @@ pub(crate) fn js_error(value: JsValue) -> anyhow::Error {
     }
 }
 
-pub(crate) fn bindgen_sleep(milliseconds: i32) -> Promise {
-    Promise::new(&mut |resolve, reject| {
+/// A strongly-typed wrapper around `globalThis`.
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) enum GlobalScope {
+    Window(Window),
+    Worker(WorkerGlobalScope),
+    Other(js_sys::Object),
+}
+
+impl GlobalScope {
+    pub fn current() -> Self {
         let global_scope = js_sys::global();
 
-        if let Some(window) = global_scope.dyn_ref::<Window>() {
-            window
-                .set_timeout_with_callback_and_timeout_and_arguments_0(&resolve, milliseconds)
-                .unwrap();
-        } else if let Some(worker_global_scope) = global_scope.dyn_ref::<WorkerGlobalScope>() {
-            worker_global_scope
-                .set_timeout_with_callback_and_timeout_and_arguments_0(&resolve, milliseconds)
-                .unwrap();
-        } else {
-            let error = js_sys::Error::new("Unable to call setTimeout()");
-            reject.call1(&reject, &error).unwrap();
+        match global_scope.dyn_into() {
+            Ok(window) => GlobalScope::Window(window),
+            Err(global_scope) => match global_scope.dyn_into() {
+                Ok(worker_global_scope) => GlobalScope::Worker(worker_global_scope),
+                Err(other) => GlobalScope::Other(other),
+            },
         }
-    })
+    }
+
+    pub fn sleep(&self, milliseconds: i32) -> Promise {
+        Promise::new(&mut |resolve, reject| match self {
+            GlobalScope::Window(window) => {
+                window
+                    .set_timeout_with_callback_and_timeout_and_arguments_0(&resolve, milliseconds)
+                    .unwrap();
+            }
+            GlobalScope::Worker(worker_global_scope) => {
+                worker_global_scope
+                    .set_timeout_with_callback_and_timeout_and_arguments_0(&resolve, milliseconds)
+                    .unwrap();
+            }
+            GlobalScope::Other(_) => {
+                let error = js_sys::Error::new("Unable to call setTimeout()");
+                reject.call1(&reject, &error).unwrap();
+            }
+        })
+    }
+
+    pub fn user_agent(&self) -> Option<String> {
+        match self {
+            GlobalScope::Window(scope) => scope.navigator().user_agent().ok(),
+            GlobalScope::Worker(scope) => scope.navigator().user_agent().ok(),
+            GlobalScope::Other(_) => None,
+        }
+    }
+
+    /// The amount of concurrency available on this system.
+    ///
+    /// Returns `None` if unable to determine the available concurrency.
+    pub fn hardware_concurrency(&self) -> Option<NonZeroUsize> {
+        let concurrency = match self {
+            GlobalScope::Window(scope) => scope.navigator().hardware_concurrency(),
+            GlobalScope::Worker(scope) => scope.navigator().hardware_concurrency(),
+            GlobalScope::Other(_) => return None,
+        };
+
+        let concurrency = concurrency.round() as usize;
+        NonZeroUsize::new(concurrency)
+    }
+
+    pub fn is_mobile(&self) -> bool {
+        match self.user_agent() {
+            Some(user_agent) => wasmer_wasix::os::common::is_mobile(&user_agent),
+            None => false,
+        }
+    }
 }
 
 /// A wrapper around [`anyhow::Error`] that can be returned to JS to raise
@@ -131,24 +182,6 @@ pub(crate) fn object_entries(obj: &js_sys::Object) -> Result<BTreeMap<JsString, 
     }
 
     Ok(entries)
-}
-
-/// The amount of concurrency available on this system.
-///
-/// Returns `None` if unable to determine the available concurrency.
-pub(crate) fn hardware_concurrency() -> Option<NonZeroUsize> {
-    let global = js_sys::global();
-
-    let hardware_concurrency = if let Some(window) = global.dyn_ref::<web_sys::Window>() {
-        window.navigator().hardware_concurrency()
-    } else if let Some(worker_scope) = global.dyn_ref::<web_sys::DedicatedWorkerGlobalScope>() {
-        worker_scope.navigator().hardware_concurrency()
-    } else {
-        return None;
-    };
-
-    let hardware_concurrency = hardware_concurrency as usize;
-    NonZeroUsize::new(hardware_concurrency)
 }
 
 /// A dummy value that can be used in a [`Debug`] impl instead of showing the

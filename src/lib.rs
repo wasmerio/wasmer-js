@@ -1,6 +1,8 @@
 #[cfg(test)]
 wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
+extern crate alloc;
+
 mod container;
 mod facade;
 mod instance;
@@ -10,7 +12,6 @@ mod run;
 mod runtime;
 mod streams;
 mod tasks;
-mod tty;
 mod utils;
 mod ws;
 
@@ -20,7 +21,6 @@ pub use crate::{
     instance::{Instance, JsOutput},
     run::{run, RunConfig},
     runtime::Runtime,
-    tty::{Tty, TtyState},
 };
 
 use js_sys::{JsString, Uint8Array};

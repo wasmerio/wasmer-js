@@ -3,20 +3,22 @@ use std::{num::NonZeroUsize, sync::Arc};
 use http::HeaderValue;
 use virtual_net::VirtualNetworking;
 use wasm_bindgen::prelude::wasm_bindgen;
+use wasm_bindgen_derive::TryFromJsValue;
 use wasmer_wasix::{
     http::{HttpClient, WebHttpClient},
+    os::{TtyBridge, TtyOptions},
     runtime::{
         module_cache::ThreadLocalCache,
         package_loader::PackageLoader,
         resolver::{PackageSpecifier, PackageSummary, QueryError, Source, WapmSource},
     },
-    VirtualTaskManager,
+    VirtualTaskManager, WasiTtyState,
 };
 
-use crate::{tasks::ThreadPool, utils::Error, Tty};
+use crate::{tasks::ThreadPool, utils::Error};
 
 /// Runtime components used when running WebAssembly programs.
-#[derive(Clone, derivative::Derivative)]
+#[derive(Clone, derivative::Derivative, TryFromJsValue)]
 #[derivative(Debug)]
 #[wasm_bindgen]
 pub struct Runtime {
@@ -27,8 +29,7 @@ pub struct Runtime {
     http_client: Arc<dyn HttpClient + Send + Sync>,
     package_loader: Arc<dyn PackageLoader + Send + Sync>,
     module_cache: Arc<ThreadLocalCache>,
-    #[derivative(Debug = "ignore")]
-    tty: Option<Arc<dyn wasmer_wasix::os::TtyBridge + Send + Sync>>,
+    tty: TtyOptions,
 }
 
 #[wasm_bindgen]
@@ -70,7 +71,7 @@ impl Runtime {
             http_client: Arc::new(http_client),
             package_loader: Arc::new(package_loader),
             module_cache: Arc::new(module_cache),
-            tty: None,
+            tty: TtyOptions::default(),
         }
     }
 
@@ -87,8 +88,14 @@ impl Runtime {
         self.networking = Arc::new(networking);
     }
 
-    pub fn set_tty(&mut self, tty: &Tty) {
-        self.tty = Some(tty.bridge());
+    pub fn print_tty_options(&self) {
+        self.tty_get();
+    }
+}
+
+impl Runtime {
+    pub(crate) fn tty_options(&self) -> &TtyOptions {
+        &self.tty
     }
 }
 
@@ -136,7 +143,43 @@ impl wasmer_wasix::runtime::Runtime for Runtime {
     }
 
     fn tty(&self) -> Option<&(dyn wasmer_wasix::os::TtyBridge + Send + Sync)> {
-        self.tty.as_deref()
+        Some(self)
+    }
+}
+
+impl TtyBridge for Runtime {
+    fn reset(&self) {
+        self.tty.set_echo(true);
+        self.tty.set_line_buffering(true);
+        self.tty.set_line_feeds(true);
+        tracing::warn!("TTY RESET");
+    }
+
+    fn tty_get(&self) -> WasiTtyState {
+        let state = WasiTtyState {
+            cols: self.tty.cols(),
+            rows: self.tty.rows(),
+            width: 800,
+            height: 600,
+            stdin_tty: true,
+            stdout_tty: true,
+            stderr_tty: true,
+            echo: self.tty.echo(),
+            line_buffered: self.tty.line_buffering(),
+            line_feeds: self.tty.line_feeds(),
+        };
+
+        tracing::warn!(?state, "TTY GET");
+        state
+    }
+
+    fn tty_set(&self, tty_state: WasiTtyState) {
+        tracing::warn!(?tty_state, "TTY SET");
+        self.tty.set_cols(tty_state.cols);
+        self.tty.set_rows(tty_state.rows);
+        self.tty.set_echo(tty_state.echo);
+        self.tty.set_line_buffering(tty_state.line_buffered);
+        self.tty.set_line_feeds(tty_state.line_feeds);
     }
 }
 

@@ -1,5 +1,5 @@
 import { expect } from '@esm-bundle/chai';
-import { Runtime, run, wat2wasm, Wasmer, Container, init, Tty } from "..";
+import { Runtime, run, wat2wasm, Wasmer, Container, init } from "..";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder("utf-8");
@@ -110,23 +110,17 @@ describe("Wasmer.spawn", function() {
 
     it("can communicate with a subprocess", async () => {
         const wasmer = new Wasmer();
-        const tty = new Tty();
         const runtime = new Runtime();
-        runtime.set_tty(tty);
 
         const instance = await wasmer.spawn("sharrattj/bash", {
             args: ["-c", "python"],
             uses: ["python/python@0.1.0"],
+            runtime,
         });
         const stdin = instance.stdin!.getWriter();
         // Wait until the Python interpreter is ready
         await readWhile(instance.stdout, chunk => {
-            if (!chunk?.value) {
-                return false;
-            }
-
-            console.log(chunk);
-
+            if (!chunk?.value) return false;
             return !decoder.decode(chunk.value).includes(">>> ");
         });
         await stdin.write(encoder.encode("import sys; print(sys.version)"));

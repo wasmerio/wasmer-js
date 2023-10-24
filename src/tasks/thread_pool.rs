@@ -6,7 +6,10 @@ use instant::Duration;
 use wasm_bindgen_futures::JsFuture;
 use wasmer_wasix::{runtime::task_manager::TaskWasm, VirtualTaskManager, WasiThreadError};
 
-use crate::tasks::{Scheduler, SchedulerMessage};
+use crate::{
+    tasks::{Scheduler, SchedulerMessage},
+    utils::GlobalScope,
+};
 
 /// A handle to a threadpool backed by Web Workers.
 #[derive(Debug, Clone)]
@@ -21,7 +24,8 @@ impl ThreadPool {
     }
 
     pub fn new_with_max_threads() -> Result<ThreadPool, anyhow::Error> {
-        let concurrency = crate::utils::hardware_concurrency()
+        let concurrency = crate::utils::GlobalScope::current()
+            .hardware_concurrency()
             .context("Unable to determine the hardware concurrency")?;
         // Note: We want to deliberately over-commit to avoid accidental
         // deadlocks.
@@ -65,7 +69,8 @@ impl VirtualTaskManager for ThreadPool {
         };
 
         wasm_bindgen_futures::spawn_local(async move {
-            let _ = JsFuture::from(crate::utils::bindgen_sleep(time)).await;
+            let global = GlobalScope::current();
+            let _ = JsFuture::from(global.sleep(time)).await;
             let _ = tx.send(());
         });
 

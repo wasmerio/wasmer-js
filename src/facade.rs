@@ -1,17 +1,26 @@
 use std::sync::Arc;
 
 use anyhow::Context;
+use bytes::BytesMut;
 use futures::{channel::oneshot, TryStreamExt};
 use js_sys::JsString;
+use tracing::Instrument;
+use virtual_fs::{AsyncReadExt, Pipe};
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 use wasmer_wasix::{
     bin_factory::BinaryPackage,
+    os::{Tty, TtyOptions},
     runners::{wasi::WasiRunner, Runner},
     runtime::resolver::PackageSpecifier,
     Runtime as _,
 };
+use web_sys::{ReadableStream, WritableStream};
 
-use crate::{instance::ExitCondition, utils::Error, Instance, RunConfig, Runtime};
+use crate::{
+    instance::ExitCondition,
+    utils::{Error, GlobalScope},
+    Instance, RunConfig, Runtime,
+};
 
 /// The entrypoint to the Wasmer SDK.
 #[wasm_bindgen]
@@ -68,7 +77,7 @@ impl Wasmer {
             .or_else(|| pkg.entrypoint_cmd.clone())
             .context("No command name specified")?;
 
-        let runtime = match config.runtime() {
+        let runtime = match config.runtime().as_runtime() {
             Some(rt) => Arc::new(rt),
             None => Arc::new(self.runtime.clone()),
         };
@@ -134,27 +143,104 @@ impl SpawnConfig {
             runner.add_injected_packages(packages);
         }
 
-        let stdin = match self.read_stdin() {
-            Some(stdin) => {
-                let f = virtual_fs::StaticFile::new(stdin.into());
-                runner.set_stdin(Box::new(f));
-                None
+        let (stderr_pipe, stderr_stream) = crate::streams::output_pipe();
+        runner.set_stderr(Box::new(stderr_pipe));
+
+        let options = runtime.tty_options().clone();
+        match self.setup_tty(options) {
+            TerminalMode::Interactive {
+                stdin_pipe,
+                stdout_pipe,
+                stdout_stream,
+                stdin_stream,
+            } => {
+                runner.set_stdin(Box::new(stdin_pipe));
+                runner.set_stdout(Box::new(stdout_pipe));
+                Ok((Some(stdin_stream), stdout_stream, stderr_stream))
             }
-            None => {
-                let (f, stdin) = crate::streams::input_pipe();
-                runner.set_stdin(Box::new(f));
-                Some(stdin)
+            TerminalMode::NonInteractive { stdin } => {
+                let (stdout_pipe, stdout_stream) = crate::streams::output_pipe();
+                runner.set_stdin(Box::new(stdin));
+                runner.set_stdout(Box::new(stdout_pipe));
+                Ok((None, stdout_stream, stderr_stream))
             }
-        };
-
-        let (stdout_file, stdout) = crate::streams::output_pipe();
-        runner.set_stdout(Box::new(stdout_file));
-
-        let (stderr_file, stderr) = crate::streams::output_pipe();
-        runner.set_stderr(Box::new(stderr_file));
-
-        Ok((stdin, stdout, stderr))
+        }
     }
+
+    fn setup_tty(&self, options: TtyOptions) -> TerminalMode {
+        match self.read_stdin() {
+            Some(stdin) => TerminalMode::NonInteractive {
+                stdin: virtual_fs::StaticFile::new(stdin.into()),
+            },
+            None => {
+                let (stdout_pipe, stdout_stream) = crate::streams::output_pipe();
+
+                // Note: We want to intercept stdin and let the Tty modify it.
+                // To avoid confusing the pipes and how stdin data gets moved
+                // around, here's a diagram:
+                //
+                //  ---------------------------------     -------------------------------     ----------------------------
+                // | stdin_stream (user) u_stdin_rx | -> | u_stdin_tx (tty) rt_stdin_rx | -> | stdin_pipe (runtime) ... |
+                // ---------------------------------     -------------------------------     -----------------------------
+                let (mut u_stdin_rx, stdin_stream) = crate::streams::input_pipe();
+                let (u_stdin_tx, stdin_pipe) = Pipe::channel();
+
+                let mut tty = Tty::new(
+                    Box::new(u_stdin_tx),
+                    Box::new(stdout_pipe.clone()),
+                    GlobalScope::current().is_mobile(),
+                    options,
+                );
+
+                // Wire up the stdin link between the user and tty
+                wasm_bindgen_futures::spawn_local(
+                    async move {
+                        let mut buffer = BytesMut::new();
+
+                        loop {
+                            match u_stdin_rx.read_buf(&mut buffer).await {
+                                Ok(_) => {
+                                    let data = buffer.to_vec();
+                                    tty =
+                                        tty.on_event(wasmer_wasix::os::InputEvent::Raw(data)).await;
+                                    buffer.clear();
+                                }
+                                Err(e) => {
+                                    tracing::warn!(
+                                        error = &e as &dyn std::error::Error,
+                                        "Error reading stdin and copying it to the tty"
+                                    );
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    .in_current_span()
+                    .instrument(tracing::debug_span!("tty")),
+                );
+
+                TerminalMode::Interactive {
+                    stdin_pipe,
+                    stdout_pipe,
+                    stdout_stream,
+                    stdin_stream,
+                }
+            }
+        }
+    }
+}
+
+#[derive(Debug)]
+enum TerminalMode {
+    Interactive {
+        stdin_pipe: Pipe,
+        stdout_pipe: Pipe,
+        stdout_stream: ReadableStream,
+        stdin_stream: WritableStream,
+    },
+    NonInteractive {
+        stdin: virtual_fs::StaticFile,
+    },
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
