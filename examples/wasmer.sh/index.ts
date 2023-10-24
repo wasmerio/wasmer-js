@@ -47,12 +47,11 @@ async function main() {
     }
 }
 
-async function copyStream(reader: ReadableStream, term: Terminal) {
+function copyStream(reader: ReadableStream, term: Terminal) {
     const writer = new WritableStream({
         write: chunk => { term.write(chunk); }
     });
     reader.pipeTo(writer);
-
 }
 
 addEventListener("DOMContentLoaded", () => main());
