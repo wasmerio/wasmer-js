@@ -7,7 +7,7 @@ use wasmer_wasix::{Runtime as _, WasiEnvBuilder};
 
 use crate::{instance::ExitCondition, utils::Error, Instance, Runtime};
 
-const DEFAULT_PROGRAM_NAME: &str = "";
+const DEFAULT_PROGRAM_NAME: &str = "wasm";
 
 /// Run a WASIX program.
 #[wasm_bindgen]
@@ -18,6 +18,7 @@ pub fn run(wasm_module: js_sys::WebAssembly::Module, config: RunConfig) -> Resul
         Some(rt) => Arc::new(rt.clone()),
         None => Arc::new(Runtime::with_pool_size(None)?),
     };
+
     let program_name = config
         .program()
         .as_string()
@@ -26,8 +27,7 @@ pub fn run(wasm_module: js_sys::WebAssembly::Module, config: RunConfig) -> Resul
     let mut builder = WasiEnvBuilder::new(program_name).runtime(runtime.clone());
     let (stdin, stdout, stderr) = config.configure_builder(&mut builder)?;
 
-    let (sender, receiver) = oneshot::channel();
-
+    let (exit_code_tx, exit_code_rx) = oneshot::channel();
     let module = wasmer::Module::from(wasm_module);
 
     // Note: The WasiEnvBuilder::run() method blocks, so we need to run it on
@@ -38,7 +38,7 @@ pub fn run(wasm_module: js_sys::WebAssembly::Module, config: RunConfig) -> Resul
         Box::new(move |module| {
             let _span = tracing::debug_span!("run").entered();
             let result = builder.run(module).map_err(anyhow::Error::new);
-            let _ = sender.send(ExitCondition::from_result(result));
+            let _ = exit_code_tx.send(ExitCondition::from_result(result));
         }),
     )?;
 
@@ -46,7 +46,7 @@ pub fn run(wasm_module: js_sys::WebAssembly::Module, config: RunConfig) -> Resul
         stdin,
         stdout,
         stderr,
-        exit: receiver,
+        exit: exit_code_rx,
     })
 }
 
@@ -91,11 +91,13 @@ extern "C" {
     fn stdin(this: &RunConfig) -> JsValue;
 
     #[wasm_bindgen(method, getter)]
-    fn runtime(this: &RunConfig) -> Option<Runtime>;
+    pub(crate) fn runtime(this: &RunConfig) -> Option<Runtime>;
 }
 
 impl RunConfig {
-    pub(crate) fn configure_builder(
+    /// Propagate any provided options to the [`WasiEnvBuilder`], returning
+    /// streams that can be used for stdin/stdout/stderr.
+    fn configure_builder(
         &self,
         builder: &mut WasiEnvBuilder,
     ) -> Result<

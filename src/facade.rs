@@ -68,7 +68,10 @@ impl Wasmer {
             .or_else(|| pkg.entrypoint_cmd.clone())
             .context("No command name specified")?;
 
-        let runtime = Arc::new(self.runtime.clone());
+        let runtime = match config.runtime() {
+            Some(rt) => Arc::new(rt),
+            None => Arc::new(self.runtime.clone()),
+        };
         let tasks = Arc::clone(runtime.task_manager());
 
         let mut runner = WasiRunner::new();

@@ -31,9 +31,7 @@ pub(crate) const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("C
 const RUST_LOG: &[&str] = &[
     "info",
     "wasmer_wasix=debug",
-    "wasmer_wasix::syscalls::wasi::fd_read=trace",
     "wasmer_wasix_js=debug",
-    "wasmer_wasix_js::streams=trace",
     "wasmer=debug",
 ];
 

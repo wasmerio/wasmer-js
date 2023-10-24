@@ -5,7 +5,7 @@ use wasmer_wasix::WasiRuntimeError;
 
 use crate::utils::Error;
 
-/// A handle connected to a running WASI program.
+/// A handle connected to a running WASIX program.
 #[derive(Debug)]
 #[wasm_bindgen]
 pub struct Instance {
