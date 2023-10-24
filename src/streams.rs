@@ -7,7 +7,7 @@ use virtual_fs::{AsyncReadExt, AsyncWriteExt, Pipe};
 use wasm_bindgen::{prelude::wasm_bindgen, JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{
-    ReadableByteStreamController, ReadableStream, ReadableStreamDefaultReader, WritableStream,
+    ReadableStream, ReadableStreamDefaultController, ReadableStreamDefaultReader, WritableStream,
 };
 
 use crate::utils::Error;
@@ -127,7 +127,7 @@ impl ReadableStreamSource {
     /// successfully completes. Additionally, it will only be called repeatedly
     /// if it enqueues at least one chunk or fulfills a BYOB request; a no-op
     /// pull() implementation will not be continually called.
-    pub fn pull(&mut self, controller: ReadableByteStreamController) -> Promise {
+    pub fn pull(&mut self, controller: ReadableStreamDefaultController) -> Promise {
         let mut pipe = self.pipe.clone();
 
         wasm_bindgen_futures::future_to_promise(
@@ -149,7 +149,7 @@ impl ReadableStreamSource {
                         );
 
                         let buffer = Uint8Array::from(data);
-                        controller.enqueue_with_array_buffer_view(&buffer)?;
+                        controller.enqueue_with_chunk(&buffer)?;
                     }
                     Err(e) => {
                         tracing::trace!(error = &*e);
@@ -176,9 +176,24 @@ impl ReadableStreamSource {
         self.pipe.close();
     }
 
+    /// This property controls what type of readable stream is being dealt with.
+    /// If it is included with a value set to `"bytes"`, the passed controller
+    /// object will be a `ReadableByteStreamController`` capable of handling a
+    /// BYOB (bring your own buffer)/byte stream. If it is not included, the
+    /// passed controller will be a `ReadableStreamDefaultController`.
     #[wasm_bindgen(getter, js_name = "type")]
-    pub fn type_(&self) -> JsString {
-        JsString::from("bytes")
+    pub fn type_(&self) -> Option<JsString> {
+        // Note: We can't use BYOB for zero-copy streaming because it'd mean
+        // JavaScript code gets a reference to the buffer allocated inside the
+        // pull() method. That Uint8Array is a view into a linear memory
+        // and would any access after the pull method's promise completes would
+        // be a use-after-free.
+        //
+        // This also works around a limitation in Safari where returning
+        // JsString::from("bytes") causes the browser's *native* code to run the
+        // constructor for ReadableByteStreamController, which isn't implemented
+        // yet.
+        None
     }
 }
 
