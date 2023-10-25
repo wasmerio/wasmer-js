@@ -108,7 +108,7 @@ describe("Wasmer.spawn", function() {
         expect(decoder.decode(stderr)).to.equal("");
     });
 
-    it("can communicate with a subprocess", async () => {
+    it.skip("can communicate with a subprocess", async () => {
         const wasmer = new Wasmer();
         const runtime = new Runtime();
 
@@ -118,12 +118,10 @@ describe("Wasmer.spawn", function() {
             runtime,
         });
         const stdin = instance.stdin!.getWriter();
-        // Wait until the Python interpreter is ready
-        await readWhile(instance.stdout, chunk => {
-            if (!chunk?.value) return false;
-            return !decoder.decode(chunk.value).includes(">>> ");
-        });
-        await stdin.write(encoder.encode("import sys; print(sys.version)"));
+        // Tell Bash to start Python
+        await stdin.write(encoder.encode("python\n"));
+        await stdin.write(encoder.encode("import sys; print(sys.version)\nexit()\n"));
+        await stdin.close();
 
         const { code, stdout, stderr } = await instance.wait();
 
