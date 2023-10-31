@@ -15,7 +15,8 @@ use crate::{
     utils::Error,
 };
 
-/// Messages sent from the [`crate::tasks::ThreadPool`] handle to the [`Scheduler`].
+/// Messages sent from the [`crate::tasks::ThreadPool`] handle to the
+/// `Scheduler`.
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub(crate) enum SchedulerMessage {
@@ -61,7 +62,6 @@ pub(crate) enum SchedulerMessage {
 impl SchedulerMessage {
     #[tracing::instrument(level = "debug")]
     pub(crate) unsafe fn try_from_js(value: JsValue) -> Result<Self, Error> {
-        web_sys::console::log_1(&value);
         let de = Deserializer::new(value);
 
         match de.ty()?.as_str() {

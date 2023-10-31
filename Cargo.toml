@@ -33,7 +33,7 @@ wasm-bindgen-downcast = "0.1"
 wasm-bindgen-futures = "0.4"
 wasm-bindgen-test = "0.3.37"
 wasmer = { version = "4.2.2", default-features = false, features = ["js", "js-default", "tracing", "wasm-types-polyfill", "enable-serde"] }
-wasmer-wasix = { version = "0.15", default-features = false, features = ["js", "js-default"] }
+wasmer-wasix = { version = "0.16", default-features = false, features = ["js", "js-default"] }
 wee_alloc = { version = "0.4", optional = true }
 webc = "5.3.0"
 shared-buffer = "0.1.3"

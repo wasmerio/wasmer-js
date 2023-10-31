@@ -3,17 +3,13 @@ import { Runtime, run, wat2wasm, Wasmer, Container, init } from "..";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder("utf-8");
-const wasmerPython = "https://wasmer.io/python/python@0.1.0";
-
-before(async () => {
-    await init();
-});
+const wasmerPython = "python/python@0.1.0";
 
 describe("run", function() {
-    this.timeout("60s");
-    const python = getPython();
+    this.timeout("60s")
+        .beforeAll(async () => await init());
 
-    it("can execute a noop program", async () => {
+    it("can execute a noop program", async function() {
         const noop = `(
             module
                 (memory $memory 0)
@@ -31,8 +27,10 @@ describe("run", function() {
         expect(output.code).to.equal(0);
     });
 
-    it("can start python", async () => {
-        const runtime = new Runtime(2);
+    it("can start python", async function() {
+        let wasmer = new Wasmer();
+        const python = getPython(wasmer);
+        const runtime = wasmer.runtime();
         const { module } = await python;
 
         const instance = run(module, { program: "python", args: ["--version"], runtime });
@@ -46,11 +44,18 @@ describe("run", function() {
 });
 
 describe("Wasmer.spawn", function() {
-    this.timeout("60s");
+    let wasmer: Wasmer;
 
-    it("Can run python", async () => {
-        const wasmer = new Wasmer();
+    this.timeout("120s")
+        .beforeAll(async () => {
+            await init();
+            // Note: technically we should use a separate Wasmer instance so tests can't
+            // interact with each other, but in this case the caching benefits mean we
+            // complete in tens of seconds rather than several minutes.
+            wasmer = new Wasmer();
+        });
 
+    it("Can run python", async function () {
         const instance = await wasmer.spawn("python/python@0.1.0", {
             args: ["--version"],
         });
@@ -62,11 +67,10 @@ describe("Wasmer.spawn", function() {
         expect(output.stderr.length).to.equal(0);
     });
 
-    it("Can capture exit codes", async () => {
-        const wasmer = new Wasmer();
-
-        const instance = await wasmer.spawn("python/python@0.1.0", {
-            args: ["-c", "import sys; sys.exit(42)"],
+    it("Can capture exit codes", async function() {
+        const instance = await wasmer.spawn("saghul/quickjs", {
+            args: ["-e", "process.exit(42)"],
+            command: "quickjs",
         });
         const output = await instance.wait();
 
@@ -76,14 +80,12 @@ describe("Wasmer.spawn", function() {
         expect(output.stderr.length).to.equal(0);
     });
 
-    it("Can communicate via stdin", async () => {
-        const wasmer = new Wasmer();
-
+    it("Can communicate via stdin", async function() {
         // First, start python up in the background
         const instance = await wasmer.spawn("python/python@0.1.0");
         // Then, send the command to the REPL
         const stdin = instance.stdin!.getWriter();
-        await stdin.write(encoder.encode("1 + 1\n"));
+        await stdin.write(encoder.encode("print(1 + 1)\n"));
         await stdin.close();
         // Now make sure we read stdout (this won't complete until after the
         // instance exits).
@@ -95,9 +97,7 @@ describe("Wasmer.spawn", function() {
         expect(await stdout).to.equal("2\n");
     });
 
-    it("can run a bash session", async () => {
-        const wasmer = new Wasmer();
-
+    it("can run a bash session", async function() {
         const instance = await wasmer.spawn("sharrattj/bash", {
             stdin: "ls / && exit 42\n",
         });
@@ -108,14 +108,10 @@ describe("Wasmer.spawn", function() {
         expect(decoder.decode(stderr)).to.equal("");
     });
 
-    it.skip("can communicate with a subprocess", async () => {
-        const wasmer = new Wasmer();
-        const runtime = new Runtime();
-
+    it("can communicate with a subprocess", async function() {
         const instance = await wasmer.spawn("sharrattj/bash", {
             args: ["-c", "python"],
             uses: ["python/python@0.1.0"],
-            runtime,
         });
         const stdin = instance.stdin!.getWriter();
         // Tell Bash to start Python
@@ -156,19 +152,15 @@ async function readToEnd(stream: ReadableStream<Uint8Array>): Promise<string> {
     return await readWhile(stream, chunk => !chunk.done);
 }
 
-async function getPython(): Promise<{container: Container, python: Uint8Array, module: WebAssembly.Module}> {
-        const response = await fetch(wasmerPython, {
-            headers: { "Accept": "application/webc" }
-        });
-        const raw = await response.arrayBuffer();
-        const container = new Container(new Uint8Array(raw));
-        const python = container.get_atom("python");
-        if (!python) {
-            throw new Error("Can't find the 'python' atom");
-        }
-        const module = await WebAssembly.compile(python);
+async function getPython(wasmer: Wasmer): Promise<{container: Container, python: Uint8Array, module: WebAssembly.Module}> {
+    const container = await Container.from_registry(wasmerPython, wasmer.runtime());
+    const python = container.get_atom("python");
+    if (!python) {
+        throw new Error("Can't find the 'python' atom");
+    }
+    const module = await WebAssembly.compile(python);
 
-        return {
-            container, python, module
-        };
+    return {
+        container, python, module
+    };
 }

@@ -35,6 +35,7 @@ impl Scheduler {
 
         let mut scheduler = SchedulerState::new(capacity, sender.clone());
 
+        tracing::debug!(thread_id, "Spinning up the scheduler");
         wasm_bindgen_futures::spawn_local(
             async move {
                 while let Some(msg) = receiver.recv().await {
@@ -75,6 +76,12 @@ impl Scheduler {
     }
 
     pub fn send(&self, msg: SchedulerMessage) -> Result<(), Error> {
+        tracing::debug!(
+            current_thread = wasmer::current_thread_id(),
+            scheduler_thread = self.scheduler_thread_id,
+            ?msg,
+            "Sending message"
+        );
         if wasmer::current_thread_id() == self.scheduler_thread_id {
             // It's safe to send the message to the scheduler.
             self.channel

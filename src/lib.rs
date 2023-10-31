@@ -24,16 +24,11 @@ pub use crate::{
 };
 
 use js_sys::{JsString, Uint8Array};
-use tracing_subscriber::{prelude::__tracing_subscriber_SubscriberExt, EnvFilter};
+use tracing_subscriber::{layer::SubscriberExt, EnvFilter};
 use wasm_bindgen::prelude::wasm_bindgen;
 
 pub(crate) const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));
-const RUST_LOG: &[&str] = &[
-    "info",
-    "wasmer_wasix=debug",
-    "wasmer_wasix_js=debug",
-    "wasmer=debug",
-];
+const RUST_LOG: &[&str] = &["warn", "wasmer_wasix=debug", "wasmer_wasix_js=debug"];
 
 #[wasm_bindgen]
 pub fn wat2wasm(wat: JsString) -> Result<Uint8Array, utils::Error> {
@@ -46,10 +41,12 @@ pub fn wat2wasm(wat: JsString) -> Result<Uint8Array, utils::Error> {
 fn on_start() {
     console_error_panic_hook::set_once();
 
+    let max_level = tracing::level_filters::STATIC_MAX_LEVEL
+        .into_level()
+        .unwrap_or(tracing::Level::ERROR);
+
     let registry = tracing_subscriber::Registry::default()
         .with(EnvFilter::new(RUST_LOG.join(",")))
-        .with(
-            tracing_browser_subscriber::BrowserLayer::new().with_max_level(tracing::Level::TRACE),
-        );
+        .with(tracing_browser_subscriber::BrowserLayer::new().with_max_level(max_level));
     tracing::subscriber::set_global_default(registry).unwrap();
 }

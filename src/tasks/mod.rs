@@ -13,7 +13,7 @@
 //!   sending messages to the [`Scheduler`]
 //! - [`WorkerHandle`] - a `!Send` handle used by the [`Scheduler`] to manage
 //!   a worker's lifecycle and communicate back and forth with it
-//! - [`worker::Worker`] - a worker's internal state
+//! - [`Worker`] - a worker's internal state
 //!
 //! Communicating with workers is a bit tricky because of their asynchronous
 //! nature and the requirement to use `postMessage()` when transferring certain
@@ -29,6 +29,7 @@
 //! - [`WorkerMessage`] - messages a [`Worker`] sends back to the [`Scheduler`]
 //!
 //! [`Worker`]: thread_pool_worker::ThreadPoolWorker
+//! [`Scheduler`]: scheduler::Scheduler
 
 mod interop;
 mod post_message_payload;

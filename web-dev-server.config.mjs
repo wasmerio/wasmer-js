@@ -12,4 +12,5 @@ export default {
   plugins: [esbuildPlugin({ ts: true })],
   middlewares: [add_headers],
   browsers: [chromeLauncher({ launchOptions: { devtools: true } })],
+  testsFinishTimeout: 10 * 60 * 1000,
 };
