@@ -199,6 +199,7 @@ impl SpawnConfig {
 
                         loop {
                             match u_stdin_rx.read_buf(&mut buffer).await {
+                                Ok(0) => break,
                                 Ok(_) => {
                                     let data = buffer.to_vec();
                                     tty =
