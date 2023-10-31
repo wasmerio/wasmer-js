@@ -1,11 +1,15 @@
-use std::sync::Arc;
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex},
+};
 
 use anyhow::{Context, Error};
+use bytes::Bytes;
 use http::{HeaderMap, HeaderValue, Method, StatusCode};
 use wasmer_wasix::{
     bin_factory::BinaryPackage,
     http::{HttpClient, HttpRequest, HttpResponse},
-    runtime::resolver::{PackageSummary, Resolution},
+    runtime::resolver::{DistributionInfo, PackageSummary, Resolution, WebcHash},
 };
 use webc::Container;
 
@@ -17,30 +21,21 @@ use webc::Container;
 #[derive(Debug, Clone)]
 pub struct PackageLoader {
     client: Arc<dyn HttpClient + Send + Sync>,
+    cache: Arc<Cache>,
 }
 
 impl PackageLoader {
     pub fn new(client: Arc<dyn HttpClient + Send + Sync>) -> Self {
-        PackageLoader { client }
+        let cache = Arc::new(Cache::default());
+        PackageLoader { client, cache }
     }
-}
 
-#[async_trait::async_trait]
-impl wasmer_wasix::runtime::package_loader::PackageLoader for PackageLoader {
-    #[tracing::instrument(
-        skip_all,
-        fields(
-            pkg.name=summary.pkg.name.as_str(),
-            pkg.version=%summary.pkg.version,
-            pkg.url=summary.dist.webc.as_str(),
-        ),
-    )]
-    async fn load(&self, summary: &PackageSummary) -> Result<Container, Error> {
+    async fn download(&self, dist: &DistributionInfo) -> Result<Bytes, Error> {
         let mut headers = HeaderMap::new();
         headers.insert("Accept", HeaderValue::from_static("application/webc"));
 
         let request = HttpRequest {
-            url: summary.dist.webc.clone(),
+            url: dist.webc.clone(),
             method: Method::GET,
             headers,
             body: None,
@@ -61,7 +56,7 @@ impl wasmer_wasix::runtime::package_loader::PackageLoader for PackageLoader {
         );
 
         if !response.is_ok() {
-            let url = &summary.dist.webc;
+            let url = &dist.webc;
             return Err(
                 http_error(&response).context(format!("The GET request to \"{url}\" failed"))
             );
@@ -70,6 +65,42 @@ impl wasmer_wasix::runtime::package_loader::PackageLoader for PackageLoader {
         let body = response
             .body
             .context("The response didn't contain a body")?;
+
+        Ok(body.into())
+    }
+
+    pub(crate) async fn download_cached(&self, dist: &DistributionInfo) -> Result<Bytes, Error> {
+        let webc_hash = dist.webc_sha256;
+
+        let body = match self.cache.load(&webc_hash) {
+            Some(body) => {
+                tracing::debug!("Cache Hit!");
+                body
+            }
+            None => {
+                tracing::debug!("Cache Miss");
+                let bytes = self.download(dist).await?;
+                self.cache.save(webc_hash, bytes.clone());
+                bytes
+            }
+        };
+
+        Ok(body)
+    }
+}
+
+#[async_trait::async_trait]
+impl wasmer_wasix::runtime::package_loader::PackageLoader for PackageLoader {
+    #[tracing::instrument(
+        skip_all,
+        fields(
+            pkg.name=summary.pkg.name.as_str(),
+            pkg.version=%summary.pkg.version,
+            pkg.url=summary.dist.webc.as_str(),
+        ),
+    )]
+    async fn load(&self, summary: &PackageSummary) -> Result<Container, Error> {
+        let body = self.download_cached(&summary.dist).await?;
         let container = Container::from_bytes(body)?;
 
         Ok(container)
@@ -102,4 +133,30 @@ pub(crate) fn http_error(response: &HttpResponse) -> Error {
     }
 
     Error::msg(status)
+}
+
+/// A quick'n'dirty cache for downloaded packages.
+///
+/// This makes no attempt at verifying a cached
+#[derive(Debug, Default)]
+struct Cache(Mutex<HashMap<WebcHash, Bytes>>);
+
+impl Cache {
+    fn load(&self, hash: &WebcHash) -> Option<Bytes> {
+        let cache = self.0.lock().ok()?;
+        let bytes = cache.get(hash)?;
+        Some(bytes.clone())
+    }
+
+    fn save(&self, hash: WebcHash, bytes: Bytes) {
+        debug_assert_eq!(
+            hash,
+            WebcHash::sha256(bytes.as_ref()),
+            "Mismatched webc hash"
+        );
+
+        if let Ok(mut cache) = self.0.lock() {
+            cache.insert(hash, bytes);
+        }
+    }
 }
