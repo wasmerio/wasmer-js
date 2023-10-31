@@ -22,18 +22,7 @@ impl Container {
     /// Parse a `Container` from its binary representation.
     #[wasm_bindgen(constructor)]
     pub fn new(raw: Vec<u8>) -> Result<Container, Error> {
-        let raw = Bytes::from(raw);
-
-        let webc = webc::Container::from_bytes(raw.clone())?;
-        let atoms = webc.atoms();
-        let volumes = webc.volumes();
-
-        Ok(Container {
-            _raw: raw,
-            webc,
-            atoms,
-            volumes,
-        })
+        Container::from_bytes(raw.into())
     }
 
     /// Download a package from the registry.
@@ -47,10 +36,12 @@ impl Container {
             .context("Invalid package specifier")?;
 
         let summary = source.latest(&package_specifier).await?;
+        let webc = runtime
+            .package_loader()
+            .download_cached(&summary.dist)
+            .await?;
 
-        summary.dist.webc.as_str();
-
-        todo!();
+        Container::from_bytes(webc)
     }
 
     pub fn manifest(&self) -> Result<Manifest, serde_wasm_bindgen::Error> {
@@ -82,6 +73,21 @@ impl Container {
 
     pub fn get_volume(&self, _name: &str) -> Option<Volume> {
         todo!();
+    }
+}
+
+impl Container {
+    fn from_bytes(bytes: Bytes) -> Result<Self, Error> {
+        let webc = webc::Container::from_bytes(bytes.clone())?;
+        let atoms = webc.atoms();
+        let volumes = webc.volumes();
+
+        Ok(Container {
+            _raw: bytes,
+            webc,
+            atoms,
+            volumes,
+        })
     }
 }
 

@@ -27,7 +27,7 @@ pub struct Runtime {
     networking: Arc<dyn VirtualNetworking>,
     source: Arc<dyn Source + Send + Sync>,
     http_client: Arc<dyn HttpClient + Send + Sync>,
-    package_loader: Arc<dyn PackageLoader + Send + Sync>,
+    package_loader: Arc<crate::package_loader::PackageLoader>,
     module_cache: Arc<ThreadLocalCache>,
     tty: TtyOptions,
 }
@@ -97,6 +97,10 @@ impl Runtime {
     pub(crate) fn tty_options(&self) -> &TtyOptions {
         &self.tty
     }
+
+    pub(crate) fn package_loader(&self) -> &Arc<crate::package_loader::PackageLoader> {
+        &self.package_loader
+    }
 }
 
 impl wasmer_wasix::runtime::Runtime for Runtime {
@@ -152,11 +156,10 @@ impl TtyBridge for Runtime {
         self.tty.set_echo(true);
         self.tty.set_line_buffering(true);
         self.tty.set_line_feeds(true);
-        tracing::warn!("TTY RESET");
     }
 
     fn tty_get(&self) -> WasiTtyState {
-        let state = WasiTtyState {
+        WasiTtyState {
             cols: self.tty.cols(),
             rows: self.tty.rows(),
             width: 800,
@@ -167,14 +170,10 @@ impl TtyBridge for Runtime {
             echo: self.tty.echo(),
             line_buffered: self.tty.line_buffering(),
             line_feeds: self.tty.line_feeds(),
-        };
-
-        tracing::warn!(?state, "TTY GET");
-        state
+        }
     }
 
     fn tty_set(&self, tty_state: WasiTtyState) {
-        tracing::warn!(?tty_state, "TTY SET");
         self.tty.set_cols(tty_state.cols);
         self.tty.set_rows(tty_state.rows);
         self.tty.set_echo(tty_state.echo);
