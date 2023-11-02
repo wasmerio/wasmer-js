@@ -57,12 +57,12 @@ impl WritableStreamSink {
                     .context("Flushing failed")
                     .map_err(Error::from)?;
                 pipe.close();
-                tracing::trace!("Pipe closed");
+                tracing::debug!("Pipe closed");
 
                 Ok(JsValue::UNDEFINED)
             }
             .in_current_span()
-            .instrument(tracing::trace_span!("close")),
+            .instrument(tracing::debug_span!("close")),
         )
     }
 
@@ -165,7 +165,7 @@ impl ReadableStreamSource {
 
                 match pipe.read_buf(&mut buffer).await.context("Read failed") {
                     Ok(0) => {
-                        tracing::trace!("EOF");
+                        tracing::debug!("EOF");
                         controller.close()?;
                     }
                     Ok(bytes_read) => {
@@ -180,7 +180,7 @@ impl ReadableStreamSource {
                         controller.enqueue_with_chunk(&buffer)?;
                     }
                     Err(e) => {
-                        tracing::trace!(error = &*e);
+                        tracing::debug!(error = &*e);
                         let err = JsValue::from(Error::from(e));
                         controller.error_with_e(&err);
                     }
@@ -201,7 +201,7 @@ impl ReadableStreamSource {
     /// reason parameter contains a string describing why the stream was
     /// cancelled.
     pub fn cancel(&mut self) {
-        tracing::trace!("Read stream cancelled");
+        tracing::debug!("Read stream cancelled");
         self.pipe.close();
     }
 
