@@ -1,13 +1,15 @@
 import "xterm/css/xterm.css";
 
-import { Wasmer, init } from "@wasmer/wasix";
+import { Wasmer, init, initializeLogger } from "@wasmer/wasix";
 import { Terminal } from "xterm";
 import { FitAddon } from "xterm-addon-fit";
 
 const encoder = new TextEncoder();
+const logFilter = ["info"].join(",");
 
 async function main() {
     await init();
+    initializeLogger(logFilter);
 
     // Create a terminal
     const term = new Terminal({ cursorBlink: true, convertEol: true });
@@ -30,10 +32,7 @@ async function main() {
 
         // Connect stdin/stdout/stderr to the terminal
         const stdin: WritableStreamDefaultWriter<Uint8Array> = instance.stdin!.getWriter();
-        term.onData(async line => {
-            if(line.includes("\n")) runtime.print_tty_options();
-            await stdin.write(encoder.encode(line));
-        });
+        term.onData(line => stdin.write(encoder.encode(line)));
         copyStream(instance.stdout, term);
         copyStream(instance.stderr, term);
 
@@ -47,8 +46,8 @@ async function main() {
     }
 }
 
-function copyStream(reader: ReadableStream, term: Terminal) {
-    const writer = new WritableStream({
+function copyStream(reader: ReadableStream<Uint8Array>, term: Terminal) {
+    const writer = new WritableStream<Uint8Array>({
         write: chunk => { term.write(chunk); }
     });
     reader.pipeTo(writer);

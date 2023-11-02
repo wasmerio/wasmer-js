@@ -18,7 +18,17 @@ pub(crate) fn input_pipe() -> (Pipe, WritableStream) {
     let (left, right) = Pipe::channel();
 
     let sink = JsValue::from(WritableStreamSink { pipe: right });
-    let stream = WritableStream::new_with_underlying_sink(sink.unchecked_ref()).unwrap();
+
+    let callback: wasm_bindgen::prelude::Closure<dyn Fn(Uint8Array) -> f64> =
+        wasm_bindgen::closure::Closure::new(|chunk: Uint8Array| chunk.byte_length() as f64);
+
+    let stream = WritableStream::new_with_underlying_sink_and_strategy(
+        sink.unchecked_ref(),
+        web_sys::QueuingStrategy::new()
+            .high_water_mark(256.0)
+            .size(callback.into_js_value().unchecked_ref()),
+    )
+    .unwrap();
 
     (left, stream)
 }
@@ -104,7 +114,17 @@ pub(crate) fn output_pipe() -> (Pipe, ReadableStream) {
     let (left, right) = Pipe::channel();
 
     let source = JsValue::from(ReadableStreamSource { pipe: right });
-    let stream = ReadableStream::new_with_underlying_source(source.unchecked_ref()).unwrap();
+
+    let callback: wasm_bindgen::prelude::Closure<dyn Fn(Uint8Array) -> f64> =
+        wasm_bindgen::closure::Closure::new(|chunk: Uint8Array| chunk.byte_length() as f64);
+
+    let stream = ReadableStream::new_with_underlying_source_and_strategy(
+        source.unchecked_ref(),
+        web_sys::QueuingStrategy::new()
+            .high_water_mark(256.0)
+            .size(callback.into_js_value().unchecked_ref()),
+    )
+    .unwrap();
 
     (left, stream)
 }
@@ -134,10 +154,16 @@ impl ReadableStreamSource {
 
         wasm_bindgen_futures::future_to_promise(
             async move {
-                let mut buffer = BytesMut::new();
-                let result = pipe.read_buf(&mut buffer).await.context("Read failed");
+                /// The maximum buffer size we will allow - helps avoid OOMs.
+                const MAX_CAPACITY: usize = 10_000_000;
 
-                match result {
+                let capacity = controller
+                    .desired_size()
+                    .map(|size| std::cmp::min(size as usize, MAX_CAPACITY))
+                    .unwrap_or(128);
+                let mut buffer = BytesMut::with_capacity(capacity);
+
+                match pipe.read_buf(&mut buffer).await.context("Read failed") {
                     Ok(0) => {
                         tracing::trace!("EOF");
                         controller.close()?;

@@ -1,12 +1,17 @@
 import { expect } from '@esm-bundle/chai';
-import { Runtime, run, wat2wasm, Wasmer, Container, init } from "..";
+import { Runtime, run, wat2wasm, Wasmer, Container, init, initializeLogger } from "..";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder("utf-8");
 
+const initialized = (async () => {
+    await init();
+    initializeLogger("info");
+})();
+
 describe("run", function() {
     this.timeout("60s")
-        .beforeAll(async () => await init());
+        .beforeAll(async () => await initialized);
 
     it("can execute a noop program", async () => {
         const noop = `(
@@ -47,7 +52,7 @@ describe("Wasmer.spawn", function() {
 
     this.timeout("120s")
         .beforeAll(async () => {
-            await init();
+            await initialized;
 
             // Note: technically we should use a separate Wasmer instance so tests can't
             // interact with each other, but in this case the caching benefits mean we
