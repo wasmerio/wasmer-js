@@ -49,6 +49,7 @@ impl Scheduler {
                 tracing::debug!("Shutting down the scheduler");
                 drop(scheduler);
             }
+            .in_current_span()
             .instrument(tracing::debug_span!("scheduler")),
         );
 

@@ -51,6 +51,7 @@ impl WritableStreamSink {
 
                 Ok(JsValue::UNDEFINED)
             }
+            .in_current_span()
             .instrument(tracing::trace_span!("close")),
         )
     }
@@ -91,6 +92,7 @@ impl WritableStreamSink {
                     .map_err(Error::from)?;
                 Ok(JsValue::UNDEFINED)
             }
+            .in_current_span()
             .instrument(tracing::trace_span!("write")),
         )
     }
@@ -160,6 +162,7 @@ impl ReadableStreamSource {
 
                 Ok(JsValue::UNDEFINED)
             }
+            .in_current_span()
             .instrument(tracing::trace_span!("pull")),
         )
     }
