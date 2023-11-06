@@ -25,7 +25,7 @@ async function main() {
     term.writeln("Starting...");
 
     while (true) {
-        const instance = await wasmer.spawn("sharrattj/bash", {
+        const instance = await wasmer.spawn("wasmer/python@3.12", {
             args: [],
             runtime,
         });

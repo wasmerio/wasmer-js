@@ -168,61 +168,61 @@ impl SpawnConfig {
     }
 
     fn setup_tty(&self, options: TtyOptions) -> TerminalMode {
-        match self.read_stdin() {
-            Some(stdin) => TerminalMode::NonInteractive {
+        // Handle the simple (non-interactive) case first.
+        if let Some(stdin) = self.read_stdin() {
+            return TerminalMode::NonInteractive {
                 stdin: virtual_fs::StaticFile::new(stdin.into()),
-            },
-            None => {
-                let (stdout_pipe, stdout_stream) = crate::streams::output_pipe();
+            };
+        }
 
-                // Note: Because this is an interactive session, we want to
-                // intercept stdin and let the TTY modify it.
-                //
-                // To do that, we manually copy data from the user's pipe into
-                // the TTY, then the TTY modifies those bytes and writes them
-                // to the pipe we gave to the runtime.
-                //
-                // To avoid confusing the pipes and how stdin data gets moved
-                // around, here's a diagram:
-                //
-                //  ---------------------------------            --------------------          ----------------------------
-                // | stdin_stream (user) u_stdin_rx | --copy--> | (tty) u_stdin_tx  | --pipe-> | stdin_pipe (runtime) ... |
-                // ---------------------------------            --------------------          ----------------------------
-                let (u_stdin_rx, stdin_stream) = crate::streams::input_pipe();
-                let (u_stdin_tx, stdin_pipe) = Pipe::channel();
+        let (stdout_pipe, stdout_stream) = crate::streams::output_pipe();
 
-                let tty = Tty::new(
-                    Box::new(u_stdin_tx),
-                    Box::new(stdout_pipe.clone()),
-                    GlobalScope::current().is_mobile(),
-                    options,
-                );
+        // Note: Because this is an interactive session, we want to intercept
+        // stdin and let the TTY modify it.
+        //
+        // To do that, we manually copy data from the user's pipe into the TTY,
+        // then the TTY modifies those bytes and writes them to the pipe we gave
+        // to the runtime.
+        //
+        // To avoid confusing the pipes and how stdin data gets moved around,
+        // here's a diagram:
+        //
+        //  ---------------------------------            --------------------          ----------------------------
+        // | stdin_stream (user) u_stdin_rx | --copy--> | (tty) u_stdin_tx  | --pipe-> | stdin_pipe (runtime) ... |
+        // ---------------------------------            --------------------          ----------------------------
+        let (u_stdin_rx, stdin_stream) = crate::streams::input_pipe();
+        let (u_stdin_tx, stdin_pipe) = Pipe::channel();
 
-                // Because the TTY is manually copying between pipes, we need to
-                // make sure the stdin pipe passed to the runtime is closed when
-                // the user closes their end.
-                let cleanup = {
-                    let stdin_pipe = stdin_pipe.clone();
-                    move || {
-                        tracing::debug!("Closing stdin");
-                        stdin_pipe.close();
-                    }
-                };
+        let tty = Tty::new(
+            Box::new(u_stdin_tx),
+            Box::new(stdout_pipe.clone()),
+            GlobalScope::current().is_mobile(),
+            options,
+        );
 
-                // Wire up the stdin link between the user and tty
-                wasm_bindgen_futures::spawn_local(
-                    copy_stdin_to_tty(u_stdin_rx, tty, cleanup)
-                        .in_current_span()
-                        .instrument(tracing::debug_span!("tty")),
-                );
-
-                TerminalMode::Interactive {
-                    stdin_pipe,
-                    stdout_pipe,
-                    stdout_stream,
-                    stdin_stream,
-                }
+        // Because the TTY is manually copying between pipes, we need to make
+        // sure the stdin pipe passed to the runtime is closed when the user
+        // closes their end.
+        let cleanup = {
+            let stdin_pipe = stdin_pipe.clone();
+            move || {
+                tracing::debug!("Closing stdin");
+                stdin_pipe.close();
             }
+        };
+
+        // Use the JS event loop to drive our manual user->tty copy
+        wasm_bindgen_futures::spawn_local(
+            copy_stdin_to_tty(u_stdin_rx, tty, cleanup)
+                .in_current_span()
+                .instrument(tracing::debug_span!("tty")),
+        );
+
+        TerminalMode::Interactive {
+            stdin_pipe,
+            stdout_pipe,
+            stdout_stream,
+            stdin_stream,
         }
     }
 }
@@ -232,9 +232,10 @@ fn copy_stdin_to_tty(
     mut tty: Tty,
     cleanup: impl FnOnce(),
 ) -> impl std::future::Future<Output = ()> {
-    // A guard we use to call
-    struct DropGuard<F: FnOnce()>(Option<F>);
-    impl<F: FnOnce()> Drop for DropGuard<F> {
+    /// A RAII guard used to make sure the cleanup function always gets called.
+    struct CleanupGuard<F: FnOnce()>(Option<F>);
+
+    impl<F: FnOnce()> Drop for CleanupGuard<F> {
         fn drop(&mut self) {
             let cb = self.0.take().unwrap();
             cb();
@@ -242,7 +243,7 @@ fn copy_stdin_to_tty(
     }
 
     async move {
-        let _guard = DropGuard(Some(cleanup));
+        let _guard = CleanupGuard(Some(cleanup));
         let mut buffer = BytesMut::new();
 
         loop {

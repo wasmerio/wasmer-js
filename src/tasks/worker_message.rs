@@ -52,6 +52,11 @@ impl WorkerMessage {
 
     /// Send this message to the scheduler.
     pub fn emit(self) -> Result<(), Error> {
+        tracing::debug!(
+            current_thread = wasmer::current_thread_id(),
+            msg=?self,
+            "Sending a worker message"
+        );
         let scope: DedicatedWorkerGlobalScope = js_sys::global()
             .dyn_into()
             .expect("Should only ever be executed from a worker");

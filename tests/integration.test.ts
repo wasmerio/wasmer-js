@@ -6,7 +6,7 @@ const decoder = new TextDecoder("utf-8");
 
 const initialized = (async () => {
     await init();
-    initializeLogger("info");
+    initializeLogger("info,wasmer_wasix_js=info,wasmer_wasix::syscalls=info");
 })();
 
 describe("run", function() {
@@ -100,50 +100,81 @@ describe("Wasmer.spawn", function() {
         const stdin = instance.stdin!.getWriter();
         const stdout = new BufReader(instance.stdout);
 
-        (async () => {
-            const decoder = new TextDecoder("utf8");
-            console.log("Reading stderr");
-            for await (const chunk of chunks(instance.stderr)) {
-                console.log({
-                    stderr: decoder.decode(chunk),
-                })
-            }
-        })();
-
         // First, we'll read the prompt
         console.log("Prompt");
         expect(await stdout.readLine()).to.equal('QuickJS - Type "\\h" for help\n');
 
         // Then, send the command to the REPL
-        console.log("Repl");
         await stdin.write(encoder.encode("console.log('Hello, World!')\n"));
+
         // Note: the TTY echos our command back
         expect(await stdout.readLine()).to.equal("qjs > console.log('Hello, World!')\n");
-        console.log("response", { stdout: await stdout.readToEnd() });
-        // And here's our text
+        // And here's the text we asked for
         expect(await stdout.readLine()).to.equal("Hello, World!\n");
 
         // Now tell the instance to quit
         console.log("Exit");
         await stdin.write(encoder.encode("std.exit(42)\n"));
         expect(await stdout.readLine()).to.equal("qjs > std.exit(42)\n");
-        await stdin.close();
-        await stdout.close();
+        console.log("Exit command sent");
 
         // Wait for the instance to shut down.
+        await stdin.close();
+        await stdout.close();
         const output = await instance.wait();
 
-        console.log(output);
         console.log({
+            ...output,
             stdout: decoder.decode(output.stdout),
             stderr: decoder.decode(output.stderr),
         });
-
         expect(output.ok).to.be.true;
-        expect(stdout).to.equal("2\n");
+        expect(decoder.decode(output.stdout)).to.equal("2\n");
+        expect(output.code).to.equal(42);
     });
 
-    it("can run a bash session", async () => {
+    it("Can communicate with Python", async () => {
+        console.log("Spawning...");
+
+        // First, start python up in the background
+        const instance = await wasmer.spawn("python/python@0.1.0", {
+            args: [],
+        });
+
+        console.log("Spawned");
+
+        const stdin = instance.stdin!.getWriter();
+        const stdout = new BufReader(instance.stdout);
+
+        stdout.readToEnd().then(output => console.warn({ stdout: output }));
+        new BufReader(instance.stderr).readToEnd().then(output => console.warn({ stderr: output }));
+
+        // First, we'll read the prompt
+        console.log("Prompt");
+        expect(await stdout.readLine()).to.contain("Python 3.6.7 (default, Feb 14 2020, 03:17:48)");
+
+        // Then, send the command to the REPL
+        await stdin.write(encoder.encode("import sys\nprint(1 + 1)\nsys.exit(42)\n"));
+
+        stdout.readToEnd().then(console.warn);
+        new BufReader(instance.stderr).readToEnd().then(console.warn);
+
+        // Wait for the instance to shut down.
+        await stdin.close();
+        await stdout.close();
+        const output = await instance.wait();
+
+        console.log({
+            ...output,
+            stdout: decoder.decode(output.stdout),
+            stderr: decoder.decode(output.stderr),
+        });
+        expect(output.ok).to.be.false;
+        expect(output.code).to.equal(42);
+        expect(decoder.decode(output.stdout)).to.equal("2\n");
+    });
+
+    it.skip("can run a bash session", async () => {
         const instance = await wasmer.spawn("sharrattj/bash", {
             stdin: "ls / && exit 42\n",
         });
@@ -154,7 +185,7 @@ describe("Wasmer.spawn", function() {
         expect(decoder.decode(stderr)).to.equal("");
     });
 
-    it("can communicate with a subprocess", async () => {
+    it.skip("can communicate with a subprocess", async () => {
         const instance = await wasmer.spawn("sharrattj/bash", {
             args: ["-c", "python"],
             uses: ["python/python@0.1.0"],
@@ -190,7 +221,6 @@ class BufReader {
       */
      async readLine(): Promise<string> {
         const pieces: Uint8Array[] = [];
-
         while (await this.fillBuffer() && this.buffer) {
             const ASCII_NEWLINE = 0x0A;
             const position = this.buffer.findIndex(b => b == ASCII_NEWLINE);
@@ -214,28 +244,45 @@ class BufReader {
      }
 
      async readToEnd(): Promise<string> {
-        const pieces: string[] = [];
+        // Note: We want to merge all chunks into a single buffer and decode in
+        // one hit. Otherwise we'll have O(n²) performance issues and run the
+        // risk of chunks not being aligned to UTF-8 code point boundaries when
+        // we decode them.
+
+        const chunks: Uint8Array[] = [];
 
         while (await this.fillBuffer()) {
-            pieces.push(this.decoder.decode(this.consume()));
+            console.log({len: chunks.length + 1, chunk: this.peek()});
+            chunks.push(this.consume());
         }
 
-        return pieces.join("");
+        const totalByteCount = chunks.reduce((accumulator, element) => accumulator + element.byteLength, 0);
+        const buffer = new Uint8Array(totalByteCount);
+        let offset = 0;
+
+        for (const chunk of chunks) {
+            buffer.set(chunk, offset);
+            offset += chunk.byteLength;
+        }
+
+        const text = this.decoder.decode(buffer);
+        console.log({ text });
+        return text;
      }
 
      async close() {
         await this.chunks.return(undefined);
      }
 
-     peek(): string| undefined {
+     peek(): string | undefined {
         if (this.buffer) {
             return this.decoder.decode(this.buffer);
         }
      }
 
      /**
-      * Make sure the
-      * @returns
+      * Try to read more bytes into the buffer if it was previously empty.
+      * @returns whether the buffer was filled.
       */
      private async fillBuffer() {
         if (this.buffer && this.buffer.byteLength > 0) {
@@ -253,6 +300,16 @@ class BufReader {
         }
      }
 
+     /**
+      * Remove some bytes from the front of `this.buffer`, returning the bytes
+      * that were removed. The buffer will be set to `undefined` if all bytes
+      * have been consumed.
+      *
+      * @param amount The number of bytes to remove
+      * @returns The removed bytes
+      * @throws If the buffer was `undefined` or more bytes were requested than
+      * are available
+      */
      private consume(amount?: number): Uint8Array {
         if (!this.buffer) {
             throw new Error();

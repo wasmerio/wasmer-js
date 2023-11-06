@@ -296,6 +296,38 @@ mod tests {
     }
 
     #[wasm_bindgen_test]
+    async fn multiple_writes_to_an_output_pipe_are_seen_by_js() {
+        let (pipe, stream) = output_pipe();
+
+        // Pretend to be a WASIX program writing to stdout in the background
+        wasm_bindgen_futures::spawn_local({
+            let mut pipe = pipe.clone();
+            async move {
+                pipe.write_all(b"Hello").await.unwrap();
+                pipe.write_all(b", ").await.unwrap();
+                pipe.write_all(b"World").await.unwrap();
+                pipe.write_all(b"!").await.unwrap();
+                pipe.close();
+            }
+        });
+
+        // Pretend to be some JS code using the ReadableStream API to read from
+        // stdout.
+        let data = read_to_end(stream)
+            .try_fold(Vec::new(), |mut buffer, chunk| async {
+                buffer.extend(chunk);
+                Ok(buffer)
+            })
+            .await
+            .unwrap();
+        assert_eq!(String::from_utf8(data).unwrap(), "Hello, World!");
+
+        // Make sure one handle to the pipe stays alive until the very end (e.g.
+        // because it was stored in the runtime).
+        drop(pipe);
+    }
+
+    #[wasm_bindgen_test]
     async fn data_written_by_js_is_readable_from_the_pipe() {
         let (mut pipe, stream) = input_pipe();
         let chunk = Uint8Array::from(b"Hello, World!".as_ref());

@@ -1,5 +1,4 @@
-/bin
-/target
+target/
 **/*.rs.bk
 node_modules/
 dist/
