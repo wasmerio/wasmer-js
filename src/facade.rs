@@ -272,12 +272,17 @@ fn copy_stdin_to_tty(
 #[derive(Debug)]
 enum TerminalMode {
     Interactive {
+        /// The [`Pipe`] used as the WASIX instance's stdin.
         stdin_pipe: Pipe,
+        /// The [`Pipe`] used as the WASIX instance's stdout.
         stdout_pipe: Pipe,
+        /// The [`ReadableStream`] our JavaScript caller will read stdout from.
         stdout_stream: ReadableStream,
+        /// The [`WritableStream`] our JavaScript caller will write stdin to.
         stdin_stream: WritableStream,
     },
     NonInteractive {
+        /// The file to use as the WASIX instance's stdin.
         stdin: virtual_fs::StaticFile,
     },
 }

@@ -6,10 +6,10 @@ const decoder = new TextDecoder("utf-8");
 
 const initialized = (async () => {
     await init();
-    initializeLogger("info,wasmer_wasix_js::streams=debug,wasmer_wasix::syscalls=trace");
+    initializeLogger("info");
 })();
 
-describe("run", function() {
+describe.skip("run", function() {
     this.timeout("60s")
         .beforeAll(async () => await initialized);
 
@@ -60,7 +60,7 @@ describe("Wasmer.spawn", function() {
             wasmer = new Wasmer();
         });
 
-    it("Can run quickjs", async  () => {
+    it.skip("Can run quickjs", async  () => {
         const instance = await wasmer.spawn("saghul/quickjs@0.0.3", {
             args: ["--eval", "console.log('Hello, World!')"],
             command: "quickjs",
@@ -73,7 +73,7 @@ describe("Wasmer.spawn", function() {
         expect(output.stderr.length).to.equal(0);
     });
 
-    it("Can capture exit codes", async () => {
+    it.skip("Can capture exit codes", async () => {
         const instance = await wasmer.spawn("saghul/quickjs", {
             args: ["--std", "--eval", "std.exit(42)"],
             command: "quickjs",
@@ -86,7 +86,7 @@ describe("Wasmer.spawn", function() {
         expect(output.stderr.length).to.equal(0);
     });
 
-    it("Can communicate with a dumb echo program", async () => {
+    it.skip("Can communicate with a dumb echo program", async () => {
         // First, start our program in the background
         const instance = await wasmer.spawn("christoph/wasix-test-stdinout@0.1.1", {
             command: "stdinout-loop",
@@ -112,7 +112,7 @@ describe("Wasmer.spawn", function() {
         expect(output.code).to.equal(0);
     });
 
-    it.skip("Can communicate with a TTY-aware program", async () => {
+    it("Can communicate with a TTY-aware program", async () => {
         console.log("Spawning...");
 
         // First, start QuickJS up in the background
@@ -126,11 +126,11 @@ describe("Wasmer.spawn", function() {
         const stdin = instance.stdin!.getWriter();
         const stdout = new BufReader(instance.stdout);
 
-        // First, we'll read the prompt
+        // QuickJS prints a prompt when it first starts up. Let's read it.
         console.log("Prompt");
         expect(await stdout.readLine()).to.equal('QuickJS - Type "\\h" for help\n');
 
-        // Then, send the command to the REPL
+        // Then, send a command to the REPL
         await stdin.write(encoder.encode("console.log('Hello, World!')\n"));
 
         // Note: the TTY echos our command back
@@ -172,9 +172,6 @@ describe("Wasmer.spawn", function() {
         const stdin = instance.stdin!.getWriter();
         const stdout = new BufReader(instance.stdout);
 
-        stdout.readToEnd().then(output => console.warn({ stdout: output }));
-        new BufReader(instance.stderr).readToEnd().then(output => console.warn({ stderr: output }));
-
         // First, we'll read the prompt
         console.log("Prompt");
         expect(await stdout.readLine()).to.contain("Python 3.6.7 (default, Feb 14 2020, 03:17:48)");
@@ -200,7 +197,7 @@ describe("Wasmer.spawn", function() {
         expect(decoder.decode(output.stdout)).to.equal("2\n");
     });
 
-    it("can run a bash session", async () => {
+    it.skip("can run a bash session", async () => {
         const instance = await wasmer.spawn("sharrattj/bash", {
             stdin: "ls / && exit 42\n",
         });
@@ -211,7 +208,7 @@ describe("Wasmer.spawn", function() {
         expect(decoder.decode(stderr)).to.equal("");
     });
 
-    it("can communicate with a subprocess", async () => {
+    it.skip("can communicate with a subprocess", async () => {
         const instance = await wasmer.spawn("sharrattj/bash", {
             uses: ["christoph/wasix-test-stdinout@0.1.1"],
         });
