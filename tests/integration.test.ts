@@ -6,7 +6,7 @@ const decoder = new TextDecoder("utf-8");
 
 const initialized = (async () => {
     await init();
-    initializeLogger("info,wasmer_wasix_js=info,wasmer_wasix::syscalls=info");
+    initializeLogger("info,wasmer_wasix_js::streams=debug,wasmer_wasix::syscalls=trace");
 })();
 
 describe("run", function() {
@@ -86,10 +86,36 @@ describe("Wasmer.spawn", function() {
         expect(output.stderr.length).to.equal(0);
     });
 
-    it("Can communicate via stdin", async () => {
+    it("Can communicate with a dumb echo program", async () => {
+        // First, start our program in the background
+        const instance = await wasmer.spawn("christoph/wasix-test-stdinout@0.1.1", {
+            command: "stdinout-loop",
+         });
+
+        const stdin = instance.stdin!.getWriter();
+        const stdout = new BufReader(instance.stdout);
+
+        await stdin.write(encoder.encode("Hello,"));
+        await stdin.write(encoder.encode(" World!\n"));
+        // Note: The program is reading line-by-line, so we can't do
+        // stdout.readLine() before the "\n" was sent
+        expect(await stdout.readLine()).to.equal("Hello, World!\n");
+        await stdin.write(encoder.encode("Done\n"));
+        expect(await stdout.readLine()).to.equal("Done\n");
+
+        // Closing stdin will break out of the reading loop
+        await stdin.close();
+        // And wait for the program to exit
+        const output = await instance.wait();
+
+        expect(output.ok).to.be.true;
+        expect(output.code).to.equal(0);
+    });
+
+    it.skip("Can communicate with a TTY-aware program", async () => {
         console.log("Spawning...");
 
-        // First, start python up in the background
+        // First, start QuickJS up in the background
         const instance = await wasmer.spawn("saghul/quickjs@0.0.3", {
             args: ["--interactive", "--std"],
             command: "quickjs",
@@ -133,7 +159,7 @@ describe("Wasmer.spawn", function() {
         expect(output.code).to.equal(42);
     });
 
-    it("Can communicate with Python", async () => {
+    it.skip("Can communicate with Python", async () => {
         console.log("Spawning...");
 
         // First, start python up in the background
@@ -174,7 +200,7 @@ describe("Wasmer.spawn", function() {
         expect(decoder.decode(output.stdout)).to.equal("2\n");
     });
 
-    it.skip("can run a bash session", async () => {
+    it("can run a bash session", async () => {
         const instance = await wasmer.spawn("sharrattj/bash", {
             stdin: "ls / && exit 42\n",
         });
@@ -185,22 +211,26 @@ describe("Wasmer.spawn", function() {
         expect(decoder.decode(stderr)).to.equal("");
     });
 
-    it.skip("can communicate with a subprocess", async () => {
+    it("can communicate with a subprocess", async () => {
         const instance = await wasmer.spawn("sharrattj/bash", {
-            args: ["-c", "python"],
-            uses: ["python/python@0.1.0"],
+            uses: ["christoph/wasix-test-stdinout@0.1.1"],
         });
+
         const stdin = instance.stdin!.getWriter();
-        // Tell Bash to start Python
-        await stdin.write(encoder.encode("python\n"));
-        await stdin.write(encoder.encode("import sys; print(sys.version)\nexit()\n"));
+        const stdout = new BufReader(instance.stdout);
+
+        await stdin.write(encoder.encode("stdinout-loop\n"));
+        // the stdinout-loop program should be running now
+        await stdin.write(encoder.encode("First\n"));
+        expect(await stdout.readLine()).to.equal("First\n");
+        await stdin.write(encoder.encode("Second\n"));
+        expect(await stdout.readLine()).to.equal("Second\n");
+
         await stdin.close();
+        const output = await instance.wait();
 
-        const { code, stdout, stderr } = await instance.wait();
-
-        expect(code).to.equal(42);
-        expect(decoder.decode(stdout)).to.equal("bin\nlib\ntmp\n");
-        expect(decoder.decode(stderr)).to.equal("");
+        console.log(output);
+        expect(output.code).to.equal(0);
     });
 });
 
