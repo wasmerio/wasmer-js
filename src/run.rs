@@ -1,11 +1,13 @@
 use std::{collections::BTreeMap, sync::Arc};
 
+use anyhow::Context;
 use futures::channel::oneshot;
 use js_sys::Array;
+use virtual_fs::TmpFileSystem;
 use wasm_bindgen::{prelude::wasm_bindgen, JsCast, JsValue, UnwrapThrowExt};
 use wasmer_wasix::{Runtime as _, WasiEnvBuilder};
 
-use crate::{instance::ExitCondition, utils::Error, Instance, Runtime};
+use crate::{instance::ExitCondition, utils::Error, Directory, Instance, Runtime};
 
 const DEFAULT_PROGRAM_NAME: &str = "wasm";
 
@@ -63,6 +65,10 @@ export type RunConfig = {
     /** The standard input stream. */
     stdin?: string | ArrayBuffer;
     /**
+     * Directories that should be mounted inside the WASIX instance.
+     */
+    mount?: Record<string, Directory>;
+    /**
      * The WASIX runtime to use.
      *
      * Providing a `Runtime` allows multiple WASIX instances to share things
@@ -91,11 +97,17 @@ extern "C" {
     fn stdin(this: &RunConfig) -> JsValue;
 
     #[wasm_bindgen(method, getter)]
+    fn mount(this: &RunConfig) -> OptionalDirectories;
+
+    #[wasm_bindgen(method, getter)]
     pub(crate) fn runtime(this: &RunConfig) -> OptionalRuntime;
 
     /// A proxy for `Option<&Runtime>`.
-    #[wasm_bindgen(typescript_type = "Runtime | undefined")]
+    #[wasm_bindgen]
     pub(crate) type OptionalRuntime;
+
+    #[wasm_bindgen]
+    pub(crate) type OptionalDirectories;
 }
 
 impl RunConfig {
@@ -139,6 +151,9 @@ impl RunConfig {
         let (stderr_file, stderr) = crate::streams::output_pipe();
         builder.set_stderr(Box::new(stderr_file));
 
+        let fs = self.filesystem()?;
+        builder.set_fs(Box::new(fs));
+
         Ok((stdin, stdout, stderr))
     }
 
@@ -170,6 +185,41 @@ impl RunConfig {
             .dyn_into::<js_sys::Uint8Array>()
             .map(|buf| buf.to_vec())
             .ok()
+    }
+
+    pub(crate) fn mounted_directories(&self) -> Result<Vec<(String, Directory)>, Error> {
+        let Ok(obj) = self.mount().dyn_into::<js_sys::Object>() else {
+            return Ok(Vec::new());
+        };
+
+        let entries = crate::utils::object_entries(&obj)?;
+        let mut mounted_directories = Vec::new();
+
+        for (key, value) in &entries {
+            let key = String::from(key.clone());
+            let value = Directory::try_from(value).map_err(|_| {
+                anyhow::Error::msg(
+                    "Mounted directories should be a mapping from strings to directories",
+                )
+            })?;
+            mounted_directories.push((key, value));
+        }
+
+        Ok(mounted_directories)
+    }
+
+    pub(crate) fn filesystem(&self) -> Result<TmpFileSystem, Error> {
+        let root = TmpFileSystem::new();
+
+        for (dest, fs) in self.mounted_directories()? {
+            let fs = Arc::new(fs) as Arc<_>;
+            root.mount(dest.as_str().into(), &fs, "/".into())
+                .with_context(|| format!("Unable to mount to \"{dest}\""))?;
+        }
+
+        tracing::warn!(?root);
+
+        Ok(root)
     }
 }
 

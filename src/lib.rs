@@ -5,6 +5,7 @@ extern crate alloc;
 
 mod container;
 mod facade;
+pub mod fs;
 mod instance;
 mod net;
 mod package_loader;
@@ -18,6 +19,7 @@ mod ws;
 pub use crate::{
     container::{Container, Manifest, Volume},
     facade::{SpawnConfig, Wasmer, WasmerConfig},
+    fs::Directory,
     instance::{Instance, JsOutput},
     run::{run, RunConfig},
     runtime::Runtime,

@@ -137,6 +137,11 @@ impl SpawnConfig {
         let env = self.parse_env()?;
         runner.set_envs(env);
 
+        for (dest, dir) in self.mounted_directories()? {
+            // runner.mount_dir(dest.as_ref(), dir)?;
+            todo!("Mount {dir:?} to {dest}");
+        }
+
         if let Some(uses) = self.uses() {
             let uses = crate::utils::js_string_array(uses)?;
             let packages = load_injected_packages(uses, runtime).await?;
