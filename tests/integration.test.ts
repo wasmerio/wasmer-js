@@ -11,45 +11,7 @@ const initialized = (async () => {
 
 const ansiEscapeCode = /\u001B\[[\d;]*[JDm]/g;
 
-describe.skip("run", function() {
-    this.timeout("60s")
-        .beforeAll(async () => await initialized);
-
-    it("can execute a noop program", async () => {
-        const noop = `(
-            module
-                (memory $memory 0)
-                (export "memory" (memory $memory))
-                (func (export "_start") nop)
-            )`;
-        const wasm = wat2wasm(noop);
-        const module = await WebAssembly.compile(wasm);
-        const runtime = new Runtime(2);
-
-        const instance = run(module, { program: "noop", runtime });
-        const output = await instance.wait();
-
-        expect(output.ok).to.be.true;
-        expect(output.code).to.equal(0);
-    });
-
-    it("can start quickjs", async () => {
-        let wasmer = new Wasmer();
-        const runtime = wasmer.runtime();
-        const container = await Container.from_registry("saghul/quickjs@0.0.3", runtime);
-        const module = await WebAssembly.compile(container.get_atom("quickjs")!);
-
-        const instance = run(module, { program: "quickjs", args: ["--eval", "console.log('Hello, World!')"], runtime });
-        const output = await instance.wait();
-
-        expect(output.ok).to.be.true;
-        expect(output.code).to.equal(0);
-        expect(decoder.decode(output.stdout)).to.contain("Hello, World!");
-        expect(decoder.decode(output.stderr)).to.be.empty;
-    });
-});
-
-describe.skip("Wasmer.spawn", function() {
+describe("Wasmer.spawn", function() {
     let wasmer: Wasmer;
 
     this.timeout("120s")

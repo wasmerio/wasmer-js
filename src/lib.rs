@@ -5,6 +5,7 @@ extern crate alloc;
 
 mod container;
 mod facade;
+pub mod fs;
 mod instance;
 mod logging;
 mod net;
@@ -21,6 +22,7 @@ use std::sync::Mutex;
 pub use crate::{
     container::{Container, Manifest, Volume},
     facade::{SpawnConfig, Wasmer, WasmerConfig},
+    fs::Directory,
     instance::{Instance, JsOutput},
     logging::initialize_logger,
     run::{run, RunConfig},
