@@ -79,7 +79,7 @@ pub fn initialize_logger(filter: Option<String>) -> Result<(), utils::Error> {
 
     let registry = tracing_subscriber::Registry::default()
         .with(filter)
-        .with(tracing_browser_subscriber::BrowserLayer::new().with_max_level(max_level));
+        .with(tracing_wasm::WASMLayer::default());
     tracing::subscriber::set_global_default(registry)?;
 
     Ok(())

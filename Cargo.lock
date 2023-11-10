@@ -1954,18 +1954,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "tracing-browser-subscriber"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3c1db17d6ec2a4c64d2678ca1457d6adf39f696ab7362e2cf30fbaa8d903b8cd"
-dependencies = [
- "tracing",
- "tracing-subscriber",
- "wasm-bindgen",
- "wasm-bindgen-test",
-]
-
-[[package]]
 name = "tracing-core"
 version = "0.1.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2012,6 +2000,17 @@ dependencies = [
  "tracing",
  "tracing-core",
  "tracing-log",
+]
+
+[[package]]
+name = "tracing-wasm"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4575c663a174420fa2d78f4108ff68f65bf2fbb7dd89f33749b6e826b3626e07"
+dependencies = [
+ "tracing",
+ "tracing-subscriber",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -2113,7 +2112,7 @@ checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
 [[package]]
 name = "virtual-fs"
 version = "0.9.0"
-source = "git+https://github.com/wasmerio/wasmer?branch=master#a60676da3a2a87be5fd616dba737ade6fd7260b8"
+source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#103ff436e9bd62f71d2be1f7ef3b707095a22cad"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2135,7 +2134,7 @@ dependencies = [
 [[package]]
 name = "virtual-mio"
 version = "0.3.0"
-source = "git+https://github.com/wasmerio/wasmer?branch=master#a60676da3a2a87be5fd616dba737ade6fd7260b8"
+source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#103ff436e9bd62f71d2be1f7ef3b707095a22cad"
 dependencies = [
  "async-trait",
  "bytes",
@@ -2149,7 +2148,7 @@ dependencies = [
 [[package]]
 name = "virtual-net"
 version = "0.6.1"
-source = "git+https://github.com/wasmerio/wasmer?branch=master#a60676da3a2a87be5fd616dba737ade6fd7260b8"
+source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#103ff436e9bd62f71d2be1f7ef3b707095a22cad"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2236,7 +2235,7 @@ dependencies = [
 [[package]]
 name = "wai-bindgen-wasmer"
 version = "0.16.0"
-source = "git+https://github.com/wasmerio/wasmer?branch=master#a60676da3a2a87be5fd616dba737ade6fd7260b8"
+source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#103ff436e9bd62f71d2be1f7ef3b707095a22cad"
 dependencies = [
  "anyhow",
  "bitflags 1.3.2",
@@ -2442,7 +2441,7 @@ dependencies = [
 [[package]]
 name = "wasmer"
 version = "4.2.3"
-source = "git+https://github.com/wasmerio/wasmer?branch=master#a60676da3a2a87be5fd616dba737ade6fd7260b8"
+source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#103ff436e9bd62f71d2be1f7ef3b707095a22cad"
 dependencies = [
  "bytes",
  "cfg-if 1.0.0",
@@ -2471,7 +2470,7 @@ dependencies = [
 [[package]]
 name = "wasmer-compiler"
 version = "4.2.3"
-source = "git+https://github.com/wasmerio/wasmer?branch=master#a60676da3a2a87be5fd616dba737ade6fd7260b8"
+source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#103ff436e9bd62f71d2be1f7ef3b707095a22cad"
 dependencies = [
  "backtrace",
  "bytes",
@@ -2498,7 +2497,7 @@ dependencies = [
 [[package]]
 name = "wasmer-derive"
 version = "4.2.3"
-source = "git+https://github.com/wasmerio/wasmer?branch=master#a60676da3a2a87be5fd616dba737ade6fd7260b8"
+source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#103ff436e9bd62f71d2be1f7ef3b707095a22cad"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
@@ -2527,7 +2526,7 @@ dependencies = [
 [[package]]
 name = "wasmer-types"
 version = "4.2.3"
-source = "git+https://github.com/wasmerio/wasmer?branch=master#a60676da3a2a87be5fd616dba737ade6fd7260b8"
+source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#103ff436e9bd62f71d2be1f7ef3b707095a22cad"
 dependencies = [
  "bytecheck",
  "enum-iterator",
@@ -2544,7 +2543,7 @@ dependencies = [
 [[package]]
 name = "wasmer-vm"
 version = "4.2.3"
-source = "git+https://github.com/wasmerio/wasmer?branch=master#a60676da3a2a87be5fd616dba737ade6fd7260b8"
+source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#103ff436e9bd62f71d2be1f7ef3b707095a22cad"
 dependencies = [
  "backtrace",
  "cc",
@@ -2572,7 +2571,7 @@ dependencies = [
 [[package]]
 name = "wasmer-wasix"
 version = "0.16.0"
-source = "git+https://github.com/wasmerio/wasmer?branch=master#a60676da3a2a87be5fd616dba737ade6fd7260b8"
+source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#103ff436e9bd62f71d2be1f7ef3b707095a22cad"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2648,9 +2647,9 @@ dependencies = [
  "shared-buffer",
  "tokio",
  "tracing",
- "tracing-browser-subscriber",
  "tracing-futures",
  "tracing-subscriber",
+ "tracing-wasm",
  "url",
  "virtual-fs",
  "virtual-net",
@@ -2669,7 +2668,7 @@ dependencies = [
 [[package]]
 name = "wasmer-wasix-types"
 version = "0.16.0"
-source = "git+https://github.com/wasmerio/wasmer?branch=master#a60676da3a2a87be5fd616dba737ade6fd7260b8"
+source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#103ff436e9bd62f71d2be1f7ef3b707095a22cad"
 dependencies = [
  "anyhow",
  "bitflags 1.3.2",

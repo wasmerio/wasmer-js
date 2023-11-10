@@ -22,24 +22,24 @@ js-sys = "0.3"
 once_cell = "1.18.0"
 serde = { version = "1.0.183", features = ["derive"] }
 serde-wasm-bindgen = "0.5.0"
+shared-buffer = "0.1.3"
 tokio = { version = "1", features = ["sync"], default_features = false }
 tracing = { version = "0.1", features = ["log", "release_max_level_info"] }
 tracing-futures = { version = "0.2" }
+tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
+tracing-wasm = "0.2.1"
 url = "2.4.0"
-virtual-net = { version = "0.6.0", default-features = false, features = ["remote"] }
 virtual-fs = { version = "0.9.0", default-features = false }
+virtual-net = { version = "0.6.0", default-features = false, features = ["remote"] }
 wasm-bindgen = { version = "0.2" }
+wasm-bindgen-derive = "0.2.1"
 wasm-bindgen-downcast = "0.1"
 wasm-bindgen-futures = "0.4"
 wasm-bindgen-test = "0.3.37"
 wasmer = { version = "4.2.2", default-features = false, features = ["js", "js-default", "tracing", "wasm-types-polyfill", "enable-serde"] }
 wasmer-wasix = { version = "0.16", default-features = false, features = ["js", "js-default"] }
-wee_alloc = { version = "0.4", optional = true }
 webc = "5.3.0"
-shared-buffer = "0.1.3"
-tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
-tracing-browser-subscriber = "0.2.0"
-wasm-bindgen-derive = "0.2.1"
+wee_alloc = { version = "0.4", optional = true }
 
 [dependencies.web-sys]
 version = "0.3"
@@ -98,10 +98,10 @@ dwarf-debug-info = false
 wasm-opt = ["--enable-threads", "--enable-bulk-memory", "-Oz"]
 
 [patch.crates-io]
-virtual-net = { git = "https://github.com/wasmerio/wasmer", branch = "master" }
-virtual-fs = { git = "https://github.com/wasmerio/wasmer", branch = "master" }
-wasmer-wasix = { git = "https://github.com/wasmerio/wasmer", branch = "master" }
-wasmer = { git = "https://github.com/wasmerio/wasmer", branch = "master" }
+virtual-net = { git = "https://github.com/wasmerio/wasmer", branch = "wasi-runner-mount-fs-instances" }
+virtual-fs = { git = "https://github.com/wasmerio/wasmer", branch = "wasi-runner-mount-fs-instances" }
+wasmer-wasix = { git = "https://github.com/wasmerio/wasmer", branch = "wasi-runner-mount-fs-instances" }
+wasmer = { git = "https://github.com/wasmerio/wasmer", branch = "wasi-runner-mount-fs-instances" }
 # virtual-net = { path = "../wasmer/lib/virtual-net" }
 # virtual-fs = { path = "../wasmer/lib/virtual-fs" }
 # wasmer-wasix = { path = "../wasmer/lib/wasix" }
