@@ -1,12 +1,12 @@
 import { expect } from '@esm-bundle/chai';
-import { Runtime, run, wat2wasm, Wasmer, Container, init, initializeLogger } from "..";
+import { Wasmer, init, initializeLogger, Directory } from "..";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder("utf-8");
 
 const initialized = (async () => {
     await init();
-    initializeLogger("info");
+    initializeLogger("info,wasmer_wasix::syscalls=trace");
 })();
 
 const ansiEscapeCode = /\u001B\[[\d;]*[JDm]/g;
@@ -230,6 +230,105 @@ describe.skip("failing tty handling tests", function() {
         expect(decoder.decode(stdout)).to.equal("bin\nlib\ntmp\n");
         expect(decoder.decode(stderr)).to.equal("");
     });
+
+    it.skip("can communicate with a subprocess", async () => {
+        const instance = await wasmer.spawn("sharrattj/bash", {
+            uses: ["christoph/wasix-test-stdinout@0.1.1"],
+        });
+
+        const stdin = instance.stdin!.getWriter();
+        const stdout = new BufReader(instance.stdout);
+
+        await stdin.write(encoder.encode("stdinout-loop\n"));
+        // the stdinout-loop program should be running now
+        await stdin.write(encoder.encode("First\n"));
+        expect(await stdout.readLine()).to.equal("First\n");
+        await stdin.write(encoder.encode("Second\n"));
+        expect(await stdout.readLine()).to.equal("Second\n");
+
+        await stdin.close();
+        const output = await instance.wait();
+
+        console.log(output);
+        expect(output.code).to.equal(0);
+    });
+
+    it("can see a mounted directory", async () => {
+        const dir = new Directory();
+
+        const instance = await wasmer.spawn("sharrattj/coreutils", {
+            command: "ls",
+            args: ["/"],
+            mount: { "/mounted": dir },
+        });
+        const output = await instance.wait();
+
+        const stdout = decoder.decode(output.stdout);
+        expect(stdout).to.contain("mounted");
+        expect(output.ok).to.be.true;
+    });
+
+    it("can see files in a mounted directory", async () => {
+        const dir = new Directory();
+        await dir.writeFile("/file.txt", new Uint8Array());
+
+        const instance = await wasmer.spawn("sharrattj/coreutils", {
+            command: "ls",
+            args: ["/mounted"],
+            mount: { "/mounted": dir },
+        });
+        const output = await instance.wait();
+
+        const stdout = decoder.decode(output.stdout);
+        expect(stdout).to.eql(["file.txt"]);
+        expect(output.ok).to.be.true;
+    });
+
+    it("can read from a mounted file", async () => {
+        const dir = new Directory();
+        await dir.writeFile("/file.txt", encoder.encode("Hello, World!"));
+
+        const instance = await wasmer.spawn("sharrattj/coreutils", {
+            command: "cat",
+            args: ["/mounted/file.txt"],
+            mount: { "/mounted": dir },
+        });
+        const output = await instance.wait();
+
+        const stdout = decoder.decode(output.stdout);
+        expect(stdout).to.equal("Hello, World!\n");
+        expect(output.ok).to.be.true;
+    });
+
+    it("can delete files from a mounted directory", async () => {
+        const dir = new Directory();
+        await dir.writeFile("/file.txt", encoder.encode("Hello, World!"));
+
+        const instance = await wasmer.spawn("sharrattj/coreutils", {
+            command: "rm",
+            args: ["/mounted/file.txt"],
+            mount: { "/mounted": dir },
+        });
+        const output = await instance.wait();
+
+        expect(dir.readDir("/")).to.be.empty;
+        expect(output.ok).to.be.true;
+    });
+
+    it("can write to a mounted directory", async () => {
+        const dir = new Directory();
+
+        const instance = await wasmer.spawn("sharrattj/coreutils", {
+            command: "tee",
+            args: ["/mounted/another-file.txt"],
+            stdin: "Something else\n",
+            mount: { "/mounted": dir },
+        });
+        const output = await instance.wait();
+
+        expect(decoder.decode(await dir.readFile("/another-file.txt"))).to.equal("Something else");
+        expect(output.ok).to.be.true;
+    });
 });
 
 /**
@@ -279,7 +378,7 @@ class BufReader {
 
     constructor(stream: ReadableStream<Uint8Array>, private verbose: boolean = false) {
         this.chunks = chunks(stream);
-     }
+    }
 
      /**
       * Consume data until the next newline character or EOF.

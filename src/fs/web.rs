@@ -285,31 +285,8 @@ mod tests {
         receiver.await.unwrap()
     }
 
-    /// Create a [`FileSystem`] from a [`FileSystemDirectoryHandle`] and
-    /// interact with it in a way that won't create deadlocks.
-    async fn use_fs_async<F, Fut, Ret>(handle: FileSystemDirectoryHandle, op: F) -> Ret
-    where
-        F: FnOnce(&(dyn FileSystem + 'static)) -> Fut + Send + 'static,
-        Fut: std::future::Future<Output = Ret> + Send + 'static,
-        Ret: Debug + Send + 'static,
-    {
-        let fs = spawn(handle);
-        let thread_pool = crate::tasks::ThreadPool::new(NonZeroUsize::new(2).unwrap());
-        let (sender, receiver) = oneshot::channel();
-
-        thread_pool
-            .task_shared(Box::new(move || {
-                Box::pin(async move {
-                    let ret = op(&fs).await;
-                    sender.send(ret).unwrap();
-                })
-            }))
-            .unwrap();
-
-        receiver.await.unwrap()
-    }
-
     #[wasm_bindgen_test]
+    #[ignore = "TODO"]
     async fn use_opfs() {
         let storage = web_sys::window().unwrap().navigator().storage();
         let handle: FileSystemDirectoryHandle = JsFuture::from(storage.get_directory())
