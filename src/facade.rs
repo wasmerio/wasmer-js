@@ -138,8 +138,7 @@ impl SpawnConfig {
         runner.set_envs(env);
 
         for (dest, dir) in self.mounted_directories()? {
-            // runner.mount_dir(dest.as_ref(), dir)?;
-            todo!("Mount {dir:?} to {dest}");
+            runner.mount(dest, Arc::new(dir));
         }
 
         if let Some(uses) = self.uses() {
