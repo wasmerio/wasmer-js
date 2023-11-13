@@ -6,7 +6,7 @@ const decoder = new TextDecoder("utf-8");
 
 const initialized = (async () => {
     await init();
-    initializeLogger("info");
+    initializeLogger("info,wasmer_wasix::syscalls=trace");
 })();
 
 describe.skip("run", function() {

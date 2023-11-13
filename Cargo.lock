@@ -2112,7 +2112,7 @@ checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
 [[package]]
 name = "virtual-fs"
 version = "0.9.0"
-source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#103ff436e9bd62f71d2be1f7ef3b707095a22cad"
+source = "git+https://github.com/wasmerio/wasmer?branch=master#54b8253d4e5e3f92fc2f1f11af4690f5df76bb7d"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2134,7 +2134,7 @@ dependencies = [
 [[package]]
 name = "virtual-mio"
 version = "0.3.0"
-source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#103ff436e9bd62f71d2be1f7ef3b707095a22cad"
+source = "git+https://github.com/wasmerio/wasmer?branch=master#54b8253d4e5e3f92fc2f1f11af4690f5df76bb7d"
 dependencies = [
  "async-trait",
  "bytes",
@@ -2148,7 +2148,7 @@ dependencies = [
 [[package]]
 name = "virtual-net"
 version = "0.6.1"
-source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#103ff436e9bd62f71d2be1f7ef3b707095a22cad"
+source = "git+https://github.com/wasmerio/wasmer?branch=master#54b8253d4e5e3f92fc2f1f11af4690f5df76bb7d"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2235,7 +2235,7 @@ dependencies = [
 [[package]]
 name = "wai-bindgen-wasmer"
 version = "0.16.0"
-source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#103ff436e9bd62f71d2be1f7ef3b707095a22cad"
+source = "git+https://github.com/wasmerio/wasmer?branch=master#54b8253d4e5e3f92fc2f1f11af4690f5df76bb7d"
 dependencies = [
  "anyhow",
  "bitflags 1.3.2",
@@ -2441,7 +2441,7 @@ dependencies = [
 [[package]]
 name = "wasmer"
 version = "4.2.3"
-source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#103ff436e9bd62f71d2be1f7ef3b707095a22cad"
+source = "git+https://github.com/wasmerio/wasmer?branch=master#54b8253d4e5e3f92fc2f1f11af4690f5df76bb7d"
 dependencies = [
  "bytes",
  "cfg-if 1.0.0",
@@ -2470,7 +2470,7 @@ dependencies = [
 [[package]]
 name = "wasmer-compiler"
 version = "4.2.3"
-source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#103ff436e9bd62f71d2be1f7ef3b707095a22cad"
+source = "git+https://github.com/wasmerio/wasmer?branch=master#54b8253d4e5e3f92fc2f1f11af4690f5df76bb7d"
 dependencies = [
  "backtrace",
  "bytes",
@@ -2497,7 +2497,7 @@ dependencies = [
 [[package]]
 name = "wasmer-derive"
 version = "4.2.3"
-source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#103ff436e9bd62f71d2be1f7ef3b707095a22cad"
+source = "git+https://github.com/wasmerio/wasmer?branch=master#54b8253d4e5e3f92fc2f1f11af4690f5df76bb7d"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
@@ -2526,7 +2526,7 @@ dependencies = [
 [[package]]
 name = "wasmer-types"
 version = "4.2.3"
-source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#103ff436e9bd62f71d2be1f7ef3b707095a22cad"
+source = "git+https://github.com/wasmerio/wasmer?branch=master#54b8253d4e5e3f92fc2f1f11af4690f5df76bb7d"
 dependencies = [
  "bytecheck",
  "enum-iterator",
@@ -2543,7 +2543,7 @@ dependencies = [
 [[package]]
 name = "wasmer-vm"
 version = "4.2.3"
-source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#103ff436e9bd62f71d2be1f7ef3b707095a22cad"
+source = "git+https://github.com/wasmerio/wasmer?branch=master#54b8253d4e5e3f92fc2f1f11af4690f5df76bb7d"
 dependencies = [
  "backtrace",
  "cc",
@@ -2571,7 +2571,7 @@ dependencies = [
 [[package]]
 name = "wasmer-wasix"
 version = "0.16.0"
-source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#103ff436e9bd62f71d2be1f7ef3b707095a22cad"
+source = "git+https://github.com/wasmerio/wasmer?branch=master#54b8253d4e5e3f92fc2f1f11af4690f5df76bb7d"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2668,7 +2668,7 @@ dependencies = [
 [[package]]
 name = "wasmer-wasix-types"
 version = "0.16.0"
-source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#103ff436e9bd62f71d2be1f7ef3b707095a22cad"
+source = "git+https://github.com/wasmerio/wasmer?branch=master#54b8253d4e5e3f92fc2f1f11af4690f5df76bb7d"
 dependencies = [
  "anyhow",
  "bitflags 1.3.2",
