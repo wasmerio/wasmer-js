@@ -259,5 +259,5 @@ pub(crate) fn set_worker_url(url: JsString) {
         &global(),
         &JsString::from("customWorkerUrl"),
         &url,
-    );
+    ).expect("Can't set worker url in the global JS scope");
 }
