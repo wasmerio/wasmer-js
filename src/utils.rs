@@ -4,7 +4,7 @@ use std::{
     num::NonZeroUsize,
 };
 
-use js_sys::{JsString, Promise};
+use js_sys::{JsString, Promise, global};
 
 use wasm_bindgen::{JsCast, JsValue};
 use web_sys::{Window, WorkerGlobalScope};
@@ -251,4 +251,13 @@ pub(crate) fn js_record_of_strings(obj: &js_sys::Object) -> Result<Vec<(String, 
     }
 
     Ok(parsed)
+}
+
+
+pub(crate) fn set_worker_url(url: JsString) {
+    js_sys::Reflect::set(
+        &global(),
+        &JsString::from("customWorkerUrl"),
+        &url,
+    );
 }
