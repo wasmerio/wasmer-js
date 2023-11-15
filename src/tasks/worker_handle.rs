@@ -155,8 +155,15 @@ static WORKER_URL: Lazy<String> = Lazy::new(|| {
     }
 
     tracing::trace!(import_url = IMPORT_META_URL.as_str());
-    tracing::trace!(custom_worker_url = CUSTOM_WORKER_URL.as_ref().unwrap_or(&"".to_string()).as_str());
-    let import_url: String = CUSTOM_WORKER_URL.to_owned().unwrap_or(IMPORT_META_URL.to_string());
+    tracing::trace!(
+        custom_worker_url = CUSTOM_WORKER_URL
+            .as_ref()
+            .unwrap_or(&"".to_string())
+            .as_str()
+    );
+    let import_url: String = CUSTOM_WORKER_URL
+        .to_owned()
+        .unwrap_or(IMPORT_META_URL.to_string());
 
     let script = include_str!("worker.js").replace("$IMPORT_META_URL", &import_url);
 

@@ -41,7 +41,6 @@ fn on_start() {
     console_error_panic_hook::set_once();
 }
 
-
 #[wasm_bindgen(js_name = setWorkerUrl)]
 pub fn set_worker_url(url: js_sys::JsString) {
     crate::utils::set_worker_url(url);
