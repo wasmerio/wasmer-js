@@ -9,7 +9,9 @@ const initialized = (async () => {
     initializeLogger("info,wasmer_wasix::syscalls=trace");
 })();
 
-describe.skip("run", function() {
+const ansiEscapeCode = /\u001B\[[\d;]*[JDm]/g;
+
+describe("run", function() {
     this.timeout("60s")
         .beforeAll(async () => await initialized);
 
@@ -60,7 +62,7 @@ describe("Wasmer.spawn", function() {
             wasmer = new Wasmer();
         });
 
-    it.skip("Can run quickjs", async  () => {
+    it("Can run quickjs", async  () => {
         const instance = await wasmer.spawn("saghul/quickjs@0.0.3", {
             args: ["--eval", "console.log('Hello, World!')"],
             command: "quickjs",
@@ -73,7 +75,7 @@ describe("Wasmer.spawn", function() {
         expect(output.stderr.length).to.equal(0);
     });
 
-    it.skip("Can capture exit codes", async () => {
+    it("Can capture exit codes", async () => {
         const instance = await wasmer.spawn("saghul/quickjs", {
             args: ["--std", "--eval", "std.exit(42)"],
             command: "quickjs",
@@ -86,7 +88,7 @@ describe("Wasmer.spawn", function() {
         expect(output.stderr.length).to.equal(0);
     });
 
-    it.skip("Can communicate with a dumb echo program", async () => {
+    it("Can communicate with a dumb echo program", async () => {
         // First, start our program in the background
         const instance = await wasmer.spawn("christoph/wasix-test-stdinout@0.1.1", {
             command: "stdinout-loop",
@@ -121,32 +123,41 @@ describe("Wasmer.spawn", function() {
             command: "quickjs",
         });
 
-        console.log("Spawned");
-
-        const stdin = instance.stdin!.getWriter();
+        const stdin = new RealisticWriter(instance.stdin!);
         const stdout = new BufReader(instance.stdout);
 
         // QuickJS prints a prompt when it first starts up. Let's read it.
-        console.log("Prompt");
         expect(await stdout.readLine()).to.equal('QuickJS - Type "\\h" for help\n');
 
         // Then, send a command to the REPL
-        await stdin.write(encoder.encode("console.log('Hello, World!')\n"));
-
-        // Note: the TTY echos our command back
-        expect(await stdout.readLine()).to.equal("qjs > console.log('Hello, World!')\n");
-        // And here's the text we asked for
+        await stdin.writeln("console.log('Hello, World!')");
+        // The TTY echoes back a bunch of escape codes and stuff.
+        expect(await stdout.readAnsiLine()).to.equal("qjs > console.log(\'Hello, World!\')\n");
+        // Random newline.
+        expect(await stdout.readLine()).to.equal("\n");
+        // QuickJS also echoes your input back. Because reasons.
+        expect(await stdout.readAnsiLine()).to.equal("console.log(\'Hello, World!\')\n");
+        // We get the text we asked for.
         expect(await stdout.readLine()).to.equal("Hello, World!\n");
+        // console.log() evaluates to undefined
+        expect(await stdout.readAnsiLine()).to.equal("undefined\n");
 
-        // Now tell the instance to quit
-        console.log("Exit");
-        await stdin.write(encoder.encode("std.exit(42)\n"));
+        // Now that the first command is done, QuickJS will show the prompt
+        // again
+        expect(await stdout.readAnsiLine()).to.equal("qjs > \n");
+
+        // We're all done. Tell the command to exit.
+        await stdin.writeln("std.exit(42)");
+        // Our input gets echoed by the TTY
         expect(await stdout.readLine()).to.equal("qjs > std.exit(42)\n");
-        console.log("Exit command sent");
+        // Random newline.
+        expect(await stdout.readLine()).to.equal("\n");
+        // QuickJS printed the command we just ran.
+        expect(await stdout.readAnsiLine()).to.equal("std.exit(42)\n");
+        stdout.readToEnd().then(console.warn);
 
         // Wait for the instance to shut down.
         await stdin.close();
-        await stdout.close();
         const output = await instance.wait();
 
         console.log({
@@ -154,9 +165,8 @@ describe("Wasmer.spawn", function() {
             stdout: decoder.decode(output.stdout),
             stderr: decoder.decode(output.stderr),
         });
-        expect(output.ok).to.be.true;
-        expect(decoder.decode(output.stdout)).to.equal("2\n");
         expect(output.code).to.equal(42);
+        expect(decoder.decode(output.stderr)).to.equal("");
     });
 
     it.skip("Can communicate with Python", async () => {
@@ -197,7 +207,7 @@ describe("Wasmer.spawn", function() {
         expect(decoder.decode(output.stdout)).to.equal("2\n");
     });
 
-    it.skip("can run a bash session", async () => {
+    it("can run a bash session", async () => {
         const instance = await wasmer.spawn("sharrattj/bash", {
             stdin: "ls / && exit 42\n",
         });
@@ -208,7 +218,7 @@ describe("Wasmer.spawn", function() {
         expect(decoder.decode(stderr)).to.equal("");
     });
 
-    it.skip("can communicate with a subprocess", async () => {
+    it("can communicate with a subprocess", async () => {
         const instance = await wasmer.spawn("sharrattj/bash", {
             uses: ["christoph/wasix-test-stdinout@0.1.1"],
         });
@@ -231,6 +241,36 @@ describe("Wasmer.spawn", function() {
     });
 });
 
+class RealisticWriter {
+    private encoder = new TextEncoder();
+    constructor(readonly stream: WritableStream<Uint8Array>) { }
+
+    async writeln(text: string): Promise<void> {
+        await this.write(text + "\r\n");
+    }
+
+    async write(text: string): Promise<void> {
+        const writer = this.stream.getWriter();
+
+        try {
+        const message = this.encoder.encode(text);
+
+        for (const byte of message) {
+            await writer.ready;
+            await writer.write(Uint8Array.of(byte));
+        }
+        } finally {
+            // Note: wait for all bytes to be flushed before returning.
+            await writer.ready;
+            writer.releaseLock();
+        }
+    }
+
+    async close(): Promise<void> {
+        await this.stream.close();
+    }
+}
+
 /**
  * A streams adapter to simplify consuming them interactively.
  */
@@ -239,7 +279,7 @@ class BufReader {
     private decoder = new TextDecoder();
     private chunks: AsyncGenerator<Uint8Array, undefined>;
 
-    constructor(stream: ReadableStream<Uint8Array>) {
+    constructor(stream: ReadableStream<Uint8Array>, private verbose: boolean = false) {
         this.chunks = chunks(stream);
      }
 
@@ -252,7 +292,7 @@ class BufReader {
             const ASCII_NEWLINE = 0x0A;
             const position = this.buffer.findIndex(b => b == ASCII_NEWLINE);
 
-            console.log({buffer: this.peek(), position});
+            this.log({buffer: this.peek(), position});
 
             if (position < 0) {
                 // Consume the entire chunk.
@@ -266,8 +306,22 @@ class BufReader {
         }
 
         const line = pieces.map(piece => this.decoder.decode(piece)).join("");
-        console.log({ line });
+        this.log({ line });
         return line;
+     }
+
+     /**
+      * Read a line of text, interpreting the ANSI escape codes for clearing the
+      * line and stripping any other formatting.
+      */
+     async readAnsiLine(): Promise<string> {
+        const rawLine = await this.readLine();
+
+        // Note: QuickJS uses the "move left by n columns" escape code for
+        // clearing the line.
+        const pieces = rawLine.split(/\x1b\[\d+D/);
+        const lastPiece = pieces.pop() || rawLine;
+        return lastPiece.replace(ansiEscapeCode, "");
      }
 
      async readToEnd(): Promise<string> {
@@ -279,7 +333,7 @@ class BufReader {
         const chunks: Uint8Array[] = [];
 
         while (await this.fillBuffer()) {
-            console.log({len: chunks.length + 1, chunk: this.peek()});
+            this.log({len: chunks.length + 1, chunk: this.peek()});
             chunks.push(this.consume());
         }
 
@@ -293,7 +347,7 @@ class BufReader {
         }
 
         const text = this.decoder.decode(buffer);
-        console.log({ text });
+        this.log({ text });
         return text;
      }
 
@@ -357,6 +411,15 @@ class BufReader {
             const buffer = this.buffer;
             this.buffer = undefined;
             return buffer;
+        }
+     }
+
+     /**
+      * Log a piece of information if the `verbose` flag is set.
+      */
+     private log(value: Record<string, any>) {
+        if (this.verbose) {
+            console.log(value);
         }
      }
 }
