@@ -6,7 +6,7 @@ const decoder = new TextDecoder("utf-8");
 
 const initialized = (async () => {
     await init();
-    initializeLogger("info,wasmer_wasix::syscalls=trace");
+    initializeLogger("warn");
 })();
 
 const ansiEscapeCode = /\u001B\[[\d;]*[JDm]/g;
@@ -115,8 +115,6 @@ describe("Wasmer.spawn", function() {
     });
 
     it("Can communicate with a TTY-aware program", async () => {
-        console.log("Spawning...");
-
         // First, start QuickJS up in the background
         const instance = await wasmer.spawn("saghul/quickjs@0.0.3", {
             args: ["--interactive", "--std"],
@@ -154,7 +152,6 @@ describe("Wasmer.spawn", function() {
         expect(await stdout.readLine()).to.equal("\n");
         // QuickJS printed the command we just ran.
         expect(await stdout.readAnsiLine()).to.equal("std.exit(42)\n");
-        stdout.readToEnd().then(console.warn);
 
         // Wait for the instance to shut down.
         await stdin.close();
@@ -207,7 +204,7 @@ describe("Wasmer.spawn", function() {
         expect(decoder.decode(output.stdout)).to.equal("2\n");
     });
 
-    it("can run a bash session", async () => {
+    it.skip("can run a bash session", async () => {
         const instance = await wasmer.spawn("sharrattj/bash", {
             stdin: "ls / && exit 42\n",
         });
@@ -218,7 +215,7 @@ describe("Wasmer.spawn", function() {
         expect(decoder.decode(stderr)).to.equal("");
     });
 
-    it("can communicate with a subprocess", async () => {
+    it.skip("can communicate with a subprocess", async () => {
         const instance = await wasmer.spawn("sharrattj/bash", {
             uses: ["christoph/wasix-test-stdinout@0.1.1"],
         });

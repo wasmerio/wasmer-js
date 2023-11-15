@@ -41,7 +41,7 @@ pub fn initialize_logger(filter: Option<String>) -> Result<(), crate::utils::Err
     tracing_subscriber::fmt::fmt()
         .with_writer(ConsoleLogger::default)
         .with_env_filter(filter)
-        .with_span_events(FmtSpan::ENTER | FmtSpan::CLOSE)
+        .with_span_events(FmtSpan::CLOSE)
         .without_time()
         .try_init()
         .map_err(|e| anyhow::anyhow!(e))?;
