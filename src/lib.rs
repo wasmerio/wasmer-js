@@ -43,6 +43,6 @@ fn on_start() {
 
 
 #[wasm_bindgen(js_name = setWorkerUrl)]
-pub fn set_worker_url(url: JsString) {
+pub fn set_worker_url(url: js_sys::JsString) {
     crate::utils::set_worker_url(url);
 }
