@@ -4,8 +4,7 @@ import commonjs from "@rollup/plugin-commonjs";
 import { nodeResolve } from "@rollup/plugin-node-resolve";
 import url from "@rollup/plugin-url";
 import serve from "rollup-plugin-serve";
-import postcss from 'rollup-plugin-postcss';
-
+import postcss from "rollup-plugin-postcss";
 
 export default function configure() {
     const config = {
@@ -27,13 +26,15 @@ export default function configure() {
     };
 
     if (process.env.ROLLUP_WATCH) {
-        config.plugins.push(serve({
-            contentBase: "dist",
-            headers: {
-                "Cross-Origin-Opener-Policy": "same-origin",
-                "Cross-Origin-Embedder-Policy": "require-corp",
-            }
-        }));
+        config.plugins.push(
+            serve({
+                contentBase: "dist",
+                headers: {
+                    "Cross-Origin-Opener-Policy": "same-origin",
+                    "Cross-Origin-Embedder-Policy": "require-corp",
+                },
+            }),
+        );
     }
 
     return config;

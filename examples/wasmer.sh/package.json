@@ -4,7 +4,8 @@
   "description": "A Bash terminal in your browser, powered by WebAssembly and WASIX.",
   "scripts": {
     "dev": "rollup -c -w",
-    "build": "rollup -c"
+    "build": "rollup -c",
+    "fmt": "prettier . --write"
   },
   "dependencies": {
     "@wasmer/wasix": "file:../..",
@@ -17,6 +18,7 @@
     "@rollup/plugin-typescript": "^11.1.4",
     "@rollup/plugin-url": "^8.0.1",
     "@web/rollup-plugin-html": "^2.0.1",
+    "prettier": "^3.1.0",
     "rollup": "^3.29.3",
     "rollup-plugin-import-css": "^3.3.4",
     "rollup-plugin-postcss": "^4.0.2",

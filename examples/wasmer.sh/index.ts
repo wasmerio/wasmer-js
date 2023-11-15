@@ -1,7 +1,7 @@
 import "xterm/css/xterm.css";
 
 import { Wasmer, init, initializeLogger } from "@wasmer/wasix";
-import { Terminal } from "xterm";
+import { IDisposable, Terminal } from "xterm";
 import { FitAddon } from "xterm-addon-fit";
 
 const encoder = new TextEncoder();
@@ -25,30 +25,41 @@ async function main() {
     term.writeln("Starting...");
 
     while (true) {
-        const instance = await wasmer.spawn("wasmer/python@3.12", {
-            args: [],
-            runtime,
-        });
+        const subscriptions: IDisposable[] = [];
 
-        // Connect stdin/stdout/stderr to the terminal
-        const stdin: WritableStreamDefaultWriter<Uint8Array> = instance.stdin!.getWriter();
-        term.onData(line => stdin.write(encoder.encode(line)));
-        copyStream(instance.stdout, term);
-        copyStream(instance.stderr, term);
+        try {
+            const instance = await wasmer.spawn("sharrattj/bash", {
+                args: [],
+                runtime,
+            });
 
-        // Now, wait until bash exits
-        const { code } = await instance.wait();
+            // Connect stdin/stdout/stderr to the terminal
+            const stdin: WritableStreamDefaultWriter<Uint8Array> =
+                instance.stdin!.getWriter();
+            subscriptions.push(
+                term.onData((line) => stdin.write(encoder.encode(line))),
+            );
+            copyStream(instance.stdout, term);
+            copyStream(instance.stderr, term);
 
-        if (code != 0) {
-            term.writeln(`\nExit code: ${code}`);
-            term.writeln("Rebooting...");
+            // Now, wait until bash exits
+            const { code } = await instance.wait();
+
+            if (code != 0) {
+                term.writeln(`\nExit code: ${code}`);
+                term.writeln("Rebooting...");
+            }
+        } finally {
+            subscriptions.forEach((d) => d.dispose());
         }
     }
 }
 
 function copyStream(reader: ReadableStream<Uint8Array>, term: Terminal) {
     const writer = new WritableStream<Uint8Array>({
-        write: chunk => { term.write(chunk); }
+        write: (chunk) => {
+            term.write(chunk);
+        },
     });
     reader.pipeTo(writer);
 }
