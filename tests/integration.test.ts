@@ -157,37 +157,28 @@ describe("Wasmer.spawn", function() {
         await stdin.close();
         const output = await instance.wait();
 
-        console.log({
-            ...output,
-            stdout: decoder.decode(output.stdout),
-            stderr: decoder.decode(output.stderr),
-        });
         expect(output.code).to.equal(42);
         expect(decoder.decode(output.stderr)).to.equal("");
     });
 
     it.skip("Can communicate with Python", async () => {
-        console.log("Spawning...");
-
         // First, start python up in the background
         const instance = await wasmer.spawn("python/python@0.1.0", {
             args: [],
         });
 
-        console.log("Spawned");
-
-        const stdin = instance.stdin!.getWriter();
+        const stdin = new RealisticWriter(instance.stdin!);
         const stdout = new BufReader(instance.stdout);
 
         // First, we'll read the prompt
         console.log("Prompt");
         expect(await stdout.readLine()).to.contain("Python 3.6.7 (default, Feb 14 2020, 03:17:48)");
+        await stdout.close();
 
         // Then, send the command to the REPL
-        await stdin.write(encoder.encode("import sys\nprint(1 + 1)\nsys.exit(42)\n"));
-
-        stdout.readToEnd().then(console.warn);
-        new BufReader(instance.stderr).readToEnd().then(console.warn);
+        await stdin.writeln("import sys");
+        await stdin.writeln("print(1 + 1)");
+        await stdin.writeln("sys.exit(42)");
 
         // Wait for the instance to shut down.
         await stdin.close();
@@ -204,7 +195,7 @@ describe("Wasmer.spawn", function() {
         expect(decoder.decode(output.stdout)).to.equal("2\n");
     });
 
-    it.skip("can run a bash session", async () => {
+    it.skip("can run a bash session non-interactively", async () => {
         const instance = await wasmer.spawn("sharrattj/bash", {
             stdin: "ls / && exit 42\n",
         });
@@ -215,29 +206,47 @@ describe("Wasmer.spawn", function() {
         expect(decoder.decode(stderr)).to.equal("");
     });
 
-    it.skip("can communicate with a subprocess", async () => {
+    it.skip("can communicate with a subprocess interactively", async () => {
         const instance = await wasmer.spawn("sharrattj/bash", {
             uses: ["christoph/wasix-test-stdinout@0.1.1"],
         });
 
-        const stdin = instance.stdin!.getWriter();
+        const stdin = new RealisticWriter(instance.stdin!);
         const stdout = new BufReader(instance.stdout);
 
-        await stdin.write(encoder.encode("stdinout-loop\n"));
-        // the stdinout-loop program should be running now
-        await stdin.write(encoder.encode("First\n"));
+        // Start the stdinout-loop program
+        await stdin.writeln("stdinout-loop");
+        // echo from the TTY
+        expect(await stdout.readLine()).to.equal("stdinout-loop\n");
+        // The stdinout-loop program should be running now. Let's send it
+        // something
+        await stdin.writeln("First");
+        // It printed back our input
+        expect(await stdout.readLine()).to.equal("\n");
         expect(await stdout.readLine()).to.equal("First\n");
-        await stdin.write(encoder.encode("Second\n"));
+        // Write the next line of input
+        await stdin.writeln("Second");
+        // Echo from program
+        expect(await stdout.readLine()).to.equal("\n");
         expect(await stdout.readLine()).to.equal("Second\n");
 
         await stdin.close();
         const output = await instance.wait();
 
-        console.log(output);
         expect(output.code).to.equal(0);
+        // It looks like bash does its own TTY echoing, except it printed to
+        // stderr instead of stdout like wasmer_wasix::os::Tty
+        expect(decoder.decode(output.stderr)).to.equal("bash-5.1# stdinout-loop\n\n\nFirst\n\n\n\nSecond\n\n\n\nbash-5.1# exit\n");
     });
 });
 
+/**
+ * A writer adapter which will send characters to the underlying stream
+ * one-by-one.
+ *
+ * This makes any TTY handling code think it a real human is entering text on
+ * the other end.
+ */
 class RealisticWriter {
     private encoder = new TextEncoder();
     constructor(readonly stream: WritableStream<Uint8Array>) { }
