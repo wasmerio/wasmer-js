@@ -38,7 +38,6 @@ impl Runtime {
     pub fn with_pool_size(pool_size: Option<usize>) -> Result<Runtime, Error> {
         let pool = match pool_size {
             Some(size) => {
-                // Note:
                 let size = NonZeroUsize::new(size).unwrap_or(NonZeroUsize::MIN);
                 ThreadPool::new(size)
             }
@@ -86,10 +85,6 @@ impl Runtime {
     pub fn set_network_gateway(&mut self, gateway_url: String) {
         let networking = crate::net::connect_networking(gateway_url);
         self.networking = Arc::new(networking);
-    }
-
-    pub fn print_tty_options(&self) {
-        self.tty_get();
     }
 }
 
@@ -152,12 +147,14 @@ impl wasmer_wasix::runtime::Runtime for Runtime {
 }
 
 impl TtyBridge for Runtime {
+    #[tracing::instrument(level = "debug", skip_all)]
     fn reset(&self) {
         self.tty.set_echo(true);
         self.tty.set_line_buffering(true);
         self.tty.set_line_feeds(true);
     }
 
+    #[tracing::instrument(level = "debug", skip(self), ret)]
     fn tty_get(&self) -> WasiTtyState {
         WasiTtyState {
             cols: self.tty.cols(),
@@ -173,6 +170,7 @@ impl TtyBridge for Runtime {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip(self))]
     fn tty_set(&self, tty_state: WasiTtyState) {
         self.tty.set_cols(tty_state.cols);
         self.tty.set_rows(tty_state.rows);

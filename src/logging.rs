@@ -1,9 +1,6 @@
-use std::{
-    io::{ErrorKind, LineWriter, Write},
-    sync::Mutex,
-};
+use std::io::{ErrorKind, Write};
 
-use tracing_subscriber::EnvFilter;
+use tracing_subscriber::{fmt::format::FmtSpan, EnvFilter};
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
 /// Initialize the logger used by `@wasmer/wasix`.
@@ -41,11 +38,10 @@ pub fn initialize_logger(filter: Option<String>) -> Result<(), crate::utils::Err
         .with_default_directive(max_level.into())
         .parse_lossy(filter.unwrap_or_else(|| crate::DEFAULT_RUST_LOG.join(",")));
 
-    let writer = Mutex::new(LineWriter::new(ConsoleLogger));
-
     tracing_subscriber::fmt::fmt()
-        .with_writer(writer)
+        .with_writer(ConsoleLogger::default)
         .with_env_filter(filter)
+        .with_span_events(FmtSpan::ENTER | FmtSpan::CLOSE)
         .without_time()
         .try_init()
         .map_err(|e| anyhow::anyhow!(e))?;
@@ -53,20 +49,37 @@ pub fn initialize_logger(filter: Option<String>) -> Result<(), crate::utils::Err
     Ok(())
 }
 
-struct ConsoleLogger;
+#[derive(Default)]
+struct ConsoleLogger {
+    buffer: Vec<u8>,
+}
 
 impl Write for ConsoleLogger {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        let text = std::str::from_utf8(buf)
-            .map_err(|e| std::io::Error::new(ErrorKind::InvalidInput, e))?;
-
-        let js_string = JsValue::from_str(text);
-        web_sys::console::log_1(&js_string);
-
-        Ok(text.len())
+        self.buffer.extend(buf);
+        Ok(buf.len())
     }
 
     fn flush(&mut self) -> std::io::Result<()> {
+        let text = std::str::from_utf8(&self.buffer)
+            .map_err(|e| std::io::Error::new(ErrorKind::InvalidInput, e))?;
+        let js_string = JsValue::from_str(text);
+        web_sys::console::log_1(&js_string);
+        self.buffer.clear();
+
         Ok(())
+    }
+}
+
+impl Drop for ConsoleLogger {
+    fn drop(&mut self) {
+        if !self.buffer.is_empty() {
+            if let Err(e) = self.flush() {
+                tracing::warn!(
+                    error = &e as &dyn std::error::Error,
+                    "An error occurred while flushing",
+                );
+            }
+        }
     }
 }
