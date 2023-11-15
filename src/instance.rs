@@ -47,10 +47,18 @@ impl Instance {
                 // The caller has already acquired a writer so it's their
                 // responsibility to close the stream.
             } else {
-                tracing::debug!("Closing stdin");
-                wasm_bindgen_futures::JsFuture::from(stdin.close())
-                    .await
-                    .map_err(Error::js)?;
+                match wasm_bindgen_futures::JsFuture::from(stdin.close()).await {
+                    Ok(_) => {
+                        tracing::debug!("Closed stdin");
+                    }
+
+                    Err(e) if e.has_type::<js_sys::TypeError>() => {
+                        tracing::debug!("Stdin was already closed by the user");
+                    }
+                    Err(e) => {
+                        return Err(Error::js(e));
+                    }
+                }
             }
         }
 
