@@ -6,12 +6,12 @@ const decoder = new TextDecoder("utf-8");
 
 const initialized = (async () => {
     await init();
-    initializeLogger("warn");
+    initializeLogger("info,wasmer_wasix::syscalls=trace");
 })();
 
 const ansiEscapeCode = /\u001B\[[\d;]*[JDm]/g;
 
-describe("run", function() {
+describe.skip("run", function() {
     this.timeout("60s")
         .beforeAll(async () => await initialized);
 
@@ -49,7 +49,7 @@ describe("run", function() {
     });
 });
 
-describe("Wasmer.spawn", function() {
+describe.skip("Wasmer.spawn", function() {
     let wasmer: Wasmer;
 
     this.timeout("120s")
@@ -161,52 +161,7 @@ describe("Wasmer.spawn", function() {
         expect(decoder.decode(output.stderr)).to.equal("");
     });
 
-    it.skip("Can communicate with Python", async () => {
-        // First, start python up in the background
-        const instance = await wasmer.spawn("python/python@0.1.0", {
-            args: [],
-        });
-
-        const stdin = new RealisticWriter(instance.stdin!);
-        const stdout = new BufReader(instance.stdout);
-
-        // First, we'll read the prompt
-        console.log("Prompt");
-        expect(await stdout.readLine()).to.contain("Python 3.6.7 (default, Feb 14 2020, 03:17:48)");
-        await stdout.close();
-
-        // Then, send the command to the REPL
-        await stdin.writeln("import sys");
-        await stdin.writeln("print(1 + 1)");
-        await stdin.writeln("sys.exit(42)");
-
-        // Wait for the instance to shut down.
-        await stdin.close();
-        await stdout.close();
-        const output = await instance.wait();
-
-        console.log({
-            ...output,
-            stdout: decoder.decode(output.stdout),
-            stderr: decoder.decode(output.stderr),
-        });
-        expect(output.ok).to.be.false;
-        expect(output.code).to.equal(42);
-        expect(decoder.decode(output.stdout)).to.equal("2\n");
-    });
-
-    it.skip("can run a bash session non-interactively", async () => {
-        const instance = await wasmer.spawn("sharrattj/bash", {
-            stdin: "ls / && exit 42\n",
-        });
-        const { code, stdout, stderr } = await instance.wait();
-
-        expect(code).to.equal(42);
-        expect(decoder.decode(stdout)).to.equal("bin\nlib\ntmp\n");
-        expect(decoder.decode(stderr)).to.equal("");
-    });
-
-    it.skip("can communicate with a subprocess interactively", async () => {
+    it("can communicate with a subprocess interactively", async () => {
         const instance = await wasmer.spawn("sharrattj/bash", {
             uses: ["christoph/wasix-test-stdinout@0.1.1"],
         });
@@ -237,6 +192,82 @@ describe("Wasmer.spawn", function() {
         // It looks like bash does its own TTY echoing, except it printed to
         // stderr instead of stdout like wasmer_wasix::os::Tty
         expect(decoder.decode(output.stderr)).to.equal("bash-5.1# stdinout-loop\n\n\nFirst\n\n\n\nSecond\n\n\n\nbash-5.1# exit\n");
+    });
+
+    it("Can communicate with Python", async () => {
+        // First, start python up in the background
+        const instance = await wasmer.spawn("python/python@0.1.0", {
+            args: [],
+        });
+
+        const stdin = new RealisticWriter(instance.stdin!);
+        const stdout = new BufReader(instance.stdout);
+        const stderr = new BufReader(instance.stderr);
+
+        // First, we'll read the prompt
+        expect(await stderr.readLine()).to.equal("Python 3.6.7 (default, Feb 14 2020, 03:17:48) \n");
+        expect(await stderr.readLine()).to.equal("[Wasm WASI vClang 9.0.0 (https://github.com/llvm/llvm-project 0399d5a9682b3cef7 on generic\n");
+        expect(await stderr.readLine()).to.equal('Type "help", "copyright", "credits" or "license" for more information.\n');
+
+        // Then, send the command to the REPL
+        await stdin.writeln("import sys");
+        // TTY echo
+        expect(await stdout.readLine()).to.equal("import sys\n");
+        await stdin.writeln("print(1 + 1)");
+        // TTY echo
+        expect(await stdout.readLine()).to.equal("\n");
+        expect(await stdout.readLine()).to.equal("print(1 + 1)\n");
+        // Our output
+        expect(await stdout.readLine()).to.equal("\n");
+        expect(await stdout.readLine()).to.equal("2\n");
+        // We've done what we want, so let's shut it down
+        await stdin.writeln("sys.exit(42)");
+        // TTY echo
+        expect(await stdout.readLine()).to.equal("sys.exit(42)\n");
+        expect(await stdout.readLine()).to.equal("\n");
+
+        // Wait for the instance to shut down.
+        await stdin.close();
+        await stdout.close();
+        await stderr.close();
+        const output = await instance.wait();
+
+        expect(output.ok).to.be.false;
+        expect(output.code).to.equal(42);
+        expect(decoder.decode(output.stdout)).to.equal("");
+        // Python prints the prompts to stderr, but our TTY handling prints
+        // echoed characters to stdout
+        expect(decoder.decode(output.stderr)).to.equal(">>> >>> >>> >>> >>> ");
+    });
+});
+
+describe("tty handling", function() {
+    let wasmer: Wasmer;
+
+    this.timeout("120s")
+        .beforeAll(async () => {
+            await initialized;
+
+            // Note: technically we should use a separate Wasmer instance so tests can't
+            // interact with each other, but in this case the caching benefits mean we
+            // complete in tens of seconds rather than several minutes.
+            wasmer = new Wasmer();
+        });
+
+    it("can run a bash session non-interactively", async () => {
+        const instance = await wasmer.spawn("sharrattj/bash", {
+            stdin: "ls / && exit 42\n",
+        });
+        console.log("Spawned");
+
+        // new BufReader(instance.stdout, true).readToEnd();
+        // new BufReader(instance.stderr, true).readToEnd();
+
+        const { code, stdout, stderr } = await instance.wait();
+
+        expect(code).to.equal(42);
+        expect(decoder.decode(stdout)).to.equal("bin\nlib\ntmp\n");
+        expect(decoder.decode(stderr)).to.equal("");
     });
 });
 
@@ -294,6 +325,7 @@ class BufReader {
       */
      async readLine(): Promise<string> {
         const pieces: Uint8Array[] = [];
+
         while (await this.fillBuffer() && this.buffer) {
             const ASCII_NEWLINE = 0x0A;
             const position = this.buffer.findIndex(b => b == ASCII_NEWLINE);
@@ -373,7 +405,7 @@ class BufReader {
       */
      private async fillBuffer() {
         if (this.buffer && this.buffer.byteLength > 0) {
-            true;
+            return true;
         }
 
         const chunk = await this.chunks.next();

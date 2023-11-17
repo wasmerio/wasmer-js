@@ -162,6 +162,14 @@ impl SpawnConfig {
                 let (stdout_pipe, stdout_stream) = crate::streams::output_pipe();
                 runner.set_stdin(Box::new(stdin));
                 runner.set_stdout(Box::new(stdout_pipe));
+
+                // HACK: Make sure we don't report stdin as interactive.  This
+                // doesn't belong here because now it'll affect every other
+                // instance sharing the same runtime... In theory, every
+                // instance should get its own TTY state, but that's an issue
+                // for wasmer-wasix to work out.
+                runtime.set_connected_to_tty(false);
+
                 Ok((None, stdout_stream, stderr_stream))
             }
         }

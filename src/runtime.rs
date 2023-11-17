@@ -1,4 +1,7 @@
-use std::{num::NonZeroUsize, sync::Arc};
+use std::{
+    num::NonZeroUsize,
+    sync::{atomic::AtomicBool, Arc},
+};
 
 use http::HeaderValue;
 use virtual_net::VirtualNetworking;
@@ -30,6 +33,7 @@ pub struct Runtime {
     package_loader: Arc<crate::package_loader::PackageLoader>,
     module_cache: Arc<ThreadLocalCache>,
     tty: TtyOptions,
+    connected_to_tty: Arc<AtomicBool>,
 }
 
 #[wasm_bindgen]
@@ -71,6 +75,7 @@ impl Runtime {
             package_loader: Arc::new(package_loader),
             module_cache: Arc::new(module_cache),
             tty: TtyOptions::default(),
+            connected_to_tty: Arc::new(AtomicBool::new(false)),
         }
     }
 
@@ -95,6 +100,11 @@ impl Runtime {
 
     pub(crate) fn package_loader(&self) -> &Arc<crate::package_loader::PackageLoader> {
         &self.package_loader
+    }
+
+    pub(crate) fn set_connected_to_tty(&self, state: bool) {
+        self.connected_to_tty
+            .store(state, std::sync::atomic::Ordering::SeqCst);
     }
 }
 
@@ -152,18 +162,23 @@ impl TtyBridge for Runtime {
         self.tty.set_echo(true);
         self.tty.set_line_buffering(true);
         self.tty.set_line_feeds(true);
+        self.set_connected_to_tty(false);
     }
 
     #[tracing::instrument(level = "debug", skip(self), ret)]
     fn tty_get(&self) -> WasiTtyState {
+        let connected_to_tty = self
+            .connected_to_tty
+            .load(std::sync::atomic::Ordering::SeqCst);
+
         WasiTtyState {
             cols: self.tty.cols(),
             rows: self.tty.rows(),
             width: 800,
             height: 600,
-            stdin_tty: true,
-            stdout_tty: true,
-            stderr_tty: true,
+            stdin_tty: connected_to_tty,
+            stdout_tty: connected_to_tty,
+            stderr_tty: connected_to_tty,
             echo: self.tty.echo(),
             line_buffered: self.tty.line_buffering(),
             line_feeds: self.tty.line_feeds(),
@@ -177,6 +192,9 @@ impl TtyBridge for Runtime {
         self.tty.set_echo(tty_state.echo);
         self.tty.set_line_buffering(tty_state.line_buffered);
         self.tty.set_line_feeds(tty_state.line_feeds);
+        self.set_connected_to_tty(
+            tty_state.stdin_tty || tty_state.stdout_tty || tty_state.stderr_tty,
+        );
     }
 }
 

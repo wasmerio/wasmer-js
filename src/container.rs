@@ -97,7 +97,7 @@ const MANIFEST_TYPE_DEFINITION: &'static str = r#"
  * Metadata associated with a webc file.
  */
 export type Manifest = {
-    // TODO: Add fields
+    annotations?: Record<string, any>;
 };
 "#;
 
