@@ -1,20 +1,8 @@
-// import rust from "@wasm-tool/rollup-plugin-rust";
-
-// export default {
-//     input: {
-//         foo: "Cargo.toml",
-//     },
-//     plugins: [
-//         rust(),
-//     ],
-// };
-
-import resolve from '@rollup/plugin-node-resolve';
+import nodePolyfills from 'rollup-plugin-node-polyfills';
 import terser from '@rollup/plugin-terser';
 import pkg from './package.json' assert { type: 'json' };
 import dts from "rollup-plugin-dts";
 import typescript from '@rollup/plugin-typescript';
-// import smartAsset from "rollup-plugin-smart-asset"
 import url from '@rollup/plugin-url';
 
 const LIBRARY_NAME = 'Library'; // Change with your library's name
@@ -33,12 +21,6 @@ const banner = `/*!
  */`;
 
 const makeConfig = (env = 'development') => {
-    let bundleSuffix = '';
-
-    if (env === 'production') {
-        bundleSuffix = 'min.';
-    }
-
     const config = {
         input: 'lib.ts',
         external: EXTERNAL,
@@ -46,41 +28,33 @@ const makeConfig = (env = 'development') => {
             {
                 banner,
                 name: LIBRARY_NAME,
-                file: `dist/${LIBRARY_NAME}.umd.${bundleSuffix}js`, // UMD
+                file: `dist/${LIBRARY_NAME}.umd.js`,
                 format: 'umd',
                 exports: 'auto',
                 globals: GLOBALS
             },
             {
                 banner,
-                file: `dist/${LIBRARY_NAME}.cjs.${bundleSuffix}js`, // CommonJS
+                file: `dist/${LIBRARY_NAME}.cjs`,
                 format: 'cjs',
                 exports: 'auto',
                 globals: GLOBALS
             },
             {
                 banner,
-                file: `dist/${LIBRARY_NAME}.esm.${bundleSuffix}js`, // ESM
+                file: `dist/${LIBRARY_NAME}.mjs`,
                 format: 'es',
                 exports: 'named',
                 globals: GLOBALS
             }
         ],
         plugins: [
-            // wasm({
-            //     maxFileSize: 1000000000,
-            // }),
-            // smartAsset({
-            //     url: 'inline',
-            //     extensions: ['.wasm'],
-            // }),
-            // Uncomment the following 2 lines if your library has external dependencies
             typescript(),
             url({
                 include: ['**/*.wasm'],
-                limit: 14336000,
-                // limit: 0,
+                limit: 100 * 1000 * 1000,
             }),
+            nodePolyfills(),
         ]
     };
 
@@ -99,8 +73,8 @@ export default commandLineArgs => {
     const configs = [
         makeConfig(),
         {
-            input: "./pkg/wasmer_wasi_js.d.ts",
-            output: [{ file: "dist/pkg/wasmer_wasi_js.d.ts", format: "es" }],
+            input: "./pkg/wasmer_wasix_js.d.ts",
+            output: [{ file: "dist/pkg/wasmer_wasix_js.d.ts", format: "es" }],
             plugins: [dts()],
         }
     ];

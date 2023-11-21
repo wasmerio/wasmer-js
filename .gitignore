@@ -1,7 +1,8 @@
-/bin
-/target
+target/
 **/*.rs.bk
 node_modules/
 dist/
 package-lock.json
 *.log
+pkg/
+docs/

@@ -1,6 +1,8 @@
-export * from "./pkg/wasmer_wasi_js";
-import load from "./pkg/wasmer_wasi_js";
-import wasm_bytes from "./pkg/wasmer_wasi_js_bg.wasm";
+import { Buffer } from "buffer";
+export * from "./pkg/wasmer_wasix_js";
+// @ts-ignore
+import load, { ThreadPoolWorker } from "./pkg/wasmer_wasix_js";
+import wasm_bytes from "./pkg/wasmer_wasix_js_bg.wasm";
 
 interface MimeBuffer extends Buffer {
 	type: string;
@@ -72,12 +74,21 @@ function dataUriToBuffer(uri: string): MimeBuffer {
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 let inited: Promise<any> | null = null;
-export const init = async (input?: InitInput | Promise<InitInput>, force?: boolean) => {
+
+/**
+ * Initialize the underlying WebAssembly module.
+*/
+export const init = async (input?: InitInput | Promise<InitInput>, maybe_memory?: WebAssembly.Memory, force?: boolean) => {
     if (inited === null || force === true) {
 		if (!input) {
 			input = await WebAssembly.compile(dataUriToBuffer(wasm_bytes as any as string));
 		}
-        inited = load(input);
+        inited = load(input, maybe_memory);
     }
     await inited;
 }
+
+// HACK: We save these to the global scope because it's the most reliable way to
+// make sure worker.js gets access to them. Normal exports are removed when
+// using a bundler.
+(globalThis as any)["__WASMER_INTERNALS__"] = { ThreadPoolWorker, init };
