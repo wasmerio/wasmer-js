@@ -148,24 +148,13 @@ static WORKER_URL: Lazy<String> = Lazy::new(|| {
     extern "C" {
         #[wasm_bindgen(js_namespace = ["import", "meta"], js_name = url)]
         static IMPORT_META_URL: String;
-
-        #[wasm_bindgen(js_namespace = ["globalThis"], js_name = customWorkerUrl)]
-        static CUSTOM_WORKER_URL: Option<String>;
-
     }
 
-    tracing::trace!(import_url = IMPORT_META_URL.as_str());
-    tracing::trace!(
-        custom_worker_url = CUSTOM_WORKER_URL
-            .as_ref()
-            .unwrap_or(&"".to_string())
-            .as_str()
-    );
-    let import_url: String = CUSTOM_WORKER_URL
-        .to_owned()
-        .unwrap_or(IMPORT_META_URL.to_string());
+    let import_url = crate::CUSTOM_WORKER_URL.lock().unwrap();
+    let import_url = import_url.as_deref().unwrap_or(IMPORT_META_URL.as_str());
+    tracing::trace!(import_url);
 
-    let script = include_str!("worker.js").replace("$IMPORT_META_URL", &import_url);
+    let script = include_str!("worker.js").replace("$IMPORT_META_URL", import_url);
 
     let blob = web_sys::Blob::new_with_u8_array_sequence_and_options(
         Array::from_iter([Uint8Array::from(script.as_bytes())]).as_ref(),

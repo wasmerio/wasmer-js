@@ -16,6 +16,8 @@ mod tasks;
 mod utils;
 mod ws;
 
+use std::sync::Mutex;
+
 pub use crate::{
     container::{Container, Manifest, Volume},
     facade::{SpawnConfig, Wasmer, WasmerConfig},
@@ -25,10 +27,12 @@ pub use crate::{
     runtime::Runtime,
 };
 
+use once_cell::sync::Lazy;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 pub(crate) const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));
 pub(crate) const DEFAULT_RUST_LOG: &[&str] = &["warn"];
+pub(crate) static CUSTOM_WORKER_URL: Lazy<Mutex<Option<String>>> = Lazy::new(Mutex::default);
 
 #[wasm_bindgen]
 pub fn wat2wasm(wat: String) -> Result<js_sys::Uint8Array, utils::Error> {
@@ -43,5 +47,5 @@ fn on_start() {
 
 #[wasm_bindgen(js_name = setWorkerUrl)]
 pub fn set_worker_url(url: js_sys::JsString) {
-    crate::utils::set_worker_url(url);
+    *CUSTOM_WORKER_URL.lock().unwrap() = Some(url.into());
 }
