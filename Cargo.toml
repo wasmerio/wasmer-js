@@ -1,8 +1,9 @@
 [package]
 name = "wasmer-wasix-js"
-version = "0.0.1-alpha.1"
+version = "0.0.0"
 authors = ["Syrus Akbary <syrus@wasmer.io>"]
 edition = "2021"
+publish = false
 
 [lib]
 crate-type = ["cdylib"]

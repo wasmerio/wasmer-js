@@ -2605,7 +2605,7 @@ dependencies = [
 
 [[package]]
 name = "wasmer-wasix-js"
-version = "0.0.1-alpha.1"
+version = "0.0.0"
 dependencies = [
  "anyhow",
  "async-trait",
