@@ -20,7 +20,7 @@
   "homepage": "https://github.com/wasmerio/wasmer-js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/wasmerio/wasmer-js"
+    "url": "git+https://github.com/wasmerio/wasmer-js.git"
   },
   "publishConfig": {
     "access": "public"
