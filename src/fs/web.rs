@@ -108,7 +108,7 @@ impl DirectoryProxy {
                 thread.id=current_thread ,
                 "Running a synchronous FileSystem operation on this thread will result in a deadlock"
             );
-            return Err(FsError::WouldBlock);
+            return Err(FsError::Lock);
         }
 
         InlineWaker::block_on(self.do_send(create_message))?
@@ -262,12 +262,12 @@ mod tests {
 
         let err = fs.read_dir("/".as_ref()).unwrap_err();
 
-        assert_eq!(err, FsError::WouldBlock);
+        assert_eq!(err, FsError::Lock);
     }
 
     /// Create a [`FileSystem`] from a [`FileSystemDirectoryHandle`] and
     /// interact with it in a way that won't create deadlocks.
-    async fn use_fs<F, Ret>(handle: FileSystemDirectoryHandle, op: F) -> Ret
+    async fn with_fs<F, Ret>(handle: FileSystemDirectoryHandle, op: F) -> Ret
     where
         F: FnOnce(&(dyn FileSystem + 'static)) -> Ret + Send + 'static,
         Ret: Debug + Send + 'static,
@@ -295,9 +295,9 @@ mod tests {
             .dyn_into()
             .unwrap();
 
-        let read_dir = use_fs(handle, |fs| fs.read_dir("/".as_ref())).await;
-        let entries: Vec<_> = read_dir.unwrap().map(|e| e.unwrap().path()).collect();
+        let read_dir = with_fs(handle, |fs| fs.read_dir("/".as_ref())).await;
 
+        let entries: Vec<_> = read_dir.unwrap().map(|e| e.unwrap().path()).collect();
         assert!(entries.is_empty());
     }
 
@@ -311,7 +311,7 @@ mod tests {
             .dyn_into()
             .unwrap();
 
-        let entries: Vec<_> = use_fs(handle, |fs| {
+        let entries: Vec<_> = with_fs(handle, |fs| {
             fs.create_dir("/tmp".as_ref()).unwrap();
             fs.read_dir("/".as_ref())
                 .unwrap()
