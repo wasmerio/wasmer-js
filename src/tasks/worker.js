@@ -15,7 +15,7 @@ let handleMessage = async data => {
 globalThis.onmessage = async ev => {
     if (ev.data.type == "init") {
         const { memory, module, id } = ev.data;
-        const imported = await import("$IMPORT_META_URL");
+        const imported = await import(new URL("$IMPORT_META_URL", self.location.origin));
 
         // HACK: How we load our imports will change depending on how the code
         // is deployed. If we are being used in "wasm-pack test" then we can
