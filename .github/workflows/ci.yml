@@ -64,8 +64,7 @@ jobs:
         run: npx typedoc --out docs lib.ts
       - name: Upload API Docs
         uses: JamesIves/github-pages-deploy-action@v4.4.0
-        # FIXME: Re-enable this before merging
-        # if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main'
         with:
           branch: gh-pages
           folder: docs
