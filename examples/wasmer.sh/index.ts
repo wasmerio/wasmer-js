@@ -1,6 +1,6 @@
 import "xterm/css/xterm.css";
 
-import { Wasmer, init, initializeLogger } from "@wasmer/wasix";
+import { Wasmer, init, initializeLogger } from "@wasmer/sdk";
 import { IDisposable, Terminal } from "xterm";
 import { FitAddon } from "xterm-addon-fit";
 

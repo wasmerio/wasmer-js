@@ -8,7 +8,7 @@
     "fmt": "prettier . --write"
   },
   "dependencies": {
-    "@wasmer/wasix": "file:../..",
+    "@wasmer/sdk": "file:../..",
     "xterm": "4.19",
     "xterm-addon-fit": "^0.5.0"
   },
