@@ -154,11 +154,14 @@ impl SpawnConfig {
                 stdout_stream,
                 stdin_stream,
             } => {
+                tracing::debug!("Setting up interactive TTY");
                 runner.set_stdin(Box::new(stdin_pipe));
                 runner.set_stdout(Box::new(stdout_pipe));
+                runtime.set_connected_to_tty(true);
                 Ok((Some(stdin_stream), stdout_stream, stderr_stream))
             }
             TerminalMode::NonInteractive { stdin } => {
+                tracing::debug!("Setting up non-interactive TTY");
                 let (stdout_pipe, stdout_stream) = crate::streams::output_pipe();
                 runner.set_stdin(Box::new(stdin));
                 runner.set_stdout(Box::new(stdout_pipe));
