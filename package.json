@@ -32,6 +32,11 @@
     "test": "web-test-runner 'tests/**/*.test.ts' --node-resolve --esbuild-target auto --config ./web-dev-server.config.mjs",
     "clean": "rimraf dist coverage pkg target"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "dependencies": {},
   "devDependencies": {
     "@esm-bundle/chai": "^4.3.4-fix.0",
