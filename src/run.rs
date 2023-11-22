@@ -13,7 +13,7 @@ const DEFAULT_PROGRAM_NAME: &str = "wasm";
 
 /// Run a WASIX program.
 #[wasm_bindgen]
-pub fn run(wasm_module: js_sys::WebAssembly::Module, config: RunConfig) -> Result<Instance, Error> {
+pub async fn run(wasm_module: WasmModule, config: RunConfig) -> Result<Instance, Error> {
     let _span = tracing::debug_span!("run").entered();
 
     let runtime = match config.runtime().as_runtime() {
@@ -30,7 +30,8 @@ pub fn run(wasm_module: js_sys::WebAssembly::Module, config: RunConfig) -> Resul
     let (stdin, stdout, stderr) = config.configure_builder(&mut builder)?;
 
     let (exit_code_tx, exit_code_rx) = oneshot::channel();
-    let module = wasmer::Module::from(wasm_module);
+
+    let module: wasmer::Module = wasm_module.to_module(&*runtime).await?;
 
     // Note: The WasiEnvBuilder::run() method blocks, so we need to run it on
     // the thread pool.
@@ -50,6 +51,29 @@ pub fn run(wasm_module: js_sys::WebAssembly::Module, config: RunConfig) -> Resul
         stderr,
         exit: exit_code_rx,
     })
+}
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(typescript_type = "WebAssembly.Module | Uint8Array")]
+    pub type WasmModule;
+}
+
+impl WasmModule {
+    async fn to_module(
+        &self,
+        runtime: &dyn wasmer_wasix::Runtime,
+    ) -> Result<wasmer::Module, Error> {
+        if let Some(module) = self.dyn_ref::<js_sys::WebAssembly::Module>() {
+            Ok(module.clone().into())
+        } else if let Some(buffer) = self.dyn_ref::<js_sys::Uint8Array>() {
+            let buffer = buffer.to_vec();
+            let module = runtime.load_module(&buffer).await?;
+            Ok(module)
+        } else {
+            unreachable!();
+        }
+    }
 }
 
 #[wasm_bindgen(typescript_custom_section)]
