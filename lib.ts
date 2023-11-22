@@ -1,8 +1,8 @@
 import { Buffer } from "buffer";
-export * from "./pkg/wasmer_wasix_js";
+export * from "./pkg/wasmer_js";
 // @ts-ignore
-import load, { ThreadPoolWorker } from "./pkg/wasmer_wasix_js";
-import wasm_bytes from "./pkg/wasmer_wasix_js_bg.wasm";
+import load, { ThreadPoolWorker } from "./pkg/wasmer_js";
+import wasm_bytes from "./pkg/wasmer_js_bg.wasm";
 
 interface MimeBuffer extends Buffer {
 	type: string;

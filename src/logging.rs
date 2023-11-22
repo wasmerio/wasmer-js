@@ -17,10 +17,10 @@ use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 /// - `off` - turn off all logs
 /// - `error`, `warn`, `info`, `debug`, `trace` - set the global log level
 /// - `wasmer_wasix` - enable logs for `wasmer_wasix`
-/// - `info,wasmer_wasix_js::package_loader=trace` - set the global log level to
-///   `info` and set `wasmer_wasix_js::package_loader` to `trace`
-/// - `wasmer_wasix_js=debug/flush` -  turns on debug logging for
-///   `wasmer_wasix_js` where the log message includes `flush`
+/// - `info,wasmer_js::package_loader=trace` - set the global log level to
+///   `info` and set `wasmer_js::package_loader` to `trace`
+/// - `wasmer_js=debug/flush` -  turns on debug logging for
+///   `wasmer_js` where the log message includes `flush`
 /// - `warn,wasmer=info,wasmer_wasix::syscalls::wasi=trace` - directives can be
 ///   mixed arbitrarily
 ///
