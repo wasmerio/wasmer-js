@@ -109,6 +109,30 @@ impl Directory {
 
         Ok(())
     }
+
+    /// Remove a directory.
+    #[wasm_bindgen(js_name = "removeDir")]
+    pub async fn remove_dir(&self, mut path: String) -> Result<(), Error> {
+        if !path.starts_with('/') {
+            path.insert(0, '/');
+        }
+
+        FileSystem::remove_dir(self, path.as_ref())?;
+
+        Ok(())
+    }
+
+    /// Remove a file.
+    #[wasm_bindgen(js_name = "removeFile")]
+    pub async fn remove_file(&self, mut path: String) -> Result<(), Error> {
+        if !path.starts_with('/') {
+            path.insert(0, '/');
+        }
+
+        FileSystem::remove_file(self, path.as_ref())?;
+
+        Ok(())
+    }
 }
 
 impl Directory {

@@ -48,3 +48,64 @@ describe("In-Memory Directory", function() {
         expect(await dir.readDir("/")).to.deep.equal(["/tmp"]);
     });
 });
+
+describe("Web FileSystem", function() {
+    this.beforeAll(async () => await initialized);
+
+    it("can read an empty dir", async() => {
+        const dirHandle = await navigator.storage.getDirectory();
+
+        const dir = Directory.fromBrowser(dirHandle);
+        const entries = await dir.readDir("/");
+
+        expect(entries).to.eql([]);
+    });
+
+    it("can read a file", async() => {
+        const dirHandle = await navigator.storage.getDirectory();
+        const f = await dirHandle.getFileHandle("file.txt");
+        const writer = await f.createWritable();
+        await writer.write("Hello, World!");
+        await writer.close();
+        const dir = Directory.fromBrowser(dirHandle);
+
+        const contents = await dir.readFile("/file.txt");
+
+        expect(contents).to.equal("Hello, World!");
+    });
+
+    it("can create a file", async() => {
+        const dirHandle = await navigator.storage.getDirectory();
+        const dir = Directory.fromBrowser(dirHandle);
+
+        await dir.writeFile("/file.txt", "Hello, World!");
+
+        const handle = await dirHandle.getFileHandle("file.txt");
+        const f = await handle.getFile();
+        expect(await f.text()).to.equal("Hello, World!");
+    });
+
+    it("can list a directory", async() => {
+        const dirHandle = await navigator.storage.getDirectory();
+        const f = await dirHandle.getFileHandle("file.txt", {create: true});
+        const dir = Directory.fromBrowser(dirHandle);
+
+        const entries = await dir.readDir("/");
+
+        expect(entries).to.eql(["/file.txt"]);
+    });
+
+    it("can delete a file", async() => {
+        const dirHandle = await navigator.storage.getDirectory();
+        const f = await dirHandle.getFileHandle("file.txt", {create: true});
+        const dir = Directory.fromBrowser(dirHandle);
+
+        await dir.removeFile("/file.txt");
+
+        const entries: string[] = [];
+        for await (const key of (dirHandle as any).keys()) {
+            entries.push(key);
+        }
+        expect(entries).to.eql([]);
+    });
+});

@@ -52,6 +52,7 @@ features = [
     "FileReader",
     "FileSystemDirectoryHandle",
     "FileSystemFileHandle",
+    "FileSystemGetDirectoryOptions",
     "FileSystemHandle",
     "Headers",
     "MessageEvent",
