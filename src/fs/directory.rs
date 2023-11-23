@@ -83,16 +83,19 @@ impl Directory {
     ///
     /// Note that the path is relative to the directory's root.
     #[wasm_bindgen(js_name = "readFile")]
-    pub async fn read_file(&self, mut path: String) -> Result<js_sys::Uint8Array, Error> {
-        if !path.starts_with('/') {
-            path.insert(0, '/');
-        }
-
-        let mut f = self.new_open_options().read(true).open(&path)?;
-        let mut buffer = Vec::with_capacity(f.size() as usize);
-        f.read_to_end(&mut buffer).await?;
-
+    pub async fn read_file(&self, path: String) -> Result<js_sys::Uint8Array, Error> {
+        let buffer = self._read_file(path).await?;
         Ok(js_sys::Uint8Array::from(&buffer[..]))
+    }
+
+    /// Read the contents of a file from this directory as a UTF-8 string.
+    ///
+    /// Note that the path is relative to the directory's root.
+    #[wasm_bindgen(js_name = "readTextFile")]
+    pub async fn read_text_file(&self, path: String) -> Result<js_sys::JsString, Error> {
+        let buffer = self._read_file(path).await?;
+        let string = String::from_utf8(buffer)?;
+        Ok(string.into())
     }
 
     /// Create a directory.
@@ -105,6 +108,20 @@ impl Directory {
         FileSystem::create_dir(self, path.as_ref())?;
 
         Ok(())
+    }
+}
+
+impl Directory {
+    async fn _read_file(&self, mut path: String) -> Result<Vec<u8>, Error> {
+        if !path.starts_with('/') {
+            path.insert(0, '/');
+        }
+
+        let mut f = self.new_open_options().read(true).open(&path)?;
+        let mut buffer = Vec::with_capacity(f.size() as usize);
+        f.read_to_end(&mut buffer).await?;
+
+        Ok(buffer)
     }
 }
 

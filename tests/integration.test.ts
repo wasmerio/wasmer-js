@@ -290,7 +290,7 @@ describe("Wasmer.spawn", function() {
         });
         await instance.wait();
 
-        expect(decoder.decode(await dir.readFile("/another-file.txt"))).to.equal("Something else\n");
+        expect(await dir.readTextFile("/another-file.txt")).to.equal("Something else\n");
     });
 });
 

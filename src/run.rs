@@ -178,6 +178,7 @@ impl RunConfig {
 
         let fs = self.filesystem()?;
         builder.set_fs(Box::new(fs));
+        builder.add_preopen_dir("/")?;
 
         Ok((stdin, stdout, stderr))
     }
@@ -231,7 +232,7 @@ impl RunConfig {
             tracing::trace!(%dest, ?fs, "Mounting directory");
 
             let fs = Arc::new(fs) as Arc<_>;
-            root.mount("/".into(), &fs, dest.as_str().into())
+            root.mount(dest.as_str().into(), &fs, "/".into())
                 .with_context(|| format!("Unable to mount to \"{dest}\""))?;
         }
 
