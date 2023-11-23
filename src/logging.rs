@@ -1,6 +1,10 @@
 use std::io::{ErrorKind, Write};
 
-use tracing_subscriber::{fmt::format::FmtSpan, EnvFilter};
+use tokio::sync::mpsc;
+use tracing_subscriber::{
+    fmt::{format::FmtSpan, MakeWriter},
+    EnvFilter,
+};
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
 /// Initialize the logger used by `@wasmer/wasix`.
@@ -39,7 +43,7 @@ pub fn initialize_logger(filter: Option<String>) -> Result<(), crate::utils::Err
         .parse_lossy(filter.unwrap_or_else(|| crate::DEFAULT_RUST_LOG.join(",")));
 
     tracing_subscriber::fmt::fmt()
-        .with_writer(ConsoleLogger::default)
+        .with_writer(ConsoleLogger::spawn())
         .with_env_filter(filter)
         .with_span_events(FmtSpan::CLOSE)
         .without_time()
@@ -49,9 +53,33 @@ pub fn initialize_logger(filter: Option<String>) -> Result<(), crate::utils::Err
     Ok(())
 }
 
-#[derive(Default)]
+/// A [`std::io::Write`] implementation which will pass all messages to the main
+/// thread for logging with [`web_sys::console`].
+///
+/// This is useful when using Web Workers for concurrency because their
+/// `console.log()` output isn't normally captured by test runners.
+#[derive(Debug)]
 struct ConsoleLogger {
     buffer: Vec<u8>,
+    sender: mpsc::UnboundedSender<String>,
+}
+
+impl ConsoleLogger {
+    fn spawn() -> impl for<'w> MakeWriter<'w> + 'static {
+        let (sender, mut receiver) = mpsc::unbounded_channel();
+
+        wasm_bindgen_futures::spawn_local(async move {
+            while let Some(msg) = receiver.recv().await {
+                let js_string = JsValue::from(msg);
+                web_sys::console::log_1(&js_string);
+            }
+        });
+
+        move || ConsoleLogger {
+            buffer: Vec::new(),
+            sender: sender.clone(),
+        }
+    }
 }
 
 impl Write for ConsoleLogger {
@@ -61,11 +89,14 @@ impl Write for ConsoleLogger {
     }
 
     fn flush(&mut self) -> std::io::Result<()> {
-        let text = std::str::from_utf8(&self.buffer)
+        let buffer = std::mem::take(&mut self.buffer);
+
+        let text = String::from_utf8(buffer)
             .map_err(|e| std::io::Error::new(ErrorKind::InvalidInput, e))?;
-        let js_string = JsValue::from_str(text);
-        web_sys::console::log_1(&js_string);
-        self.buffer.clear();
+
+        self.sender
+            .send(text)
+            .map_err(|e| std::io::Error::new(ErrorKind::BrokenPipe, e))?;
 
         Ok(())
     }
