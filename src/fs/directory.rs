@@ -1,10 +1,11 @@
 use std::sync::Arc;
 
+use tracing::Instrument;
 use virtual_fs::{AsyncReadExt, AsyncWriteExt, FileSystem};
-use wasm_bindgen::prelude::wasm_bindgen;
+use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 use web_sys::FileSystemDirectoryHandle;
 
-use crate::utils::Error;
+use crate::{utils::Error, StringOrBytes};
 
 /// A directory that can be mounted inside a WASIX instance.
 #[derive(Debug, Clone, wasm_bindgen_derive::TryFromJsValue)]
@@ -41,24 +42,27 @@ impl Directory {
     }
 
     #[wasm_bindgen(js_name = "readDir")]
-    pub fn read_dir(&self, mut path: String) -> Result<Vec<String>, Error> {
+    pub async fn read_dir(&self, mut path: String) -> Result<js_sys::Array, Error> {
         if !path.starts_with('/') {
             path.insert(0, '/');
         }
 
-        let mut contents = Vec::new();
+        let contents = js_sys::Array::new();
 
         for entry in FileSystem::read_dir(self, path.as_ref())? {
             let entry = entry?;
-            contents.push(entry.path.display().to_string());
+            let value = JsValue::from(entry.path.display().to_string());
+            contents.push(&value);
         }
 
         Ok(contents)
     }
 
     /// Write to a file.
+    ///
+    /// If a string is provided, it is encoded as UTF-8.
     #[wasm_bindgen(js_name = "writeFile")]
-    pub async fn write_file(&self, mut path: String, contents: Vec<u8>) -> Result<(), Error> {
+    pub async fn write_file(&self, mut path: String, contents: StringOrBytes) -> Result<(), Error> {
         if !path.starts_with('/') {
             path.insert(0, '/');
         }
@@ -68,6 +72,8 @@ impl Directory {
             .write(true)
             .create(true)
             .open(&path)?;
+
+        let contents = contents.as_bytes();
         f.write_all(&contents).await?;
 
         Ok(())
@@ -91,7 +97,7 @@ impl Directory {
 
     /// Create a directory.
     #[wasm_bindgen(js_name = "createDir")]
-    pub fn create_dir(&self, mut path: String) -> Result<(), Error> {
+    pub async fn create_dir(&self, mut path: String) -> Result<(), Error> {
         if !path.starts_with('/') {
             path.insert(0, '/');
         }
@@ -109,35 +115,52 @@ impl Default for Directory {
 }
 
 impl FileSystem for Directory {
+    #[tracing::instrument(level = "trace", skip(self))]
     fn read_dir(&self, path: &std::path::Path) -> virtual_fs::Result<virtual_fs::ReadDir> {
         self.0.read_dir(path)
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     fn create_dir(&self, path: &std::path::Path) -> virtual_fs::Result<()> {
         self.0.create_dir(path)
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     fn remove_dir(&self, path: &std::path::Path) -> virtual_fs::Result<()> {
         self.0.remove_dir(path)
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     fn rename<'a>(
         &'a self,
         from: &'a std::path::Path,
         to: &'a std::path::Path,
     ) -> futures::future::BoxFuture<'a, virtual_fs::Result<()>> {
-        self.0.rename(from, to)
+        Box::pin(self.0.rename(from, to).in_current_span())
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     fn metadata(&self, path: &std::path::Path) -> virtual_fs::Result<virtual_fs::Metadata> {
         self.0.metadata(path)
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     fn remove_file(&self, path: &std::path::Path) -> virtual_fs::Result<()> {
         self.0.remove_file(path)
     }
 
     fn new_open_options(&self) -> virtual_fs::OpenOptions {
-        self.0.new_open_options()
+        virtual_fs::OpenOptions::new(self)
+    }
+}
+
+impl virtual_fs::FileOpener for Directory {
+    #[tracing::instrument(level = "trace", skip(self))]
+    fn open(
+        &self,
+        path: &std::path::Path,
+        conf: &virtual_fs::OpenOptionsConfig,
+    ) -> virtual_fs::Result<Box<dyn virtual_fs::VirtualFile + Send + Sync + 'static>> {
+        self.0.new_open_options().options(conf.clone()).open(path)
     }
 }

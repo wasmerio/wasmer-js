@@ -7,7 +7,7 @@ use virtual_fs::TmpFileSystem;
 use wasm_bindgen::{prelude::wasm_bindgen, JsCast, JsValue, UnwrapThrowExt};
 use wasmer_wasix::{Runtime as _, WasiEnvBuilder};
 
-use crate::{instance::ExitCondition, utils::Error, Directory, Instance, Runtime};
+use crate::{instance::ExitCondition, utils::Error, Directory, Instance, Runtime, StringOrBytes};
 
 const DEFAULT_PROGRAM_NAME: &str = "wasm";
 
@@ -41,6 +41,7 @@ pub async fn run(wasm_module: WasmModule, config: RunConfig) -> Result<Instance,
         Box::new(move |module| {
             let _span = tracing::debug_span!("run").entered();
             let result = builder.run(module).map_err(anyhow::Error::new);
+            tracing::warn!(?result);
             let _ = exit_code_tx.send(ExitCondition::from_result(result));
         }),
     )?;
@@ -118,7 +119,7 @@ extern "C" {
     fn env(this: &RunConfig) -> JsValue;
 
     #[wasm_bindgen(method, getter)]
-    fn stdin(this: &RunConfig) -> JsValue;
+    fn stdin(this: &RunConfig) -> Option<StringOrBytes>;
 
     #[wasm_bindgen(method, getter)]
     fn mount(this: &RunConfig) -> OptionalDirectories;
@@ -199,16 +200,7 @@ impl RunConfig {
     }
 
     pub(crate) fn read_stdin(&self) -> Option<Vec<u8>> {
-        let stdin = self.stdin();
-
-        if let Some(s) = stdin.as_string() {
-            return Some(s.into_bytes());
-        }
-
-        stdin
-            .dyn_into::<js_sys::Uint8Array>()
-            .map(|buf| buf.to_vec())
-            .ok()
+        self.stdin().map(|s| s.as_bytes())
     }
 
     pub(crate) fn mounted_directories(&self) -> Result<Vec<(String, Directory)>, Error> {
@@ -236,12 +228,14 @@ impl RunConfig {
         let root = TmpFileSystem::new();
 
         for (dest, fs) in self.mounted_directories()? {
+            tracing::trace!(%dest, ?fs, "Mounting directory");
+
             let fs = Arc::new(fs) as Arc<_>;
             root.mount(dest.as_str().into(), &fs, "/".into())
                 .with_context(|| format!("Unable to mount to \"{dest}\""))?;
         }
 
-        tracing::warn!(?root);
+        tracing::trace!(?root, "Initialized the filesystem");
 
         Ok(root)
     }

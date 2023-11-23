@@ -6,7 +6,7 @@ const decoder = new TextDecoder("utf-8");
 
 const initialized = (async () => {
     await init();
-    initializeLogger("info,wasmer_wasix::syscalls=trace");
+    initializeLogger("info,wasmer_js=debug,wasmer_js::tasks=info,wasmer_wasix::syscalls=trace");
 })();
 
 const ansiEscapeCode = /\u001B\[[\d;]*[JDm]/g;
@@ -201,6 +201,103 @@ describe("Wasmer.spawn", function() {
         // echoed characters to stdout
         expect(decoder.decode(output.stderr)).to.equal(">>> >>> >>> >>> >>> ");
     });
+
+    it("can see a mounted directory", async () => {
+        const dir = new Directory();
+
+        const instance = await wasmer.spawn("sharrattj/coreutils", {
+            command: "ls",
+            args: ["/"],
+            mount: { "/mounted": dir },
+        });
+        const output = await instance.wait();
+
+        const stdout = decoder.decode(output.stdout);
+        expect(stdout).to.contain("mounted");
+        expect(output.ok).to.be.true;
+    });
+
+    it("can see files in a mounted directory", async () => {
+        const dir = new Directory();
+        await dir.writeFile("/file.txt", new Uint8Array());
+
+        const instance = await wasmer.spawn("sharrattj/coreutils", {
+            command: "ls",
+            stdin: "",
+            args: ["/mounted"],
+            mount: { "/mounted": dir },
+        });
+        const output = await instance.wait();
+
+        expect(output.ok).to.be.true;
+        expect(decoder.decode(output.stdout)).to.equal("file.txt\n");
+        expect(decoder.decode(output.stderr)).to.equal("");
+    });
+
+    it("can read from a mounted file", async () => {
+        const dir = new Directory();
+        await dir.writeFile("/file.txt", encoder.encode("Hello, World!"));
+
+        const instance = await wasmer.spawn("sharrattj/coreutils", {
+            command: "cat",
+            args: ["/mounted/file.txt"],
+            mount: { "/mounted": dir },
+        });
+        const output = await instance.wait();
+
+        const stdout = decoder.decode(output.stdout);
+        expect(stdout).to.equal("Hello, World!");
+        expect(output.ok).to.be.true;
+    });
+
+    it("can delete files from a mounted directory", async () => {
+        const dir = new Directory();
+        await dir.writeFile("/file.txt", encoder.encode("Hello, World!"));
+
+        const instance = await wasmer.spawn("sharrattj/coreutils", {
+            command: "rm",
+            args: ["/mounted/file.txt"],
+            mount: { "/mounted": dir },
+        });
+        const output = await instance.wait();
+
+        expect(dir.readDir("/")).to.be.empty;
+        expect(output.ok).to.be.true;
+    });
+
+    it("can delete directories from a mounted directory", async () => {
+        const dir = new Directory();
+        await dir.createDir("/nested-dir");
+
+        const instance = await wasmer.spawn("sharrattj/coreutils", {
+            command: "rmdir",
+            args: ["/mounted/nested-dir"],
+            mount: { "/mounted": dir },
+        });
+        const output = await instance.wait();
+
+        expect(dir.readDir("/")).to.be.empty;
+        expect(output.ok).to.be.true;
+    });
+
+    it("can write to a mounted directory", async () => {
+        const dir = new Directory();
+
+        const instance = await wasmer.spawn("sharrattj/bash", {
+            command: "bash",
+            args: ["-c", "echo 'Something else' > /mounted/another-file.txt"],
+            mount: { "/mounted": dir },
+        });
+        const output = await instance.wait();
+
+        console.log({
+            ...output,
+            stdout: decoder.decode(output.stdout),
+            stderr: decoder.decode(output.stderr),
+        });
+        expect(decoder.decode(await dir.readFile("/another-file.txt"))).to.equal("Something else\n");
+        expect(output.ok).to.be.true;
+    });
 });
 
 // FIXME: Re-enable these test and move it to the "Wasmer.spawn" test suite
@@ -253,82 +350,6 @@ describe.skip("failing tty handling tests", function() {
         expect(output.code).to.equal(0);
     });
 
-    it("can see a mounted directory", async () => {
-        const dir = new Directory();
-
-        const instance = await wasmer.spawn("sharrattj/coreutils", {
-            command: "ls",
-            args: ["/"],
-            mount: { "/mounted": dir },
-        });
-        const output = await instance.wait();
-
-        const stdout = decoder.decode(output.stdout);
-        expect(stdout).to.contain("mounted");
-        expect(output.ok).to.be.true;
-    });
-
-    it("can see files in a mounted directory", async () => {
-        const dir = new Directory();
-        await dir.writeFile("/file.txt", new Uint8Array());
-
-        const instance = await wasmer.spawn("sharrattj/coreutils", {
-            command: "ls",
-            args: ["/mounted"],
-            mount: { "/mounted": dir },
-        });
-        const output = await instance.wait();
-
-        const stdout = decoder.decode(output.stdout);
-        expect(stdout).to.eql(["file.txt"]);
-        expect(output.ok).to.be.true;
-    });
-
-    it("can read from a mounted file", async () => {
-        const dir = new Directory();
-        await dir.writeFile("/file.txt", encoder.encode("Hello, World!"));
-
-        const instance = await wasmer.spawn("sharrattj/coreutils", {
-            command: "cat",
-            args: ["/mounted/file.txt"],
-            mount: { "/mounted": dir },
-        });
-        const output = await instance.wait();
-
-        const stdout = decoder.decode(output.stdout);
-        expect(stdout).to.equal("Hello, World!\n");
-        expect(output.ok).to.be.true;
-    });
-
-    it("can delete files from a mounted directory", async () => {
-        const dir = new Directory();
-        await dir.writeFile("/file.txt", encoder.encode("Hello, World!"));
-
-        const instance = await wasmer.spawn("sharrattj/coreutils", {
-            command: "rm",
-            args: ["/mounted/file.txt"],
-            mount: { "/mounted": dir },
-        });
-        const output = await instance.wait();
-
-        expect(dir.readDir("/")).to.be.empty;
-        expect(output.ok).to.be.true;
-    });
-
-    it("can write to a mounted directory", async () => {
-        const dir = new Directory();
-
-        const instance = await wasmer.spawn("sharrattj/coreutils", {
-            command: "tee",
-            args: ["/mounted/another-file.txt"],
-            stdin: "Something else\n",
-            mount: { "/mounted": dir },
-        });
-        const output = await instance.wait();
-
-        expect(decoder.decode(await dir.readFile("/another-file.txt"))).to.equal("Something else");
-        expect(output.ok).to.be.true;
-    });
 });
 
 /**

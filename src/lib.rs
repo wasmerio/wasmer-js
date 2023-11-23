@@ -27,6 +27,7 @@ pub use crate::{
     logging::initialize_logger,
     run::{run, RunConfig},
     runtime::Runtime,
+    utils::StringOrBytes,
 };
 
 use once_cell::sync::Lazy;
