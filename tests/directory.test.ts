@@ -14,10 +14,10 @@ const initialized = (async () => {
 describe("In-Memory Directory", function() {
     this.beforeAll(async () => await initialized);
 
-    it("read empty dir", () => {
+    it("read empty dir", async () => {
         const dir = new Directory();
 
-        const contents = dir.readDir("/");
+        const contents = await dir.readDir("/");
 
         expect(contents.length).to.equal(0);
     });
@@ -35,7 +35,7 @@ describe("In-Memory Directory", function() {
         const dir = new Directory();
 
         await dir.writeFile("/file.txt", new Uint8Array());
-        const contents = dir.readDir("/");
+        const contents = await dir.readDir("/");
 
         expect(contents).to.deep.equal(["/file.txt"]);
     });
@@ -45,6 +45,6 @@ describe("In-Memory Directory", function() {
 
         await dir.createDir("/tmp/");
 
-        expect(dir.readDir("/")).to.deep.equal(["/tmp"]);
+        expect(await dir.readDir("/")).to.deep.equal(["/tmp"]);
     });
 });

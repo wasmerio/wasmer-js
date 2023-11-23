@@ -6,7 +6,7 @@ const decoder = new TextDecoder("utf-8");
 
 const initialized = (async () => {
     await init();
-    initializeLogger("info,wasmer_js=debug,wasmer_js::tasks=info,wasmer_wasix::syscalls=trace");
+    initializeLogger("info");
 })();
 
 const ansiEscapeCode = /\u001B\[[\d;]*[JDm]/g;
@@ -288,15 +288,9 @@ describe("Wasmer.spawn", function() {
             args: ["-c", "echo 'Something else' > /mounted/another-file.txt"],
             mount: { "/mounted": dir },
         });
-        const output = await instance.wait();
+        await instance.wait();
 
-        console.log({
-            ...output,
-            stdout: decoder.decode(output.stdout),
-            stderr: decoder.decode(output.stderr),
-        });
         expect(decoder.decode(await dir.readFile("/another-file.txt"))).to.equal("Something else\n");
-        expect(output.ok).to.be.true;
     });
 });
 

@@ -231,7 +231,7 @@ impl RunConfig {
             tracing::trace!(%dest, ?fs, "Mounting directory");
 
             let fs = Arc::new(fs) as Arc<_>;
-            root.mount(dest.as_str().into(), &fs, "/".into())
+            root.mount("/".into(), &fs, dest.as_str().into())
                 .with_context(|| format!("Unable to mount to \"{dest}\""))?;
         }
 

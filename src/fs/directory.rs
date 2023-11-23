@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use tracing::Instrument;
 use virtual_fs::{AsyncReadExt, AsyncWriteExt, FileSystem};
-use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
+use wasm_bindgen::{prelude::wasm_bindgen, JsCast, JsValue};
 use web_sys::FileSystemDirectoryHandle;
 
 use crate::{utils::Error, StringOrBytes};
@@ -42,7 +42,7 @@ impl Directory {
     }
 
     #[wasm_bindgen(js_name = "readDir")]
-    pub async fn read_dir(&self, mut path: String) -> Result<js_sys::Array, Error> {
+    pub async fn read_dir(&self, mut path: String) -> Result<ListOfStrings, Error> {
         if !path.starts_with('/') {
             path.insert(0, '/');
         }
@@ -55,7 +55,7 @@ impl Directory {
             contents.push(&value);
         }
 
-        Ok(contents)
+        Ok(contents.unchecked_into())
     }
 
     /// Write to a file.
@@ -163,4 +163,10 @@ impl virtual_fs::FileOpener for Directory {
     ) -> virtual_fs::Result<Box<dyn virtual_fs::VirtualFile + Send + Sync + 'static>> {
         self.0.new_open_options().options(conf.clone()).open(path)
     }
+}
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(typescript_type = "string[]")]
+    pub type ListOfStrings;
 }
