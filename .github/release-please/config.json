@@ -1,0 +1,13 @@
+{
+    "release-type": "node",
+    "packages": {
+        ".": {
+            "exclude-paths": [
+                "examples/"
+            ]
+        }
+    },
+    "bump-minor-pre-major": true,
+    "bootstrap-sha": "80b158341965d6d3203f68ae2be26d5b6858d65b",
+    "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json"
+}
