@@ -2,7 +2,7 @@
     "release-type": "node",
     "packages": {
         ".": {
-            "component": "wasmer-sdk",
+            "package-name": "wasmer-sdk",
             "exclude-paths": [
                 "examples/"
             ]
