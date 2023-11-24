@@ -9,12 +9,13 @@ import {
 } from "../dist/WasmerSDKBundled";
 
 const initialized = (async () => {
-    await init(new URL("../dist/wasmer_js_bg.wasm", import.meta.url));
-    initializeLogger("warn");
+    await init();
+    initializeLogger("info");
 })();
 
-describe("run", function () {
-    this.timeout("60s").beforeAll(async () => await initialized);
+describe("run", function() {
+    this.timeout("60s")
+        .beforeAll(async () => await initialized);
 
     it("can execute a noop program", async () => {
         const noop = `(
