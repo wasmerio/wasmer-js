@@ -45,12 +45,13 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y wabt binaryen
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
+      - name: Install JS Dependencies
+        run: npm ci
       - name: Build Packages
         run: npm run build
-      # Release Please has already incremented versions and published tags, so we just
-      # need to publish all unpublished versions to NPM here
-      # See: https://github.com/lerna/lerna/tree/main/commands/publish#bump-from-package
+      # Release Please has already incremented versions and published tags, so
+      # we just need to publish to NPM
       - name: Publish to NPM
+        run: npm publish --access=public
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
-        run: npx lerna publish from-package --no-push --no-private --yes

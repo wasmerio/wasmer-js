@@ -33,7 +33,7 @@ jobs:
       - name: Type Checking
         run: cargo check --workspace --verbose --locked
       - name: Install JS Dependencies
-        run: npm install
+        run: npm ci
       - name: Build
         run: npm run build:dev
       - name: Test
