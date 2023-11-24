@@ -8,7 +8,7 @@ async function add_headers(ctx, next) {
 }
 
 export default {
-  files: ['src/**/*.test.ts', 'src/**/*.spec.ts'],
+  files: ['tests/**/*.test.ts'],
   plugins: [esbuildPlugin({ ts: true })],
   middlewares: [add_headers],
   browsers: [chromeLauncher({ launchOptions: { devtools: true } })],

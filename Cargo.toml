@@ -1,5 +1,5 @@
 [package]
-name = "wasmer-wasix-js"
+name = "wasmer-js"
 version = "0.0.0"
 authors = ["Syrus Akbary <syrus@wasmer.io>"]
 edition = "2021"
@@ -48,8 +48,14 @@ features = [
     "BlobPropertyBag",
     "console",
     "DedicatedWorkerGlobalScope",
+    "DomException",
     "ErrorEvent",
+    "File",
     "FileReader",
+    "FileSystemDirectoryHandle",
+    "FileSystemFileHandle",
+    "FileSystemGetDirectoryOptions",
+    "FileSystemHandle",
     "Headers",
     "MessageEvent",
     "Navigator",
@@ -63,6 +69,7 @@ features = [
     "RequestInit",
     "RequestMode",
     "Response",
+    "StorageManager",
     "Url",
     "WebSocket",
     "Window",
@@ -92,10 +99,10 @@ dwarf-debug-info = false
 wasm-opt = ["--enable-threads", "--enable-bulk-memory", "-Oz"]
 
 [patch.crates-io]
-virtual-net = { git = "https://github.com/wasmerio/wasmer", branch = "master" }
-virtual-fs = { git = "https://github.com/wasmerio/wasmer", branch = "master" }
-wasmer-wasix = { git = "https://github.com/wasmerio/wasmer", branch = "master" }
-wasmer = { git = "https://github.com/wasmerio/wasmer", branch = "master" }
+virtual-net = { git = "https://github.com/wasmerio/wasmer", branch = "wasi-runner-mount-fs-instances" }
+virtual-fs = { git = "https://github.com/wasmerio/wasmer", branch = "wasi-runner-mount-fs-instances" }
+wasmer-wasix = { git = "https://github.com/wasmerio/wasmer", branch = "wasi-runner-mount-fs-instances" }
+wasmer = { git = "https://github.com/wasmerio/wasmer", branch = "wasi-runner-mount-fs-instances" }
 # virtual-net = { path = "../wasmer/lib/virtual-net" }
 # virtual-fs = { path = "../wasmer/lib/virtual-fs" }
 # wasmer-wasix = { path = "../wasmer/lib/wasix" }

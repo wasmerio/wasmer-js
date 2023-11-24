@@ -4,9 +4,9 @@ use std::{
     num::NonZeroUsize,
 };
 
-use js_sys::{JsString, Promise};
+use js_sys::{JsString, Promise, Uint8Array};
 
-use wasm_bindgen::{JsCast, JsValue};
+use wasm_bindgen::{prelude::wasm_bindgen, JsCast, JsValue};
 use web_sys::{Window, WorkerGlobalScope};
 
 /// Try to extract the most appropriate error message from a [`JsValue`],
@@ -251,4 +251,22 @@ pub(crate) fn js_record_of_strings(obj: &js_sys::Object) -> Result<Vec<(String, 
     }
 
     Ok(parsed)
+}
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(typescript_type = "string | Uint8Array")]
+    pub type StringOrBytes;
+}
+
+impl StringOrBytes {
+    pub fn as_bytes(&self) -> Vec<u8> {
+        if let Some(s) = self.dyn_ref::<JsString>() {
+            String::from(s).into()
+        } else if let Some(buffer) = self.dyn_ref::<Uint8Array>() {
+            buffer.to_vec()
+        } else {
+            unreachable!()
+        }
+    }
 }

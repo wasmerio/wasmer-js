@@ -1,17 +1,19 @@
 use std::{collections::BTreeMap, sync::Arc};
 
+use anyhow::Context;
 use futures::channel::oneshot;
 use js_sys::Array;
+use virtual_fs::TmpFileSystem;
 use wasm_bindgen::{prelude::wasm_bindgen, JsCast, JsValue, UnwrapThrowExt};
 use wasmer_wasix::{Runtime as _, WasiEnvBuilder};
 
-use crate::{instance::ExitCondition, utils::Error, Instance, Runtime};
+use crate::{instance::ExitCondition, utils::Error, Directory, Instance, Runtime, StringOrBytes};
 
 const DEFAULT_PROGRAM_NAME: &str = "wasm";
 
 /// Run a WASIX program.
 #[wasm_bindgen]
-pub fn run(wasm_module: js_sys::WebAssembly::Module, config: RunConfig) -> Result<Instance, Error> {
+pub async fn run(wasm_module: WasmModule, config: RunConfig) -> Result<Instance, Error> {
     let _span = tracing::debug_span!("run").entered();
 
     let runtime = match config.runtime().as_runtime() {
@@ -28,7 +30,8 @@ pub fn run(wasm_module: js_sys::WebAssembly::Module, config: RunConfig) -> Resul
     let (stdin, stdout, stderr) = config.configure_builder(&mut builder)?;
 
     let (exit_code_tx, exit_code_rx) = oneshot::channel();
-    let module = wasmer::Module::from(wasm_module);
+
+    let module: wasmer::Module = wasm_module.to_module(&*runtime).await?;
 
     // Note: The WasiEnvBuilder::run() method blocks, so we need to run it on
     // the thread pool.
@@ -38,6 +41,7 @@ pub fn run(wasm_module: js_sys::WebAssembly::Module, config: RunConfig) -> Resul
         Box::new(move |module| {
             let _span = tracing::debug_span!("run").entered();
             let result = builder.run(module).map_err(anyhow::Error::new);
+            tracing::warn!(?result);
             let _ = exit_code_tx.send(ExitCondition::from_result(result));
         }),
     )?;
@@ -48,6 +52,29 @@ pub fn run(wasm_module: js_sys::WebAssembly::Module, config: RunConfig) -> Resul
         stderr,
         exit: exit_code_rx,
     })
+}
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(typescript_type = "WebAssembly.Module | Uint8Array")]
+    pub type WasmModule;
+}
+
+impl WasmModule {
+    async fn to_module(
+        &self,
+        runtime: &dyn wasmer_wasix::Runtime,
+    ) -> Result<wasmer::Module, Error> {
+        if let Some(module) = self.dyn_ref::<js_sys::WebAssembly::Module>() {
+            Ok(module.clone().into())
+        } else if let Some(buffer) = self.dyn_ref::<js_sys::Uint8Array>() {
+            let buffer = buffer.to_vec();
+            let module = runtime.load_module(&buffer).await?;
+            Ok(module)
+        } else {
+            unreachable!();
+        }
+    }
 }
 
 #[wasm_bindgen(typescript_custom_section)]
@@ -62,6 +89,10 @@ export type RunConfig = {
     env?: Record<string, string>;
     /** The standard input stream. */
     stdin?: string | ArrayBuffer;
+    /**
+     * Directories that should be mounted inside the WASIX instance.
+     */
+    mount?: Record<string, Directory>;
     /**
      * The WASIX runtime to use.
      *
@@ -88,14 +119,20 @@ extern "C" {
     fn env(this: &RunConfig) -> JsValue;
 
     #[wasm_bindgen(method, getter)]
-    fn stdin(this: &RunConfig) -> JsValue;
+    fn stdin(this: &RunConfig) -> Option<StringOrBytes>;
+
+    #[wasm_bindgen(method, getter)]
+    fn mount(this: &RunConfig) -> OptionalDirectories;
 
     #[wasm_bindgen(method, getter)]
     pub(crate) fn runtime(this: &RunConfig) -> OptionalRuntime;
 
     /// A proxy for `Option<&Runtime>`.
-    #[wasm_bindgen(typescript_type = "Runtime | undefined")]
+    #[wasm_bindgen]
     pub(crate) type OptionalRuntime;
+
+    #[wasm_bindgen]
+    pub(crate) type OptionalDirectories;
 }
 
 impl RunConfig {
@@ -139,6 +176,10 @@ impl RunConfig {
         let (stderr_file, stderr) = crate::streams::output_pipe();
         builder.set_stderr(Box::new(stderr_file));
 
+        let fs = self.filesystem()?;
+        builder.set_fs(Box::new(fs));
+        builder.add_preopen_dir("/")?;
+
         Ok((stdin, stdout, stderr))
     }
 
@@ -160,16 +201,44 @@ impl RunConfig {
     }
 
     pub(crate) fn read_stdin(&self) -> Option<Vec<u8>> {
-        let stdin = self.stdin();
+        self.stdin().map(|s| s.as_bytes())
+    }
 
-        if let Some(s) = stdin.as_string() {
-            return Some(s.into_bytes());
+    pub(crate) fn mounted_directories(&self) -> Result<Vec<(String, Directory)>, Error> {
+        let Ok(obj) = self.mount().dyn_into::<js_sys::Object>() else {
+            return Ok(Vec::new());
+        };
+
+        let entries = crate::utils::object_entries(&obj)?;
+        let mut mounted_directories = Vec::new();
+
+        for (key, value) in &entries {
+            let key = String::from(key.clone());
+            let value = Directory::try_from(value).map_err(|_| {
+                anyhow::Error::msg(
+                    "Mounted directories should be a mapping from strings to directories",
+                )
+            })?;
+            mounted_directories.push((key, value));
         }
 
-        stdin
-            .dyn_into::<js_sys::Uint8Array>()
-            .map(|buf| buf.to_vec())
-            .ok()
+        Ok(mounted_directories)
+    }
+
+    pub(crate) fn filesystem(&self) -> Result<TmpFileSystem, Error> {
+        let root = TmpFileSystem::new();
+
+        for (dest, fs) in self.mounted_directories()? {
+            tracing::trace!(%dest, ?fs, "Mounting directory");
+
+            let fs = Arc::new(fs) as Arc<_>;
+            root.mount(dest.as_str().into(), &fs, "/".into())
+                .with_context(|| format!("Unable to mount to \"{dest}\""))?;
+        }
+
+        tracing::trace!(?root, "Initialized the filesystem");
+
+        Ok(root)
     }
 }
 
