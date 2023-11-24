@@ -28,161 +28,45 @@
 
 use std::path::{Path, PathBuf};
 
-use tokio::sync::{mpsc, oneshot};
-use tracing::Instrument;
-use virtual_fs::{FileOpener, FileSystem, FsError, OpenOptionsConfig, ReadDir, VirtualFile};
+use async_trait::async_trait;
+use futures::{SinkExt, TryStream, TryStreamExt};
+use js_sys::{JsString, Reflect};
+use virtual_fs::{
+    DirEntry, FileOpener, FileSystem, FileType, FsError, OpenOptionsConfig, ReadDir, VirtualFile,
+};
 use wasm_bindgen::{JsCast, JsValue};
-use wasmer_wasix::runtime::task_manager::InlineWaker;
-use web_sys::{FileSystemDirectoryHandle, FileSystemGetDirectoryOptions};
+use web_sys::{DomException, FileSystemDirectoryHandle, FileSystemGetDirectoryOptions};
+
+use crate::fs::actors::{Handler, Mailbox};
 
 #[tracing::instrument(level = "debug", skip_all)]
 pub(crate) fn spawn(handle: FileSystemDirectoryHandle) -> impl FileSystem + 'static {
-    let (sender, receiver) = mpsc::channel(1);
-    let original_thread = wasmer::current_thread_id();
-
-    let handler = MessageHandler(handle);
-    wasm_bindgen_futures::spawn_local(async move { handler.run(receiver).await }.in_current_span());
-
-    DirectoryProxy {
-        sender,
-        original_thread,
-    }
+    Mailbox::spawn(Directory(handle))
 }
 
-/// The actor running [`FileSystemDirectoryHandle`] operations on the main
-/// thread.
-#[derive(Debug)]
-struct MessageHandler(FileSystemDirectoryHandle);
+#[derive(Debug, Clone)]
+struct Directory(FileSystemDirectoryHandle);
 
-impl MessageHandler {
-    #[tracing::instrument(level = "trace", skip_all)]
-    async fn run(self, mut receiver: mpsc::Receiver<DirectoryMessage>) {
-        while let Some(msg) = receiver.recv().await {
-            if let Err(e) = self.handle_msg(msg).await {
-                tracing::warn!(error = &*e, "An error occurred while handling a message");
-            }
-        }
-    }
-
-    #[allow(unused)]
-    async fn handle_msg(&self, msg: DirectoryMessage) -> Result<(), anyhow::Error> {
-        match msg {
-            DirectoryMessage::ReadDir { path, sender } => {
-                let result = self.read_dir(&path).await;
-                sender
-                    .send(result)
-                    .map_err(|_| anyhow::Error::msg("send failed"))?;
-            }
-            DirectoryMessage::CreateDir { path, sender } => {
-                let result = self.create_dir(&path).await;
-                sender
-                    .send(result)
-                    .map_err(|_| anyhow::Error::msg("send failed"))?;
-            }
-            DirectoryMessage::RemoveDir { path, sender } => {
-                let result = self.remove_dir(&path).await;
-                sender
-                    .send(result)
-                    .map_err(|_| anyhow::Error::msg("send failed"))?;
-            }
-            DirectoryMessage::Rename { from, to, sender } => {
-                let result = self.rename(&from, &to).await;
-                sender
-                    .send(result)
-                    .map_err(|_| anyhow::Error::msg("send failed"))?;
-            }
-            DirectoryMessage::Metadata { path, sender } => todo!(),
-            DirectoryMessage::RemoveFile { path, sender } => {
-                let result = self.remove_file(&path).await;
-                sender
-                    .send(result)
-                    .map_err(|_| anyhow::Error::msg("send failed"))?;
-            }
-            DirectoryMessage::Open { path, conf, sender } => {
-                let result = self.open(path, conf).await;
-                sender
-                    .send(result)
-                    .map_err(|_| anyhow::Error::msg("send failed"))?;
-            }
-        }
-
-        Ok(())
-    }
-
-    #[tracing::instrument(level = "trace", skip(self))]
-    async fn read_dir(&self, path: &Path) -> Result<ReadDir, FsError> {
-        let path = path.as_os_str().to_str().ok_or(FsError::InvalidInput)?;
-
-        let dir: FileSystemDirectoryHandle = self
-            .exec(|d| {
-                d.get_directory_handle_with_options(
-                    path,
-                    FileSystemGetDirectoryOptions::new().create(true),
-                )
-            })
-            .await?;
-
-        todo!();
-    }
-
-    #[tracing::instrument(level = "trace", skip(self))]
-    async fn create_dir(&self, path: &Path) -> Result<(), FsError> {
-        let path = path.as_os_str().to_str().ok_or(FsError::InvalidInput)?;
-
-        self.eval(|d| {
-            d.get_directory_handle_with_options(
-                path,
-                FileSystemGetDirectoryOptions::new().create(true),
-            )
-        })
-        .await?;
-
-        Ok(())
-    }
-
-    #[tracing::instrument(level = "trace", skip(self))]
-    async fn remove_dir(&self, path: &Path) -> Result<(), FsError> {
-        let path = path.as_os_str().to_str().ok_or(FsError::InvalidInput)?;
-        self.eval(|d| d.remove_entry(path)).await?;
-
-        Ok(())
-    }
-
-    #[tracing::instrument(level = "trace", skip(self))]
-    async fn rename(&self, from: &Path, to: &Path) -> Result<(), FsError> {
-        // TODO: Add a polyfill for renaming an item
-        tracing::warn!(
-            ?from,
-            ?to,
-            "Renaming isn't implemented by the FileSystem API"
-        );
-        Err(FsError::UnknownError)
-    }
-
-    #[tracing::instrument(level = "trace", skip(self))]
-    async fn remove_file(&self, path: &Path) -> Result<(), FsError> {
-        let path = path.as_os_str().to_str().ok_or(FsError::InvalidInput)?;
-        self.eval(|d| d.remove_entry(path)).await?;
-
-        Ok(())
-    }
-
-    #[tracing::instrument(level = "trace", skip(self))]
-    async fn open(
-        &self,
-        path: PathBuf,
-        conf: OpenOptionsConfig,
-    ) -> Result<Box<dyn VirtualFile + Send + Sync>, FsError> {
-        todo!();
-    }
-
+impl Directory {
     /// Execute a thunk and use [`JsCast`] to downcast its result.
-    async fn exec<F, Ret>(&self, thunk: F) -> Result<Ret, FsError>
+    ///
+    /// # Implementation Details
+    ///
+    /// Note that this will do string matching against [`DomException::name()`]
+    /// to try and interpret an exception as a [`FsError`].  Technically, there
+    /// is [`DomException::code()`] that we could `match` against, but the docs
+    /// mark it as a legacy feature and recomend against using it.
+    ///
+    /// See [the MDN page][mdn] for more.
+    ///
+    /// [mdn]: https://developer.mozilla.org/en-US/docs/Web/API/DOMException
+    async fn exec<F, Ret>(&self, error_codes: &[(&str, FsError)], thunk: F) -> Result<Ret, FsError>
     where
         F: FnOnce(&FileSystemDirectoryHandle) -> js_sys::Promise,
         Ret: JsCast,
     {
         let promise = thunk(&self.0);
+
         match wasm_bindgen_futures::JsFuture::from(promise).await {
             Ok(value) => match value.dyn_into() {
                 Ok(v) => Ok(v),
@@ -192,145 +76,363 @@ impl MessageHandler {
                 ),
             },
             Err(e) => {
-                let error = crate::utils::js_error(e);
-                tracing::error!(
-                    error = &*error,
-                    operation = %std::any::type_name::<F>().replace("::{{closure}}", ""),
-                    "An error occurred while interacting with the FileSystemDirectoryHandle",
-                );
-                Err(FsError::UnknownError)
-            }
-        }
-    }
-
-    /// Evaluate a thunk and throw away the result.
-    async fn eval<F>(&self, thunk: F) -> Result<(), FsError>
-    where
-        F: FnOnce(&FileSystemDirectoryHandle) -> js_sys::Promise,
-    {
-        let _: JsValue = self.exec(thunk).await?;
-        Ok(())
-    }
-}
-
-/// A [`FileSystem`] implementation which works by proxying messages to a
-/// [`FileSystemDirectoryHandle`] running on the original JS thread.
-///
-/// # Deadlocks
-///
-/// Calling any [`FileSystem`] methods from the same thread that called
-/// [`spawn()`] will trigger a deadlock.
-///
-/// This happens because
-/// This is because communicating with the
-/// original [`FileSystemDirectoryHandle`] is an inherently asynchronous
-/// operation
-#[derive(Debug)]
-struct DirectoryProxy {
-    sender: mpsc::Sender<DirectoryMessage>,
-    original_thread: u32,
-}
-
-impl DirectoryProxy {
-    #[track_caller]
-    fn send<F, Ret>(&self, create_message: F) -> virtual_fs::Result<Ret>
-    where
-        F: FnOnce(oneshot::Sender<virtual_fs::Result<Ret>>) -> DirectoryMessage,
-        Ret: Send + 'static,
-    {
-        // Note: See the module doc-comments for more context on deadlocks
-        let current_thread = wasmer::current_thread_id();
-        if self.original_thread == current_thread {
-            tracing::error!(
-                thread.id=current_thread,
-                caller=%std::panic::Location::caller(),
-                "Running a synchronous FileSystem operation on this thread will result in a deadlock"
-            );
-            return Err(FsError::Lock);
-        }
-
-        InlineWaker::block_on(self.do_send(create_message))?
-    }
-
-    fn do_send<F, Ret>(
-        &self,
-        create_message: F,
-    ) -> impl std::future::Future<Output = virtual_fs::Result<Ret>> + 'static
-    where
-        F: FnOnce(oneshot::Sender<Ret>) -> DirectoryMessage,
-        Ret: Send + 'static,
-    {
-        let sender = self.sender.clone();
-        let (ret_sender, ret_receiver) = oneshot::channel();
-        let msg = create_message(ret_sender);
-
-        async move {
-            if let Err(e) = sender.send(msg).await {
-                tracing::warn!(
-                    error = &e as &dyn std::error::Error,
-                    "Message sending failed",
-                );
-                return Err(FsError::UnknownError);
-            }
-
-            match ret_receiver.await {
-                Ok(result) => Ok(result),
-                Err(e) => {
-                    tracing::warn!(
-                        error = &e as &dyn std::error::Error,
-                        "Unable to receive the result",
+                if let Some(e) = e
+                    .dyn_ref::<DomException>()
+                    .and_then(|ex| interpret_dom_exception(ex, error_codes))
+                {
+                    Err(e)
+                } else {
+                    let error = crate::utils::js_error(e);
+                    tracing::error!(
+                        error = &*error,
+                        operation = %std::any::type_name::<F>().replace("::{{closure}}", ""),
+                        "An error occurred while interacting with the FileSystemDirectoryHandle",
                     );
                     Err(FsError::UnknownError)
                 }
             }
         }
     }
+
+    /// Evaluate a thunk and throw away the result.
+    async fn eval<F>(&self, error_codes: &[(&str, FsError)], thunk: F) -> Result<(), FsError>
+    where
+        F: FnOnce(&FileSystemDirectoryHandle) -> js_sys::Promise,
+    {
+        let _: JsValue = self.exec(error_codes, thunk).await?;
+        Ok(())
+    }
 }
 
-impl FileSystem for DirectoryProxy {
-    fn read_dir(&self, path: &Path) -> virtual_fs::Result<virtual_fs::ReadDir> {
-        let path = path.to_path_buf();
-        self.send(|sender| DirectoryMessage::ReadDir { path, sender })
+/// Convert a [`DomException`] into a known [`FsError`].
+///
+fn interpret_dom_exception(e: &DomException, error_codes: &[(&str, FsError)]) -> Option<FsError> {
+    let name = e.name();
+
+    for (error_name, fs_error) in error_codes.iter().copied() {
+        if name == error_name {
+            return Some(fs_error);
+        }
+    }
+
+    None
+}
+
+#[derive(Debug, Clone)]
+struct ReadDirectory(PathBuf);
+
+#[async_trait(?Send)]
+impl Handler<ReadDirectory> for Directory {
+    type Output = ReadDir;
+
+    #[tracing::instrument(level = "trace", skip(self))]
+    async fn handle(&mut self, msg: ReadDirectory) -> Result<Self::Output, FsError> {
+        let path = msg.0.as_os_str().to_str().ok_or(FsError::InvalidInput)?;
+
+        let error_codes = [
+            ("NotAllowedError", FsError::PermissionDenied),
+            ("TypeMismatchError", FsError::BaseNotDirectory),
+            ("NotFoundError", FsError::EntryNotFound),
+        ];
+
+        let dir: FileSystemDirectoryHandle = self
+            .exec(&error_codes, |d| {
+                d.get_directory_handle_with_options(
+                    path,
+                    FileSystemGetDirectoryOptions::new().create(true),
+                )
+            })
+            .await?;
+
+        let iter: js_sys::AsyncIterator = Reflect::get(&dir, &JsValue::from_str("entries"))
+            .unwrap()
+            .unchecked_into::<js_sys::Function>()
+            .call0(&dir)
+            .unwrap()
+            .unchecked_into();
+
+        let dir_entries = async_iterator_to_stream(iter)
+            .and_then(|pair| async {
+                let array: js_sys::Array = pair.dyn_into().unwrap();
+
+                let key: JsString = array.get(0).dyn_into().unwrap();
+                let name = String::from(key);
+                let full_path = msg.0.join(name);
+
+                let handle: web_sys::FileSystemHandle = array.get(1).dyn_into().unwrap();
+
+                let metadata = metadata_from_fs_handle(&handle).await.map_err(|e| {
+                    tracing::debug!(
+                        path=%full_path.display(),
+                        error=&*e,
+                        "Unable to get an item's metadata"
+                    );
+                    FsError::UnknownError
+                });
+
+                Ok(DirEntry {
+                    path: full_path,
+                    metadata,
+                })
+            })
+            .try_collect::<Vec<DirEntry>>()
+            .await;
+
+        match dir_entries {
+            Ok(entries) => Ok(ReadDir::new(entries)),
+            Err(e) => {
+                let error = crate::utils::js_error(e);
+                tracing::debug!(
+                    path,
+                    error = &*error,
+                    "Unable to read a directory's metadata",
+                );
+                Err(FsError::UnknownError)
+            }
+        }
+    }
+}
+
+async fn metadata_from_fs_handle(
+    handle: &web_sys::FileSystemHandle,
+) -> Result<virtual_fs::Metadata, anyhow::Error> {
+    if let Some(_dir_handle) = handle.dyn_ref::<FileSystemDirectoryHandle>() {
+        Ok(virtual_fs::Metadata {
+            ft: FileType::new_dir(),
+            accessed: 0,
+            created: 0,
+            modified: 0,
+            len: 0,
+        })
+    } else if let Some(file_handle) = handle.dyn_ref::<web_sys::FileSystemFileHandle>() {
+        let file: web_sys::File = wasm_bindgen_futures::JsFuture::from(file_handle.get_file())
+            .await
+            .map_err(crate::utils::js_error)?
+            .dyn_into()
+            .unwrap();
+
+        Ok(virtual_fs::Metadata {
+            ft: FileType {
+                file: true,
+                ..Default::default()
+            },
+            accessed: 0,
+            created: 0,
+            modified: 0,
+            len: file.size() as u64,
+        })
+    } else {
+        unreachable!()
+    }
+}
+
+fn async_iterator_to_stream(
+    iter: js_sys::AsyncIterator,
+) -> impl TryStream<Ok = JsValue, Error = JsValue> {
+    let (mut sender, receiver) = futures::channel::mpsc::channel(1);
+
+    async fn iter_next(iter: &js_sys::AsyncIterator) -> Result<Option<JsValue>, JsValue> {
+        let promise = iter.next()?;
+        let result = wasm_bindgen_futures::JsFuture::from(promise).await?;
+
+        let done = js_sys::Reflect::get(&result, &JsValue::from_str("done"))?
+            .as_bool()
+            .unwrap_or(true);
+
+        if done {
+            return Ok(None);
+        }
+
+        let value = js_sys::Reflect::get(&result, &JsValue::from_str("value"))
+            .unwrap_or(JsValue::UNDEFINED);
+
+        Ok(Some(value))
+    }
+
+    wasm_bindgen_futures::spawn_local(async move {
+        loop {
+            match iter_next(&iter).await {
+                Ok(Some(value)) => {
+                    if sender.send(Ok(value)).await.is_err() {
+                        break;
+                    }
+                }
+                Ok(None) => break,
+                Err(e) => {
+                    let _ = sender.send(Err(e)).await;
+                    break;
+                }
+            }
+        }
+    });
+
+    receiver
+}
+
+#[derive(Debug, Clone)]
+struct CreateDirectory(PathBuf);
+
+#[async_trait(?Send)]
+impl Handler<CreateDirectory> for Directory {
+    type Output = ();
+
+    #[tracing::instrument(level = "trace", skip(self))]
+    async fn handle(&mut self, msg: CreateDirectory) -> Result<Self::Output, FsError> {
+        let path = msg.0.as_os_str().to_str().ok_or(FsError::InvalidInput)?;
+
+        let error_codes = [
+            ("NotAllowedError", FsError::PermissionDenied),
+            ("TypeMismatchError", FsError::BaseNotDirectory),
+            ("NotFoundError", FsError::EntryNotFound),
+        ];
+
+        self.eval(&error_codes, |d| {
+            d.get_directory_handle_with_options(
+                path,
+                FileSystemGetDirectoryOptions::new().create(true),
+            )
+        })
+        .await?;
+
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone)]
+struct RemoveDirectory(PathBuf);
+
+#[async_trait(?Send)]
+impl Handler<RemoveDirectory> for Directory {
+    type Output = ();
+
+    #[tracing::instrument(level = "trace", skip(self))]
+    async fn handle(&mut self, msg: RemoveDirectory) -> Result<Self::Output, FsError> {
+        let path = msg.0.as_os_str().to_str().ok_or(FsError::InvalidInput)?;
+
+        let error_codes = [
+            ("NotAllowedError", FsError::PermissionDenied),
+            ("InvalidModificationError", FsError::DirectoryNotEmpty),
+            ("NotFoundError", FsError::EntryNotFound),
+        ];
+
+        self.eval(&error_codes, |d| d.remove_entry(path)).await?;
+
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone)]
+struct Rename {
+    from: PathBuf,
+    to: PathBuf,
+}
+
+#[async_trait(?Send)]
+impl Handler<Rename> for Directory {
+    type Output = ();
+
+    #[tracing::instrument(level = "trace", skip(self))]
+    async fn handle(&mut self, Rename { from, to }: Rename) -> Result<Self::Output, FsError> {
+        // TODO: Add a polyfill for renaming an item
+        tracing::warn!(
+            ?from,
+            ?to,
+            "Renaming isn't implemented by the FileSystem API"
+        );
+        Err(FsError::UnknownError)
+    }
+}
+
+#[derive(Debug, Clone)]
+struct RemoveFile(PathBuf);
+
+#[async_trait(?Send)]
+impl Handler<RemoveFile> for Directory {
+    type Output = ();
+
+    #[tracing::instrument(level = "trace", skip(self))]
+    async fn handle(&mut self, msg: RemoveFile) -> Result<Self::Output, FsError> {
+        let path = msg.0.as_os_str().to_str().ok_or(FsError::InvalidInput)?;
+
+        let error_codes = [
+            ("NotAllowedError", FsError::PermissionDenied),
+            ("InvalidModificationError", FsError::DirectoryNotEmpty),
+            ("NotFoundError", FsError::EntryNotFound),
+        ];
+
+        self.eval(&error_codes, |d| d.remove_entry(path)).await?;
+
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone)]
+struct Open {
+    path: PathBuf,
+    conf: OpenOptionsConfig,
+}
+
+#[async_trait(?Send)]
+impl Handler<Open> for Directory {
+    type Output = Box<dyn VirtualFile + Send + Sync>;
+
+    #[tracing::instrument(level = "trace", skip(self))]
+    async fn handle(&mut self, _msg: Open) -> Result<Self::Output, FsError> {
+        todo!();
+    }
+}
+
+#[derive(Debug, Clone)]
+struct Metadata(PathBuf);
+
+#[async_trait(?Send)]
+impl Handler<Metadata> for Directory {
+    type Output = virtual_fs::Metadata;
+
+    #[tracing::instrument(level = "trace", skip(self))]
+    async fn handle(&mut self, _msg: Metadata) -> Result<Self::Output, FsError> {
+        todo!();
+    }
+}
+
+impl FileSystem for Mailbox<Directory> {
+    fn read_dir(&self, path: &Path) -> virtual_fs::Result<ReadDir> {
+        self.handle(ReadDirectory(path.to_path_buf()))
     }
 
     fn create_dir(&self, path: &Path) -> virtual_fs::Result<()> {
-        let path = path.to_path_buf();
-        self.send(|sender| DirectoryMessage::CreateDir { path, sender })
+        self.handle(CreateDirectory(path.to_path_buf()))
     }
 
     fn remove_dir(&self, path: &Path) -> virtual_fs::Result<()> {
-        let path = path.to_path_buf();
-        self.send(|sender| DirectoryMessage::RemoveDir { path, sender })
+        self.handle(RemoveDirectory(path.to_path_buf()))
     }
 
     fn rename<'a>(
         &'a self,
         from: &'a Path,
         to: &'a Path,
-    ) -> futures::future::BoxFuture<'a, virtual_fs::Result<()>> {
-        let from = from.to_path_buf();
-        let to = to.to_path_buf();
-        let fut = self.do_send(|sender| DirectoryMessage::Rename { from, to, sender });
-
-        Box::pin(async move { fut.await? })
+    ) -> futures::prelude::future::BoxFuture<'a, virtual_fs::Result<()>> {
+        Box::pin(self.send(Rename {
+            from: from.to_path_buf(),
+            to: to.to_path_buf(),
+        }))
     }
 
     fn metadata(&self, path: &Path) -> virtual_fs::Result<virtual_fs::Metadata> {
-        let path = path.to_path_buf();
-        self.send(|sender| DirectoryMessage::Metadata { path, sender })
+        self.handle(Metadata(path.to_path_buf()))
     }
 
     fn remove_file(&self, path: &Path) -> virtual_fs::Result<()> {
-        let path = path.to_path_buf();
-        self.send(|sender| DirectoryMessage::RemoveFile { path, sender })
+        self.handle(RemoveFile(path.to_path_buf()))
     }
 
-    fn new_open_options(&self) -> virtual_fs::OpenOptions<'_> {
+    fn new_open_options(&self) -> virtual_fs::OpenOptions {
         virtual_fs::OpenOptions::new(self)
     }
 }
 
-impl FileOpener for DirectoryProxy {
+impl FileOpener for Mailbox<Directory> {
     fn open(
         &self,
         path: &Path,
@@ -339,48 +441,15 @@ impl FileOpener for DirectoryProxy {
         let path = path.to_path_buf();
         let conf = conf.clone();
 
-        self.send(|sender| DirectoryMessage::Open { path, conf, sender })
+        self.handle(Open { path, conf })
     }
-}
-
-#[derive(Debug)]
-enum DirectoryMessage {
-    ReadDir {
-        path: PathBuf,
-        sender: oneshot::Sender<virtual_fs::Result<virtual_fs::ReadDir>>,
-    },
-    CreateDir {
-        path: PathBuf,
-        sender: oneshot::Sender<virtual_fs::Result<()>>,
-    },
-    RemoveDir {
-        path: PathBuf,
-        sender: oneshot::Sender<virtual_fs::Result<()>>,
-    },
-    Rename {
-        from: PathBuf,
-        to: PathBuf,
-        sender: oneshot::Sender<virtual_fs::Result<()>>,
-    },
-    Metadata {
-        path: PathBuf,
-        sender: oneshot::Sender<virtual_fs::Result<virtual_fs::Metadata>>,
-    },
-    RemoveFile {
-        path: PathBuf,
-        sender: oneshot::Sender<virtual_fs::Result<()>>,
-    },
-    Open {
-        path: PathBuf,
-        conf: OpenOptionsConfig,
-        sender: oneshot::Sender<virtual_fs::Result<Box<dyn VirtualFile + Send + Sync + 'static>>>,
-    },
 }
 
 #[cfg(test)]
 mod tests {
     use std::{fmt::Debug, num::NonZeroUsize};
 
+    use tokio::sync::oneshot;
     use wasm_bindgen::JsCast;
     use wasm_bindgen_futures::JsFuture;
     use wasm_bindgen_test::wasm_bindgen_test;
@@ -451,15 +520,24 @@ mod tests {
             .dyn_into()
             .unwrap();
 
-        let entries: Vec<_> = with_fs(handle, |fs| {
-            fs.create_dir("/tmp".as_ref()).unwrap();
-            fs.read_dir("/".as_ref())
-                .unwrap()
-                .map(|e| e.unwrap().path().display().to_string())
-                .collect()
+        let entries: Vec<_> = with_fs(handle.clone(), |fs| {
+            fs.create_dir("root".as_ref()).unwrap();
+            fs.create_dir("root/nested".as_ref()).unwrap();
+            fs.read_dir("root".as_ref()).unwrap()
         })
-        .await;
+        .await
+        .map(|result| result.unwrap())
+        .collect();
 
-        assert_eq!(entries, ["/tmp".to_string()]);
+        assert_eq!(
+            entries,
+            vec![DirEntry {
+                path: PathBuf::from("/root/nested"),
+                metadata: Ok(virtual_fs::Metadata {
+                    ft: FileType::new_dir(),
+                    ..Default::default()
+                })
+            }]
+        );
     }
 }
