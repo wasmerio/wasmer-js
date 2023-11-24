@@ -19,6 +19,7 @@ impl Directory {
         Directory::default()
     }
 
+    /// Read the contents of a directory.
     #[wasm_bindgen(js_name = "readDir")]
     pub async fn read_dir(&self, mut path: String) -> Result<ListOfStrings, Error> {
         if !path.starts_with('/') {
