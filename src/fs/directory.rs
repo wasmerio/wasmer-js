@@ -3,7 +3,6 @@ use std::sync::Arc;
 use tracing::Instrument;
 use virtual_fs::{AsyncReadExt, AsyncWriteExt, FileSystem};
 use wasm_bindgen::{prelude::wasm_bindgen, JsCast, JsValue};
-use web_sys::FileSystemDirectoryHandle;
 
 use crate::{utils::Error, StringOrBytes};
 
@@ -18,27 +17,6 @@ impl Directory {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
         Directory::default()
-    }
-
-    /// Create a new [`Directory`] using the [File System API][mdn].
-    ///
-    /// > **Important:** this API will only work inside a secure context.
-    ///
-    /// Some ways a [`FileSystemDirectoryHandle`] can be created are...
-    ///
-    /// - Using the [Origin private file system API][opfs]
-    /// - Calling [`window.showDirectoryPicker()`][sdp]
-    ///   to access a file on the host machine (i.e. outside of the browser)
-    /// - From the [HTML Drag & Drop API][dnd] by calling [`DataTransferItem.getAsFileSystemHandle()`](https://developer.mozilla.org/en-US/docs/Web/API/DataTransferItem/getAsFileSystemHandle)
-    ///
-    ///
-    /// [mdn]: https://developer.mozilla.org/en-US/docs/Web/API/File_System_API
-    /// [dnd]: https://developer.mozilla.org/en-US/docs/Web/API/HTML_Drag_and_Drop_API
-    /// [sdp]: https://developer.mozilla.org/en-US/docs/Web/API/window/showDirectoryPicker
-    /// [opfs]: https://developer.mozilla.org/en-US/docs/Web/API/File_System_API/Origin_private_file_system
-    #[wasm_bindgen(js_name = "fromBrowser")]
-    pub fn from_browser(handle: FileSystemDirectoryHandle) -> Self {
-        Directory(Arc::new(crate::fs::web::spawn(handle)))
     }
 
     #[wasm_bindgen(js_name = "readDir")]

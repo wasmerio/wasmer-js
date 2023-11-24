@@ -7,11 +7,11 @@ const encoder = new TextEncoder();
 
 const initialized = (async () => {
     await init();
-    initializeLogger("info,wasmer_js::run=trace,wasmer_js::fs=trace,wasmer_wasix::syscalls=trace");
+    initializeLogger("info");
     wasmer = new Wasmer();
 })();
 
-describe.skip("run", function() {
+describe("run", function() {
     this.timeout("60s")
         .beforeAll(async () => await initialized);
 
