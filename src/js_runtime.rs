@@ -9,6 +9,7 @@ use wasm_bindgen::{prelude::wasm_bindgen, JsCast};
 use crate::{runtime::Runtime, tasks::ThreadPool, utils::Error};
 
 #[derive(Clone, Debug, wasm_bindgen_derive::TryFromJsValue)]
+#[repr(transparent)]
 #[wasm_bindgen(js_name = "Runtime")]
 pub struct JsRuntime {
     // Note: This is just a wrapper around the "real" runtime implementation.
@@ -18,10 +19,20 @@ pub struct JsRuntime {
     rt: Arc<Runtime>,
 }
 
+impl JsRuntime {
+    pub fn new(rt: Arc<Runtime>) -> Self {
+        JsRuntime { rt }
+    }
+
+    pub fn into_inner(self) -> Arc<Runtime> {
+        self.rt
+    }
+}
+
 #[wasm_bindgen(js_class = "Runtime")]
 impl JsRuntime {
     #[wasm_bindgen(constructor)]
-    pub fn new(options: Option<RuntimeOptions>) -> Result<JsRuntime, Error> {
+    pub fn js_new(options: Option<RuntimeOptions>) -> Result<JsRuntime, Error> {
         let pool_size = options.as_ref().and_then(|options| options.pool_size());
 
         let pool = match pool_size {
@@ -44,7 +55,11 @@ impl JsRuntime {
             rt.set_registry(registry, api_key.as_deref())?;
         }
 
-        Ok(JsRuntime { rt: Arc::new(rt) })
+        if let Some(gateway) = options.as_ref().and_then(|opts| opts.network_gateway()) {
+            rt.set_network_gateway(gateway);
+        }
+
+        Ok(JsRuntime::new(Arc::new(rt)))
     }
 
     /// Get a reference to the global runtime, optionally initializing it if
@@ -77,7 +92,7 @@ impl DerefMut for JsRuntime {
 
 impl From<Arc<Runtime>> for JsRuntime {
     fn from(value: Arc<Runtime>) -> Self {
-        JsRuntime { rt: value }
+        JsRuntime::new(value)
     }
 }
 
@@ -110,6 +125,10 @@ export type RuntimeOptions = {
      * An optional API key to use when sending requests to the Wasmer registry.
      */
     apiKey?: string;
+    /**
+     * Enable networking (i.e. TCP and UDP) via a gateway server.
+     */
+    networkGateway?: string;
 };
 "#;
 
@@ -126,6 +145,9 @@ extern "C" {
 
     #[wasm_bindgen(method, getter, js_name = "apiKey")]
     fn api_key(this: &RuntimeOptions) -> Option<String>;
+
+    #[wasm_bindgen(method, getter, js_name = "networkGateway")]
+    fn network_gateway(this: &RuntimeOptions) -> Option<String>;
 
     #[wasm_bindgen(typescript_type = "string | null | undefined")]
     type MaybeRegistryUrl;

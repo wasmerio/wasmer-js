@@ -22,7 +22,7 @@ use crate::{
     Instance, JsRuntime, Runtime, SpawnOptions,
 };
 
-/// The entrypoint to the Wasmer SDK.
+/// A package from the Wasmer registry.
 #[wasm_bindgen]
 pub struct Wasmer {
     runtime: Arc<Runtime>,
@@ -70,10 +70,7 @@ impl Wasmer {
         let specifier: PackageSpecifier = app_id.parse()?;
         let config = config.unwrap_or_default();
 
-        let runtime = match config.runtime().as_runtime() {
-            Some(rt) => Arc::clone(&*rt),
-            None => Arc::clone(&self.runtime),
-        };
+        let runtime = config.runtime().resolve()?.into_inner();
 
         let pkg = BinaryPackage::from_registry(&specifier, &*runtime).await?;
         let command_name = config

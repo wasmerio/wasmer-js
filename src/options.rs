@@ -6,13 +6,13 @@ use virtual_fs::TmpFileSystem;
 use wasm_bindgen::{prelude::wasm_bindgen, JsCast, JsValue, UnwrapThrowExt};
 use wasmer_wasix::WasiEnvBuilder;
 
-use crate::{utils::Error, Directory, DirectoryInit, JsRuntime, StringOrBytes};
+use crate::{runtime::Runtime, utils::Error, Directory, DirectoryInit, JsRuntime, StringOrBytes};
 
 #[wasm_bindgen]
 extern "C" {
     /// A proxy for `Option<&Runtime>`.
     #[wasm_bindgen]
-    pub(crate) type OptionalRuntime;
+    pub type OptionalRuntime;
 
     #[wasm_bindgen]
     pub(crate) type OptionalDirectories;
@@ -237,6 +237,15 @@ impl OptionalRuntime {
         } else {
             let rt = JsRuntime::try_from(js_value).expect_throw("Expected a runtime");
             Some(rt)
+        }
+    }
+
+    /// Use [`OptionalRuntime::as_runtime()`] to resolve the instance, getting
+    /// a reference to the global [`Runtime`] if one wasn't provided.
+    pub(crate) fn resolve(&self) -> Result<JsRuntime, Error> {
+        match self.as_runtime() {
+            Some(rt) => Ok(rt),
+            None => Runtime::lazily_initialized().map(JsRuntime::from),
         }
     }
 }

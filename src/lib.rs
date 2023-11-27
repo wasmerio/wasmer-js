@@ -18,6 +18,7 @@ mod streams;
 mod tasks;
 mod utils;
 mod ws;
+mod wasmer;
 
 use std::sync::Mutex;
 
@@ -45,7 +46,7 @@ pub(crate) const DEFAULT_REGISTRY: &str =
 
 #[wasm_bindgen]
 pub fn wat2wasm(wat: String) -> Result<js_sys::Uint8Array, utils::Error> {
-    let wasm = wasmer::wat2wasm(wat.as_bytes())?;
+    let wasm = ::wasmer::wat2wasm(wat.as_bytes())?;
     Ok(wasm.as_ref().into())
 }
 

@@ -1,10 +1,8 @@
-use std::sync::Arc;
-
 use futures::channel::oneshot;
 use wasm_bindgen::{prelude::wasm_bindgen, JsCast};
 use wasmer_wasix::{Runtime as _, WasiEnvBuilder};
 
-use crate::{instance::ExitCondition, utils::Error, Instance, RunOptions, Runtime};
+use crate::{instance::ExitCondition, utils::Error, Instance, RunOptions};
 
 const DEFAULT_PROGRAM_NAME: &str = "wasm";
 
@@ -13,10 +11,7 @@ const DEFAULT_PROGRAM_NAME: &str = "wasm";
 pub async fn run(wasm_module: WasmModule, config: RunOptions) -> Result<Instance, Error> {
     let _span = tracing::debug_span!("run").entered();
 
-    let runtime = match config.runtime().as_runtime() {
-        Some(rt) => Arc::clone(&*rt),
-        None => Runtime::lazily_initialized()?,
-    };
+    let runtime = config.runtime().resolve()?.into_inner();
 
     let program_name = config
         .program()
