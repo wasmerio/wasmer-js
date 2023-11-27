@@ -1,12 +1,8 @@
-use std::{
-    num::NonZeroUsize,
-    sync::{atomic::AtomicBool, Arc},
-};
+use std::sync::{atomic::AtomicBool, Arc, Mutex, Weak};
 
 use http::HeaderValue;
+use once_cell::sync::Lazy;
 use virtual_net::VirtualNetworking;
-use wasm_bindgen::prelude::wasm_bindgen;
-use wasm_bindgen_derive::TryFromJsValue;
 use wasmer_wasix::{
     http::{HttpClient, WebHttpClient},
     os::{TtyBridge, TtyOptions},
@@ -20,15 +16,17 @@ use wasmer_wasix::{
 
 use crate::{tasks::ThreadPool, utils::Error};
 
+/// A weak reference to the global [`Runtime`].
+static GLOBAL_RUNTIME: Lazy<Mutex<Weak<Runtime>>> = Lazy::new(Mutex::default);
+
 /// Runtime components used when running WebAssembly programs.
-#[derive(Clone, derivative::Derivative, TryFromJsValue)]
+#[derive(Clone, derivative::Derivative)]
 #[derivative(Debug)]
-#[wasm_bindgen]
 pub struct Runtime {
     pool: ThreadPool,
     task_manager: Arc<dyn VirtualTaskManager>,
     networking: Arc<dyn VirtualNetworking>,
-    source: Arc<dyn Source + Send + Sync>,
+    source: Option<Arc<WapmSource>>,
     http_client: Arc<dyn HttpClient + Send + Sync>,
     package_loader: Arc<crate::package_loader::PackageLoader>,
     module_cache: Arc<ThreadLocalCache>,
@@ -36,19 +34,48 @@ pub struct Runtime {
     connected_to_tty: Arc<AtomicBool>,
 }
 
-#[wasm_bindgen]
 impl Runtime {
-    #[wasm_bindgen(constructor)]
-    pub fn with_pool_size(pool_size: Option<usize>) -> Result<Runtime, Error> {
-        let pool = match pool_size {
-            Some(size) => {
-                let size = NonZeroUsize::new(size).unwrap_or(NonZeroUsize::MIN);
-                ThreadPool::new(size)
-            }
-            None => ThreadPool::new_with_max_threads()?,
-        };
+    /// Get a reference to the global runtime, if it has already been
+    /// initialized.
+    pub(crate) fn global() -> Option<Arc<Runtime>> {
+        GLOBAL_RUNTIME.lock().ok()?.upgrade()
+    }
 
-        Ok(Runtime::new(pool))
+    /// Get a reference to the global runtime, initializing it if it hasn't
+    /// already been.
+    pub(crate) fn lazily_initialized() -> Result<Arc<Self>, Error> {
+        match GLOBAL_RUNTIME.lock() {
+            Ok(mut guard) => match guard.upgrade() {
+                Some(rt) => Ok(rt),
+                None => {
+                    tracing::debug!("Initializing the global runtime");
+                    let rt = Arc::new(Runtime::with_defaults()?);
+                    *guard = Arc::downgrade(&rt);
+
+                    Ok(rt)
+                }
+            },
+            Err(mut e) => {
+                tracing::warn!("The global runtime lock was poisoned. Reinitializing.");
+
+                let rt = Arc::new(Runtime::with_defaults()?);
+                **e.get_mut() = Arc::downgrade(&rt);
+
+                // FIXME: Use this when it becomes stable
+                // GLOBAL_RUNTIME.clear_poison();
+
+                Ok(rt)
+            }
+        }
+    }
+
+    pub(crate) fn with_defaults() -> Result<Self, Error> {
+        let pool = ThreadPool::new_with_max_threads()?;
+        let mut rt = Runtime::new(pool);
+
+        rt.set_registry(crate::DEFAULT_REGISTRY, None)?;
+
+        Ok(rt)
     }
 
     pub(crate) fn new(pool: ThreadPool) -> Self {
@@ -70,7 +97,7 @@ impl Runtime {
             pool,
             task_manager: Arc::new(task_manager),
             networking: Arc::new(virtual_net::UnsupportedVirtualNetworking::default()),
-            source: Arc::new(UnsupportedSource),
+            source: None,
             http_client: Arc::new(http_client),
             package_loader: Arc::new(package_loader),
             module_cache: Arc::new(module_cache),
@@ -80,9 +107,15 @@ impl Runtime {
     }
 
     /// Set the registry that packages will be fetched from.
-    pub fn set_registry(&mut self, url: &str) -> Result<(), Error> {
+    pub fn set_registry(&mut self, url: &str, token: Option<&str>) -> Result<(), Error> {
         let url = url.parse().map_err(Error::from)?;
-        self.source = Arc::new(WapmSource::new(url, self.http_client.clone()));
+
+        let mut source = WapmSource::new(url, self.http_client.clone());
+        if let Some(token) = token {
+            source = source.with_auth_token(token);
+        }
+        self.source = Some(Arc::new(source));
+
         Ok(())
     }
 
@@ -118,7 +151,10 @@ impl wasmer_wasix::runtime::Runtime for Runtime {
     }
 
     fn source(&self) -> Arc<dyn wasmer_wasix::runtime::resolver::Source + Send + Sync> {
-        self.source.clone()
+        match &self.source {
+            Some(wapm) => Arc::clone(wapm) as _,
+            None => Arc::new(UnsupportedSource),
+        }
     }
 
     fn http_client(&self) -> Option<&wasmer_wasix::http::DynHttpClient> {
@@ -225,7 +261,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     async fn execute_a_trivial_module() {
-        let runtime = Runtime::with_pool_size(Some(2)).unwrap();
+        let runtime = Runtime::with_defaults().unwrap();
         let module = runtime.load_module(TRIVIAL_WAT).await.unwrap();
 
         WasiEnvBuilder::new("trivial")

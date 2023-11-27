@@ -14,8 +14,8 @@ pub async fn run(wasm_module: WasmModule, config: RunOptions) -> Result<Instance
     let _span = tracing::debug_span!("run").entered();
 
     let runtime = match config.runtime().as_runtime() {
-        Some(rt) => Arc::new(rt.clone()),
-        None => Arc::new(Runtime::with_pool_size(None)?),
+        Some(rt) => Arc::clone(&*rt),
+        None => Runtime::lazily_initialized()?,
     };
 
     let program_name = config
