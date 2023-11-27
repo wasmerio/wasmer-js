@@ -23,7 +23,7 @@
 //!
 //! The main message types:
 //! - [`SchedulerMessage`] - messages sent from the [`ThreadPool`] and
-//!   [`crate::Runtime`] to the [`Scheduler`]
+//!   [`crate::runtime::Runtime`] to the [`Scheduler`]
 //! - [`PostMessagePayload`] - messages the [`Scheduler`] sends to a
 //!   [`Worker`]
 //! - [`WorkerMessage`] - messages a [`Worker`] sends back to the [`Scheduler`]

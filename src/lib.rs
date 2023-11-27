@@ -4,7 +4,6 @@ wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 extern crate alloc;
 
 mod container;
-mod facade;
 pub mod fs;
 mod instance;
 mod js_runtime;
@@ -17,15 +16,13 @@ mod runtime;
 mod streams;
 mod tasks;
 mod utils;
-mod ws;
 mod wasmer;
+mod ws;
 
 use std::sync::Mutex;
 
-pub(crate) use crate::runtime::Runtime;
 pub use crate::{
     container::{Container, Manifest, Volume},
-    facade::{Wasmer, WasmerConfig},
     fs::{Directory, DirectoryInit},
     instance::{Instance, JsOutput},
     js_runtime::{JsRuntime, RuntimeOptions},
@@ -33,6 +30,7 @@ pub use crate::{
     options::{RunOptions, SpawnOptions},
     run::run,
     utils::StringOrBytes,
+    wasmer::Wasmer,
 };
 
 use once_cell::sync::Lazy;

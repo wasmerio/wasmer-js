@@ -12,10 +12,10 @@ use crate::{runtime::Runtime, utils::Error, Directory, DirectoryInit, JsRuntime,
 extern "C" {
     /// A proxy for `Option<&Runtime>`.
     #[wasm_bindgen]
-    pub type OptionalRuntime;
+    pub(crate) type OptionalRuntime;
 
     #[wasm_bindgen]
-    pub(crate) type OptionalDirectories;
+    type OptionalDirectories;
 }
 
 #[wasm_bindgen(typescript_custom_section)]
@@ -61,11 +61,6 @@ export type RunOptions = CommonOptions & {
  * Options used when running a WASIX package with {@link Wasmer.spawn}.
  */
 export type SpawnOptions = CommonOptions & {
-    /**
-     * The name of the command to be run (uses the package's entrypoint if not
-     * defined).
-     */
-    command?: string;
     /**
      * Packages that should also be loaded into the WASIX environment.
      */

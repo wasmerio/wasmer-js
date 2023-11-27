@@ -10,14 +10,14 @@ import {
     Directory,
 } from "..";
 
-let wasmer: Wasmer;
+let runtime: Runtime;
 const decoder = new TextDecoder("utf-8");
 const encoder = new TextEncoder();
 
 const initialized = (async () => {
     await init();
     initializeLogger("warn");
-    wasmer = new Wasmer();
+    runtime = new Runtime();
 })();
 
 describe("run", function () {
@@ -32,7 +32,6 @@ describe("run", function () {
             )`;
         const wasm = wat2wasm(noop);
         const module = await WebAssembly.compile(wasm);
-        const runtime = new Runtime({ poolSize: 2 });
 
         const instance = await run(module, { program: "noop", runtime });
         const output = await instance.wait();
@@ -42,7 +41,6 @@ describe("run", function () {
     });
 
     it("can start quickjs", async () => {
-        const runtime = wasmer.runtime();
         const container = await Container.from_registry(
             "saghul/quickjs@0.0.3",
             runtime,
@@ -65,7 +63,6 @@ describe("run", function () {
     });
 
     it("can read directories", async () => {
-        const runtime = wasmer.runtime();
         const dir = new Directory();
         await dir.writeFile("/file.txt", "");
         const container = await Container.from_registry(
@@ -95,7 +92,6 @@ describe("run", function () {
     });
 
     it("can read files", async () => {
-        const runtime = wasmer.runtime();
         const tmp = new Directory();
         await tmp.writeFile("/file.txt", encoder.encode("Hello, World!"));
         const container = await Container.from_registry(
@@ -125,7 +121,6 @@ describe("run", function () {
     });
 
     it("can write files", async () => {
-        const runtime = wasmer.runtime();
         const dir = new Directory();
         const container = await Container.from_registry(
             "saghul/quickjs@0.0.3",

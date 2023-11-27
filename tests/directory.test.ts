@@ -1,14 +1,12 @@
 import { expect } from "@esm-bundle/chai";
-import { Wasmer, init, initializeLogger, Directory } from "..";
+import { init, initializeLogger, Directory } from "..";
 
-let wasmer: Wasmer;
 const decoder = new TextDecoder("utf-8");
 const encoder = new TextEncoder();
 
 const initialized = (async () => {
     await init();
     initializeLogger("warn");
-    wasmer = new Wasmer();
 })();
 
 describe("In-Memory Directory", function () {
