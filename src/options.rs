@@ -43,7 +43,9 @@ type CommonOptions = {
     mount?: Record<string, DirectoryInit | Directory>;
 };
 
-/** Configuration used when starting a WASIX program with {@link run}. */
+/**
+ * Configuration used when starting a WASIX program with {@link run}.
+ */
 export type RunOptions = CommonOptions & {
     /** The name of the program being run (passed in as arg 0) */
     program?: string;
@@ -58,7 +60,8 @@ export type RunOptions = CommonOptions & {
 };
 
 /**
- * Options used when running a WASIX package with {@link Wasmer.spawn}.
+ * Options used when running a command from a WASIX package with
+ * {@link Command.run}.
  */
 export type SpawnOptions = CommonOptions & {
     /**
