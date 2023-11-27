@@ -4,8 +4,9 @@ use std::{
 };
 
 use anyhow::Context;
+use js_sys::Reflect;
 use tracing::Instrument;
-use virtual_fs::{AsyncReadExt, AsyncWriteExt, FileSystem};
+use virtual_fs::{AsyncReadExt, AsyncWriteExt, FileSystem, FileType};
 use wasm_bindgen::{prelude::wasm_bindgen, JsCast, JsValue};
 
 use crate::{utils::Error, StringOrBytes};
@@ -31,17 +32,34 @@ impl Directory {
 
     /// Read the contents of a directory.
     #[wasm_bindgen(js_name = "readDir")]
-    pub async fn read_dir(&self, mut path: String) -> Result<ListOfStrings, Error> {
+    pub async fn read_dir(&self, mut path: String) -> Result<ListOfDirEntry, Error> {
         if !path.starts_with('/') {
             path.insert(0, '/');
         }
 
         let contents = js_sys::Array::new();
 
+        let ty = JsValue::from_str("type");
+        let file = JsValue::from_str("file");
+        let dir = JsValue::from_str("dir");
+        let unknown = JsValue::from_str("unknown");
+        let name = JsValue::from_str("name");
+
         for entry in FileSystem::read_dir(self, path.as_ref())? {
             let entry = entry?;
-            let value = JsValue::from(entry.path.display().to_string());
-            contents.push(&value);
+
+            let entry_name = entry.file_name().to_string_lossy().to_string();
+            let entry_type = match entry.file_type() {
+                Ok(FileType { dir: true, .. }) => &dir,
+                Ok(FileType { file: true, .. }) => &file,
+                _ => &unknown,
+            };
+
+            let dir_entry = js_sys::Object::new();
+            Reflect::set(&dir_entry, &name, &JsValue::from(entry_name)).map_err(Error::js)?;
+            Reflect::set(&dir_entry, &ty, entry_type).map_err(Error::js)?;
+
+            contents.push(&dir_entry);
         }
 
         Ok(contents.unchecked_into())
@@ -195,10 +213,27 @@ impl virtual_fs::FileOpener for Directory {
     }
 }
 
+#[wasm_bindgen(typescript_custom_section)]
+const DIRENTRY_TYPE_DEF: &'static str = r#"
+/**
+ * An entry in a {@link Directory}.
+ */
+export type DirEntry = {
+    /**
+     * What type of entry is this?
+     */
+    type: "file" | "dir" | "unknown";
+    /**
+     * What is the item's name? (the last component in the path)
+     */
+    name: string;
+};
+"#;
+
 #[wasm_bindgen]
 extern "C" {
-    #[wasm_bindgen(typescript_type = "string[]")]
-    pub type ListOfStrings;
+    #[wasm_bindgen(typescript_type = "DirEntry[]")]
+    pub type ListOfDirEntry;
 }
 
 #[wasm_bindgen(typescript_custom_section)]

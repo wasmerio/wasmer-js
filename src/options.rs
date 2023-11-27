@@ -20,6 +20,9 @@ extern "C" {
 
 #[wasm_bindgen(typescript_custom_section)]
 const TYPE_DEFINITIONS: &'static str = r#"
+/**
+ * Common options used when running a WASIX program.
+ */
 type CommonOptions = {
     /** Additional command-line arguments to be passed to the program. */
     args?: string[];
@@ -29,11 +32,18 @@ type CommonOptions = {
     stdin?: string | ArrayBuffer;
     /**
      * Directories that should be mounted inside the WASIX instance.
+     *
+     * This maps mount locations to the {@link Directory} being mounted. As a
+     * shortcut, if {@link DirectoryInit} is provided, a new {@link Directory}
+     * will be instantiated and mounted.
+     *
+     * Avoid mounting directly to `"/"` as it may clobber a package's bundled
+     * files.
      */
     mount?: Record<string, DirectoryInit | Directory>;
 };
 
-/** Configuration used when starting a WASI program with {@link run}. */
+/** Configuration used when starting a WASIX program with {@link run}. */
 export type RunOptions = CommonOptions & {
     /** The name of the program being run (passed in as arg 0) */
     program?: string;
