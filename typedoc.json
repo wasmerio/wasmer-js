@@ -1,0 +1,7 @@
+{
+    "entryPoints": [
+        "./lib.ts"
+    ],
+    "out": "docs",
+    "$schema": "https://typedoc.org/schema.json"
+}

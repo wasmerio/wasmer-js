@@ -1,7 +1,12 @@
-use std::sync::Arc;
+use std::{
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
+use anyhow::Context;
+use js_sys::Reflect;
 use tracing::Instrument;
-use virtual_fs::{AsyncReadExt, AsyncWriteExt, FileSystem};
+use virtual_fs::{AsyncReadExt, AsyncWriteExt, FileSystem, FileType};
 use wasm_bindgen::{prelude::wasm_bindgen, JsCast, JsValue};
 
 use crate::{utils::Error, StringOrBytes};
@@ -13,25 +18,48 @@ pub struct Directory(Arc<dyn FileSystem>);
 
 #[wasm_bindgen]
 impl Directory {
-    /// Create a temporary [`Directory`] that holds its contents in memory.
+    /// Create a new {@link Directory}.
     #[wasm_bindgen(constructor)]
-    pub fn new() -> Self {
-        Directory::default()
+    pub fn new(init: Option<DirectoryInit>) -> Result<Directory, Error> {
+        match init {
+            Some(init) => {
+                let fs = init.initialize()?;
+                Ok(Directory(fs))
+            }
+            None => Ok(Directory::default()),
+        }
     }
 
     /// Read the contents of a directory.
     #[wasm_bindgen(js_name = "readDir")]
-    pub async fn read_dir(&self, mut path: String) -> Result<ListOfStrings, Error> {
+    pub async fn read_dir(&self, mut path: String) -> Result<ListOfDirEntry, Error> {
         if !path.starts_with('/') {
             path.insert(0, '/');
         }
 
         let contents = js_sys::Array::new();
 
+        let ty = JsValue::from_str("type");
+        let file = JsValue::from_str("file");
+        let dir = JsValue::from_str("dir");
+        let unknown = JsValue::from_str("unknown");
+        let name = JsValue::from_str("name");
+
         for entry in FileSystem::read_dir(self, path.as_ref())? {
             let entry = entry?;
-            let value = JsValue::from(entry.path.display().to_string());
-            contents.push(&value);
+
+            let entry_name = entry.file_name().to_string_lossy().to_string();
+            let entry_type = match entry.file_type() {
+                Ok(FileType { dir: true, .. }) => &dir,
+                Ok(FileType { file: true, .. }) => &file,
+                _ => &unknown,
+            };
+
+            let dir_entry = js_sys::Object::new();
+            Reflect::set(&dir_entry, &name, &JsValue::from(entry_name)).map_err(Error::js)?;
+            Reflect::set(&dir_entry, &ty, entry_type).map_err(Error::js)?;
+
+            contents.push(&dir_entry);
         }
 
         Ok(contents.unchecked_into())
@@ -185,8 +213,90 @@ impl virtual_fs::FileOpener for Directory {
     }
 }
 
+#[wasm_bindgen(typescript_custom_section)]
+const DIRENTRY_TYPE_DEF: &'static str = r#"
+/**
+ * An entry in a {@link Directory}.
+ */
+export type DirEntry = {
+    /**
+     * What type of entry is this?
+     */
+    type: "file" | "dir" | "unknown";
+    /**
+     * What is the item's name? (the last component in the path)
+     */
+    name: string;
+};
+"#;
+
 #[wasm_bindgen]
 extern "C" {
-    #[wasm_bindgen(typescript_type = "string[]")]
-    pub type ListOfStrings;
+    #[wasm_bindgen(typescript_type = "DirEntry[]")]
+    pub type ListOfDirEntry;
+}
+
+#[wasm_bindgen(typescript_custom_section)]
+const DIRECTORY_INIT_TYPE_DEF: &'static str = r#"
+/**
+ * A mapping from file paths to their contents that can be used to initialize
+ * a {@link Directory}.
+ */
+export type DirectoryInit = Record<string, string | Uint8Array>;
+"#;
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(typescript_type = "DirectoryInit", extends = js_sys::Object)]
+    #[derive(Debug, Clone, PartialEq)]
+    pub type DirectoryInit;
+}
+
+impl DirectoryInit {
+    fn initialize(&self) -> Result<Arc<dyn FileSystem>, Error> {
+        if let Some(record) = self.dyn_ref::<js_sys::Object>() {
+            let fs = in_memory_filesystem(record)?;
+            Ok(Arc::new(fs))
+        } else {
+            unreachable!()
+        }
+    }
+}
+
+/// Construct an in-memory [`FileSystem`] based on an object mapping paths to
+/// their contents (`Record<string, string | Uint8Array>`).
+fn in_memory_filesystem(record: &js_sys::Object) -> Result<virtual_fs::mem_fs::FileSystem, Error> {
+    let fs = virtual_fs::mem_fs::FileSystem::default();
+
+    for (key, contents) in crate::utils::object_entries(record)? {
+        let mut path = String::from(key);
+        if !path.starts_with('/') {
+            path.insert(0, '/');
+        }
+        let path = PathBuf::from(path);
+
+        let contents: StringOrBytes = contents.unchecked_into();
+        let contents = contents.as_bytes();
+
+        if let Some(parent) = path.parent() {
+            create_dir_all(&fs, parent)?;
+        }
+
+        fs.insert_ro_file(&path, contents.into())
+            .with_context(|| format!("Unable to write to \"{}\"", path.display()))?;
+    }
+
+    Ok(fs)
+}
+
+fn create_dir_all(fs: &dyn FileSystem, path: &Path) -> Result<(), anyhow::Error> {
+    let ancestors: Vec<&Path> = path.ancestors().collect();
+
+    for ancestor in ancestors.into_iter().rev() {
+        fs.create_dir(ancestor).with_context(|| {
+            format!("Unable to create the \"{}\" directory", ancestor.display())
+        })?;
+    }
+
+    Ok(())
 }

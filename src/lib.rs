@@ -9,6 +9,7 @@ pub mod fs;
 mod instance;
 mod logging;
 mod net;
+mod options;
 mod package_loader;
 mod run;
 mod runtime;
@@ -21,11 +22,12 @@ use std::sync::Mutex;
 
 pub use crate::{
     container::{Container, Manifest, Volume},
-    facade::{SpawnConfig, Wasmer, WasmerConfig},
-    fs::Directory,
+    facade::{Wasmer, WasmerConfig},
+    fs::{Directory, DirectoryInit},
     instance::{Instance, JsOutput},
     logging::initialize_logger,
-    run::{run, RunConfig},
+    options::{RunOptions, SpawnOptions},
+    run::run,
     runtime::Runtime,
     utils::StringOrBytes,
 };

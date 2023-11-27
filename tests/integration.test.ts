@@ -6,7 +6,7 @@ const decoder = new TextDecoder("utf-8");
 
 const initialized = (async () => {
     await init();
-    initializeLogger("info");
+    initializeLogger("warn");
 })();
 
 const ansiEscapeCode = /\u001B\[[\d;]*[JDm]/g;
