@@ -22,7 +22,7 @@ use std::sync::Mutex;
 pub use crate::{
     container::{Container, Manifest, Volume},
     facade::{SpawnConfig, Wasmer, WasmerConfig},
-    fs::Directory,
+    fs::{Directory, DirectoryInit},
     instance::{Instance, JsOutput},
     logging::initialize_logger,
     run::{run, RunConfig},

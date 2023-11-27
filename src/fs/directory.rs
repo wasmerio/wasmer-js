@@ -1,5 +1,9 @@
-use std::sync::Arc;
+use std::{
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
+use anyhow::Context;
 use tracing::Instrument;
 use virtual_fs::{AsyncReadExt, AsyncWriteExt, FileSystem};
 use wasm_bindgen::{prelude::wasm_bindgen, JsCast, JsValue};
@@ -15,8 +19,14 @@ pub struct Directory(Arc<dyn FileSystem>);
 impl Directory {
     /// Create a temporary [`Directory`] that holds its contents in memory.
     #[wasm_bindgen(constructor)]
-    pub fn new() -> Self {
-        Directory::default()
+    pub fn new(init: Option<DirectoryInit>) -> Result<Directory, Error> {
+        match init {
+            Some(init) => {
+                let fs = init.initialize()?;
+                Ok(Directory(fs))
+            }
+            None => Ok(Directory::default()),
+        }
     }
 
     /// Read the contents of a directory.
@@ -189,4 +199,59 @@ impl virtual_fs::FileOpener for Directory {
 extern "C" {
     #[wasm_bindgen(typescript_type = "string[]")]
     pub type ListOfStrings;
+}
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(typescript_type = "Record<string, string|Uint8Array>", extends = js_sys::Object)]
+    pub type DirectoryInit;
+}
+
+impl DirectoryInit {
+    fn initialize(&self) -> Result<Arc<dyn FileSystem>, Error> {
+        if let Some(record) = self.dyn_ref::<js_sys::Object>() {
+            let fs = in_memory_filesystem(record)?;
+            Ok(Arc::new(fs))
+        } else {
+            unreachable!()
+        }
+    }
+}
+
+/// Construct an in-memory [`FileSystem`] based on an object mapping paths to
+/// their contents (`Record<string, string | Uint8Array>`).
+fn in_memory_filesystem(record: &js_sys::Object) -> Result<virtual_fs::mem_fs::FileSystem, Error> {
+    let fs = virtual_fs::mem_fs::FileSystem::default();
+
+    for (key, contents) in crate::utils::object_entries(record)? {
+        let mut path = String::from(key);
+        if !path.starts_with('/') {
+            path.insert(0, '/');
+        }
+        let path = PathBuf::from(path);
+
+        let contents: StringOrBytes = contents.unchecked_into();
+        let contents = contents.as_bytes();
+
+        if let Some(parent) = path.parent() {
+            create_dir_all(&fs, parent)?;
+        }
+
+        fs.insert_ro_file(&path, contents.into())
+            .with_context(|| format!("Unable to write to \"{}\"", path.display()))?;
+    }
+
+    Ok(fs)
+}
+
+fn create_dir_all(fs: &dyn FileSystem, path: &Path) -> Result<(), anyhow::Error> {
+    let ancestors: Vec<&Path> = path.ancestors().collect();
+
+    for ancestor in ancestors.into_iter().rev() {
+        fs.create_dir(ancestor).with_context(|| {
+            format!("Unable to create the \"{}\" directory", ancestor.display())
+        })?;
+    }
+
+    Ok(())
 }
