@@ -24,7 +24,7 @@ describe("run", function() {
             )`;
         const wasm = wat2wasm(noop);
         const module = await WebAssembly.compile(wasm);
-        const runtime = new Runtime(2);
+        const runtime = new Runtime({ poolSize: 2 });
 
         const instance = await run(module, { program: "noop", runtime });
         const output = await instance.wait();

@@ -6,7 +6,7 @@ use virtual_fs::TmpFileSystem;
 use wasm_bindgen::{prelude::wasm_bindgen, JsCast, JsValue, UnwrapThrowExt};
 use wasmer_wasix::WasiEnvBuilder;
 
-use crate::{utils::Error, Directory, DirectoryInit, Runtime, StringOrBytes};
+use crate::{utils::Error, Directory, DirectoryInit, JsRuntime, StringOrBytes};
 
 #[wasm_bindgen]
 extern "C" {
@@ -229,13 +229,13 @@ impl RunOptions {
 }
 
 impl OptionalRuntime {
-    pub(crate) fn as_runtime(&self) -> Option<Runtime> {
+    pub(crate) fn as_runtime(&self) -> Option<JsRuntime> {
         let js_value: &JsValue = self.as_ref();
 
         if js_value.is_undefined() {
             None
         } else {
-            let rt = Runtime::try_from(js_value).expect_throw("Expected a runtime");
+            let rt = JsRuntime::try_from(js_value).expect_throw("Expected a runtime");
             Some(rt)
         }
     }

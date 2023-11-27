@@ -105,12 +105,7 @@ impl Write for ConsoleLogger {
 impl Drop for ConsoleLogger {
     fn drop(&mut self) {
         if !self.buffer.is_empty() {
-            if let Err(e) = self.flush() {
-                tracing::warn!(
-                    error = &e as &dyn std::error::Error,
-                    "An error occurred while flushing",
-                );
-            }
+            let _ = self.flush();
         }
     }
 }

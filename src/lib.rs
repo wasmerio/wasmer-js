@@ -7,6 +7,7 @@ mod container;
 mod facade;
 pub mod fs;
 mod instance;
+mod js_runtime;
 mod logging;
 mod net;
 mod options;
@@ -20,15 +21,16 @@ mod ws;
 
 use std::sync::Mutex;
 
+pub(crate) use crate::runtime::Runtime;
 pub use crate::{
     container::{Container, Manifest, Volume},
     facade::{Wasmer, WasmerConfig},
     fs::{Directory, DirectoryInit},
     instance::{Instance, JsOutput},
+    js_runtime::{JsRuntime, RuntimeOptions},
     logging::initialize_logger,
     options::{RunOptions, SpawnOptions},
     run::run,
-    runtime::Runtime,
     utils::StringOrBytes,
 };
 
@@ -38,6 +40,8 @@ use wasm_bindgen::prelude::wasm_bindgen;
 pub(crate) const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));
 pub(crate) const DEFAULT_RUST_LOG: &[&str] = &["warn"];
 pub(crate) static CUSTOM_WORKER_URL: Lazy<Mutex<Option<String>>> = Lazy::new(Mutex::default);
+pub(crate) const DEFAULT_REGISTRY: &str =
+    wasmer_wasix::runtime::resolver::WapmSource::WASMER_PROD_ENDPOINT;
 
 #[wasm_bindgen]
 pub fn wat2wasm(wat: String) -> Result<js_sys::Uint8Array, utils::Error> {

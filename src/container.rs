@@ -7,7 +7,7 @@ use shared_buffer::OwnedBuffer;
 use wasm_bindgen::{prelude::wasm_bindgen, JsCast};
 use wasmer_wasix::{runtime::resolver::PackageSpecifier, Runtime as _};
 
-use crate::{utils::Error, Runtime};
+use crate::{utils::Error, JsRuntime};
 
 #[wasm_bindgen]
 pub struct Container {
@@ -28,7 +28,7 @@ impl Container {
     /// Download a package from the registry.
     pub async fn from_registry(
         package_specifier: &str,
-        runtime: &Runtime,
+        runtime: &JsRuntime,
     ) -> Result<Container, Error> {
         let source = runtime.source();
         let package_specifier: PackageSpecifier = package_specifier

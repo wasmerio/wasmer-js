@@ -19,13 +19,13 @@ use web_sys::{ReadableStream, WritableStream};
 use crate::{
     instance::ExitCondition,
     utils::{Error, GlobalScope},
-    Instance, Runtime, SpawnOptions,
+    Instance, JsRuntime, Runtime, SpawnOptions,
 };
 
 /// The entrypoint to the Wasmer SDK.
 #[wasm_bindgen]
 pub struct Wasmer {
-    runtime: Runtime,
+    runtime: Arc<Runtime>,
     _api_key: Option<String>,
 }
 
@@ -35,17 +35,17 @@ impl Wasmer {
     pub fn new(cfg: Option<WasmerConfig>) -> Result<Wasmer, Error> {
         let cfg = cfg.unwrap_or_default();
 
-        let mut runtime = Runtime::with_pool_size(cfg.pool_size())?;
+        let mut runtime = Runtime::with_defaults()?;
 
         if let Some(registry_url) = cfg.parse_registry_url() {
-            runtime.set_registry(&registry_url)?;
+            runtime.set_registry(&registry_url, None)?;
         }
         if let Some(gateway) = cfg.network_gateway() {
             runtime.set_network_gateway(gateway.into());
         }
 
         Ok(Wasmer {
-            runtime,
+            runtime: Arc::new(runtime),
             _api_key: cfg.api_key().map(String::from),
         })
     }
@@ -59,8 +59,8 @@ impl Wasmer {
         self.spawn(app_id, config).await
     }
 
-    pub fn runtime(&self) -> Runtime {
-        self.runtime.clone()
+    pub fn runtime(&self) -> JsRuntime {
+        JsRuntime::from(self.runtime.clone())
     }
 }
 
@@ -70,17 +70,18 @@ impl Wasmer {
         let specifier: PackageSpecifier = app_id.parse()?;
         let config = config.unwrap_or_default();
 
-        let pkg = BinaryPackage::from_registry(&specifier, &self.runtime).await?;
+        let runtime = match config.runtime().as_runtime() {
+            Some(rt) => Arc::clone(&*rt),
+            None => Arc::clone(&self.runtime),
+        };
+
+        let pkg = BinaryPackage::from_registry(&specifier, &*runtime).await?;
         let command_name = config
             .command()
             .as_string()
             .or_else(|| pkg.entrypoint_cmd.clone())
             .context("No command name specified")?;
 
-        let runtime = match config.runtime().as_runtime() {
-            Some(rt) => Arc::new(rt),
-            None => Arc::new(self.runtime.clone()),
-        };
         let tasks = Arc::clone(runtime.task_manager());
 
         let mut runner = WasiRunner::new();
