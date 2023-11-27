@@ -6,7 +6,7 @@ use virtual_fs::TmpFileSystem;
 use wasm_bindgen::{prelude::wasm_bindgen, JsCast, JsValue, UnwrapThrowExt};
 use wasmer_wasix::WasiEnvBuilder;
 
-use crate::{utils::Error, Directory, DirectoryInit, JsRuntime, StringOrBytes};
+use crate::{runtime::Runtime, utils::Error, Directory, DirectoryInit, JsRuntime, StringOrBytes};
 
 #[wasm_bindgen]
 extern "C" {
@@ -15,7 +15,7 @@ extern "C" {
     pub(crate) type OptionalRuntime;
 
     #[wasm_bindgen]
-    pub(crate) type OptionalDirectories;
+    type OptionalDirectories;
 }
 
 #[wasm_bindgen(typescript_custom_section)]
@@ -43,7 +43,9 @@ type CommonOptions = {
     mount?: Record<string, DirectoryInit | Directory>;
 };
 
-/** Configuration used when starting a WASIX program with {@link run}. */
+/**
+ * Configuration used when starting a WASIX program with {@link run}.
+ */
 export type RunOptions = CommonOptions & {
     /** The name of the program being run (passed in as arg 0) */
     program?: string;
@@ -58,14 +60,10 @@ export type RunOptions = CommonOptions & {
 };
 
 /**
- * Options used when running a WASIX package with {@link Wasmer.spawn}.
+ * Options used when running a command from a WASIX package with
+ * {@link Command.run}.
  */
 export type SpawnOptions = CommonOptions & {
-    /**
-     * The name of the command to be run (uses the package's entrypoint if not
-     * defined).
-     */
-    command?: string;
     /**
      * Packages that should also be loaded into the WASIX environment.
      */
@@ -237,6 +235,15 @@ impl OptionalRuntime {
         } else {
             let rt = JsRuntime::try_from(js_value).expect_throw("Expected a runtime");
             Some(rt)
+        }
+    }
+
+    /// Use [`OptionalRuntime::as_runtime()`] to resolve the instance, getting
+    /// a reference to the global [`Runtime`] if one wasn't provided.
+    pub(crate) fn resolve(&self) -> Result<JsRuntime, Error> {
+        match self.as_runtime() {
+            Some(rt) => Ok(rt),
+            None => Runtime::lazily_initialized().map(JsRuntime::from),
         }
     }
 }

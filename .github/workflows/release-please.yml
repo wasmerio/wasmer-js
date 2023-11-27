@@ -3,7 +3,7 @@ on:
     branches:
       - main
     tags:
-      - 'wasmer-sdk-*'
+      - "wasmer-sdk-*"
 
 permissions:
   contents: write

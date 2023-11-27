@@ -146,7 +146,10 @@ mod tests {
         WasiEnvBuilder,
     };
 
-    use crate::tasks::{SchedulerMessage, ThreadPool};
+    use crate::{
+        runtime::Runtime,
+        tasks::{SchedulerMessage, ThreadPool},
+    };
 
     use super::*;
 
@@ -264,7 +267,7 @@ mod tests {
         let module = wasmer::Module::new(&engine, wasm).unwrap();
         let flag = Arc::new(AtomicBool::new(false));
         let pool = ThreadPool::new(NonZeroUsize::MAX);
-        let runtime = crate::Runtime::new(pool);
+        let runtime = Runtime::new(pool);
         let env = WasiEnvBuilder::new("program")
             .runtime(Arc::new(runtime))
             .build()

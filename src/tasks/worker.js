@@ -15,7 +15,9 @@ let handleMessage = async data => {
 globalThis.onmessage = async ev => {
     if (ev.data.type == "init") {
         const { memory, module, id } = ev.data;
-        const imported = await import(new URL("$IMPORT_META_URL", self.location.origin));
+        const imported = await import(
+            new URL("$IMPORT_META_URL", self.location.origin)
+        );
 
         // HACK: How we load our imports will change depending on how the code
         // is deployed. If we are being used in "wasm-pack test" then we can
@@ -27,12 +29,13 @@ globalThis.onmessage = async ev => {
         let init;
         let ThreadPoolWorker;
 
-        if ('default' in imported && 'ThreadPoolWorker' in imported) {
+        if ("default" in imported && "ThreadPoolWorker" in imported) {
             init = imported.default;
             ThreadPoolWorker = imported.ThreadPoolWorker;
         } else {
             init = globalThis["__WASMER_INTERNALS__"].init;
-            ThreadPoolWorker = globalThis["__WASMER_INTERNALS__"].ThreadPoolWorker;
+            ThreadPoolWorker =
+                globalThis["__WASMER_INTERNALS__"].ThreadPoolWorker;
         }
 
         await init(module, memory);
@@ -48,4 +51,3 @@ globalThis.onmessage = async ev => {
         await handleMessage(ev.data);
     }
 };
-

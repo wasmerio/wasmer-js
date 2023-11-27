@@ -3,8 +3,6 @@ wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
 extern crate alloc;
 
-mod container;
-mod facade;
 pub mod fs;
 mod instance;
 mod js_runtime;
@@ -17,14 +15,12 @@ mod runtime;
 mod streams;
 mod tasks;
 mod utils;
+mod wasmer;
 mod ws;
 
 use std::sync::Mutex;
 
-pub(crate) use crate::runtime::Runtime;
 pub use crate::{
-    container::{Container, Manifest, Volume},
-    facade::{Wasmer, WasmerConfig},
     fs::{Directory, DirectoryInit},
     instance::{Instance, JsOutput},
     js_runtime::{JsRuntime, RuntimeOptions},
@@ -32,6 +28,7 @@ pub use crate::{
     options::{RunOptions, SpawnOptions},
     run::run,
     utils::StringOrBytes,
+    wasmer::Wasmer,
 };
 
 use once_cell::sync::Lazy;
@@ -45,7 +42,7 @@ pub(crate) const DEFAULT_REGISTRY: &str =
 
 #[wasm_bindgen]
 pub fn wat2wasm(wat: String) -> Result<js_sys::Uint8Array, utils::Error> {
-    let wasm = wasmer::wat2wasm(wat.as_bytes())?;
+    let wasm = ::wasmer::wat2wasm(wat.as_bytes())?;
     Ok(wasm.as_ref().into())
 }
 

@@ -1,4 +1,4 @@
-import { expect } from '@esm-bundle/chai';
+import { expect } from "@esm-bundle/chai";
 import { Wasmer, init, initializeLogger, Directory } from "..";
 
 const encoder = new TextEncoder();
@@ -11,23 +11,15 @@ const initialized = (async () => {
 
 const ansiEscapeCode = /\u001B\[[\d;]*[JDm]/g;
 
-describe("Wasmer.spawn", function() {
-    let wasmer: Wasmer;
+describe("Wasmer.spawn", function () {
+    this.timeout("120s").beforeAll(async () => {
+        await initialized;
+    });
 
-    this.timeout("120s")
-        .beforeAll(async () => {
-            await initialized;
-
-            // Note: technically we should use a separate Wasmer instance so tests can't
-            // interact with each other, but in this case the caching benefits mean we
-            // complete in tens of seconds rather than several minutes.
-            wasmer = new Wasmer();
-        });
-
-    it("Can run quickjs", async  () => {
-        const instance = await wasmer.spawn("saghul/quickjs@0.0.3", {
+    it("Can run quickjs", async () => {
+        const pkg = await Wasmer.fromRegistry("saghul/quickjs@0.0.3");
+        const instance = await pkg.commands["quickjs"].run({
             args: ["--eval", "console.log('Hello, World!')"],
-            command: "quickjs",
         });
         const output = await instance.wait();
 
@@ -38,9 +30,9 @@ describe("Wasmer.spawn", function() {
     });
 
     it("Can capture exit codes", async () => {
-        const instance = await wasmer.spawn("saghul/quickjs", {
+        const pkg = await Wasmer.fromRegistry("saghul/quickjs");
+        const instance = await pkg.commands["quickjs"].run({
             args: ["--std", "--eval", "std.exit(42)"],
-            command: "quickjs",
         });
         const output = await instance.wait();
 
@@ -52,9 +44,10 @@ describe("Wasmer.spawn", function() {
 
     it("Can communicate with a dumb echo program", async () => {
         // First, start our program in the background
-        const instance = await wasmer.spawn("christoph/wasix-test-stdinout@0.1.1", {
-            command: "stdinout-loop",
-         });
+        const pkg = await Wasmer.fromRegistry(
+            "christoph/wasix-test-stdinout@0.1.1",
+        );
+        const instance = await pkg.commands["stdinout-loop"].run();
 
         const stdin = instance.stdin!.getWriter();
         const stdout = new BufReader(instance.stdout);
@@ -78,25 +71,31 @@ describe("Wasmer.spawn", function() {
 
     it("Can communicate with a TTY-aware program", async () => {
         // First, start QuickJS up in the background
-        const instance = await wasmer.spawn("saghul/quickjs@0.0.3", {
+        const pkg = await Wasmer.fromRegistry("saghul/quickjs@0.0.3");
+        const instance = await pkg.commands["quickjs"].run({
             args: ["--interactive", "--std"],
-            command: "quickjs",
         });
 
         const stdin = new RealisticWriter(instance.stdin!);
         const stdout = new BufReader(instance.stdout);
 
         // QuickJS prints a prompt when it first starts up. Let's read it.
-        expect(await stdout.readLine()).to.equal('QuickJS - Type "\\h" for help\n');
+        expect(await stdout.readLine()).to.equal(
+            'QuickJS - Type "\\h" for help\n',
+        );
 
         // Then, send a command to the REPL
         await stdin.writeln("console.log('Hello, World!')");
         // The TTY echoes back a bunch of escape codes and stuff.
-        expect(await stdout.readAnsiLine()).to.equal("qjs > console.log(\'Hello, World!\')\n");
+        expect(await stdout.readAnsiLine()).to.equal(
+            "qjs > console.log('Hello, World!')\n",
+        );
         // Random newline.
         expect(await stdout.readLine()).to.equal("\n");
         // QuickJS also echoes your input back. Because reasons.
-        expect(await stdout.readAnsiLine()).to.equal("console.log(\'Hello, World!\')\n");
+        expect(await stdout.readAnsiLine()).to.equal(
+            "console.log('Hello, World!')\n",
+        );
         // We get the text we asked for.
         expect(await stdout.readLine()).to.equal("Hello, World!\n");
         // console.log() evaluates to undefined
@@ -124,7 +123,8 @@ describe("Wasmer.spawn", function() {
     });
 
     it("can communicate with a subprocess interactively", async () => {
-        const instance = await wasmer.spawn("sharrattj/bash", {
+        const pkg = await Wasmer.fromRegistry("sharrattj/bash");
+        const instance = await pkg.commands["bash"].run({
             uses: ["christoph/wasix-test-stdinout@0.1.1"],
         });
 
@@ -153,23 +153,30 @@ describe("Wasmer.spawn", function() {
         expect(output.code).to.equal(0);
         // It looks like bash does its own TTY echoing, except it printed to
         // stderr instead of stdout like wasmer_wasix::os::Tty
-        expect(decoder.decode(output.stderr)).to.equal("bash-5.1# stdinout-loop\n\n\nFirst\n\n\n\nSecond\n\n\n\nbash-5.1# exit\n");
+        expect(decoder.decode(output.stderr)).to.equal(
+            "bash-5.1# stdinout-loop\n\n\nFirst\n\n\n\nSecond\n\n\n\nbash-5.1# exit\n",
+        );
     });
 
     it("Can communicate with Python", async () => {
         // First, start python up in the background
-        const instance = await wasmer.spawn("python/python@0.1.0", {
-            args: [],
-        });
+        const pkg = await Wasmer.fromRegistry("python/python@0.1.0");
+        const instance = await pkg.entrypoint!.run();
 
         const stdin = new RealisticWriter(instance.stdin!);
         const stdout = new BufReader(instance.stdout);
         const stderr = new BufReader(instance.stderr);
 
         // First, we'll read the prompt
-        expect(await stderr.readLine()).to.equal("Python 3.6.7 (default, Feb 14 2020, 03:17:48) \n");
-        expect(await stderr.readLine()).to.equal("[Wasm WASI vClang 9.0.0 (https://github.com/llvm/llvm-project 0399d5a9682b3cef7 on generic\n");
-        expect(await stderr.readLine()).to.equal('Type "help", "copyright", "credits" or "license" for more information.\n');
+        expect(await stderr.readLine()).to.equal(
+            "Python 3.6.7 (default, Feb 14 2020, 03:17:48) \n",
+        );
+        expect(await stderr.readLine()).to.equal(
+            "[Wasm WASI vClang 9.0.0 (https://github.com/llvm/llvm-project 0399d5a9682b3cef7 on generic\n",
+        );
+        expect(await stderr.readLine()).to.equal(
+            'Type "help", "copyright", "credits" or "license" for more information.\n',
+        );
 
         // Then, send the command to the REPL
         await stdin.writeln("import sys");
@@ -204,9 +211,9 @@ describe("Wasmer.spawn", function() {
 
     it("can see a mounted directory", async () => {
         const dir = new Directory();
+        const pkg = await Wasmer.fromRegistry("sharrattj/coreutils");
 
-        const instance = await wasmer.spawn("sharrattj/coreutils", {
-            command: "ls",
+        const instance = await pkg.commands["ls"].run({
             args: ["/"],
             mount: { "/mounted": dir },
         });
@@ -220,9 +227,9 @@ describe("Wasmer.spawn", function() {
     it("can see files in a mounted directory", async () => {
         const dir = new Directory();
         await dir.writeFile("/file.txt", new Uint8Array());
+        const pkg = await Wasmer.fromRegistry("sharrattj/coreutils");
 
-        const instance = await wasmer.spawn("sharrattj/coreutils", {
-            command: "ls",
+        const instance = await pkg.commands["ls"].run({
             stdin: "",
             args: ["/mounted"],
             mount: { "/mounted": dir },
@@ -237,9 +244,9 @@ describe("Wasmer.spawn", function() {
     it("can read from a mounted file", async () => {
         const dir = new Directory();
         await dir.writeFile("/file.txt", encoder.encode("Hello, World!"));
+        const pkg = await Wasmer.fromRegistry("sharrattj/coreutils");
 
-        const instance = await wasmer.spawn("sharrattj/coreutils", {
-            command: "cat",
+        const instance = await pkg.commands["cat"].run({
             args: ["/mounted/file.txt"],
             mount: { "/mounted": dir },
         });
@@ -253,9 +260,9 @@ describe("Wasmer.spawn", function() {
     it("can delete files from a mounted directory", async () => {
         const dir = new Directory();
         await dir.writeFile("/file.txt", encoder.encode("Hello, World!"));
+        const pkg = await Wasmer.fromRegistry("sharrattj/coreutils");
 
-        const instance = await wasmer.spawn("sharrattj/coreutils", {
-            command: "rm",
+        const instance = await pkg.commands["rm"].run({
             args: ["/mounted/file.txt"],
             mount: { "/mounted": dir },
         });
@@ -268,9 +275,9 @@ describe("Wasmer.spawn", function() {
     it("can delete directories from a mounted directory", async () => {
         const dir = new Directory();
         await dir.createDir("/nested-dir");
+        const pkg = await Wasmer.fromRegistry("sharrattj/coreutils");
 
-        const instance = await wasmer.spawn("sharrattj/coreutils", {
-            command: "rmdir",
+        const instance = await pkg.commands["rmdir"].run({
             args: ["/mounted/nested-dir"],
             mount: { "/mounted": dir },
         });
@@ -282,35 +289,38 @@ describe("Wasmer.spawn", function() {
 
     it("can write to a mounted directory", async () => {
         const dir = new Directory();
+        const pkg = await Wasmer.fromRegistry("sharrattj/bash");
 
-        const instance = await wasmer.spawn("sharrattj/bash", {
-            command: "bash",
+        const instance = await pkg.commands["bash"].run({
             args: ["-c", "echo 'Something else' > /mounted/another-file.txt"],
             mount: { "/mounted": dir },
         });
         await instance.wait();
 
-        expect(await dir.readTextFile("/another-file.txt")).to.equal("Something else\n");
+        expect(await dir.readTextFile("/another-file.txt")).to.equal(
+            "Something else\n",
+        );
     });
 });
 
 // FIXME: Re-enable these test and move it to the "Wasmer.spawn" test suite
 // when we fix TTY handling with static inputs.
-describe.skip("failing tty handling tests", function() {
+describe.skip("failing tty handling tests", function () {
     let wasmer: Wasmer;
 
-    this.timeout("120s")
-        .beforeAll(async () => {
-            await initialized;
+    this.timeout("120s").beforeAll(async () => {
+        await initialized;
 
-            // Note: technically we should use a separate Wasmer instance so tests can't
-            // interact with each other, but in this case the caching benefits mean we
-            // complete in tens of seconds rather than several minutes.
-            wasmer = new Wasmer();
-        });
+        // Note: technically we should use a separate Wasmer instance so tests can't
+        // interact with each other, but in this case the caching benefits mean we
+        // complete in tens of seconds rather than several minutes.
+        wasmer = new Wasmer();
+    });
 
     it("can run a bash session non-interactively", async () => {
-        const instance = await wasmer.spawn("sharrattj/bash", {
+        const pkg = await Wasmer.fromRegistry("sharrattj/bash");
+
+        const instance = await pkg.commands["bash"].run({
             stdin: "ls / && exit 42\n",
         });
         console.log("Spawned");
@@ -323,7 +333,9 @@ describe.skip("failing tty handling tests", function() {
     });
 
     it.skip("can communicate with a subprocess", async () => {
-        const instance = await wasmer.spawn("sharrattj/bash", {
+        const pkg = await Wasmer.fromRegistry("sharrattj/bash");
+
+        const instance = await pkg.commands["bash"].run({
             uses: ["christoph/wasix-test-stdinout@0.1.1"],
         });
 
@@ -343,7 +355,6 @@ describe.skip("failing tty handling tests", function() {
         console.log(output);
         expect(output.code).to.equal(0);
     });
-
 });
 
 /**
@@ -355,7 +366,7 @@ describe.skip("failing tty handling tests", function() {
  */
 class RealisticWriter {
     private encoder = new TextEncoder();
-    constructor(readonly stream: WritableStream<Uint8Array>) { }
+    constructor(readonly stream: WritableStream<Uint8Array>) {}
 
     async writeln(text: string): Promise<void> {
         await this.write(text + "\r\n");
@@ -365,12 +376,12 @@ class RealisticWriter {
         const writer = this.stream.getWriter();
 
         try {
-        const message = this.encoder.encode(text);
+            const message = this.encoder.encode(text);
 
-        for (const byte of message) {
-            await writer.ready;
-            await writer.write(Uint8Array.of(byte));
-        }
+            for (const byte of message) {
+                await writer.ready;
+                await writer.write(Uint8Array.of(byte));
+            }
         } finally {
             // Note: wait for all bytes to be flushed before returning.
             await writer.ready;
@@ -391,21 +402,24 @@ class BufReader {
     private decoder = new TextDecoder();
     private chunks: AsyncGenerator<Uint8Array, undefined>;
 
-    constructor(stream: ReadableStream<Uint8Array>, private verbose: boolean = false) {
+    constructor(
+        stream: ReadableStream<Uint8Array>,
+        private verbose: boolean = false,
+    ) {
         this.chunks = chunks(stream);
     }
 
-     /**
-      * Consume data until the next newline character or EOF.
-      */
-     async readLine(): Promise<string> {
+    /**
+     * Consume data until the next newline character or EOF.
+     */
+    async readLine(): Promise<string> {
         const pieces: Uint8Array[] = [];
 
-        while (await this.fillBuffer() && this.buffer) {
-            const ASCII_NEWLINE = 0x0A;
+        while ((await this.fillBuffer()) && this.buffer) {
+            const ASCII_NEWLINE = 0x0a;
             const position = this.buffer.findIndex(b => b == ASCII_NEWLINE);
 
-            this.log({buffer: this.peek(), position});
+            this.log({ buffer: this.peek(), position });
 
             if (position < 0) {
                 // Consume the entire chunk.
@@ -421,13 +435,13 @@ class BufReader {
         const line = pieces.map(piece => this.decoder.decode(piece)).join("");
         this.log({ line });
         return line;
-     }
+    }
 
-     /**
-      * Read a line of text, interpreting the ANSI escape codes for clearing the
-      * line and stripping any other formatting.
-      */
-     async readAnsiLine(): Promise<string> {
+    /**
+     * Read a line of text, interpreting the ANSI escape codes for clearing the
+     * line and stripping any other formatting.
+     */
+    async readAnsiLine(): Promise<string> {
         const rawLine = await this.readLine();
 
         // Note: QuickJS uses the "move left by n columns" escape code for
@@ -435,9 +449,9 @@ class BufReader {
         const pieces = rawLine.split(/\x1b\[\d+D/);
         const lastPiece = pieces.pop() || rawLine;
         return lastPiece.replace(ansiEscapeCode, "");
-     }
+    }
 
-     async readToEnd(): Promise<string> {
+    async readToEnd(): Promise<string> {
         // Note: We want to merge all chunks into a single buffer and decode in
         // one hit. Otherwise we'll have O(n²) performance issues and run the
         // risk of chunks not being aligned to UTF-8 code point boundaries when
@@ -453,7 +467,10 @@ class BufReader {
             chunks.push(this.consume());
         }
 
-        const totalByteCount = chunks.reduce((accumulator, element) => accumulator + element.byteLength, 0);
+        const totalByteCount = chunks.reduce(
+            (accumulator, element) => accumulator + element.byteLength,
+            0,
+        );
         const buffer = new Uint8Array(totalByteCount);
         let offset = 0;
 
@@ -465,23 +482,23 @@ class BufReader {
         const text = this.decoder.decode(buffer);
         this.log({ text });
         return text;
-     }
+    }
 
-     async close() {
+    async close() {
         await this.chunks.return(undefined);
-     }
+    }
 
-     peek(): string | undefined {
+    peek(): string | undefined {
         if (this.buffer) {
             return this.decoder.decode(this.buffer);
         }
-     }
+    }
 
-     /**
-      * Try to read more bytes into the buffer if it was previously empty.
-      * @returns whether the buffer was filled.
-      */
-     private async fillBuffer() {
+    /**
+     * Try to read more bytes into the buffer if it was previously empty.
+     * @returns whether the buffer was filled.
+     */
+    private async fillBuffer() {
         if (this.buffer && this.buffer.byteLength > 0) {
             return true;
         }
@@ -495,26 +512,25 @@ class BufReader {
             this.buffer = undefined;
             return false;
         }
-     }
+    }
 
-     /**
-      * Remove some bytes from the front of `this.buffer`, returning the bytes
-      * that were removed. The buffer will be set to `undefined` if all bytes
-      * have been consumed.
-      *
-      * @param amount The number of bytes to remove
-      * @returns The removed bytes
-      * @throws If the buffer was `undefined` or more bytes were requested than
-      * are available
-      */
-     private consume(amount?: number): Uint8Array {
+    /**
+     * Remove some bytes from the front of `this.buffer`, returning the bytes
+     * that were removed. The buffer will be set to `undefined` if all bytes
+     * have been consumed.
+     *
+     * @param amount The number of bytes to remove
+     * @returns The removed bytes
+     * @throws If the buffer was `undefined` or more bytes were requested than
+     * are available
+     */
+    private consume(amount?: number): Uint8Array {
         if (!this.buffer) {
             throw new Error();
         }
 
         if (amount) {
-            if (amount > this.buffer.byteLength)
-            {
+            if (amount > this.buffer.byteLength) {
                 throw new Error();
             }
 
@@ -528,22 +544,24 @@ class BufReader {
             this.buffer = undefined;
             return buffer;
         }
-     }
+    }
 
-     /**
-      * Log a piece of information if the `verbose` flag is set.
-      */
-     private log(value: any) {
+    /**
+     * Log a piece of information if the `verbose` flag is set.
+     */
+    private log(value: any) {
         if (this.verbose) {
             console.log(value);
         }
-     }
+    }
 }
 
 /**
  * Turn a ReadableStream into an async generator.
  */
-async function* chunks(stream: ReadableStream<Uint8Array>): AsyncGenerator<Uint8Array> {
+async function* chunks(
+    stream: ReadableStream<Uint8Array>,
+): AsyncGenerator<Uint8Array> {
     const reader = stream.getReader();
 
     try {
@@ -555,8 +573,7 @@ async function* chunks(stream: ReadableStream<Uint8Array>): AsyncGenerator<Uint8
             if (chunk.value) {
                 yield chunk.value;
             }
-        } while(!chunk.done);
-
+        } while (!chunk.done);
     } finally {
         reader.releaseLock();
     }

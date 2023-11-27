@@ -131,10 +131,6 @@ impl Runtime {
         &self.tty
     }
 
-    pub(crate) fn package_loader(&self) -> &Arc<crate::package_loader::PackageLoader> {
-        &self.package_loader
-    }
-
     pub(crate) fn set_connected_to_tty(&self, state: bool) {
         self.connected_to_tty
             .store(state, std::sync::atomic::Ordering::SeqCst);

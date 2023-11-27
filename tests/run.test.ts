@@ -1,19 +1,26 @@
-import { expect } from '@esm-bundle/chai';
-import { Runtime, run, wat2wasm, Wasmer, Container, init, initializeLogger, Directory } from "..";
+import { expect } from "@esm-bundle/chai";
+import {
+    Runtime,
+    run,
+    wat2wasm,
+    Wasmer,
+    init,
+    initializeLogger,
+    Directory,
+} from "..";
 
-let wasmer: Wasmer;
+let runtime: Runtime;
 const decoder = new TextDecoder("utf-8");
 const encoder = new TextEncoder();
 
 const initialized = (async () => {
     await init();
     initializeLogger("warn");
-    wasmer = new Wasmer();
+    runtime = new Runtime();
 })();
 
-describe("run", function() {
-    this.timeout("60s")
-        .beforeAll(async () => await initialized);
+describe("run", function () {
+    this.timeout("60s").beforeAll(async () => await initialized);
 
     it("can execute a noop program", async () => {
         const noop = `(
@@ -24,7 +31,6 @@ describe("run", function() {
             )`;
         const wasm = wat2wasm(noop);
         const module = await WebAssembly.compile(wasm);
-        const runtime = new Runtime({ poolSize: 2 });
 
         const instance = await run(module, { program: "noop", runtime });
         const output = await instance.wait();
@@ -34,11 +40,15 @@ describe("run", function() {
     });
 
     it("can start quickjs", async () => {
-        const runtime = wasmer.runtime();
-        const container = await Container.from_registry("saghul/quickjs@0.0.3", runtime);
-        const module = await WebAssembly.compile(container.get_atom("quickjs")!);
+        const pkg = await Wasmer.fromRegistry("saghul/quickjs@0.0.3");
+        const quickjs = pkg.commands["quickjs"].binary();
+        const module = await WebAssembly.compile(quickjs);
 
-        const instance = await run(module, { program: "quickjs", args: ["--eval", "console.log('Hello, World!')"], runtime });
+        const instance = await run(module, {
+            program: "quickjs",
+            args: ["--eval", "console.log('Hello, World!')"],
+            runtime,
+        });
         const output = await instance.wait();
 
         expect(output.ok).to.be.true;
@@ -48,20 +58,24 @@ describe("run", function() {
     });
 
     it("can read directories", async () => {
-        const runtime = wasmer.runtime();
         const dir = new Directory();
         await dir.writeFile("/file.txt", "");
-        const container = await Container.from_registry("saghul/quickjs@0.0.3", runtime);
-        const module = container.get_atom("quickjs")!;
+        const pkg = await Wasmer.fromRegistry("saghul/quickjs@0.0.3");
+        const quickjs = pkg.commands["quickjs"].binary();
+        const module = await WebAssembly.compile(quickjs);
 
         const instance = await run(module, {
             program: "quickjs",
-            args: ["--std", "--eval", `[dirs] = os.readdir("/"); console.log(dirs.join("\\n"))`],
+            args: [
+                "--std",
+                "--eval",
+                `[dirs] = os.readdir("/"); console.log(dirs.join("\\n"))`,
+            ],
             runtime,
             mount: {
                 "/mount": dir,
-            }
-         });
+            },
+        });
         const output = await instance.wait();
 
         expect(output.ok).to.be.true;
@@ -71,20 +85,24 @@ describe("run", function() {
     });
 
     it("can read files", async () => {
-        const runtime = wasmer.runtime();
         const tmp = new Directory();
         await tmp.writeFile("/file.txt", encoder.encode("Hello, World!"));
-        const container = await Container.from_registry("saghul/quickjs@0.0.3", runtime);
-        const module = container.get_atom("quickjs")!;
+        const pkg = await Wasmer.fromRegistry("saghul/quickjs@0.0.3");
+        const quickjs = pkg.commands["quickjs"].binary();
+        const module = await WebAssembly.compile(quickjs);
 
         const instance = await run(module, {
             program: "quickjs",
-            args: ["--std", "--eval", `console.log(std.open('/tmp/file.txt', "r").readAsString())`],
+            args: [
+                "--std",
+                "--eval",
+                `console.log(std.open('/tmp/file.txt', "r").readAsString())`,
+            ],
             runtime,
             mount: {
                 "/tmp": tmp,
-            }
-         });
+            },
+        });
         const output = await instance.wait();
 
         expect(output.ok).to.be.true;
@@ -94,10 +112,10 @@ describe("run", function() {
     });
 
     it("can write files", async () => {
-        const runtime = wasmer.runtime();
         const dir = new Directory();
-        const container = await Container.from_registry("saghul/quickjs@0.0.3", runtime);
-        const module = await WebAssembly.compile(container.get_atom("quickjs")!);
+        const pkg = await Wasmer.fromRegistry("saghul/quickjs@0.0.3");
+        const quickjs = pkg.commands["quickjs"].binary();
+        const module = await WebAssembly.compile(quickjs);
         const script = `
             const f = std.open('/mount/file.txt', 'w');
             f.puts('Hello, World!');
@@ -110,8 +128,8 @@ describe("run", function() {
             runtime,
             mount: {
                 "/mount": dir,
-            }
-         });
+            },
+        });
         const output = await instance.wait();
 
         expect(output.ok).to.be.true;

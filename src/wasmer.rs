@@ -1,12 +1,11 @@
 use std::sync::Arc;
 
-use anyhow::Context;
 use bytes::BytesMut;
 use futures::{channel::oneshot, TryStreamExt};
-use js_sys::JsString;
+use js_sys::{JsString, Reflect, Uint8Array};
 use tracing::Instrument;
 use virtual_fs::{AsyncReadExt, Pipe};
-use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
+use wasm_bindgen::{prelude::wasm_bindgen, JsValue, UnwrapThrowExt};
 use wasmer_wasix::{
     bin_factory::BinaryPackage,
     os::{Tty, TtyOptions},
@@ -18,76 +17,135 @@ use web_sys::{ReadableStream, WritableStream};
 
 use crate::{
     instance::ExitCondition,
+    runtime::Runtime,
     utils::{Error, GlobalScope},
-    Instance, JsRuntime, Runtime, SpawnOptions,
+    Instance, JsRuntime, SpawnOptions,
 };
 
-/// The entrypoint to the Wasmer SDK.
+/// A package from the Wasmer registry.
+///
+/// @example
+/// ```ts
+/// import { Wasmer } from "@wasmer/sdk";
+///
+/// const pkg = await Wasmer.fromRegistry("wasmer/python");
+/// const instance = await pkg.entrypoint!.run({ args: ["--version"]});
+/// const { ok, code, stdout, stderr } = await instance.wait();
+///
+/// if (ok) {
+///     const decoder = new TextDecoder("utf-8");
+///     console.log(`Version:`, decoder.decode(stdout).trim());
+/// } else {
+///     throw new Error(`Python exited with ${code}: ${stderr}`);
+/// }
+/// ```
+#[derive(Debug, Clone)]
 #[wasm_bindgen]
 pub struct Wasmer {
-    runtime: Arc<Runtime>,
-    _api_key: Option<String>,
+    /// The package's entrypoint.
+    #[wasm_bindgen(getter_with_clone)]
+    pub entrypoint: Option<Command>,
+    /// A map containing all commands available to the package (including
+    /// dependencies).
+    #[wasm_bindgen(getter_with_clone)]
+    pub commands: Commands,
 }
 
 #[wasm_bindgen]
 impl Wasmer {
-    #[wasm_bindgen(constructor)]
-    pub fn new(cfg: Option<WasmerConfig>) -> Result<Wasmer, Error> {
-        let cfg = cfg.unwrap_or_default();
-
-        let mut runtime = Runtime::with_defaults()?;
-
-        if let Some(registry_url) = cfg.parse_registry_url() {
-            runtime.set_registry(&registry_url, None)?;
-        }
-        if let Some(gateway) = cfg.network_gateway() {
-            runtime.set_network_gateway(gateway.into());
-        }
-
-        Ok(Wasmer {
-            runtime: Arc::new(runtime),
-            _api_key: cfg.api_key().map(String::from),
-        })
+    /// Load a package from the Wasmer registry.
+    #[wasm_bindgen(js_name = "fromRegistry")]
+    pub async fn js_from_registry(
+        specifier: &str,
+        runtime: Option<OptionalRuntime>,
+    ) -> Result<Wasmer, Error> {
+        Wasmer::from_registry(specifier, runtime).await
     }
 
-    #[wasm_bindgen(js_name = "spawn")]
-    pub async fn js_spawn(
-        &self,
-        app_id: String,
-        config: Option<SpawnOptions>,
-    ) -> Result<Instance, Error> {
-        self.spawn(app_id, config).await
-    }
-
-    pub fn runtime(&self) -> JsRuntime {
-        JsRuntime::from(self.runtime.clone())
+    /// Load a package from a `*.webc` file.
+    #[wasm_bindgen(js_name = "fromWebc")]
+    pub async fn js_from_webc(
+        webc: Uint8Array,
+        runtime: Option<OptionalRuntime>,
+    ) -> Result<Wasmer, Error> {
+        Wasmer::from_webc(webc.to_vec(), runtime).await
     }
 }
 
+/// The actual impl - with `#[tracing::instrument]` macros.
 impl Wasmer {
-    #[tracing::instrument(skip_all)]
-    async fn spawn(&self, app_id: String, config: Option<SpawnOptions>) -> Result<Instance, Error> {
-        let specifier: PackageSpecifier = app_id.parse()?;
-        let config = config.unwrap_or_default();
-
-        let runtime = match config.runtime().as_runtime() {
-            Some(rt) => Arc::clone(&*rt),
-            None => Arc::clone(&self.runtime),
-        };
-
+    #[tracing::instrument(skip(runtime))]
+    async fn from_registry(
+        specifier: &str,
+        runtime: Option<OptionalRuntime>,
+    ) -> Result<Self, Error> {
+        let specifier = PackageSpecifier::parse(specifier)?;
+        let runtime = runtime.unwrap_or_default().resolve()?.into_inner();
         let pkg = BinaryPackage::from_registry(&specifier, &*runtime).await?;
-        let command_name = config
-            .command()
-            .as_string()
-            .or_else(|| pkg.entrypoint_cmd.clone())
-            .context("No command name specified")?;
 
+        Wasmer::from_package(pkg, runtime)
+    }
+
+    #[tracing::instrument(skip(runtime))]
+    async fn from_webc(webc: Vec<u8>, runtime: Option<OptionalRuntime>) -> Result<Self, Error> {
+        let runtime = runtime.unwrap_or_default().resolve()?.into_inner();
+        let container = webc::Container::from_bytes(webc)?;
+        let pkg = BinaryPackage::from_webc(&container, &*runtime).await?;
+
+        Wasmer::from_package(pkg, runtime)
+    }
+
+    fn from_package(pkg: BinaryPackage, runtime: Arc<Runtime>) -> Result<Self, Error> {
+        let pkg = Arc::new(pkg);
+        let commands = Commands::default();
+
+        for cmd in &pkg.commands {
+            let name = JsString::from(cmd.name());
+            let value = JsValue::from(Command {
+                name: name.clone(),
+                runtime: Arc::clone(&runtime),
+                pkg: Arc::clone(&pkg),
+            });
+            Reflect::set(&commands, &name, &value).map_err(Error::js)?;
+        }
+
+        let entrypoint = pkg.entrypoint_cmd.as_deref().map(|name| Command {
+            name: name.into(),
+            pkg: Arc::clone(&pkg),
+            runtime,
+        });
+
+        Ok(Wasmer {
+            entrypoint,
+            commands,
+        })
+    }
+}
+
+/// A runnable WASIX command.
+#[derive(Debug, Clone)]
+#[wasm_bindgen]
+pub struct Command {
+    #[wasm_bindgen(getter_with_clone)]
+    pub name: JsString,
+    pkg: Arc<BinaryPackage>,
+    runtime: Arc<Runtime>,
+}
+
+#[wasm_bindgen]
+impl Command {
+    pub async fn run(&self, options: Option<SpawnOptions>) -> Result<Instance, Error> {
+        let runtime = Arc::clone(&self.runtime);
+        let pkg = Arc::clone(&self.pkg);
         let tasks = Arc::clone(runtime.task_manager());
 
-        let mut runner = WasiRunner::new();
-        let (stdin, stdout, stderr) = configure_runner(&config, &mut runner, &runtime).await?;
+        let options = options.unwrap_or_default();
 
-        tracing::debug!(%specifier, %command_name, "Starting the WASI runner");
+        let mut runner = WasiRunner::new();
+        let (stdin, stdout, stderr) = configure_runner(&options, &mut runner, &runtime).await?;
+        let command_name = String::from(&self.name);
+
+        tracing::debug!(%command_name, "Starting the WASI runner");
 
         let (sender, receiver) = oneshot::channel();
 
@@ -104,6 +162,45 @@ impl Wasmer {
             stderr,
             exit: receiver,
         })
+    }
+
+    /// Read the binary that will be
+    pub fn binary(&self) -> Uint8Array {
+        let name = String::from(&self.name);
+        let cmd = self.pkg.get_command(&name).unwrap_throw();
+        Uint8Array::from(cmd.atom())
+    }
+}
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(typescript_type = "Record<string, Command>", extends = js_sys::Object)]
+    #[derive(Clone, Default, Debug)]
+    pub type Commands;
+
+    /// A helper to allow functions to take a `runtime?: Runtime` parameter.
+    #[wasm_bindgen(typescript_type = "Runtime")]
+    pub type OptionalRuntime;
+}
+
+impl OptionalRuntime {
+    fn resolve(&self) -> Result<JsRuntime, Error> {
+        let js_value: &JsValue = self.as_ref();
+
+        if js_value.is_undefined() {
+            Runtime::lazily_initialized().map(JsRuntime::from)
+        } else {
+            let rt = JsRuntime::try_from(js_value).expect_throw("Expected a runtime");
+            Ok(rt)
+        }
+    }
+}
+
+impl Default for OptionalRuntime {
+    fn default() -> Self {
+        Self {
+            obj: JsValue::UNDEFINED,
+        }
     }
 }
 
@@ -310,83 +407,4 @@ async fn load_package(pkg: &str, runtime: &Runtime) -> Result<BinaryPackage, Err
     let pkg = BinaryPackage::from_registry(&specifier, runtime).await?;
 
     Ok(pkg)
-}
-
-#[wasm_bindgen(typescript_custom_section)]
-const WASMER_CONFIG_TYPE_DEFINITION: &'static str = r#"
-/**
- * Configuration used when initializing the Wasmer SDK.
- */
-export type WasmerConfig = {
-    /**
-     * The maximum number of threads to use.
-     *
-     * Note that setting this value too low may starve the threadpool of CPU
-     * resources, which may lead to deadlocks (e.g. one blocking operation waits
-     * on the result of another, but that other operation never gets a chance to
-     * run because there aren't any free threads).
-     *
-     * If not provided, this defaults to `16 * navigator.hardwareConcurrency`.
-     */
-     poolSize?: number;
-
-     /**
-      * An API key to use when interacting with the Wasmer registry.
-      */
-      apiKey?: string;
-
-      /**
-       * Set the registry that packages will be fetched from.
-       *
-       * If null, no registry will be used and looking up packages will always
-       * fail.
-       *
-       * If undefined, will fall back to the default Wasmer registry.
-       */
-      registryUrl: string | null | undefined;
-
-      /**
-       * Enable networking (i.e. TCP and UDP) via a gateway server.
-       */
-      networkGateway?: string;
-}
-"#;
-
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(typescript_type = "WasmerConfig")]
-    pub type WasmerConfig;
-
-    #[wasm_bindgen(method, getter)]
-    fn pool_size(this: &WasmerConfig) -> Option<usize>;
-
-    #[wasm_bindgen(method, getter)]
-    fn api_key(this: &WasmerConfig) -> Option<JsString>;
-
-    #[wasm_bindgen(method, getter)]
-    fn registry_url(this: &WasmerConfig) -> JsValue;
-
-    #[wasm_bindgen(method, getter)]
-    fn network_gateway(this: &WasmerConfig) -> Option<JsString>;
-}
-
-impl WasmerConfig {
-    fn parse_registry_url(&self) -> Option<String> {
-        let registry_url = self.registry_url();
-        if registry_url.is_null() {
-            None
-        } else if let Some(s) = registry_url.as_string() {
-            Some(s)
-        } else {
-            Some(wasmer_wasix::runtime::resolver::WapmSource::WASMER_PROD_ENDPOINT.to_string())
-        }
-    }
-}
-
-impl Default for WasmerConfig {
-    fn default() -> Self {
-        Self {
-            obj: js_sys::Object::default().into(),
-        }
-    }
 }
