@@ -1,4 +1,4 @@
-import { expect } from '@esm-bundle/chai';
+import { expect } from "@esm-bundle/chai";
 import { Wasmer, init, initializeLogger, Directory } from "..";
 
 let wasmer: Wasmer;
@@ -11,7 +11,7 @@ const initialized = (async () => {
     wasmer = new Wasmer();
 })();
 
-describe("In-Memory Directory", function() {
+describe("In-Memory Directory", function () {
     this.beforeAll(async () => await initialized);
 
     it("read empty dir", async () => {
@@ -37,9 +37,7 @@ describe("In-Memory Directory", function() {
         await dir.writeFile("/file.txt", new Uint8Array());
         const contents = await dir.readDir("/");
 
-        expect(contents).to.deep.equal([
-            { name: "file.txt", type: "file" },
-        ]);
+        expect(contents).to.deep.equal([{ name: "file.txt", type: "file" }]);
     });
 
     it("create child dir", async () => {
@@ -52,4 +50,3 @@ describe("In-Memory Directory", function() {
         ]);
     });
 });
-

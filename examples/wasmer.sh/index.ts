@@ -37,7 +37,7 @@ async function main() {
             const stdin: WritableStreamDefaultWriter<Uint8Array> =
                 instance.stdin!.getWriter();
             subscriptions.push(
-                term.onData((line) => stdin.write(encoder.encode(line))),
+                term.onData(line => stdin.write(encoder.encode(line))),
             );
             copyStream(instance.stdout, term);
             copyStream(instance.stderr, term);
@@ -50,14 +50,14 @@ async function main() {
                 term.writeln("Rebooting...");
             }
         } finally {
-            subscriptions.forEach((d) => d.dispose());
+            subscriptions.forEach(d => d.dispose());
         }
     }
 }
 
 function copyStream(reader: ReadableStream<Uint8Array>, term: Terminal) {
     const writer = new WritableStream<Uint8Array>({
-        write: (chunk) => {
+        write: chunk => {
             term.write(chunk);
         },
     });
