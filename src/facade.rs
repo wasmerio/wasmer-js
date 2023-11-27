@@ -19,7 +19,7 @@ use web_sys::{ReadableStream, WritableStream};
 use crate::{
     instance::ExitCondition,
     utils::{Error, GlobalScope},
-    Instance, RunConfig, Runtime,
+    Instance, Runtime, SpawnOptions,
 };
 
 /// The entrypoint to the Wasmer SDK.
@@ -54,7 +54,7 @@ impl Wasmer {
     pub async fn js_spawn(
         &self,
         app_id: String,
-        config: Option<SpawnConfig>,
+        config: Option<SpawnOptions>,
     ) -> Result<Instance, Error> {
         self.spawn(app_id, config).await
     }
@@ -66,7 +66,7 @@ impl Wasmer {
 
 impl Wasmer {
     #[tracing::instrument(skip_all)]
-    async fn spawn(&self, app_id: String, config: Option<SpawnConfig>) -> Result<Instance, Error> {
+    async fn spawn(&self, app_id: String, config: Option<SpawnOptions>) -> Result<Instance, Error> {
         let specifier: PackageSpecifier = app_id.parse()?;
         let config = config.unwrap_or_default();
 
@@ -84,7 +84,7 @@ impl Wasmer {
         let tasks = Arc::clone(runtime.task_manager());
 
         let mut runner = WasiRunner::new();
-        let (stdin, stdout, stderr) = config.configure_runner(&mut runner, &runtime).await?;
+        let (stdin, stdout, stderr) = configure_runner(&config, &mut runner, &runtime).await?;
 
         tracing::debug!(%specifier, %command_name, "Starting the WASI runner");
 
@@ -106,139 +106,125 @@ impl Wasmer {
     }
 }
 
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(typescript_type = "SpawnConfig", extends = RunConfig)]
-    #[derive(Default)]
-    pub type SpawnConfig;
+pub(crate) async fn configure_runner(
+    options: &SpawnOptions,
+    runner: &mut WasiRunner,
+    runtime: &Runtime,
+) -> Result<
+    (
+        Option<web_sys::WritableStream>,
+        web_sys::ReadableStream,
+        web_sys::ReadableStream,
+    ),
+    Error,
+> {
+    let args = options.parse_args()?;
+    runner.set_args(args);
 
-    #[wasm_bindgen(method, getter)]
-    fn command(this: &SpawnConfig) -> JsValue;
-    #[wasm_bindgen(method, getter)]
-    fn uses(this: &SpawnConfig) -> Option<js_sys::Array>;
-}
+    let env = options.parse_env()?;
+    runner.set_envs(env);
 
-impl SpawnConfig {
-    pub(crate) async fn configure_runner(
-        &self,
-        runner: &mut WasiRunner,
-        runtime: &Runtime,
-    ) -> Result<
-        (
-            Option<web_sys::WritableStream>,
-            web_sys::ReadableStream,
-            web_sys::ReadableStream,
-        ),
-        Error,
-    > {
-        let args = self.parse_args()?;
-        runner.set_args(args);
-
-        let env = self.parse_env()?;
-        runner.set_envs(env);
-
-        for (dest, dir) in self.mounted_directories()? {
-            runner.mount(dest, Arc::new(dir));
-        }
-
-        if let Some(uses) = self.uses() {
-            let uses = crate::utils::js_string_array(uses)?;
-            let packages = load_injected_packages(uses, runtime).await?;
-            runner.add_injected_packages(packages);
-        }
-
-        let (stderr_pipe, stderr_stream) = crate::streams::output_pipe();
-        runner.set_stderr(Box::new(stderr_pipe));
-
-        let options = runtime.tty_options().clone();
-        match self.setup_tty(options) {
-            TerminalMode::Interactive {
-                stdin_pipe,
-                stdout_pipe,
-                stdout_stream,
-                stdin_stream,
-            } => {
-                tracing::debug!("Setting up interactive TTY");
-                runner.set_stdin(Box::new(stdin_pipe));
-                runner.set_stdout(Box::new(stdout_pipe));
-                runtime.set_connected_to_tty(true);
-                Ok((Some(stdin_stream), stdout_stream, stderr_stream))
-            }
-            TerminalMode::NonInteractive { stdin } => {
-                tracing::debug!("Setting up non-interactive TTY");
-                let (stdout_pipe, stdout_stream) = crate::streams::output_pipe();
-                runner.set_stdin(Box::new(stdin));
-                runner.set_stdout(Box::new(stdout_pipe));
-
-                // HACK: Make sure we don't report stdin as interactive.  This
-                // doesn't belong here because now it'll affect every other
-                // instance sharing the same runtime... In theory, every
-                // instance should get its own TTY state, but that's an issue
-                // for wasmer-wasix to work out.
-                runtime.set_connected_to_tty(false);
-
-                Ok((None, stdout_stream, stderr_stream))
-            }
-        }
+    for (dest, dir) in options.mounted_directories()? {
+        runner.mount(dest, Arc::new(dir));
     }
 
-    fn setup_tty(&self, options: TtyOptions) -> TerminalMode {
-        // Handle the simple (non-interactive) case first.
-        if let Some(stdin) = self.read_stdin() {
-            return TerminalMode::NonInteractive {
-                stdin: virtual_fs::StaticFile::new(stdin.into()),
-            };
-        }
+    if let Some(uses) = options.uses() {
+        let uses = crate::utils::js_string_array(uses)?;
+        let packages = load_injected_packages(uses, runtime).await?;
+        runner.add_injected_packages(packages);
+    }
 
-        let (stdout_pipe, stdout_stream) = crate::streams::output_pipe();
+    let (stderr_pipe, stderr_stream) = crate::streams::output_pipe();
+    runner.set_stderr(Box::new(stderr_pipe));
 
-        // Note: Because this is an interactive session, we want to intercept
-        // stdin and let the TTY modify it.
-        //
-        // To do that, we manually copy data from the user's pipe into the TTY,
-        // then the TTY modifies those bytes and writes them to the pipe we gave
-        // to the runtime.
-        //
-        // To avoid confusing the pipes and how stdin data gets moved around,
-        // here's a diagram:
-        //
-        //  ---------------------------------            --------------------          ----------------------------
-        // | stdin_stream (user) u_stdin_rx | --copy--> | (tty) u_stdin_tx  | --pipe-> | stdin_pipe (runtime) ... |
-        // ---------------------------------            --------------------          ----------------------------
-        let (u_stdin_rx, stdin_stream) = crate::streams::input_pipe();
-        let (u_stdin_tx, stdin_pipe) = Pipe::channel();
-
-        let tty = Tty::new(
-            Box::new(u_stdin_tx),
-            Box::new(stdout_pipe.clone()),
-            GlobalScope::current().is_mobile(),
-            options,
-        );
-
-        // Because the TTY is manually copying between pipes, we need to make
-        // sure the stdin pipe passed to the runtime is closed when the user
-        // closes their end.
-        let cleanup = {
-            let stdin_pipe = stdin_pipe.clone();
-            move || {
-                tracing::debug!("Closing stdin");
-                stdin_pipe.close();
-            }
-        };
-
-        // Use the JS event loop to drive our manual user->tty copy
-        wasm_bindgen_futures::spawn_local(
-            copy_stdin_to_tty(u_stdin_rx, tty, cleanup)
-                .in_current_span()
-                .instrument(tracing::debug_span!("tty")),
-        );
-
+    let tty_options = runtime.tty_options().clone();
+    match setup_tty(options, tty_options) {
         TerminalMode::Interactive {
             stdin_pipe,
             stdout_pipe,
             stdout_stream,
             stdin_stream,
+        } => {
+            tracing::debug!("Setting up interactive TTY");
+            runner.set_stdin(Box::new(stdin_pipe));
+            runner.set_stdout(Box::new(stdout_pipe));
+            runtime.set_connected_to_tty(true);
+            Ok((Some(stdin_stream), stdout_stream, stderr_stream))
         }
+        TerminalMode::NonInteractive { stdin } => {
+            tracing::debug!("Setting up non-interactive TTY");
+            let (stdout_pipe, stdout_stream) = crate::streams::output_pipe();
+            runner.set_stdin(Box::new(stdin));
+            runner.set_stdout(Box::new(stdout_pipe));
+
+            // HACK: Make sure we don't report stdin as interactive.  This
+            // doesn't belong here because now it'll affect every other
+            // instance sharing the same runtime... In theory, every
+            // instance should get its own TTY state, but that's an issue
+            // for wasmer-wasix to work out.
+            runtime.set_connected_to_tty(false);
+
+            Ok((None, stdout_stream, stderr_stream))
+        }
+    }
+}
+
+fn setup_tty(options: &SpawnOptions, tty_options: TtyOptions) -> TerminalMode {
+    // Handle the simple (non-interactive) case first.
+    if let Some(stdin) = options.read_stdin() {
+        return TerminalMode::NonInteractive {
+            stdin: virtual_fs::StaticFile::new(stdin.into()),
+        };
+    }
+
+    let (stdout_pipe, stdout_stream) = crate::streams::output_pipe();
+
+    // Note: Because this is an interactive session, we want to intercept
+    // stdin and let the TTY modify it.
+    //
+    // To do that, we manually copy data from the user's pipe into the TTY,
+    // then the TTY modifies those bytes and writes them to the pipe we gave
+    // to the runtime.
+    //
+    // To avoid confusing the pipes and how stdin data gets moved around,
+    // here's a diagram:
+    //
+    //  ---------------------------------            --------------------          ----------------------------
+    // | stdin_stream (user) u_stdin_rx | --copy--> | (tty) u_stdin_tx  | --pipe-> | stdin_pipe (runtime) ... |
+    // ---------------------------------            --------------------          ----------------------------
+    let (u_stdin_rx, stdin_stream) = crate::streams::input_pipe();
+    let (u_stdin_tx, stdin_pipe) = Pipe::channel();
+
+    let tty = Tty::new(
+        Box::new(u_stdin_tx),
+        Box::new(stdout_pipe.clone()),
+        GlobalScope::current().is_mobile(),
+        tty_options,
+    );
+
+    // Because the TTY is manually copying between pipes, we need to make
+    // sure the stdin pipe passed to the runtime is closed when the user
+    // closes their end.
+    let cleanup = {
+        let stdin_pipe = stdin_pipe.clone();
+        move || {
+            tracing::debug!("Closing stdin");
+            stdin_pipe.close();
+        }
+    };
+
+    // Use the JS event loop to drive our manual user->tty copy
+    wasm_bindgen_futures::spawn_local(
+        copy_stdin_to_tty(u_stdin_rx, tty, cleanup)
+            .in_current_span()
+            .instrument(tracing::debug_span!("tty")),
+    );
+
+    TerminalMode::Interactive {
+        stdin_pipe,
+        stdout_pipe,
+        stdout_stream,
+        stdin_stream,
     }
 }
 
@@ -324,24 +310,6 @@ async fn load_package(pkg: &str, runtime: &Runtime) -> Result<BinaryPackage, Err
 
     Ok(pkg)
 }
-
-#[wasm_bindgen(typescript_custom_section)]
-const SPAWN_CONFIG_TYPE_DEFINITION: &'static str = r#"
-/**
- * Configuration used when starting a WASI program.
- */
-export type SpawnConfig = RunConfig & {
-    /**
-     * The name of the command to be run (uses the package's entrypoint if not
-     * defined).
-     */
-    command?: string;
-    /**
-     * Packages that should also be loaded into the WASIX environment.
-     */
-    uses?: string[];
-}
-"#;
 
 #[wasm_bindgen(typescript_custom_section)]
 const WASMER_CONFIG_TYPE_DEFINITION: &'static str = r#"

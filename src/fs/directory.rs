@@ -17,7 +17,7 @@ pub struct Directory(Arc<dyn FileSystem>);
 
 #[wasm_bindgen]
 impl Directory {
-    /// Create a temporary [`Directory`] that holds its contents in memory.
+    /// Create a new {@link Directory}.
     #[wasm_bindgen(constructor)]
     pub fn new(init: Option<DirectoryInit>) -> Result<Directory, Error> {
         match init {
@@ -201,9 +201,19 @@ extern "C" {
     pub type ListOfStrings;
 }
 
+#[wasm_bindgen(typescript_custom_section)]
+const DIRECTORY_INIT_TYPE_DEF: &'static str = r#"
+/**
+ * A mapping from file paths to their contents that can be used to initialize
+ * a {@link Directory}.
+ */
+export type DirectoryInit = Record<string, string | Uint8Array>;
+"#;
+
 #[wasm_bindgen]
 extern "C" {
-    #[wasm_bindgen(typescript_type = "Record<string, string|Uint8Array>", extends = js_sys::Object)]
+    #[wasm_bindgen(typescript_type = "DirectoryInit", extends = js_sys::Object)]
+    #[derive(Debug, Clone, PartialEq)]
     pub type DirectoryInit;
 }
 

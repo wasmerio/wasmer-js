@@ -63,7 +63,7 @@ jobs:
       - name: Build
         run: npm run build
       - name: Generate Docs
-        run: npm run doc
+        run: npm run docs
       - name: Upload API Docs
         uses: JamesIves/github-pages-deploy-action@v4.4.0
         if: github.ref == 'refs/heads/main'
