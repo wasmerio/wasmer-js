@@ -23,6 +23,22 @@ use crate::{
 };
 
 /// A package from the Wasmer registry.
+///
+/// @example
+/// ```ts
+/// import { Wasmer } from "@wasmer/sdk";
+///
+/// const pkg = await Wasmer.fromRegistry("wasmer/python");
+/// const instance = await pkg.entrypoint!.run({ args: ["--version"]});
+/// const { ok, code, stdout, stderr } = await instance.wait();
+///
+/// if (ok) {
+///     const decoder = new TextDecoder("utf-8");
+///     console.log(`Version:`, decoder.decode(stdout).trim());
+/// } else {
+///     throw new Error(`Python exited with ${code}: ${stderr}`);
+/// }
+/// ```
 #[derive(Debug, Clone)]
 #[wasm_bindgen]
 pub struct Wasmer {
@@ -37,12 +53,22 @@ pub struct Wasmer {
 
 #[wasm_bindgen]
 impl Wasmer {
+    /// Load a package from the Wasmer registry.
     #[wasm_bindgen(js_name = "fromRegistry")]
     pub async fn js_from_registry(
         specifier: &str,
         runtime: Option<OptionalRuntime>,
     ) -> Result<Wasmer, Error> {
         Wasmer::from_registry(specifier, runtime).await
+    }
+
+    /// Load a package from a `*.webc` file.
+    #[wasm_bindgen(js_name = "fromWebc")]
+    pub async fn js_from_webc(
+        webc: Uint8Array,
+        runtime: Option<OptionalRuntime>,
+    ) -> Result<Wasmer, Error> {
+        Wasmer::from_webc(webc.to_vec(), runtime).await
     }
 }
 
@@ -52,13 +78,25 @@ impl Wasmer {
     async fn from_registry(
         specifier: &str,
         runtime: Option<OptionalRuntime>,
-    ) -> Result<Wasmer, Error> {
+    ) -> Result<Self, Error> {
         let specifier = PackageSpecifier::parse(specifier)?;
         let runtime = runtime.unwrap_or_default().resolve()?.into_inner();
-
         let pkg = BinaryPackage::from_registry(&specifier, &*runtime).await?;
-        let pkg = Arc::new(pkg);
 
+        Wasmer::from_package(pkg, runtime)
+    }
+
+    #[tracing::instrument(skip(runtime))]
+    async fn from_webc(webc: Vec<u8>, runtime: Option<OptionalRuntime>) -> Result<Self, Error> {
+        let runtime = runtime.unwrap_or_default().resolve()?.into_inner();
+        let container = webc::Container::from_bytes(webc)?;
+        let pkg = BinaryPackage::from_webc(&container, &*runtime).await?;
+
+        Wasmer::from_package(pkg, runtime)
+    }
+
+    fn from_package(pkg: BinaryPackage, runtime: Arc<Runtime>) -> Result<Self, Error> {
+        let pkg = Arc::new(pkg);
         let commands = Commands::default();
 
         for cmd in &pkg.commands {
