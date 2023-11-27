@@ -59,11 +59,11 @@ jobs:
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
       - name: Install JS Dependencies
-        run: npm install
+        run: npm ci
       - name: Build
         run: npm run build
       - name: Generate Docs
-        run: npx typedoc --out docs lib.ts
+        run: npm run doc
       - name: Upload API Docs
         uses: JamesIves/github-pages-deploy-action@v4.4.0
         if: github.ref == 'refs/heads/main'
