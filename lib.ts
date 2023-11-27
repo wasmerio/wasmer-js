@@ -4,7 +4,7 @@ export * from "./pkg/wasmer_js";
 import load, { ThreadPoolWorker } from "./pkg/wasmer_js";
 import wasm_bytes from "./pkg/wasmer_js_bg.wasm";
 
-interface MimeBuffer extends Buffer {
+interface MimeBuffer extends Uint8Array {
     type: string;
     typeFull: string;
     charset: string;
@@ -14,7 +14,7 @@ interface MimeBuffer extends Buffer {
  * Returns a `Buffer` instance from the given data URI `uri`.
  *
  * @param {String} uri Data URI to turn into a Buffer instance
- * @returns {Buffer} Buffer instance from Data URI
+ * @returns {Uint8Array} An array buffer from Data URI
  * @api public
  */
 function dataUriToBuffer(uri: string): MimeBuffer {
@@ -57,9 +57,10 @@ function dataUriToBuffer(uri: string): MimeBuffer {
     }
 
     // get the encoded data portion and decode URI-encoded chars
-    const encoding = base64 ? "base64" : "ascii";
-    const data = unescape(uri.substring(firstComma + 1));
-    const buffer = Buffer.from(data, encoding) as MimeBuffer;
+    const data = decodeURI(uri.substring(firstComma + 1));
+    const buffer = Uint8Array.from(base64 ? atob(data) : data, c =>
+        c.charCodeAt(0),
+    ).buffer as MimeBuffer;
 
     // set `.type` and `.typeFull` properties to MIME type
     buffer.type = type;
