@@ -118,13 +118,13 @@ extern "C" {
     #[wasm_bindgen(typescript_type = "RuntimeOptions")]
     pub type RuntimeOptions;
 
-    #[wasm_bindgen(method, js_name = "poolSize")]
+    #[wasm_bindgen(method, getter, js_name = "poolSize")]
     fn pool_size(this: &RuntimeOptions) -> Option<usize>;
 
-    #[wasm_bindgen(method)]
+    #[wasm_bindgen(method, getter)]
     fn registry(this: &RuntimeOptions) -> Option<MaybeRegistryUrl>;
 
-    #[wasm_bindgen(method, js_name = "apiKey")]
+    #[wasm_bindgen(method, getter, js_name = "apiKey")]
     fn api_key(this: &RuntimeOptions) -> Option<String>;
 
     #[wasm_bindgen(typescript_type = "string | null | undefined")]

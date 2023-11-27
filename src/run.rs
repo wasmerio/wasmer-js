@@ -38,7 +38,6 @@ pub async fn run(wasm_module: WasmModule, config: RunOptions) -> Result<Instance
         Box::new(move |module| {
             let _span = tracing::debug_span!("run").entered();
             let result = builder.run(module).map_err(anyhow::Error::new);
-            tracing::warn!(?result);
             let _ = exit_code_tx.send(ExitCondition::from_result(result));
         }),
     )?;
