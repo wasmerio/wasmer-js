@@ -1,5 +1,5 @@
 import { expect } from "@esm-bundle/chai";
-import { Wasmer, init, initializeLogger, Directory, Runtime } from "..";
+import { Wasmer, init, initializeLogger, Directory } from "..";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder("utf-8");
@@ -44,8 +44,10 @@ describe("Wasmer.spawn", function () {
 
     it("Can communicate with a dumb echo program", async () => {
         // First, start our program in the background
-        const pkg = await Wasmer.fromRegistry("christoph/wasix-test-stdinout@0.1.1");
-        const instance = await pkg.commands[ "stdinout-loop"].run();
+        const pkg = await Wasmer.fromRegistry(
+            "christoph/wasix-test-stdinout@0.1.1",
+        );
+        const instance = await pkg.commands["stdinout-loop"].run();
 
         const stdin = instance.stdin!.getWriter();
         const stdout = new BufReader(instance.stdout);

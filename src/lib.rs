@@ -3,7 +3,6 @@ wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
 extern crate alloc;
 
-mod container;
 pub mod fs;
 mod instance;
 mod js_runtime;
@@ -22,7 +21,6 @@ mod ws;
 use std::sync::Mutex;
 
 pub use crate::{
-    container::{Container, Manifest, Volume},
     fs::{Directory, DirectoryInit},
     instance::{Instance, JsOutput},
     js_runtime::{JsRuntime, RuntimeOptions},
