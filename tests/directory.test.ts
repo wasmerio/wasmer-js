@@ -7,7 +7,7 @@ const encoder = new TextEncoder();
 
 const initialized = (async () => {
     await init();
-    initializeLogger("info");
+    initializeLogger("warn");
     wasmer = new Wasmer();
 })();
 
@@ -37,7 +37,9 @@ describe("In-Memory Directory", function() {
         await dir.writeFile("/file.txt", new Uint8Array());
         const contents = await dir.readDir("/");
 
-        expect(contents).to.deep.equal(["/file.txt"]);
+        expect(contents).to.deep.equal([
+            { name: "file.txt", type: "file" },
+        ]);
     });
 
     it("create child dir", async () => {
@@ -45,7 +47,9 @@ describe("In-Memory Directory", function() {
 
         await dir.createDir("/tmp/");
 
-        expect(await dir.readDir("/")).to.deep.equal(["/tmp"]);
+        expect(await dir.readDir("/")).to.deep.equal([
+            { name: "tmp", type: "dir" },
+        ]);
     });
 });
 

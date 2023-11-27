@@ -7,7 +7,7 @@ const encoder = new TextEncoder();
 
 const initialized = (async () => {
     await init();
-    initializeLogger("info");
+    initializeLogger("warn");
     wasmer = new Wasmer();
 })();
 
@@ -114,11 +114,6 @@ describe("run", function() {
          });
         const output = await instance.wait();
 
-        console.log({
-            ...output,
-            stdout: decoder.decode(output.stdout),
-            stderr: decoder.decode(output.stderr),
-        });
         expect(output.ok).to.be.true;
         expect(await dir.readTextFile("/file.txt")).to.equal("Hello, World!");
     });
