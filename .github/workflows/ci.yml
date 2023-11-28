@@ -40,6 +40,11 @@ jobs:
         run: npm run build:dev
       - name: Integration Tests
         run: npm run test
+      - name: Build Examples
+        run: |
+          npm ci
+          npm run build
+        working-directory: "examples/wasmer.sh"
 
   api-docs:
     name: API Docs
