@@ -46,6 +46,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 16
+          registry-url: 'https://registry.npmjs.org'
       - name: Setup Rust
         uses: dsherret/rust-toolchain-file@v1
       - name: Install wasm-pack
