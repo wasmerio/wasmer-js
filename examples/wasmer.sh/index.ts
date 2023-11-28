@@ -18,9 +18,7 @@ async function main() {
     term.open(document.getElementById("terminal")!);
     fit.fit();
 
-    const wasmer = new Wasmer();
-
-    const runtime = wasmer.runtime();
+    const pkg = await Wasmer.fromRegistry("sharrattj/bash");
 
     term.writeln("Starting...");
 
@@ -28,10 +26,7 @@ async function main() {
         const subscriptions: IDisposable[] = [];
 
         try {
-            const instance = await wasmer.spawn("sharrattj/bash", {
-                args: [],
-                runtime,
-            });
+            const instance = await pkg.entrypoint!.run();
 
             // Connect stdin/stdout/stderr to the terminal
             const stdin: WritableStreamDefaultWriter<Uint8Array> =
