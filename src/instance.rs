@@ -1,6 +1,6 @@
 use futures::{channel::oneshot::Receiver, Stream, StreamExt, TryFutureExt};
 use js_sys::Uint8Array;
-use wasm_bindgen::{prelude::wasm_bindgen, JsCast, JsValue};
+use wasm_bindgen::{closure::Closure, prelude::wasm_bindgen, JsCast, JsValue};
 use wasmer_wasix::WasiRuntimeError;
 
 use crate::utils::Error;
@@ -152,14 +152,40 @@ impl From<Output> for JsOutput {
             &JsValue::from_str("stdout"),
             &Uint8Array::from(stdout.as_slice()),
         );
+        js_sys::Object::define_property(
+            &output,
+            &JsValue::from_str("stdoutUtf8"),
+            &lazily_decoded_string_property(stdout),
+        );
         let _ = js_sys::Reflect::set(
             &output,
             &JsValue::from_str("stderr"),
             &Uint8Array::from(stderr.as_slice()),
         );
+        js_sys::Object::define_property(
+            &output,
+            &JsValue::from_str("stderrUtf8"),
+            &lazily_decoded_string_property(stderr),
+        );
 
         output.unchecked_into()
     }
+}
+
+fn lazily_decoded_string_property(binary: Vec<u8>) -> js_sys::Object {
+    let contents: once_cell::unsync::Lazy<js_sys::JsString, _> =
+        once_cell::unsync::Lazy::new(move || {
+            let utf8 = String::from_utf8_lossy(&binary);
+            js_sys::JsString::from(utf8.as_ref())
+        });
+
+    let property = js_sys::Object::new();
+    let getter: Closure<dyn Fn() -> js_sys::JsString> =
+        Closure::new(move || js_sys::JsString::clone(&contents));
+    js_sys::Reflect::set(&property, &JsValue::from("get"), &getter.into_js_value()).unwrap();
+    js_sys::Reflect::set(&property, &JsValue::from("enumerable"), &JsValue::TRUE).unwrap();
+
+    property
 }
 
 #[wasm_bindgen(typescript_custom_section)]
@@ -171,8 +197,12 @@ export type Output = {
     ok: boolean;
     /* The contents of the program's stdout stream. */
     stdout: Uint8Array;
+    /* The program's stdout stream, decoded as UTF-8. */
+    readonly stdoutUtf8: string;
     /* The contents of the program's stderr stream. */
     stderr: Uint8Array;
+    /* The program's stderr stream, decoded as UTF-8. */
+    readonly stderrUtf8: string;
 }
 "#;
 
