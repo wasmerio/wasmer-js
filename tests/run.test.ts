@@ -1,7 +1,7 @@
 import { expect } from "@esm-bundle/chai";
 import {
     Runtime,
-    run,
+    runWasix,
     wat2wasm,
     Wasmer,
     init,
@@ -32,7 +32,7 @@ describe("run", function () {
         const wasm = wat2wasm(noop);
         const module = await WebAssembly.compile(wasm);
 
-        const instance = await run(module, { program: "noop", runtime });
+        const instance = await runWasix(module, { program: "noop", runtime });
         const output = await instance.wait();
 
         expect(output.ok).to.be.true;
@@ -44,7 +44,7 @@ describe("run", function () {
         const quickjs = pkg.commands["quickjs"].binary();
         const module = await WebAssembly.compile(quickjs);
 
-        const instance = await run(module, {
+        const instance = await runWasix(module, {
             program: "quickjs",
             args: ["--eval", "console.log('Hello, World!')"],
             runtime,
@@ -64,7 +64,7 @@ describe("run", function () {
         const quickjs = pkg.commands["quickjs"].binary();
         const module = await WebAssembly.compile(quickjs);
 
-        const instance = await run(module, {
+        const instance = await runWasix(module, {
             program: "quickjs",
             args: [
                 "--std",
@@ -91,7 +91,7 @@ describe("run", function () {
         const quickjs = pkg.commands["quickjs"].binary();
         const module = await WebAssembly.compile(quickjs);
 
-        const instance = await run(module, {
+        const instance = await runWasix(module, {
             program: "quickjs",
             args: [
                 "--std",
@@ -122,7 +122,7 @@ describe("run", function () {
             f.close();
         `;
 
-        const instance = await run(module, {
+        const instance = await runWasix(module, {
             program: "quickjs",
             args: ["--std", "--eval", script],
             runtime,
