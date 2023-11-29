@@ -1,0 +1,4 @@
+---
+kind: wasmer.io/App.v0
+name: wasmer-examples-wasmer-js-sdk-api-docs
+package: wasmer-examples/wasmer-js-sdk-api-docs

@@ -1,0 +1,10 @@
+[package]
+name = "wasmer-examples/wasmer-sh"
+version = "0.1.0"
+description = "The wasmer.sh website"
+
+[dependencies]
+"wasmer/static-web-server" = "^1"
+
+[fs]
+"/public" = "dist"

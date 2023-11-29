@@ -74,7 +74,7 @@ jobs:
         if: github.ref == 'refs/heads/main'
         with:
           branch: gh-pages
-          folder: docs
+          folder: docs/public
           single-commit: true
 
   lints:

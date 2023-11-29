@@ -1,7 +1,7 @@
 {
     "entryPoints": [
-        "./lib.ts"
+        "../lib.ts"
     ],
-    "out": "docs",
+    "out": "public",
     "$schema": "https://typedoc.org/schema.json"
 }
