@@ -84,7 +84,6 @@ jobs:
         uses: taiki-e/install-action@wasm-pack
       - name: Setup Wasmer
         uses: wasmerio/setup-wasmer@v2
-        if: github.ref == 'refs/heads/main'
       - name: Install wasm-strip and wasm-opt
         run: sudo apt-get update && sudo apt-get install -y wabt binaryen
       - name: Rust Cache
