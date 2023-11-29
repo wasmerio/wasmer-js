@@ -1,0 +1,10 @@
+[package]
+name = "wasmer-examples/wasmer-js-sdk-api-docs"
+version = "0.1.5"
+description = "API documentation for the @wasmer/sdk package"
+
+[dependencies]
+"wasmer/static-web-server" = "^1"
+
+[fs]
+public = "public"

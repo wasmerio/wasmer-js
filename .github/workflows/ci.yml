@@ -74,8 +74,17 @@ jobs:
         if: github.ref == 'refs/heads/main'
         with:
           branch: gh-pages
-          folder: docs
+          folder: docs/html
           single-commit: true
+      - name: Setup Wasmer
+        uses: wasmerio/setup-wasmer@v2
+        if: github.ref == 'refs/heads/main'
+      - name: Deploy app to wasmer.io
+        run: wasmer deploy --registry="https://registry.wasmer.io/graphql" --token=${{ secrets.WASMER_CIUSER_PROD_TOKEN }} --non-interactive --no-wait --no-persist-id --publish-package
+        if: github.ref == 'refs/heads/main'
+        continue-on-error: true
+        working-directory: docs
+
 
   lints:
     name: Linting and Formatting
