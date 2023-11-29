@@ -282,6 +282,11 @@ fn in_memory_filesystem(record: &js_sys::Object) -> Result<virtual_fs::mem_fs::F
             create_dir_all(&fs, parent)?;
         }
 
+        tracing::trace!(
+            path=%path.display(),
+            file.length=contents.len(),
+            "Adding file to directory",
+        );
         fs.insert_ro_file(&path, contents.into())
             .with_context(|| format!("Unable to write to \"{}\"", path.display()))?;
     }
@@ -289,10 +294,15 @@ fn in_memory_filesystem(record: &js_sys::Object) -> Result<virtual_fs::mem_fs::F
     Ok(fs)
 }
 
+#[tracing::instrument(level = "trace", skip(fs))]
 fn create_dir_all(fs: &dyn FileSystem, path: &Path) -> Result<(), anyhow::Error> {
     let ancestors: Vec<&Path> = path.ancestors().collect();
 
     for ancestor in ancestors.into_iter().rev() {
+        if fs.read_dir(ancestor).is_ok() {
+            continue;
+        }
+
         fs.create_dir(ancestor).with_context(|| {
             format!("Unable to create the \"{}\" directory", ancestor.display())
         })?;

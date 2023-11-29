@@ -111,6 +111,33 @@ describe("run", function () {
         expect(decoder.decode(output.stderr)).to.be.empty;
     });
 
+    it("can read files mounted using DirectoryInit", async () => {
+        const pkg = await Wasmer.fromRegistry("saghul/quickjs@0.0.3");
+        const quickjs = pkg.commands["quickjs"].binary();
+        const module = await WebAssembly.compile(quickjs);
+
+        const instance = await runWasix(module, {
+            program: "quickjs",
+            args: [
+                "--std",
+                "--eval",
+                `console.log(std.open('/tmp/file.txt', "r").readAsString())`,
+            ],
+            runtime,
+            mount: {
+                "/tmp": {
+                    "file.txt": "Hello, World!"
+                },
+            },
+        });
+        const output = await instance.wait();
+
+        expect(output.ok).to.be.true;
+        expect(output.code).to.equal(0);
+        expect(decoder.decode(output.stdout)).to.equal("Hello, World!");
+        expect(decoder.decode(output.stderr)).to.be.empty;
+    });
+
     it("can write files", async () => {
         const dir = new Directory();
         const pkg = await Wasmer.fromRegistry("saghul/quickjs@0.0.3");
