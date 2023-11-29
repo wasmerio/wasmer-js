@@ -3,6 +3,8 @@ import terser from "@rollup/plugin-terser";
 import pkg from "./package.json" assert { type: "json" };
 import dts from "rollup-plugin-dts";
 import typescript from "@rollup/plugin-typescript";
+import copy from 'rollup-plugin-copy';
+import { babel, getBabelOutputPlugin } from '@rollup/plugin-babel';
 import url from "@rollup/plugin-url";
 
 const LIBRARY_NAME = "Library"; // Change with your library's name
@@ -25,36 +27,47 @@ const makeConfig = (env = "development") => {
         input: "lib.ts",
         external: EXTERNAL,
         output: [
+            // {
+            //     banner,
+            //     name: LIBRARY_NAME,
+            //     file: `dist/${LIBRARY_NAME}.umd.js`,
+            //     format: "umd",
+            //     exports: "auto",
+            //     globals: GLOBALS,
+            // },
+            // {
+            //     banner,
+            //     file: `dist/${LIBRARY_NAME}.cjs`,
+            //     format: "cjs",
+            //     exports: "auto",
+            //     globals: GLOBALS,
+            // },
             {
                 banner,
-                name: LIBRARY_NAME,
-                file: `dist/${LIBRARY_NAME}.umd.js`,
-                format: "umd",
-                exports: "auto",
-                globals: GLOBALS,
-            },
-            {
-                banner,
-                file: `dist/${LIBRARY_NAME}.cjs`,
-                format: "cjs",
-                exports: "auto",
-                globals: GLOBALS,
-            },
-            {
-                banner,
-                file: `dist/${LIBRARY_NAME}.mjs`,
+                file: `dist/${LIBRARY_NAME}.js`,
                 format: "es",
                 exports: "named",
                 globals: GLOBALS,
             },
         ],
         plugins: [
-            typescript(),
-            url({
-                include: ["**/*.wasm"],
-                limit: 100 * 1000 * 1000,
+            getBabelOutputPlugin({
+                presets: ["@babel/env", {  }]
             }),
-            nodePolyfills(),
+            typescript({
+                target: "es3",
+                moduleResolution: "node10"
+            }),
+            // url({
+            //     include: ["**/*.wasm"],
+            //     limit: 100 * 1000 * 1000,
+            // }),
+            // nodePolyfills(),
+            copy({
+                targets: [
+                  { src: ['pkg/wasmer_js_bg.wasm', 'pkg/wasmer_js_bg.wasm.d.ts'], dest: 'dist' },
+                ]
+            })
         ],
     };
 
@@ -73,7 +86,7 @@ const makeConfig = (env = "development") => {
 
 export default commandLineArgs => {
     const configs = [
-        makeConfig(),
+        makeConfig(commandLineArgs.environment === "BUILD:production" ? "production": null),
         {
             input: "./pkg/wasmer_js.d.ts",
             output: [{ file: "dist/pkg/wasmer_js.d.ts", format: "es" }],
@@ -82,9 +95,9 @@ export default commandLineArgs => {
     ];
 
     // Production
-    if (commandLineArgs.environment === "BUILD:production") {
-        configs.push(makeConfig("production"));
-    }
+    // if (commandLineArgs.environment === "BUILD:production") {
+    //     configs.push(makeConfig("production"));
+    // }
 
     return configs;
 };

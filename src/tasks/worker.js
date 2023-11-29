@@ -28,9 +28,13 @@ globalThis.onmessage = async ev => {
         // package was imported.
         let init;
         let ThreadPoolWorker;
-
-        if ("default" in imported && "ThreadPoolWorker" in imported) {
-            init = imported.default;
+        if ("ThreadPoolWorker" in imported) {
+            if ("default" in imported) {
+                init = imported.default;
+            }
+            else if ("init" in imported) {
+                init = imported.init;
+            }
             ThreadPoolWorker = imported.ThreadPoolWorker;
         } else {
             init = globalThis["__WASMER_INTERNALS__"].init;
