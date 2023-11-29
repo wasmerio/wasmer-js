@@ -65,3 +65,45 @@ jobs:
         run: npm publish --access=public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  api-docs:
+    name: API Docs
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+      - name: Setup Rust
+        uses: dsherret/rust-toolchain-file@v1
+      - name: Install wasm-pack
+        uses: taiki-e/install-action@wasm-pack
+      - name: Setup Wasmer
+        uses: wasmerio/setup-wasmer@v2
+        if: github.ref == 'refs/heads/main'
+      - name: Install wasm-strip and wasm-opt
+        run: sudo apt-get update && sudo apt-get install -y wabt binaryen
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+      - name: Install @wasmer/sdk Dependencies
+        run: npm ci
+      - name: Build @wasmer/sdk
+        run: npm run build
+      - name: Generate API Docs
+        run: npm run docs
+      - name: Deploy API Docs to wasmer.io
+        run: wasmer deploy --registry="https://registry.wasmer.io/graphql" --token=${{ secrets.WASMER_CIUSER_PROD_TOKEN }} --non-interactive --no-wait --no-persist-id --publish-package
+        continue-on-error: true
+        working-directory: docs
+      - name: Install wasmer.sh dependencies
+        run: npm ci
+        working-directory: examples/wasmer.sh
+      - name: Build wasmer.sh
+        run: npm run build
+        working-directory: examples/wasmer.sh
+      - name: Deploy wasmer.sh to wasmer.io
+        run: wasmer deploy --registry="https://registry.wasmer.io/graphql" --token=${{ secrets.WASMER_CIUSER_PROD_TOKEN }} --non-interactive --no-wait --no-persist-id --publish-package
+        continue-on-error: true
+        working-directory: examples/wasmer.sh

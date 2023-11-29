@@ -1,0 +1,4 @@
+---
+kind: wasmer.io/App.v0
+name: wasmer-examples-wasmer-sh
+package: wasmer-examples/wasmer-sh
