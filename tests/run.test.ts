@@ -1,7 +1,7 @@
 import { expect } from "@esm-bundle/chai";
 import {
     Runtime,
-    run,
+    runWasix,
     wat2wasm,
     Wasmer,
     init,
@@ -32,7 +32,7 @@ describe("run", function () {
         const wasm = wat2wasm(noop);
         const module = await WebAssembly.compile(wasm);
 
-        const instance = await run(module, { program: "noop", runtime });
+        const instance = await runWasix(module, { program: "noop", runtime });
         const output = await instance.wait();
 
         expect(output.ok).to.be.true;
@@ -44,7 +44,7 @@ describe("run", function () {
         const quickjs = pkg.commands["quickjs"].binary();
         const module = await WebAssembly.compile(quickjs);
 
-        const instance = await run(module, {
+        const instance = await runWasix(module, {
             program: "quickjs",
             args: ["--eval", "console.log('Hello, World!')"],
             runtime,
@@ -64,7 +64,7 @@ describe("run", function () {
         const quickjs = pkg.commands["quickjs"].binary();
         const module = await WebAssembly.compile(quickjs);
 
-        const instance = await run(module, {
+        const instance = await runWasix(module, {
             program: "quickjs",
             args: [
                 "--std",
@@ -91,7 +91,7 @@ describe("run", function () {
         const quickjs = pkg.commands["quickjs"].binary();
         const module = await WebAssembly.compile(quickjs);
 
-        const instance = await run(module, {
+        const instance = await runWasix(module, {
             program: "quickjs",
             args: [
                 "--std",
@@ -101,6 +101,33 @@ describe("run", function () {
             runtime,
             mount: {
                 "/tmp": tmp,
+            },
+        });
+        const output = await instance.wait();
+
+        expect(output.ok).to.be.true;
+        expect(output.code).to.equal(0);
+        expect(decoder.decode(output.stdout)).to.equal("Hello, World!\n");
+        expect(decoder.decode(output.stderr)).to.be.empty;
+    });
+
+    it("can read files mounted using DirectoryInit", async () => {
+        const pkg = await Wasmer.fromRegistry("saghul/quickjs@0.0.3");
+        const quickjs = pkg.commands["quickjs"].binary();
+        const module = await WebAssembly.compile(quickjs);
+
+        const instance = await runWasix(module, {
+            program: "quickjs",
+            args: [
+                "--std",
+                "--eval",
+                `console.log(std.open('/tmp/file.txt', "r").readAsString())`,
+            ],
+            runtime,
+            mount: {
+                "/tmp": {
+                    "file.txt": "Hello, World!"
+                },
             },
         });
         const output = await instance.wait();
@@ -122,7 +149,7 @@ describe("run", function () {
             f.close();
         `;
 
-        const instance = await run(module, {
+        const instance = await runWasix(module, {
             program: "quickjs",
             args: ["--std", "--eval", script],
             runtime,

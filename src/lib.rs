@@ -26,7 +26,7 @@ pub use crate::{
     js_runtime::{JsRuntime, RuntimeOptions},
     logging::initialize_logger,
     options::{RunOptions, SpawnOptions},
-    run::run,
+    run::run_wasix,
     utils::StringOrBytes,
     wasmer::Wasmer,
 };

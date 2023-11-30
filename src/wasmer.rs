@@ -62,13 +62,13 @@ impl Wasmer {
         Wasmer::from_registry(specifier, runtime).await
     }
 
-    /// Load a package from a `*.webc` file.
-    #[wasm_bindgen(js_name = "fromWebc")]
-    pub async fn js_from_webc(
-        webc: Uint8Array,
+    /// Load a package from a package file.
+    #[wasm_bindgen(js_name = "fromFile")]
+    pub async fn js_from_file(
+        binary: Uint8Array,
         runtime: Option<OptionalRuntime>,
     ) -> Result<Wasmer, Error> {
-        Wasmer::from_webc(webc.to_vec(), runtime).await
+        Wasmer::from_file(binary.to_vec(), runtime).await
     }
 }
 
@@ -87,9 +87,9 @@ impl Wasmer {
     }
 
     #[tracing::instrument(skip(runtime))]
-    async fn from_webc(webc: Vec<u8>, runtime: Option<OptionalRuntime>) -> Result<Self, Error> {
+    async fn from_file(binary: Vec<u8>, runtime: Option<OptionalRuntime>) -> Result<Self, Error> {
         let runtime = runtime.unwrap_or_default().resolve()?.into_inner();
-        let container = webc::Container::from_bytes(webc)?;
+        let container = webc::Container::from_bytes(binary)?;
         let pkg = BinaryPackage::from_webc(&container, &*runtime).await?;
 
         Wasmer::from_package(pkg, runtime)

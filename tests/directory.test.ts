@@ -47,4 +47,14 @@ describe("In-Memory Directory", function () {
             { name: "tmp", type: "dir" },
         ]);
     });
+
+    it("can be created with DirectoryInit", async () => {
+        const dir = new Directory({
+            "/file.txt": "file",
+            "/another/nested/file.txt": "another",
+        });
+
+        expect(await dir.readTextFile("/file.txt")).to.equal("file");
+        expect(await dir.readTextFile("/another/nested/file.txt")).to.equal("another");
+    });
 });
