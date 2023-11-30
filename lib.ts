@@ -88,3 +88,8 @@ export const init = load;
 // make sure worker.js gets access to them. Normal exports are removed when
 // using a bundler.
 (globalThis as any)["__WASMER_INTERNALS__"] = { ThreadPoolWorker, init };
+
+// HACK: some bundlers such as webpack uses this on dev mode.
+// We add this functions to allow dev mode work in those bundlers.
+(globalThis as any).$RefreshReg$ = (globalThis as any).$RefreshReg$ || function () {/**/ };
+(globalThis as any).$RefreshSig$ = (globalThis as any).$RefreshSig$ || function () { return function () { } };
