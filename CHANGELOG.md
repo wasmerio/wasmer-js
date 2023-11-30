@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/wasmerio/wasmer-js/compare/wasmer-sdk-v0.4.0...wasmer-sdk-v0.4.1) (2023-11-30)
+
+
+### Bug Fixes
+
+* Set the maximum logging level in release mode to DEBUG ([1648a27](https://github.com/wasmerio/wasmer-js/commit/1648a27ade003e1b196dd48b49f77ad912e75ecc))
+
 ## [0.4.0](https://github.com/wasmerio/wasmer-js/compare/wasmer-sdk-v0.3.0...wasmer-sdk-v0.4.0) (2023-11-30)
 
 
