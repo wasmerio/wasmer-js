@@ -134,7 +134,7 @@ describe("run", function () {
 
         expect(output.ok).to.be.true;
         expect(output.code).to.equal(0);
-        expect(decoder.decode(output.stdout)).to.equal("Hello, World!");
+        expect(decoder.decode(output.stdout)).to.equal("Hello, World!\n");
         expect(decoder.decode(output.stderr)).to.be.empty;
     });
 
