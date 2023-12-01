@@ -1,28 +1,29 @@
 {
-    "name": "@wasmer/shell",
-    "version": "1.0.0",
-    "description": "A Bash terminal in your browser, powered by WebAssembly and WASIX.",
-    "scripts": {
-        "dev": "rollup -c -w",
-        "build": "rollup -c",
-        "fmt": "prettier . --write"
-    },
-    "dependencies": {
-        "@wasmer/sdk": "file:../..",
-        "xterm": "4.19",
-        "xterm-addon-fit": "^0.5.0"
-    },
-    "devDependencies": {
-        "@rollup/plugin-commonjs": "^25.0.4",
-        "@rollup/plugin-node-resolve": "^15.2.1",
-        "@rollup/plugin-typescript": "^11.1.4",
-        "@rollup/plugin-url": "^8.0.1",
-        "@web/rollup-plugin-html": "^2.0.1",
-        "prettier": "^3.1.0",
-        "rollup": "^3.29.3",
-        "rollup-plugin-import-css": "^3.3.4",
-        "rollup-plugin-postcss": "^4.0.2",
-        "rollup-plugin-serve": "^2.0.2"
-    },
-    "browserslist": "> 0.5%, last 2 versions, not dead"
+  "name": "wasmer.sh",
+  "version": "0.0.0",
+  "description": "A bash terminal in your browser, powered by WebAssembly and WASIX.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "author": "",
+  "type": "module",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/wasmerio/wasmer-js/issues"
+  },
+  "homepage": "https://github.com/wasmerio/wasmer-js#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wasmerio/wasmer-js.git"
+  },
+  "dependencies": {
+    "@wasmer/sdk": "^0.4.1",
+    "xterm": "^5.3.0",
+    "xterm-addon-fit": "^0.8.0"
+  },
+  "devDependencies": {
+    "vite": "^5.0.4"
+  }
 }

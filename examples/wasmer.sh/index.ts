@@ -1,17 +1,15 @@
 import "xterm/css/xterm.css";
 
-import { Wasmer, init, initializeLogger } from "@wasmer/sdk";
-import { IDisposable, Terminal } from "xterm";
+import { Wasmer, init, initializeLogger, Instance } from "@wasmer/sdk";
+import { Terminal } from "xterm";
 import { FitAddon } from "xterm-addon-fit";
 
 const encoder = new TextEncoder();
-const logFilter = ["info"].join(",");
 
 async function main() {
     await init();
-    initializeLogger(logFilter);
+    initializeLogger("debug");
 
-    // Create a terminal
     const term = new Terminal({ cursorBlink: true, convertEol: true });
     const fit = new FitAddon();
     term.loadAddon(fit);
@@ -19,44 +17,17 @@ async function main() {
     fit.fit();
 
     const pkg = await Wasmer.fromRegistry("sharrattj/bash");
-
     term.writeln("Starting...");
 
-    while (true) {
-        const subscriptions: IDisposable[] = [];
-
-        try {
-            const instance = await pkg.entrypoint!.run();
-
-            // Connect stdin/stdout/stderr to the terminal
-            const stdin: WritableStreamDefaultWriter<Uint8Array> =
-                instance.stdin!.getWriter();
-            subscriptions.push(
-                term.onData(line => stdin.write(encoder.encode(line))),
-            );
-            copyStream(instance.stdout, term);
-            copyStream(instance.stderr, term);
-
-            // Now, wait until bash exits
-            const { code } = await instance.wait();
-
-            if (code != 0) {
-                term.writeln(`\nExit code: ${code}`);
-                term.writeln("Rebooting...");
-            }
-        } finally {
-            subscriptions.forEach(d => d.dispose());
-        }
-    }
+    const instance = await pkg.entrypoint!.run();
+    connectStreams(instance, term);
 }
 
-function copyStream(reader: ReadableStream<Uint8Array>, term: Terminal) {
-    const writer = new WritableStream<Uint8Array>({
-        write: chunk => {
-            term.write(chunk);
-        },
-    });
-    reader.pipeTo(writer);
+function connectStreams(instance: Instance, term: Terminal) {
+    const stdin = instance.stdin?.getWriter();
+    term.onData(data => stdin?.write(encoder.encode(data)));
+    instance.stdout.pipeTo(new WritableStream({ write: chunk => term.write(chunk) }));
+    instance.stderr.pipeTo(new WritableStream({ write: chunk => term.write(chunk) }));
 }
 
-addEventListener("DOMContentLoaded", () => main());
+main();
