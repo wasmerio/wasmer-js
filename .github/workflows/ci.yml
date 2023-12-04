@@ -70,6 +70,9 @@ jobs:
       - name: Build the Markdown Editor Example
         run: |
           npm install
+          pushd markdown-renderer
+          cargo build --release --target=wasm32-wasi
+          popd
           npm run build
         working-directory: "examples/markdown-editor"
       - name: Build the (Improved) Markdown Editor Example
