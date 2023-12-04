@@ -1,7 +1,7 @@
 [build]
 target = "wasm32-unknown-unknown"
 
-[target.'cfg(target_arch = "wasm32")']
+[target.wasm32-unknown-unknown]
 # Use "wasmer" for running tests when compiled to WebAssembly
 runner = ["wasmer", "run"]
 # This is needed so the module is compiled with atomics support (shared memory)
