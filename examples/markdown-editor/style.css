@@ -1,0 +1,40 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #f4f4f4;
+}
+
+.editor-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    width: 80%;
+    max-width: 1200px;
+    margin: auto;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+}
+
+#markdown-input, #html-output {
+    border: 1px solid #ddd;
+    padding: 10px;
+    height: 400px;
+    overflow: auto;
+}
+
+#markdown-input {
+    resize: none;
+}
+
+#html-output {
+    background-color: #fff;
+    width: 100%;
+    border: none;
+}
