@@ -64,17 +64,17 @@ jobs:
         run: npm run build
       - name: Build the wasmer.sh Example
         run: |
-          npm ci
+          npm install
           npm run build
         working-directory: "examples/wasmer.sh"
       - name: Build the Markdown Editor Example
         run: |
-          npm ci
+          npm install
           npm run build
         working-directory: "examples/markdown-editor"
       - name: Build the (Improved) Markdown Editor Example
         run: |
-          npm ci
+          npm install
           npm run build
         working-directory: "examples/markdown-editor-improved"
 
