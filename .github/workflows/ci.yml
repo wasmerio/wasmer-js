@@ -40,11 +40,21 @@ jobs:
         run: npm run build:dev
       - name: Integration Tests
         run: npm run test
-      - name: Build Examples
+      - name: Build the wasmer.sh Example
         run: |
           npm ci
           npm run build
         working-directory: "examples/wasmer.sh"
+      - name: Build the Markdown Editor Example
+        run: |
+          npm ci
+          npm run build
+        working-directory: "examples/markdown-editor"
+      - name: Build the (Improved) Markdown Editor Example
+        run: |
+          npm ci
+          npm run build
+        working-directory: "examples/markdown-editor-improved"
 
   api-docs:
     name: API Docs
