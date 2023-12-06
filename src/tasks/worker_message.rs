@@ -20,7 +20,6 @@ pub(crate) enum WorkerMessage {
 }
 
 impl WorkerMessage {
-    #[tracing::instrument(level = "debug")]
     pub(crate) unsafe fn try_from_js(value: JsValue) -> Result<Self, Error> {
         let de = Deserializer::new(value);
 

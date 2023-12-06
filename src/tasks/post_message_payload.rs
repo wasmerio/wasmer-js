@@ -45,7 +45,6 @@ mod consts {
 }
 
 impl PostMessagePayload {
-    #[tracing::instrument(level = "debug")]
     pub(crate) fn into_js(self) -> Result<JsValue, crate::utils::Error> {
         match self {
             PostMessagePayload::SpawnAsync(task) => Serializer::new(consts::TYPE_SPAWN_ASYNC)
@@ -84,7 +83,6 @@ impl PostMessagePayload {
     ///
     /// This can only be called if the original [`JsValue`] was created using
     /// [`PostMessagePayload::into_js()`].
-    #[tracing::instrument(level = "debug")]
     pub(crate) unsafe fn try_from_js(value: JsValue) -> Result<Self, crate::utils::Error> {
         let de = crate::tasks::interop::Deserializer::new(value);
 

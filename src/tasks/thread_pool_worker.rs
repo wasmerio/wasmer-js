@@ -22,18 +22,9 @@ impl ThreadPoolWorker {
 
         BusyGuard
     }
-}
 
-#[wasm_bindgen]
-impl ThreadPoolWorker {
-    #[wasm_bindgen(constructor)]
-    pub fn new(id: u32) -> ThreadPoolWorker {
-        ThreadPoolWorker { id }
-    }
-
+    #[tracing::instrument(level = "debug", skip_all, fields(worker.id = self.id))]
     pub async fn handle(&self, msg: JsValue) -> Result<(), crate::utils::Error> {
-        let _span = tracing::debug_span!("handle", worker.id = self.id).entered();
-
         // Safety: The message was created using PostMessagePayload::to_js()
         let msg = unsafe { PostMessagePayload::try_from_js(msg)? };
 
@@ -65,5 +56,18 @@ impl ThreadPoolWorker {
         }
 
         Ok(())
+    }
+}
+
+#[wasm_bindgen]
+impl ThreadPoolWorker {
+    #[wasm_bindgen(constructor)]
+    pub fn new(id: u32) -> ThreadPoolWorker {
+        ThreadPoolWorker { id }
+    }
+
+    #[wasm_bindgen(js_name = "handle")]
+    pub async fn js_handle(&self, msg: JsValue) -> Result<(), crate::utils::Error> {
+        self.handle(msg).await
     }
 }

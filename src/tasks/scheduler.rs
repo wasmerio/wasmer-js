@@ -50,7 +50,7 @@ impl Scheduler {
                 drop(scheduler);
             }
             .in_current_span()
-            .instrument(tracing::debug_span!("scheduler")),
+            .instrument(tracing::debug_span!("scheduler", thread_id = thread_id)),
         );
 
         sender
@@ -77,13 +77,12 @@ impl Scheduler {
     }
 
     pub fn send(&self, msg: SchedulerMessage) -> Result<(), Error> {
-        tracing::debug!(
-            current_thread = wasmer::current_thread_id(),
-            scheduler_thread = self.scheduler_thread_id,
-            ?msg,
-            "Sending message"
-        );
         if wasmer::current_thread_id() == self.scheduler_thread_id {
+            tracing::debug!(
+                current_thread = wasmer::current_thread_id(),
+                ?msg,
+                "Sending message to scheduler"
+            );
             // It's safe to send the message to the scheduler.
             self.channel
                 .send(msg)
