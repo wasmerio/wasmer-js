@@ -129,7 +129,7 @@ impl VirtualTaskManager for ThreadPool {
 
 #[cfg(test)]
 mod tests {
-    use futures::channel::oneshot;
+    use futures::{channel::oneshot, FutureExt};
     use js_sys::Uint8Array;
     use wasm_bindgen::JsCast;
     use wasm_bindgen_futures::JsFuture;
@@ -180,5 +180,55 @@ mod tests {
         let result = receiver.await.unwrap();
         tracing::info!("Received {result}");
         assert_eq!(result, 42);
+    }
+
+    /// This is a regression test for [#355].
+    ///
+    /// Here is a description of the original bug:
+    ///
+    /// > There is a small time between spawning a new Web Worker and when it
+    /// > starts handling its first message. During this time, the worker will be
+    /// > considered "idle" and the scheduler will start sending work to it.
+    /// >
+    /// > That means if you spawn a large number of WASIX threads in quick
+    /// > succession, all of those blocking tasks can be sent to the same newly
+    /// > spawned worker, rather than being sent to their own worker. If the
+    /// > threads depend on each other to make progress, we'll trigger a deadlock.
+    /// >
+    /// > This is what we're seeing when running `ffmpeg`.
+    ///
+    /// [#355]: https://github.com/wasmerio/wasmer-js/pull/355
+    #[wasm_bindgen_test]
+    async fn spawn_interdependent_blocking_tasks_out_of_order() {
+        let (sender_1, receiver_1) = oneshot::channel();
+        let (sender_2, mut receiver_2) = oneshot::channel();
+        // Set things up so we can run 2 blocking tasks at the same time.
+        let pool = ThreadPool::new(NonZeroUsize::new(2).unwrap());
+
+        // Note: The second task depends on the first one completing
+        let first_task = Box::new(move || sender_1.send(()).unwrap());
+        let second_task = Box::new(move || {
+            futures::executor::block_on(receiver_1).unwrap();
+            // let the main thread know we're done
+            sender_2.send(()).unwrap();
+        });
+
+        // Schedule the tasks out of order in quick succession... If there is a
+        // race condition where both blocking tasks get sent to the same newly
+        // created worker, this triggers it pretty reliably.
+        pool.task_dedicated(second_task).unwrap();
+        pool.task_dedicated(first_task).unwrap();
+
+        // If the tasks ran correctly we should get a value. Otherwise, it'll
+        // block forever.
+        let timeout = JsFuture::from(crate::utils::GlobalScope::current().sleep(1000));
+        futures::select! {
+            _ = timeout.fuse() => {
+                panic!("The task was blocked");
+            }
+            _ = receiver_2 => {
+                // Finished successfully
+            }
+        }
     }
 }
