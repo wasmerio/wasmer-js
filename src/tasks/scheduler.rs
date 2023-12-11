@@ -213,30 +213,28 @@ impl SchedulerState {
     /// Send a task to one of the worker threads, preferring workers that aren't
     /// running synchronous work.
     fn post_message(&mut self, msg: PostMessagePayload) -> Result<(), Error> {
-        let worker = self.next_available_worker()?;
+        let (worker, already_blocked) = self.next_available_worker()?;
 
         let would_block = msg.would_block();
         worker.send(msg)?;
 
-        if would_block {
+        if would_block || already_blocked {
             self.busy.push_back(worker);
         } else {
-            // FIXME: If the worker is already blocked (e.g. because we are at
-            // capacity) this will incorrectly mark it as unblocked.
             self.idle.push_back(worker);
         }
 
         Ok(())
     }
 
-    fn next_available_worker(&mut self) -> Result<WorkerHandle, Error> {
+    fn next_available_worker(&mut self) -> Result<(WorkerHandle, bool), Error> {
         // First, try to send the message to an idle worker
         if let Some(worker) = self.idle.pop_front() {
             tracing::trace!(
                 worker.id = worker.id(),
                 "Sending the message to an idle worker"
             );
-            return Ok(worker);
+            return Ok((worker, false));
         }
 
         if self.busy.len() + self.idle.len() < self.capacity.get() {
@@ -248,7 +246,7 @@ impl SchedulerState {
                 worker.id = worker.id(),
                 "Sending the message to a new worker"
             );
-            return Ok(worker);
+            return Ok((worker, false));
         }
 
         // Oh well, looks like there aren't any more idle workers and we can't
@@ -265,7 +263,7 @@ impl SchedulerState {
             "Sending the message to a busy worker"
         );
 
-        Ok(worker)
+        Ok((worker, true))
     }
 
     fn start_worker(&mut self) -> Result<WorkerHandle, Error> {
