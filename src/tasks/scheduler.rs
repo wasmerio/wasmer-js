@@ -5,7 +5,7 @@ use std::{
     sync::atomic::{AtomicU32, Ordering},
 };
 
-use anyhow::{Context, Error};
+use anyhow::Error;
 use tokio::sync::mpsc::UnboundedSender;
 use tokio::sync::mpsc::{self};
 use tracing::Instrument;
@@ -187,7 +187,7 @@ impl SchedulerState {
                 ))
             }
             SchedulerMessage::WorkerBusy { worker_id } => {
-                move_worker(worker_id, &mut self.idle, &mut self.busy)?;
+                move_worker(worker_id, &mut self.idle, &mut self.busy);
                 tracing::trace!(
                     worker.id=worker_id,
                     idle_workers=?self.idle.iter().map(|w| w.id()).collect::<Vec<_>>(),
@@ -197,7 +197,7 @@ impl SchedulerState {
                 Ok(())
             }
             SchedulerMessage::WorkerIdle { worker_id } => {
-                move_worker(worker_id, &mut self.busy, &mut self.idle)?;
+                move_worker(worker_id, &mut self.busy, &mut self.idle);
                 tracing::trace!(
                     worker.id=worker_id,
                     idle_workers=?self.idle.iter().map(|w| w.id()).collect::<Vec<_>>(),
@@ -213,18 +213,30 @@ impl SchedulerState {
     /// Send a task to one of the worker threads, preferring workers that aren't
     /// running synchronous work.
     fn post_message(&mut self, msg: PostMessagePayload) -> Result<(), Error> {
+        let worker = self.next_available_worker()?;
+
+        let would_block = msg.would_block();
+        worker.send(msg)?;
+
+        if would_block {
+            self.busy.push_back(worker);
+        } else {
+            // FIXME: If the worker is already blocked (e.g. because we are at
+            // capacity) this will incorrectly mark it as unblocked.
+            self.idle.push_back(worker);
+        }
+
+        Ok(())
+    }
+
+    fn next_available_worker(&mut self) -> Result<WorkerHandle, Error> {
         // First, try to send the message to an idle worker
         if let Some(worker) = self.idle.pop_front() {
             tracing::trace!(
                 worker.id = worker.id(),
                 "Sending the message to an idle worker"
             );
-
-            // send the job to the worker and move it to the back of the queue
-            worker.send(msg)?;
-            self.idle.push_back(worker);
-
-            return Ok(());
+            return Ok(worker);
         }
 
         if self.busy.len() + self.idle.len() < self.capacity.get() {
@@ -236,13 +248,7 @@ impl SchedulerState {
                 worker.id = worker.id(),
                 "Sending the message to a new worker"
             );
-
-            worker.send(msg)?;
-
-            // Make sure the worker starts off in the idle queue
-            self.idle.push_back(worker);
-
-            return Ok(());
+            return Ok(worker);
         }
 
         // Oh well, looks like there aren't any more idle workers and we can't
@@ -259,13 +265,7 @@ impl SchedulerState {
             "Sending the message to a busy worker"
         );
 
-        // send the job to the worker
-        worker.send(msg)?;
-
-        // Put the worker back in the queue
-        self.busy.push_back(worker);
-
-        Ok(())
+        Ok(worker)
     }
 
     fn start_worker(&mut self) -> Result<WorkerHandle, Error> {
@@ -291,20 +291,11 @@ impl SchedulerState {
     }
 }
 
-fn move_worker(
-    worker_id: u32,
-    from: &mut VecDeque<WorkerHandle>,
-    to: &mut VecDeque<WorkerHandle>,
-) -> Result<(), Error> {
-    let ix = from
-        .iter()
-        .position(|w| w.id() == worker_id)
-        .with_context(|| format!("Unable to move worker #{worker_id}"))?;
-
-    let worker = from.remove(ix).unwrap();
-    to.push_back(worker);
-
-    Ok(())
+fn move_worker(worker_id: u32, from: &mut VecDeque<WorkerHandle>, to: &mut VecDeque<WorkerHandle>) {
+    if let Some(ix) = from.iter().position(|w| w.id() == worker_id) {
+        let worker = from.remove(ix).unwrap();
+        to.push_back(worker);
+    }
 }
 
 #[cfg(test)]
