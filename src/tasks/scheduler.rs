@@ -13,7 +13,10 @@ use wasm_bindgen::{JsCast, JsValue};
 use wasmer::AsJs;
 use wasmer_wasix::runtime::module_cache::ModuleHash;
 
-use crate::tasks::{PostMessagePayload, SchedulerMessage, WorkerHandle, WorkerMessage};
+use crate::tasks::{
+    AsyncJob, BlockingJob, Notification, PostMessagePayload, SchedulerMessage, WorkerHandle,
+    WorkerMessage,
+};
 
 /// A handle for interacting with the threadpool's scheduler.
 #[derive(Debug, Clone)]
@@ -69,6 +72,7 @@ impl Scheduler {
         scheduler_thread_id: u32,
         capacity: NonZeroUsize,
     ) -> Self {
+        debug_assert_eq!(scheduler_thread_id, wasmer::current_thread_id());
         Scheduler {
             channel,
             scheduler_thread_id,
@@ -139,29 +143,31 @@ impl SchedulerState {
     fn execute(&mut self, message: SchedulerMessage) -> Result<(), Error> {
         match message {
             SchedulerMessage::SpawnAsync(task) => {
-                self.post_message(PostMessagePayload::SpawnAsync(task))
+                self.post_message(PostMessagePayload::Async(AsyncJob::Thunk(task)))
             }
             SchedulerMessage::SpawnBlocking(task) => {
-                self.post_message(PostMessagePayload::SpawnBlocking(task))
+                self.post_message(PostMessagePayload::Blocking(BlockingJob::Thunk(task)))
             }
             SchedulerMessage::CacheModule { hash, module } => {
                 let module: js_sys::WebAssembly::Module = JsValue::from(module).unchecked_into();
                 self.cached_modules.insert(hash, module.clone());
 
                 for worker in self.idle.iter().chain(self.busy.iter()) {
-                    worker.send(PostMessagePayload::CacheModule {
-                        hash,
-                        module: module.clone(),
-                    })?;
+                    worker.send(PostMessagePayload::Notification(
+                        Notification::CacheModule {
+                            hash,
+                            module: module.clone(),
+                        },
+                    ))?;
                 }
 
                 Ok(())
             }
             SchedulerMessage::SpawnWithModule { module, task } => {
-                self.post_message(PostMessagePayload::SpawnWithModule {
+                self.post_message(PostMessagePayload::Blocking(BlockingJob::SpawnWithModule {
                     module: JsValue::from(module).unchecked_into(),
                     task,
-                })
+                }))
             }
             SchedulerMessage::SpawnWithModuleAndMemory {
                 module,
@@ -172,11 +178,13 @@ impl SchedulerState {
                 let memory = memory.map(|m| m.as_jsvalue(&temp_store).dyn_into().unwrap());
                 let module = JsValue::from(module).dyn_into().unwrap();
 
-                self.post_message(PostMessagePayload::SpawnWithModuleAndMemory {
-                    module,
-                    memory,
-                    spawn_wasm,
-                })
+                self.post_message(PostMessagePayload::Blocking(
+                    BlockingJob::SpawnWithModuleAndMemory {
+                        module,
+                        memory,
+                        spawn_wasm,
+                    },
+                ))
             }
             SchedulerMessage::WorkerBusy { worker_id } => {
                 move_worker(worker_id, &mut self.idle, &mut self.busy)?;
@@ -272,10 +280,10 @@ impl SchedulerState {
 
         // Prime the worker's module cache
         for (&hash, module) in &self.cached_modules {
-            let msg = PostMessagePayload::CacheModule {
+            let msg = PostMessagePayload::Notification(Notification::CacheModule {
                 hash,
                 module: module.clone(),
-            };
+            });
             handle.send(msg)?;
         }
 
