@@ -35,7 +35,6 @@ impl WorkerMessage {
         }
     }
 
-    #[tracing::instrument(level = "debug")]
     pub(crate) fn into_js(self) -> Result<JsValue, Error> {
         match self {
             WorkerMessage::MarkBusy => Serializer::new(consts::TYPE_BUSY).finish(),

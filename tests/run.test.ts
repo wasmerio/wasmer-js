@@ -126,7 +126,7 @@ describe("run", function () {
             runtime,
             mount: {
                 "/tmp": {
-                    "file.txt": "Hello, World!"
+                    "file.txt": "Hello, World!",
                 },
             },
         });
