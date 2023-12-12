@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wasmer JavaScript SDK</title>
+    <script defer type="module">
+        import { init, Wasmer } from "https://unpkg.com/@wasmer/sdk@latest/dist/Library.mjs";
+
+        async function runPython() {
+            const status = document.getElementById("status");
+
+            status.innerHTML = "Initializing...";
+            await init();
+
+            const packageName = "python/python@3.12";
+            status.innerHTML = `Fetching ${packageName}...`;
+            const pkg = await Wasmer.fromRegistry(packageName);
+
+            status.innerHTML = `Starting ${packageName}...`;
+            const instance = await pkg.entrypoint.run({
+                args: ["-c", "print('Hello, World!')"],
+            });
+
+            status.innerHTML = `Running ${packageName}...`;
+            const { code, stdoutUtf8 } = await instance.wait();
+
+            status.innerHTML = `Exited with status code: ${code}`;
+            const stdout = document.getElementById("stdout");
+            stdout.innerHTML = stdoutUtf8;
+        }
+
+        runPython();
+    </script>
+</head>
+
+<body>
+    <h1 id="status"></h1>
+    <pre><code id="stdout"></code></pre>
+</body>
+
+</html>
