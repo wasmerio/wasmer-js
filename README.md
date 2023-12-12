@@ -28,6 +28,8 @@ The Javascript Package supports:
 
 ## Getting Started
 
+### Install from NPM
+
 For instaling `@wasmer/sdk`, run this command in your shell:
 
 ```bash
@@ -48,6 +50,54 @@ const instance = await pkg.entrypoint.run({
 
 const { code, stdoutUtf8 } = await instance.wait();
 console.log(`Python exited with ${code}: ${stdoutUtf8}`);
+```
+
+### Install from CDN
+
+It is possible to avoid needing to use a bundler by importing `@wasmer/sdk` as
+a UMD module.
+
+By adding the following `<script>` tag to your `index.html` file, the library
+will be available as the `WasmerSDK` global variable.
+
+```html
+<script src="https://unpkg.com/@wasmer/sdk@latest"></script>
+<script>
+    const { init, Wasmer } = WasmerSDK;
+
+      async function runPython() {
+          await init();
+
+          const packageName = "python/python@3.12";
+          const pkg = await Wasmer.fromRegistry(packageName);
+          const instance = await pkg.entrypoint.run({
+              args: ["-c", "print('Hello, World!')"],
+          });
+
+          const { code, stdoutUtf8 } = await instance.wait();
+
+          console.log(`Python exited with ${code}: ${stdoutUtf8}`);
+      }
+
+      runPython();
+</script>
+```
+
+Alternatively, the package can be imported directly from the CDN by turning the
+script into a module.
+
+```html
+<script defer type="module">
+    import { init, Wasmer } from "https://unpkg.com/@wasmer/sdk@latest/dist/Library.mjs";
+
+    async function runPython() {
+        await init();
+
+        ...
+    }
+
+    runPython();
+</script>
 ```
 
 ### Cross-Origin Isolation
