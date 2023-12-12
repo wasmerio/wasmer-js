@@ -74,7 +74,7 @@ impl WorkerHandle {
     }
 }
 
-#[tracing::instrument(level = "trace", skip(msg))]
+#[tracing::instrument(level = "trace", skip_all, fields(worker.id=worker_id))]
 fn on_error(msg: web_sys::ErrorEvent, worker_id: u32) {
     tracing::error!(
         error = %msg.message(),
@@ -85,7 +85,7 @@ fn on_error(msg: web_sys::ErrorEvent, worker_id: u32) {
     );
 }
 
-#[tracing::instrument(level = "trace", skip(msg, sender))]
+#[tracing::instrument(level = "trace", skip_all, fields(worker.id=worker_id))]
 fn on_message(msg: web_sys::MessageEvent, sender: &Scheduler, worker_id: u32) {
     // Safety: The only way we can receive this message is if it was from the
     // worker, because we are the ones that spawned the worker, we can trust

@@ -37,7 +37,7 @@ jobs:
       - name: Unit Tests
         run: wasm-pack test --headless --firefox
       - name: Build Package
-        run: npm run build:dev
+        run: npm run build
       - name: Integration Tests
         run: npm run test
 
