@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.4.1](https://github.com/wasmerio/wasmer-js/compare/wasmer-sdk-v0.4.0...wasmer-sdk-v0.4.1) (2023-11-30)
+
+
+### Bug Fixes
+
+* Set the maximum logging level in release mode to DEBUG ([1648a27](https://github.com/wasmerio/wasmer-js/commit/1648a27ade003e1b196dd48b49f77ad912e75ecc))
+
+## [0.4.0](https://github.com/wasmerio/wasmer-js/compare/wasmer-sdk-v0.3.0...wasmer-sdk-v0.4.0) (2023-11-30)
+
+
+### ⚠ BREAKING CHANGES
+
+* Renamed `Wasmer.fromWebc()` to `Wasmer.fromFile()`
+
+### Features
+
+* The `Output` you get from `await instance.wait()` now contains `stdoutUtf8` and `stderrUtf8` fields with stdout/stderr lazily parsed as UTF-8 strings ([61f3319](https://github.com/wasmerio/wasmer-js/commit/61f3319757ef3a523fabc680510f67da838289f8))
+
+
+### Bug Fixes
+
+* Resolved an issue where constructing a `Directory` with a `DirectoryInit` containing a nested file would error out while creating the file's parent directory ([f45f561](https://github.com/wasmerio/wasmer-js/commit/f45f5619b9b82430a40a9ce25bf5c53c7267f401))
+* Resolved an unconditional panic when passing a `DirectoryInit` to `Command.spawn()` or `runWasix()`'s `mount` argument ([50df67d](https://github.com/wasmerio/wasmer-js/commit/50df67d48198dc4921d39cf6fef9fb4b646d8789))
+
+
+### Code Refactoring
+
+* Renamed `Wasmer.fromWebc()` to `Wasmer.fromFile()` ([8bf6868](https://github.com/wasmerio/wasmer-js/commit/8bf6868fc88cf67b9f8e099cb2af4fddc2115adf))
+
 ## [0.3.0](https://github.com/wasmerio/wasmer-js/compare/wasmer-sdk-v0.2.0...wasmer-sdk-v0.3.0) (2023-11-27)
 
 

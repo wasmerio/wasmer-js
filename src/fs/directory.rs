@@ -8,6 +8,7 @@ use js_sys::Reflect;
 use tracing::Instrument;
 use virtual_fs::{AsyncReadExt, AsyncWriteExt, FileSystem, FileType};
 use wasm_bindgen::{prelude::wasm_bindgen, JsCast, JsValue};
+use wasmer_wasix::runtime::task_manager::InlineWaker;
 
 use crate::{utils::Error, StringOrBytes};
 
@@ -282,17 +283,35 @@ fn in_memory_filesystem(record: &js_sys::Object) -> Result<virtual_fs::mem_fs::F
             create_dir_all(&fs, parent)?;
         }
 
-        fs.insert_ro_file(&path, contents.into())
-            .with_context(|| format!("Unable to write to \"{}\"", path.display()))?;
+        tracing::trace!(
+            path=%path.display(),
+            file.length=contents.len(),
+            "Adding file to directory",
+        );
+        InlineWaker::block_on(async {
+            let mut f = fs
+                .new_open_options()
+                .write(true)
+                .create_new(true)
+                .open(&path)?;
+            f.write_all(&contents).await?;
+            f.flush().await
+        })
+        .with_context(|| format!("Unable to write to \"{}\"", path.display()))?;
     }
 
     Ok(fs)
 }
 
+#[tracing::instrument(level = "trace", skip(fs))]
 fn create_dir_all(fs: &dyn FileSystem, path: &Path) -> Result<(), anyhow::Error> {
     let ancestors: Vec<&Path> = path.ancestors().collect();
 
     for ancestor in ancestors.into_iter().rev() {
+        if fs.read_dir(ancestor).is_ok() {
+            continue;
+        }
+
         fs.create_dir(ancestor).with_context(|| {
             format!("Unable to create the \"{}\" directory", ancestor.display())
         })?;

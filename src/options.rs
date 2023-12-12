@@ -126,10 +126,13 @@ impl CommonOptions {
 
             let value = if let Ok(dir) = Directory::try_from(value) {
                 dir
-            } else {
-                // looks like we need to call the constructor ourselves
-                let init: &DirectoryInit = value.dyn_ref().unwrap();
+            } else if value.is_object() {
+                // looks like we were given parameters for initializing a
+                // Directory and need to call the constructor ourselves
+                let init: &DirectoryInit = value.unchecked_ref();
                 Directory::new(Some(init.clone()))?
+            } else {
+                unreachable!();
             };
             mounted_directories.push((key, value));
         }

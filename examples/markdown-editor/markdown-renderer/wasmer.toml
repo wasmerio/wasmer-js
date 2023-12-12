@@ -1,0 +1,19 @@
+[package]
+name = "wasmer-examples/markdown-renderer"
+version = "0.1.0"
+description = "Render markdown input to HTML"
+entrypoint = "markdown-renderer"
+
+# See more keys and definitions at https://docs.wasmer.io/registry/manifest
+
+[[module]]
+name = "markdown-renderer"
+source = "target/wasm32-wasi/release/markdown-renderer.wasm"
+abi = "wasi"
+
+[module.interfaces]
+wasi = "0.1.0-unstable"
+
+[[command]]
+name = "markdown-renderer"
+module = "markdown-renderer"

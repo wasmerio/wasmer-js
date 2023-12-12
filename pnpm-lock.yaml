@@ -31,6 +31,9 @@ devDependencies:
   '@rollup/plugin-url':
     specifier: ^8.0.2
     version: 8.0.2(rollup@4.6.0)
+  '@rollup/plugin-wasm':
+    specifier: ^6.2.2
+    version: 6.2.2(rollup@4.6.0)
   '@web/dev-server-esbuild':
     specifier: ^0.4.1
     version: 0.4.4
@@ -1613,6 +1616,19 @@ packages:
       '@rollup/pluginutils': 5.1.0(rollup@4.6.0)
       make-dir: 3.1.0
       mime: 3.0.0
+      rollup: 4.6.0
+    dev: true
+
+  /@rollup/plugin-wasm@6.2.2(rollup@4.6.0):
+    resolution: {integrity: sha512-gpC4R1G9Ni92ZIRTexqbhX7U+9estZrbhP+9SRb0DW9xpB9g7j34r+J2hqrcW/lRI7dJaU84MxZM0Rt82tqYPQ==}
+    engines: {node: '>=14.0.0'}
+    peerDependencies:
+      rollup: ^1.20.0||^2.0.0||^3.0.0||^4.0.0
+    peerDependenciesMeta:
+      rollup:
+        optional: true
+    dependencies:
+      '@rollup/pluginutils': 5.1.0(rollup@4.6.0)
       rollup: 4.6.0
     dev: true
 

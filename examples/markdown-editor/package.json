@@ -1,0 +1,27 @@
+{
+  "name": "@wasmer/wasi-modules-example",
+  "version": "0.0.0",
+  "description": "An example that shows how you can run a `*.wasm` binary compiled for WASI preview 1 (or WASIX).",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "type": "module",
+  "main": "index.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wasmerio/wasmer-js.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/wasmerio/wasmer-js/issues"
+  },
+  "homepage": "https://github.com/wasmerio/wasmer-js#readme",
+  "devDependencies": {
+    "vite": "^5.0.4"
+  },
+  "dependencies": {
+    "@wasmer/sdk": "file:../.."
+  }
+}

@@ -5,6 +5,7 @@ import dts from "rollup-plugin-dts";
 import typescript from "@rollup/plugin-typescript";
 import copy from 'rollup-plugin-copy';
 import { babel, getBabelOutputPlugin } from '@rollup/plugin-babel';
+import { wasm } from '@rollup/plugin-wasm';
 import url from "@rollup/plugin-url";
 
 const LIBRARY_NAME = "Library"; // Change with your library's name
@@ -22,9 +23,9 @@ const banner = `/*!
  * @license ${pkg.license}
  */`;
 
-const makeConfig = (env = "development") => {
+const makeConfig = (env = "development", input = "lib.ts", name = LIBRARY_NAME, plugins = []) => {
     const config = {
-        input: "lib.ts",
+        input: input,
         external: EXTERNAL,
         output: [
             // {
@@ -44,13 +45,14 @@ const makeConfig = (env = "development") => {
             // },
             {
                 banner,
-                file: `dist/${LIBRARY_NAME}.js`,
+                file: `dist/${name}.js`,
                 format: "es",
                 exports: "named",
                 globals: GLOBALS,
             },
         ],
         plugins: [
+            ...plugins,
             getBabelOutputPlugin({
                 presets: ["@babel/env", {  }]
             }),
@@ -85,8 +87,10 @@ const makeConfig = (env = "development") => {
 };
 
 export default commandLineArgs => {
+    let env = commandLineArgs.environment === "BUILD:production" ? "production": null;
     const configs = [
-        makeConfig(commandLineArgs.environment === "BUILD:production" ? "production": null),
+        makeConfig(env),
+        // makeConfig(env, "lib_bundled.ts", "LibraryBundled", [wasm()]),
         {
             input: "./pkg/wasmer_js.d.ts",
             output: [{ file: "dist/pkg/wasmer_js.d.ts", format: "es" }],

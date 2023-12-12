@@ -1,6 +1,6 @@
 {
   "name": "@wasmer/sdk",
-  "version": "0.3.0",
+  "version": "0.4.1",
   "main": "dist/Library.js",
   "types": "dist/lib.d.ts",
   "keywords": [
@@ -46,6 +46,7 @@
     "@rollup/plugin-terser": "~0.4.4",
     "@rollup/plugin-typescript": "^11.1.5",
     "@rollup/plugin-url": "^8.0.2",
+    "@rollup/plugin-wasm": "^6.2.2",
     "@web/dev-server-esbuild": "^0.4.1",
     "@web/test-runner": "^0.17.0",
     "prettier": "^3.1.0",
