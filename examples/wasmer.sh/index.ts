@@ -1,6 +1,6 @@
 import "xterm/css/xterm.css";
 
-import { Wasmer, init, initializeLogger, Instance } from "@wasmer/sdk";
+import { Wasmer, init, initializeLogger, Instance } from "@wasmer/sdk/dist/WasmerSDKBundled.js";
 import { Terminal } from "xterm";
 import { FitAddon } from "xterm-addon-fit";
 
@@ -16,9 +16,9 @@ async function main() {
     term.open(document.getElementById("terminal")!);
     fit.fit();
 
-    const pkg = await Wasmer.fromRegistry("sharrattj/bash");
     term.writeln("Starting...");
-
+    const pkg = await Wasmer.fromRegistry("sharrattj/bash");
+    term.reset();
     const instance = await pkg.entrypoint!.run();
     connectStreams(instance, term);
 }

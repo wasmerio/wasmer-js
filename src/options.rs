@@ -44,7 +44,7 @@ type CommonOptions = {
 };
 
 /**
- * Configuration used when starting a WASIX program with {@link run}.
+ * Configuration used when starting a WASIX program with {@link runWasix}.
  */
 export type RunOptions = CommonOptions & {
     /** The name of the program being run (passed in as arg 0) */

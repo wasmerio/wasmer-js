@@ -1,4 +1,4 @@
-import { init, Wasmer, Command } from "@wasmer/sdk";
+import { init, Wasmer, Command } from "@wasmer/sdk/dist/WasmerSDKBundled.js";
 
 async function initialize() {
     await init();
