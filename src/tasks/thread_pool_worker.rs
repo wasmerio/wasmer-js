@@ -1,6 +1,6 @@
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
-use crate::tasks::{PostMessagePayload, WorkerMessage};
+use crate::tasks::{AsyncJob, BlockingJob, Notification, PostMessagePayload, WorkerMessage};
 
 /// The Rust state for a worker in the threadpool.
 #[wasm_bindgen(skip_typescript)]
@@ -22,38 +22,46 @@ impl ThreadPoolWorker {
 
         BusyGuard
     }
-}
 
-#[wasm_bindgen]
-impl ThreadPoolWorker {
-    #[wasm_bindgen(constructor)]
-    pub fn new(id: u32) -> ThreadPoolWorker {
-        ThreadPoolWorker { id }
-    }
-
+    #[tracing::instrument(level = "debug", skip_all, fields(worker.id = self.id))]
     pub async fn handle(&self, msg: JsValue) -> Result<(), crate::utils::Error> {
-        let _span = tracing::debug_span!("handle", worker.id = self.id).entered();
-
         // Safety: The message was created using PostMessagePayload::to_js()
         let msg = unsafe { PostMessagePayload::try_from_js(msg)? };
 
         tracing::trace!(?msg, "Handling a message");
 
         match msg {
-            PostMessagePayload::SpawnAsync(thunk) => {
+            PostMessagePayload::Async(async_job) => self.execute_async(async_job).await,
+            PostMessagePayload::Blocking(blocking) => self.execute_blocking(blocking).await,
+            PostMessagePayload::Notification(Notification::CacheModule { hash, module: _ }) => {
+                tracing::warn!(%hash, "TODO Caching module");
+
+                Ok(())
+            }
+        }
+    }
+
+    async fn execute_async(&self, job: AsyncJob) -> Result<(), crate::utils::Error> {
+        match job {
+            AsyncJob::Thunk(thunk) => {
                 thunk().await;
             }
-            PostMessagePayload::SpawnBlocking(thunk) => {
+        }
+
+        Ok(())
+    }
+
+    async fn execute_blocking(&self, job: BlockingJob) -> Result<(), crate::utils::Error> {
+        match job {
+            BlockingJob::Thunk(thunk) => {
                 let _guard = self.busy();
                 thunk();
             }
-            PostMessagePayload::CacheModule { hash, .. } => {
-                tracing::warn!(%hash, "TODO Caching module");
-            }
-            PostMessagePayload::SpawnWithModule { module, task } => {
+            BlockingJob::SpawnWithModule { module, task } => {
+                let _guard = self.busy();
                 task(module.into());
             }
-            PostMessagePayload::SpawnWithModuleAndMemory {
+            BlockingJob::SpawnWithModuleAndMemory {
                 module,
                 memory,
                 spawn_wasm,
@@ -65,5 +73,18 @@ impl ThreadPoolWorker {
         }
 
         Ok(())
+    }
+}
+
+#[wasm_bindgen]
+impl ThreadPoolWorker {
+    #[wasm_bindgen(constructor)]
+    pub fn new(id: u32) -> ThreadPoolWorker {
+        ThreadPoolWorker { id }
+    }
+
+    #[wasm_bindgen(js_name = "handle")]
+    pub async fn js_handle(&self, msg: JsValue) -> Result<(), crate::utils::Error> {
+        self.handle(msg).await
     }
 }

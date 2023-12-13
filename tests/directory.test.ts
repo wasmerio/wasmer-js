@@ -55,6 +55,8 @@ describe("In-Memory Directory", function () {
         });
 
         expect(await dir.readTextFile("/file.txt")).to.equal("file");
-        expect(await dir.readTextFile("/another/nested/file.txt")).to.equal("another");
+        expect(await dir.readTextFile("/another/nested/file.txt")).to.equal(
+            "another",
+        );
     });
 });

@@ -60,7 +60,6 @@ pub(crate) enum SchedulerMessage {
 }
 
 impl SchedulerMessage {
-    #[tracing::instrument(level = "debug")]
     pub(crate) unsafe fn try_from_js(value: JsValue) -> Result<Self, Error> {
         let de = Deserializer::new(value);
 
@@ -126,7 +125,6 @@ impl SchedulerMessage {
         }
     }
 
-    #[tracing::instrument(level = "debug")]
     pub(crate) fn into_js(self) -> Result<JsValue, Error> {
         match self {
             SchedulerMessage::SpawnAsync(task) => Serializer::new(consts::TYPE_SPAWN_ASYNC)

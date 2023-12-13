@@ -42,8 +42,11 @@ mod worker_handle;
 mod worker_message;
 
 pub(crate) use self::{
-    post_message_payload::PostMessagePayload, scheduler::Scheduler,
-    scheduler_message::SchedulerMessage, thread_pool::ThreadPool, worker_handle::WorkerHandle,
+    post_message_payload::{AsyncJob, BlockingJob, Notification, PostMessagePayload},
+    scheduler::Scheduler,
+    scheduler_message::SchedulerMessage,
+    thread_pool::ThreadPool,
+    worker_handle::WorkerHandle,
     worker_message::WorkerMessage,
 };
 
