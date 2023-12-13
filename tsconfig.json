@@ -1,5 +1,5 @@
 {
-    "include": [ "pkg", "lib.ts" ],
+    "include": [ "pkg", "lib.ts", "lib_bundled.ts" ],
     "exclude": ["dist"],
     "compilerOptions": {
       "outDir": "./dist/",
