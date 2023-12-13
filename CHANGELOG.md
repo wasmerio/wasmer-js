@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.5.0](https://github.com/wasmerio/wasmer-js/compare/wasmer-sdk-v0.4.1...wasmer-sdk-v0.5.0) (2023-12-13)
+
+
+### ⚠ BREAKING CHANGES
+
+* Renamed `Wasmer.fromWebc()` to `Wasmer.fromFile()`
+* Renamed `Output.stdoutUtf8` and friends to make the more common use case shorter
+* Importing `@wasmer/sdk` will now use the smaller, non-embedded bundle by default
+  * This should improve page load times for end users by being more cache-friendly and not needing to download/parse a ~6MB `*.js` file on startup
+  * Users will need to explicitly import `@wasmer/sdk/dist/WasmerSDKBundled.js` if they want the old behaviour
+  * Users may need to call `setWorkerUrl()` to point at `wasmer_js_bg.wasm`
+
+### Features
+
+* Renamed `Output.stdoutUtf8` and friends to make the more common use case shorter ([f94cc58](https://github.com/wasmerio/wasmer-js/commit/f94cc587e4e1aa28c84ebd012a37e046ee5c742f))
+* The package now includes `dist/WasmerSDKBundled.*` files which embed the compiled Rust code as a base64 string as well as `dist/WasmerSDK.*` files which load the Rust code from the server as a `*.wasm` binary at runtime ([75c4bf1](https://github.com/wasmerio/wasmer-js/commit/75c4bf130ffacb5b8673074e8c493007ea26a838))
+* Importing `@wasmer/sdk` will now use the smaller, non-embedded bundle by default ([75c4bf1](https://github.com/wasmerio/wasmer-js/commit/75c4bf130ffacb5b8673074e8c493007ea26a838))
+
+
+### Bug Fixes
+
+* A warning will now be emitted when the `@wasmer/sdk` package is loaded outside of a Cross-Origin Isolated context ([4dc5799](https://github.com/wasmerio/wasmer-js/commit/4dc5799edd09ed3d5c74603ac23c81ea1ba02be0))
+* Errors encountered when the scheduler handles a message are now logged at the `error` level so they get printed by default ([c5decb5](https://github.com/wasmerio/wasmer-js/commit/c5decb54affce55d1822d9fc9ee35a3fd396907b))
+* Mitigated a race condition in the thread pool by marking workers as "busy" when they are sent blocking tasks, rather than when the tasks are received ([35292d8](https://github.com/wasmerio/wasmer-js/commit/35292d874ab89fc35bd8188115e579271e17e2e7))
+* The UMD module now exposes `@wasmer/sdk` under the name, `WasmerSDK`, rather than `Library` ([d34bb7a](https://github.com/wasmerio/wasmer-js/commit/d34bb7a7c2f2a7406e2c04e6f587e6b3a36f8991))
+
 ## [0.4.1](https://github.com/wasmerio/wasmer-js/compare/wasmer-sdk-v0.4.0...wasmer-sdk-v0.4.1) (2023-11-30)
 
 
