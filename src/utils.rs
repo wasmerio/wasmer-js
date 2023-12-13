@@ -91,6 +91,21 @@ impl GlobalScope {
             None => false,
         }
     }
+
+    pub fn cross_origin_isolated(&self) -> Option<bool> {
+        let obj = self.as_object();
+        js_sys::Reflect::get(obj, &JsValue::from_str("crossOriginIsolated"))
+            .ok()
+            .and_then(|obj| obj.as_bool())
+    }
+
+    fn as_object(&self) -> &js_sys::Object {
+        match self {
+            GlobalScope::Window(w) => w,
+            GlobalScope::Worker(w) => w,
+            GlobalScope::Other(obj) => obj,
+        }
+    }
 }
 
 /// A wrapper around [`anyhow::Error`] that can be returned to JS to raise
