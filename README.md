@@ -48,8 +48,8 @@ const instance = await pkg.entrypoint.run({
     args: ["-c", "print('Hello, World!')"],
 });
 
-const { code, stdoutUtf8 } = await instance.wait();
-console.log(`Python exited with ${code}: ${stdoutUtf8}`);
+const { code, stdout } = await instance.wait();
+console.log(`Python exited with ${code}: ${stdout}`);
 ```
 
 ### Install from CDN
@@ -74,9 +74,9 @@ will be available as the `WasmerSDK` global variable.
               args: ["-c", "print('Hello, World!')"],
           });
 
-          const { code, stdoutUtf8 } = await instance.wait();
+          const { code, stdout } = await instance.wait();
 
-          console.log(`Python exited with ${code}: ${stdoutUtf8}`);
+          console.log(`Python exited with ${code}: ${stdout}`);
       }
 
       runPython();
