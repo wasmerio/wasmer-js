@@ -1,6 +1,6 @@
 {
   "name": "@wasmer/sdk",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "main": "dist/WasmerSDK.cjs",
   "module": "dist/WasmerSDK.js",
   "unpkg": "dist/WasmerSDK.umd.js",
