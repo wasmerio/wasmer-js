@@ -44,6 +44,7 @@
   "devDependencies": {
     "@babel/preset-env": "^7.23.3",
     "@esm-bundle/chai": "^4.3.4-fix.0",
+    "@rollup/plugin-babel": "^6.0.4",
     "@rollup/plugin-node-resolve": "^15.2.3",
     "@rollup/plugin-terser": "^0.4.4",
     "@rollup/plugin-typescript": "^11.1.5",
@@ -53,18 +54,16 @@
     "@web/test-runner": "^0.18.0",
     "prettier": "^3.1.0",
     "rimraf": "^5.0.5",
-    "rollup": "^4.8.0",
+    "rollup-plugin-copy": "^3.5.0",
     "rollup-plugin-dts": "^6.1.0",
     "rollup-plugin-node-polyfills": "^0.2.1",
     "rollup-plugin-typescript2": "^0.36.0",
+    "rollup": "^4.8.0",
     "ts-loader": "^9.2.6",
     "tslib": "^2.3.1",
     "typedoc": "^0.25.4",
     "typescript": "^5.3.3"
   },
   "browserslist": "> 0.5%, last 2 versions, Firefox ESR, not dead",
-  "dependencies": {
-    "@rollup/plugin-babel": "^6.0.4",
-    "rollup-plugin-copy": "^3.5.0"
-  }
+  "dependencies": {}
 }
