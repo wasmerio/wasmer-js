@@ -40,6 +40,8 @@ pub(crate) static CUSTOM_WORKER_URL: Lazy<Mutex<Option<String>>> = Lazy::new(Mut
 pub(crate) const DEFAULT_REGISTRY: &str =
     wasmer_wasix::runtime::resolver::WapmSource::WASMER_PROD_ENDPOINT;
 
+const CROSS_ORIGIN_WARNING: &str = r#"This package can only be used from "Cross-Origin Isolated" websites. For more details, check out https://docs.wasmer.io/javascript-sdk/explainers/troubleshooting#sharedarraybuffer-and-cross-origin-isolation"#;
+
 #[wasm_bindgen]
 pub fn wat2wasm(wat: String) -> Result<js_sys::Uint8Array, utils::Error> {
     let wasm = ::wasmer::wat2wasm(wat.as_bytes())?;
@@ -49,6 +51,17 @@ pub fn wat2wasm(wat: String) -> Result<js_sys::Uint8Array, utils::Error> {
 #[wasm_bindgen(start, skip_typescript)]
 fn on_start() {
     console_error_panic_hook::set_once();
+
+    if let Some(cross_origin_isolated) =
+        crate::utils::GlobalScope::current().cross_origin_isolated()
+    {
+        // Note: This will need to be tweaked when we add support for Deno and
+        // NodeJS.
+        web_sys::console::assert_with_condition_and_data_1(
+            cross_origin_isolated,
+            &wasm_bindgen::JsValue::from_str(CROSS_ORIGIN_WARNING),
+        );
+    }
 }
 
 #[wasm_bindgen(js_name = setWorkerUrl)]

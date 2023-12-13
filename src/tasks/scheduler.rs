@@ -5,7 +5,7 @@ use std::{
     sync::atomic::{AtomicU32, Ordering},
 };
 
-use anyhow::Error;
+use anyhow::{Context, Error};
 use tokio::sync::mpsc::UnboundedSender;
 use tokio::sync::mpsc::{self};
 use tracing::Instrument;
@@ -45,7 +45,7 @@ impl Scheduler {
                     tracing::trace!(?msg, "Executing a message");
 
                     if let Err(e) = scheduler.execute(msg) {
-                        tracing::warn!(error = &*e, "An error occurred while handling a message");
+                        tracing::error!(error = &*e, "An error occurred while handling a message");
                     }
                 }
 
@@ -216,7 +216,9 @@ impl SchedulerState {
         let (worker, already_blocked) = self.next_available_worker()?;
 
         let would_block = msg.would_block();
-        worker.send(msg)?;
+        worker
+            .send(msg)
+            .with_context(|| format!("Unable to send a message to worker {}", worker.id()))?;
 
         if would_block || already_blocked {
             self.busy.push_back(worker);

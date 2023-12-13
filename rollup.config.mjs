@@ -30,7 +30,7 @@ const makeConfig = (env = "development", input = "lib.ts", name = LIBRARY_NAME, 
         output: [
             {
                 banner,
-                name: LIBRARY_NAME,
+                name: name,
                 file: `dist/${name}.umd.js`,
                 format: "umd",
                 exports: "auto",

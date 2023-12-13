@@ -2,9 +2,19 @@
 name = "wasmer-examples/wasmer-sh"
 version = "0.1.0"
 description = "The wasmer.sh website"
+entrypoint = "wasmer-sh"
+
+[[command]]
+name = "wasmer-sh"
+runner = "wasi"
+module = "wasmer/static-web-server:webserver"
+
+[command.annotations.wasi]
+env = ["SERVER_CONFIG_FILE=/etc/static-web-server/config.toml"]
 
 [dependencies]
 "wasmer/static-web-server" = "^1"
 
 [fs]
 "/public" = "dist"
+"/etc/static-web-server" = "etc"
