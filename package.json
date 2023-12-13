@@ -1,8 +1,8 @@
 {
   "name": "@wasmer/sdk",
   "version": "0.4.1",
-  "main": "dist/WasmerSDK.js",
-  "module": "dist/WasmerSDK.mjs",
+  "main": "dist/WasmerSDK.cjs",
+  "module": "dist/WasmerSDK.js",
   "unpkg": "dist/WasmerSDK.umd.js",
   "types": "dist/WasmerSDK.d.ts",
   "keywords": [
