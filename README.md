@@ -88,7 +88,7 @@ script into a module.
 
 ```html
 <script defer type="module">
-    import { init, Wasmer } from "https://unpkg.com/@wasmer/sdk@latest/dist/Library.mjs";
+    import { init, Wasmer } from "https://unpkg.com/@wasmer/sdk@latest?module";
 
     async function runPython() {
         await init();
