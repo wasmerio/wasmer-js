@@ -27,7 +27,7 @@ const makeConfig = (env = "development") => {
         output: [
             {
                 banner,
-                name: LIBRARY_NAME,
+                name: "WasmerSDK",
                 file: `dist/${LIBRARY_NAME}.umd.js`,
                 format: "umd",
                 exports: "auto",
