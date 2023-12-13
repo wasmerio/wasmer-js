@@ -53,8 +53,8 @@ describe("run", function () {
 
         expect(output.ok).to.be.true;
         expect(output.code).to.equal(0);
-        expect(decoder.decode(output.stdout)).to.contain("Hello, World!");
-        expect(decoder.decode(output.stderr)).to.be.empty;
+        expect(output.stdout).to.contain("Hello, World!");
+        expect(output.stderr).to.be.empty;
     });
 
     it("can read directories", async () => {
@@ -80,8 +80,8 @@ describe("run", function () {
 
         expect(output.ok).to.be.true;
         expect(output.code).to.equal(0);
-        expect(decoder.decode(output.stdout)).to.equal(".\n..\nmount\n");
-        expect(decoder.decode(output.stderr)).to.be.empty;
+        expect(output.stdout).to.equal(".\n..\nmount\n");
+        expect(output.stderr).to.be.empty;
     });
 
     it("can read files", async () => {
@@ -107,8 +107,8 @@ describe("run", function () {
 
         expect(output.ok).to.be.true;
         expect(output.code).to.equal(0);
-        expect(decoder.decode(output.stdout)).to.equal("Hello, World!\n");
-        expect(decoder.decode(output.stderr)).to.be.empty;
+        expect(output.stdout).to.equal("Hello, World!\n");
+        expect(output.stderr).to.be.empty;
     });
 
     it("can read files mounted using DirectoryInit", async () => {
@@ -134,8 +134,8 @@ describe("run", function () {
 
         expect(output.ok).to.be.true;
         expect(output.code).to.equal(0);
-        expect(decoder.decode(output.stdout)).to.equal("Hello, World!\n");
-        expect(decoder.decode(output.stderr)).to.be.empty;
+        expect(output.stdout).to.equal("Hello, World!\n");
+        expect(output.stderr).to.be.empty;
     });
 
     it("can write files", async () => {

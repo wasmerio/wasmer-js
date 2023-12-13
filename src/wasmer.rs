@@ -33,8 +33,7 @@ use crate::{
 /// const { ok, code, stdout, stderr } = await instance.wait();
 ///
 /// if (ok) {
-///     const decoder = new TextDecoder("utf-8");
-///     console.log(`Version:`, decoder.decode(stdout).trim());
+///     console.log(`Version:`, stdout);
 /// } else {
 ///     throw new Error(`Python exited with ${code}: ${stderr}`);
 /// }

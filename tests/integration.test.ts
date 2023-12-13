@@ -25,7 +25,7 @@ describe("Wasmer.spawn", function () {
 
         expect(output.code).to.equal(0);
         expect(output.ok).to.be.true;
-        expect(decoder.decode(output.stdout)).to.equal("Hello, World!\n");
+        expect(output.stdout).to.equal("Hello, World!\n");
         expect(output.stderr.length).to.equal(0);
     });
 
@@ -119,7 +119,7 @@ describe("Wasmer.spawn", function () {
         const output = await instance.wait();
 
         expect(output.code).to.equal(42);
-        expect(decoder.decode(output.stderr)).to.equal("");
+        expect(output.stderr).to.equal("");
     });
 
     it("can communicate with a subprocess interactively", async () => {
@@ -153,7 +153,7 @@ describe("Wasmer.spawn", function () {
         expect(output.code).to.equal(0);
         // It looks like bash does its own TTY echoing, except it printed to
         // stderr instead of stdout like wasmer_wasix::os::Tty
-        expect(decoder.decode(output.stderr)).to.equal(
+        expect(output.stderr).to.equal(
             "bash-5.1# stdinout-loop\n\n\nFirst\n\n\n\nSecond\n\n\n\nbash-5.1# exit\n",
         );
     });
@@ -203,10 +203,10 @@ describe("Wasmer.spawn", function () {
 
         expect(output.ok).to.be.false;
         expect(output.code).to.equal(42);
-        expect(decoder.decode(output.stdout)).to.equal("");
+        expect(output.stdout).to.equal("");
         // Python prints the prompts to stderr, but our TTY handling prints
         // echoed characters to stdout
-        expect(decoder.decode(output.stderr)).to.equal(">>> >>> >>> >>> >>> ");
+        expect(output.stderr).to.equal(">>> >>> >>> >>> >>> ");
     });
 
     it("can see a mounted directory", async () => {
@@ -219,7 +219,7 @@ describe("Wasmer.spawn", function () {
         });
         const output = await instance.wait();
 
-        const stdout = decoder.decode(output.stdout);
+        const stdout = output.stdout;
         expect(stdout).to.contain("mounted");
         expect(output.ok).to.be.true;
     });
@@ -237,8 +237,8 @@ describe("Wasmer.spawn", function () {
         const output = await instance.wait();
 
         expect(output.ok).to.be.true;
-        expect(decoder.decode(output.stdout)).to.equal("file.txt\n");
-        expect(decoder.decode(output.stderr)).to.equal("");
+        expect(output.stdout).to.equal("file.txt\n");
+        expect(output.stderr).to.equal("");
     });
 
     it("can read from a mounted file", async () => {
@@ -252,7 +252,7 @@ describe("Wasmer.spawn", function () {
         });
         const output = await instance.wait();
 
-        const stdout = decoder.decode(output.stdout);
+        const stdout = output.stdout;
         expect(stdout).to.equal("Hello, World!");
         expect(output.ok).to.be.true;
     });
@@ -328,8 +328,8 @@ describe.skip("failing tty handling tests", function () {
         const { code, stdout, stderr } = await instance.wait();
 
         expect(code).to.equal(42);
-        expect(decoder.decode(stdout)).to.equal("bin\nlib\ntmp\n");
-        expect(decoder.decode(stderr)).to.equal("");
+        expect(stdout).to.equal("bin\nlib\ntmp\n");
+        expect(stderr).to.equal("");
     });
 
     it.skip("can communicate with a subprocess", async () => {

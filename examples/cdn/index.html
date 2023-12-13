@@ -24,11 +24,11 @@
             });
 
             status.innerHTML = `Running ${packageName}...`;
-            const { code, stdoutUtf8 } = await instance.wait();
+            const { code, stdout } = await instance.wait();
 
             status.innerHTML = `Exited with status code: ${code}`;
-            const stdout = document.getElementById("stdout");
-            stdout.innerHTML = stdoutUtf8;
+            const stdoutElement = document.getElementById("stdout");
+            stdoutElement.innerHTML = stdout;
         }
 
         runPython();

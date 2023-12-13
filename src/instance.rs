@@ -149,22 +149,22 @@ impl From<Output> for JsOutput {
         let _ = js_sys::Reflect::set(&output, &JsValue::from_str("ok"), &JsValue::from(ok));
         let _ = js_sys::Reflect::set(
             &output,
-            &JsValue::from_str("stdout"),
+            &JsValue::from_str("stdoutBytes"),
             &Uint8Array::from(stdout.as_slice()),
         );
         js_sys::Object::define_property(
             &output,
-            &JsValue::from_str("stdoutUtf8"),
+            &JsValue::from_str("stdout"),
             &lazily_decoded_string_property(stdout),
         );
         let _ = js_sys::Reflect::set(
             &output,
-            &JsValue::from_str("stderr"),
+            &JsValue::from_str("stderrBytes"),
             &Uint8Array::from(stderr.as_slice()),
         );
         js_sys::Object::define_property(
             &output,
-            &JsValue::from_str("stderrUtf8"),
+            &JsValue::from_str("stderr"),
             &lazily_decoded_string_property(stderr),
         );
 
@@ -196,13 +196,13 @@ export type Output = {
     /* Did the program exit successfully? */
     ok: boolean;
     /* The contents of the program's stdout stream. */
-    stdout: Uint8Array;
+    stdoutBytes: Uint8Array;
     /* The program's stdout stream, decoded as UTF-8. */
-    readonly stdoutUtf8: string;
+    readonly stdout: string;
     /* The contents of the program's stderr stream. */
-    stderr: Uint8Array;
+    stderrBytes: Uint8Array;
     /* The program's stderr stream, decoded as UTF-8. */
-    readonly stderrUtf8: string;
+    readonly stderr: string;
 }
 "#;
 

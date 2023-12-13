@@ -22,7 +22,7 @@ async function renderMarkdown(cmd: Command, markdown: string) {
     await stdin.close();
 
     const result = await instance.wait();
-    return result.ok ? result.stdoutUtf8 : null;
+    return result.ok ? result.stdout : null;
 }
 
 async function main() {
