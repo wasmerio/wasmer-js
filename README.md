@@ -130,5 +130,5 @@ the *Troubleshooting Common Problems* docs for more.
 The entire project is under the MIT License. Please read [the
 `LICENSE` file][license].
 
+[coi-docs]: https://docs.wasmer.io/javascript-sdk/explainers/troubleshooting#sharedarraybuffer-and-cross-origin-isolation
 [license]: https://github.com/wasmerio/wasmer/blob/master/LICENSE
-[page]: https://docs.wasmer.io/javascript-sdk/explainers/troubleshooting#sharedarraybuffer-and-cross-origin-isolation
