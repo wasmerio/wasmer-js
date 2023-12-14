@@ -1,12 +1,9 @@
-import nodePolyfills from "rollup-plugin-node-polyfills";
 import terser from "@rollup/plugin-terser";
 import pkg from "./package.json" assert { type: "json" };
 import dts from "rollup-plugin-dts";
 import typescript from "@rollup/plugin-typescript";
 import copy from 'rollup-plugin-copy';
-import { babel, getBabelOutputPlugin } from '@rollup/plugin-babel';
 import { wasm } from '@rollup/plugin-wasm';
-import url from "@rollup/plugin-url";
 
 const LIBRARY_NAME = "WasmerSDK"; // Change with your library's name
 const EXTERNAL = []; // Indicate which modules should be treated as external
@@ -23,9 +20,9 @@ const banner = `/*!
  * @license ${pkg.license}
  */`;
 
-const makeConfig = (env = "development", input = "lib.ts", name = LIBRARY_NAME, plugins = []) => {
+const makeConfig = (env = "development", input, name, plugins = []) => {
     const config = {
-        input: input,
+        input,
         external: EXTERNAL,
         output: [
             {
@@ -52,19 +49,11 @@ const makeConfig = (env = "development", input = "lib.ts", name = LIBRARY_NAME, 
             },
         ],
         plugins: [
-            // getBabelOutputPlugin({
-            //     presets: ["@babel/env", {  }]
-            // }),
             typescript(),
             ...plugins,
-            // url({
-            //     include: ["**/*.wasm"],
-            //     limit: 100 * 1000 * 1000,
-            // }),
-            // nodePolyfills(),
             copy({
                 targets: [
-                  { src: ['pkg/wasmer_js_bg.wasm', 'pkg/wasmer_js_bg.wasm.d.ts'], dest: 'dist' },
+                    { src: ['pkg/wasmer_js_bg.wasm', 'pkg/wasmer_js_bg.wasm.d.ts'], dest: 'dist' },
                 ]
             })
         ],
@@ -84,10 +73,10 @@ const makeConfig = (env = "development", input = "lib.ts", name = LIBRARY_NAME, 
 };
 
 export default commandLineArgs => {
-    let env = commandLineArgs.environment === "BUILD:production" ? "production": null;
+    let env = commandLineArgs.environment === "BUILD:production" ? "production" : null;
     const configs = [
-        makeConfig(env, "lib.ts"),
-        makeConfig(env, "lib_bundled.ts", `${LIBRARY_NAME}Bundled`, [wasm({
+        makeConfig(env, "WasmerSDK.ts", LIBRARY_NAME),
+        makeConfig(env, "WasmerSDKBundled.ts", `${LIBRARY_NAME}Bundled`, [wasm({
             maxFileSize: 10 * 1024 * 1024,
         })]),
         {
@@ -96,11 +85,6 @@ export default commandLineArgs => {
             plugins: [dts()],
         },
     ];
-
-    // Production
-    // if (commandLineArgs.environment === "BUILD:production") {
-    //     configs.push(makeConfig("production"));
-    // }
 
     return configs;
 };

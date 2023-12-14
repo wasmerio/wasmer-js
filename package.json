@@ -4,7 +4,7 @@
   "main": "dist/WasmerSDK.cjs",
   "module": "dist/WasmerSDK.js",
   "unpkg": "dist/WasmerSDK.umd.js",
-  "types": "dist/lib.d.ts",
+  "types": "dist/WasmerSDK.d.ts",
   "keywords": [
     "webassembly",
     "wasm",
@@ -44,11 +44,9 @@
   "devDependencies": {
     "@babel/preset-env": "^7.23.3",
     "@esm-bundle/chai": "^4.3.4-fix.0",
-    "@rollup/plugin-babel": "^6.0.4",
     "@rollup/plugin-node-resolve": "^15.2.3",
     "@rollup/plugin-terser": "^0.4.4",
     "@rollup/plugin-typescript": "^11.1.5",
-    "@rollup/plugin-url": "^8.0.2",
     "@rollup/plugin-wasm": "^6.2.2",
     "@web/dev-server-esbuild": "^1.0.1",
     "@web/test-runner": "^0.18.0",
@@ -56,11 +54,7 @@
     "rimraf": "^5.0.5",
     "rollup-plugin-copy": "^3.5.0",
     "rollup-plugin-dts": "^6.1.0",
-    "rollup-plugin-node-polyfills": "^0.2.1",
-    "rollup-plugin-typescript2": "^0.36.0",
     "rollup": "^4.8.0",
-    "ts-loader": "^9.2.6",
-    "tslib": "^2.3.1",
     "typedoc": "^0.25.4",
     "typescript": "^5.3.3"
   },
