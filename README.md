@@ -6,25 +6,7 @@
 [![Wasmer Discord Channel](https://img.shields.io/discord/1110300506942881873)](https://discord.gg/qBTfsNP7N8)
 [![API Docs](https://img.shields.io/badge/API%20Docs-open-blue?link=wasmerio.github.io%2Fwasmer-js%2F)](https://wasmerio.github.io/wasmer-js/)
 
-Isomorphic Javascript library for running WASI programs.
-
-The Javascript Package supports:
-
-* [X] WASI support
-  * [X] Environment variables
-  * [X] FileSystem access
-  * [X] Command-line arguments
-  * [X] Stdio
-* [X] WASIX support
-  * [X] Multi-threading
-  * [X] Spawning sub-processes
-  * [ ] Networking
-* [X] Mounting directories inside the WASIX instance
-* [X] Running packages from the [Wasmer Registry](https://wasmer.io)
-* Platforms
-  * [X] Browser
-  * [ ] NodeJS
-  * [ ] Deno
+Javascript library for running Wasmer packages at ease, including WASI and WASIX modules.
 
 ## Getting Started
 
@@ -52,7 +34,7 @@ const { code, stdout } = await instance.wait();
 console.log(`Python exited with ${code}: ${stdout}`);
 ```
 
-### Install from CDN
+### Use from CDN
 
 It is possible to avoid needing to use a bundler by importing `@wasmer/sdk` as
 a UMD module.
@@ -68,7 +50,7 @@ will be available as the `WasmerSDK` global variable.
       async function runPython() {
           await init();
 
-          const packageName = "python/python@3.12";
+          const packageName = "python/python";
           const pkg = await Wasmer.fromRegistry(packageName);
           const instance = await pkg.entrypoint.run({
               args: ["-c", "print('Hello, World!')"],
@@ -124,6 +106,26 @@ To avoid Cross-Origin Isolation issues, make sure any web pages using
 
 See the [`SharedArrayBuffer` and Cross-Origin Isolation][coi-docs] section under
 the *Troubleshooting Common Problems* docs for more.
+
+# Features
+
+The Wasmer SDK Javascript Package supports:
+
+* [X] WASI support
+  * [X] Environment variables
+  * [X] FileSystem access
+  * [X] Command-line arguments
+  * [X] Stdio
+* [X] WASIX support
+  * [X] Multi-threading
+  * [X] Spawning sub-processes
+  * [ ] Networking (on the works)
+* [X] Mounting directories inside the WASIX instance
+* [X] Running packages from the [Wasmer Registry](https://wasmer.io)
+* Platforms
+  * [X] Browser
+  * [ ] NodeJS
+  * [ ] Deno
 
 # License
 
