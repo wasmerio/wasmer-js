@@ -1,12 +1,9 @@
-import nodePolyfills from "rollup-plugin-node-polyfills";
 import terser from "@rollup/plugin-terser";
 import pkg from "./package.json" assert { type: "json" };
 import dts from "rollup-plugin-dts";
 import typescript from "@rollup/plugin-typescript";
 import copy from 'rollup-plugin-copy';
-import { babel, getBabelOutputPlugin } from '@rollup/plugin-babel';
 import { wasm } from '@rollup/plugin-wasm';
-import url from "@rollup/plugin-url";
 
 const LIBRARY_NAME = "WasmerSDK"; // Change with your library's name
 const EXTERNAL = []; // Indicate which modules should be treated as external
@@ -52,19 +49,11 @@ const makeConfig = (env = "development", input = "lib.ts", name = LIBRARY_NAME, 
             },
         ],
         plugins: [
-            // getBabelOutputPlugin({
-            //     presets: ["@babel/env", {  }]
-            // }),
             typescript(),
             ...plugins,
-            // url({
-            //     include: ["**/*.wasm"],
-            //     limit: 100 * 1000 * 1000,
-            // }),
-            // nodePolyfills(),
             copy({
                 targets: [
-                  { src: ['pkg/wasmer_js_bg.wasm', 'pkg/wasmer_js_bg.wasm.d.ts'], dest: 'dist' },
+                    { src: ['pkg/wasmer_js_bg.wasm', 'pkg/wasmer_js_bg.wasm.d.ts'], dest: 'dist' },
                 ]
             })
         ],
@@ -96,11 +85,6 @@ export default commandLineArgs => {
             plugins: [dts()],
         },
     ];
-
-    // Production
-    // if (commandLineArgs.environment === "BUILD:production") {
-    //     configs.push(makeConfig("production"));
-    // }
 
     return configs;
 };
