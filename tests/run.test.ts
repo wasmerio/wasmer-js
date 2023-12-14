@@ -10,7 +10,7 @@ import {
 
 const initialized = (async () => {
     await init();
-    initializeLogger("warn,wasmer_js=trace,wasmer_wasix::syscalls=trace");
+    initializeLogger("warn");
 })();
 
 describe.skip("run", function () {
