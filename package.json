@@ -4,7 +4,7 @@
   "main": "dist/WasmerSDK.cjs",
   "module": "dist/WasmerSDK.js",
   "unpkg": "dist/WasmerSDK.umd.js",
-  "types": "dist/lib.d.ts",
+  "types": "dist/WasmerSDK.d.ts",
   "keywords": [
     "webassembly",
     "wasm",

@@ -20,9 +20,9 @@ const banner = `/*!
  * @license ${pkg.license}
  */`;
 
-const makeConfig = (env = "development", input = "lib.ts", name = LIBRARY_NAME, plugins = []) => {
+const makeConfig = (env = "development", input, name, plugins = []) => {
     const config = {
-        input: input,
+        input,
         external: EXTERNAL,
         output: [
             {
@@ -73,10 +73,10 @@ const makeConfig = (env = "development", input = "lib.ts", name = LIBRARY_NAME, 
 };
 
 export default commandLineArgs => {
-    let env = commandLineArgs.environment === "BUILD:production" ? "production": null;
+    let env = commandLineArgs.environment === "BUILD:production" ? "production" : null;
     const configs = [
-        makeConfig(env, "lib.ts"),
-        makeConfig(env, "lib_bundled.ts", `${LIBRARY_NAME}Bundled`, [wasm({
+        makeConfig(env, "WasmerSDK.ts", LIBRARY_NAME),
+        makeConfig(env, "WasmerSDKBundled.ts", `${LIBRARY_NAME}Bundled`, [wasm({
             maxFileSize: 10 * 1024 * 1024,
         })]),
         {

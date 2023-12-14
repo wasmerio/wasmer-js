@@ -1,8 +1,8 @@
 {
   "include": [
     "pkg",
-    "lib.ts",
-    "lib_bundled.ts"
+    "WasmerSDK.ts",
+    "WasmerSDKBundled.ts"
   ],
   "exclude": [
     "dist"
