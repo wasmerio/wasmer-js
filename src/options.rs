@@ -29,7 +29,7 @@ type CommonOptions = {
     /** Environment variables to set. */
     env?: Record<string, string>;
     /** The standard input stream. */
-    stdin?: string | ArrayBuffer;
+    stdin?: string | Uint8Array;
     /**
      * Directories that should be mounted inside the WASIX instance.
      *
