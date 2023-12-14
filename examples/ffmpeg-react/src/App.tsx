@@ -1,12 +1,14 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 
 import {
-    Directory,
     Wasmer,
     init,
     initializeLogger,
+    Directory,
+    runWasix,
     Runtime,
-} from "@wasmer/sdk";
+} from "@wasmer/sdk/dist/WasmerSDKBundled.js";
+
 import { PhotoIcon } from "@heroicons/react/24/solid";
 import { useDropzone } from "react-dropzone";
 
@@ -46,16 +48,24 @@ function App() {
         file: null,
     });
 
+    const [outputVideo, setOutputVideo] = useState<VideoProps>({
+        preview: false,
+        fileSrc: "",
+        file: null,
+    });
+
     const [processingStatus, setProcessingStatus] = useState<PROCESSING_STATUS>(
         PROCESSING_STATUS.NOT_STARTED,
     );
 
     const previewVideoRef = useRef<HTMLVideoElement>(null);
+    const outputVideoRef = useRef<HTMLVideoElement>(null);
 
     const [fileU8Arr, setFileU8Arr] = useState<Uint8Array | null>(null);
 
     const onDrop = useCallback((acceptedFiles: File[]) => {
         const file = acceptedFiles[0];
+        console.log(file);
         setUserVideo({
             preview: true,
             fileSrc: URL.createObjectURL(file),
@@ -77,13 +87,18 @@ function App() {
     }, [userVideo.fileSrc]);
 
     useEffect(() => {
+        if (!outputVideo.fileSrc || !outputVideoRef.current) return;
+        outputVideoRef.current?.load();
+    }, [outputVideo.fileSrc]);
+
+    useEffect(() => {
         (async () => {
             if (loggerInitialized) return;
             loggerInitialized = true;
             await init();
-            initializeLogger(
-                "info,wasmer_wasix=debug,wasmer_wasix::syscalls=debug,wasmer_js=debug",
-            );
+            // initializeLogger(
+            //     "info,wasmer_wasix=debug,wasmer_wasix::syscalls=debug,wasmer_js=debug",
+            // );
         })();
     }, []);
 
@@ -114,31 +129,50 @@ function App() {
     const runFfmpegProcessing = async () => {
         if (!fileU8Arr) return;
 
+        const runtime = new Runtime({
+            poolSize: 64,
+        });
+
         setProcessingStatus(PROCESSING_STATUS.RUNNING);
 
         const tmp = new Directory();
         await tmp.writeFile("input.mp4", fileU8Arr);
-        const pkg = await Wasmer.fromRegistry("wasmer/ffmpeg");
+        const pkg = await Wasmer.fromRegistry("wasmer/ffmpeg", runtime);
 
-        // const ffmpeg = pkg.commands["ffmpeg"].binary();
         if (!pkg.entrypoint) return;
 
         const instance = await pkg.entrypoint!.run({
-            args: ["-i", "/videos/input.mp4", "/videos/output.avi"],
+            args: [
+                "-i",
+                "/videos/input.mp4",
+                "-vf",
+                "format=gray",
+                "/videos/output.mp4",
+            ],
             mount: { "/videos": tmp },
+            runtime,
         });
-        console.log("waiting");
 
         await instance.stdin?.close();
         let output = await instance.wait();
 
         console.log(output);
         if (output.ok) {
+            console.log(output.stderr);
             const contents = await tmp.readFile("output.mp4");
-            console.log(contents.buffer);
+
+            const u8arr = new Uint8Array(contents.buffer);
+            const file = new File([u8arr], "output.mp4", {
+                type: "video/mp4",
+            });
+            setOutputVideo({
+                preview: true,
+                fileSrc: URL.createObjectURL(file),
+                file,
+            });
             setProcessingStatus(PROCESSING_STATUS.FINISHED);
         } else {
-            console.log(new TextDecoder().decode(output.stderr));
+            console.log(output.stderr);
             setProcessingStatus(PROCESSING_STATUS.FAILED);
         }
     };
@@ -171,16 +205,42 @@ function App() {
     return (
         <main className=" bg-gray-800 h-full w-full flex flex-col justify-center items-center space-y-4">
             {!!userVideo.fileSrc ? (
-                <video
-                    ref={previewVideoRef}
-                    width="480"
-                    controls
-                    crossOrigin="anonymous"
-                    className=" rounded-md shadow-sm"
-                >
-                    <source src={userVideo.fileSrc} />
-                    Your browser does not support the video tag.
-                </video>
+                <div className="flex space-x-4">
+                    <div className="space-y-2">
+                        <span className="block text-md font-medium leading-6 text-white">
+                            Input video
+                        </span>
+                        <video
+                            ref={previewVideoRef}
+                            width="480"
+                            controls
+                            crossOrigin="anonymous"
+                            className=" rounded-md shadow-sm"
+                        >
+                            <source src={userVideo.fileSrc} />
+                            Your browser does not support the video tag.
+                        </video>
+                    </div>
+
+                    {!!outputVideo.fileSrc &&
+                        processingStatus === PROCESSING_STATUS.FINISHED && (
+                            <div className="space-y-2">
+                                <span className="block text-md font-medium leading-6 text-white">
+                                    Output Video
+                                </span>
+                                <video
+                                    ref={outputVideoRef}
+                                    width="480"
+                                    controls
+                                    crossOrigin="anonymous"
+                                    className=" rounded-md shadow-sm"
+                                >
+                                    <source src={outputVideo.fileSrc} />
+                                    Your browser does not support the video tag.
+                                </video>
+                            </div>
+                        )}
+                </div>
             ) : (
                 <div className="col-span-full">
                     <label
