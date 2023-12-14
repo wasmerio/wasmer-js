@@ -7,3 +7,11 @@ COOP/COEP headers using a service worker, so the SDK runs properly without requi
 the COOP/COEP headers.
 
 This example should work in Github Pages and almost any other provider without modification.
+
+You can test this running locally also very easily:
+
+```
+$ python3 -m http.server
+```
+
+And then visit http://localhost:8000/
