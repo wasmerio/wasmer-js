@@ -42,6 +42,22 @@ describe("Wasmer.spawn", function () {
         expect(output.stderr.length).to.equal(0);
     });
 
+    it("Can pass stdin to a dumb echo program", async () => {
+        const pkg = await Wasmer.fromRegistry(
+            "christoph/wasix-test-stdinout@0.1.1",
+        );
+        const instance = await pkg.commands["stdinout-loop"].run({
+            stdin: "Hello\nWorld!\n",
+        });
+
+        const output = await instance.wait();
+
+        console.log({...output});
+        expect(output.ok).to.be.true;
+        expect(output.code).to.equal(0);
+        expect(output.stderr).to.equal("Hello\nWorld!\n");
+    });
+
     it("Can communicate with a dumb echo program", async () => {
         // First, start our program in the background
         const pkg = await Wasmer.fromRegistry(
