@@ -1,6 +1,6 @@
 {
     "entryPoints": [
-        "../lib.ts"
+        "../WasmerSDK.ts"
     ],
     "out": "public",
     "$schema": "https://typedoc.org/schema.json"
