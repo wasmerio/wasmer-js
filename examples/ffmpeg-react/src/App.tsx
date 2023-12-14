@@ -96,9 +96,9 @@ function App() {
             if (loggerInitialized) return;
             loggerInitialized = true;
             await init();
-            // initializeLogger(
-            //     "info,wasmer_wasix=debug,wasmer_wasix::syscalls=debug,wasmer_js=debug",
-            // );
+            initializeLogger(
+                "info,wasmer_wasix=debug,wasmer_wasix::syscalls=debug,wasmer_js=debug",
+            );
         })();
     }, []);
 
@@ -129,15 +129,13 @@ function App() {
     const runFfmpegProcessing = async () => {
         if (!fileU8Arr) return;
 
-        const runtime = new Runtime({
-            poolSize: 64,
-        });
+        // const runtime = new Runtime();
 
         setProcessingStatus(PROCESSING_STATUS.RUNNING);
 
         const tmp = new Directory();
         await tmp.writeFile("input.mp4", fileU8Arr);
-        const pkg = await Wasmer.fromRegistry("wasmer/ffmpeg", runtime);
+        const pkg = await Wasmer.fromRegistry("wasmer/ffmpeg");
 
         if (!pkg.entrypoint) return;
 
@@ -150,13 +148,15 @@ function App() {
                 "/videos/output.mp4",
             ],
             mount: { "/videos": tmp },
-            runtime,
         });
+
+        // await readStream(instance.stderr, (data: Uint8Array) => {
+        //     console.log(new TextDecoder().decode(data));
+        // });
 
         await instance.stdin?.close();
         let output = await instance.wait();
 
-        console.log(output);
         if (output.ok) {
             console.log(output.stderr);
             const contents = await tmp.readFile("output.mp4");
@@ -244,26 +244,26 @@ function App() {
             ) : (
                 <div className="col-span-full">
                     <label
-                        htmlFor="cover-photo"
+                        htmlFor="video-upload"
                         className="block text-sm font-medium leading-6 text-white"
                     >
                         Upload a video
                     </label>
                     <div
                         {...getRootProps({ className: "" })}
-                        className="mt-2 flex justify-center rounded-lg border border-dashed border-white px-6 py-10"
+                        className="mt-2 flex justify-center rounded-lg border border-dashed border-white px-6 py-10 group cursor-pointer"
                     >
                         <div className="text-center">
                             <PhotoIcon
-                                className="mx-auto h-12 w-12 text-gray-200"
+                                className="mx-auto h-12 w-12 text-gray-200 group-hover:scale-105 group-active:scale-[98%] transition-transform duration-150"
                                 aria-hidden="true"
                             />
                             <div className="mt-4 flex text-sm leading-6 text-white">
                                 <label
                                     htmlFor="video-upload"
-                                    className="relative cursor-pointer rounded-md bg-white font-semibold text-indigo-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-indigo-600 focus-within:ring-offset-2 hover:text-indigo-500"
+                                    className="relative cursor-pointer rounded-md bg-white font-semibold text-indigo-800 focus-within:outline-none focus-within:ring-2 focus-within:ring-indigo-600 focus-within:ring-offset-2 hover:text-indigo-600 hover:scale-[102%] active:scale-[98%] transition-transform duration-150"
                                 >
-                                    <span>Upload a file</span>
+                                    <span className="px-1">Upload a file</span>
                                     <input
                                         id="video-upload"
                                         name="video-upload"
@@ -275,7 +275,7 @@ function App() {
                                 <p className="pl-1">or drag and drop</p>
                             </div>
                             <p className="text-xs leading-5 text-white/50">
-                                PNG, JPG, GIF up to 10MB
+                                MP4, M4A, AVI up to 10MB
                             </p>
                         </div>
                     </div>
