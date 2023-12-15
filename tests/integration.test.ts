@@ -55,7 +55,7 @@ describe("Wasmer.spawn", function () {
         console.log({...output});
         expect(output.ok).to.be.true;
         expect(output.code).to.equal(0);
-        expect(output.stderr).to.equal("Hello\nWorld!\n");
+        expect(output.stderr).to.equal("Hello\n\nWorld!\n\n");
     });
 
     it("Can communicate with a dumb echo program", async () => {
