@@ -188,7 +188,7 @@ impl RunOptions {
 
         let stdin = match self.read_stdin() {
             Some(stdin) => {
-                let f = virtual_fs::StaticFile::new(stdin.into());
+                let f = virtual_fs::StaticFile::new(stdin);
                 builder.set_stdin(Box::new(f));
                 None
             }

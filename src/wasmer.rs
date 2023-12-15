@@ -270,7 +270,7 @@ fn setup_tty(options: &SpawnOptions, tty_options: TtyOptions) -> TerminalMode {
     // Handle the simple (non-interactive) case first.
     if let Some(stdin) = options.read_stdin() {
         return TerminalMode::NonInteractive {
-            stdin: virtual_fs::StaticFile::new(stdin.into()),
+            stdin: virtual_fs::StaticFile::new(stdin),
         };
     }
 

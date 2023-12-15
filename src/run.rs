@@ -22,8 +22,11 @@ const DEFAULT_PROGRAM_NAME: &str = "wasm";
 /// [component-model]: https://github.com/WebAssembly/component-model
 #[wasm_bindgen(js_name = "runWasix")]
 pub async fn run_wasix(wasm_module: WasmModule, config: RunOptions) -> Result<Instance, Error> {
-    let _span = tracing::debug_span!("run").entered();
+    run_wasix_inner(wasm_module, config).await
+}
 
+#[tracing::instrument(level = "debug", skip_all)]
+async fn run_wasix_inner(wasm_module: WasmModule, config: RunOptions) -> Result<Instance, Error> {
     let runtime = config.runtime().resolve()?.into_inner();
 
     let program_name = config
