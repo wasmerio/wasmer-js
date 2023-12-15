@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.5.1](https://github.com/wasmerio/wasmer-js/compare/wasmer-sdk-v0.5.0...wasmer-sdk-v0.5.1) (2023-12-15)
+
+
+### Bug Fixes
+
+* Bumped the `virtual-fs` dependency so we get a non-buggy `StaticFile` implementation (fixes [#366](https://github.com/wasmerio/wasmer-js/issues/366)) ([47b4633](https://github.com/wasmerio/wasmer-js/commit/47b4633716798f27b51e0d221cc519c2bd40cadb))
+* Made sure users still get typings whenever they import a file from `dist/` ([956d404](https://github.com/wasmerio/wasmer-js/commit/956d40437adeafac72a446b1106e82516b7063fe))
+* Update the `OptionOptions` type definition to accept `Uint8Array` as `stdin`, rather than `ArrayBuffer` ([a1d4045](https://github.com/wasmerio/wasmer-js/commit/a1d404566142863fac116029b5f101b07314f1cc))
+
 ## [0.5.0](https://github.com/wasmerio/wasmer-js/compare/wasmer-sdk-v0.4.1...wasmer-sdk-v0.5.0) (2023-12-13)
 
 
