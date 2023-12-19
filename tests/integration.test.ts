@@ -52,7 +52,6 @@ describe("Wasmer.spawn", function () {
 
         const output = await instance.wait();
 
-        console.log({...output});
         expect(output.ok).to.be.true;
         expect(output.code).to.equal(0);
         expect(output.stderr).to.equal("Hello\n\nWorld!\n\n");
