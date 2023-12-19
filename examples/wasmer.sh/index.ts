@@ -1,12 +1,20 @@
 import "xterm/css/xterm.css";
 
-import { Wasmer, init, initializeLogger, Instance } from "@wasmer/sdk/dist/WasmerSDKBundled.js";
+import type { Instance } from "@wasmer/sdk";
 import { Terminal } from "xterm";
 import { FitAddon } from "xterm-addon-fit";
 
 const encoder = new TextEncoder();
 
 async function main() {
+    // Note: We dynamically import the Wasmer SDK to make sure the bundler puts
+    // it in its own chunk. This works around an issue where just importing
+    // xterm.js runs top-level code which accesses the DOM, and if it's in the
+    // same chunk as @wasmer/sdk, each Web Worker will try to run this code and
+    // crash.
+    // See https://github.com/wasmerio/wasmer-js/issues/373
+    const { Wasmer, init, initializeLogger } = await import("@wasmer/sdk/dist/WasmerSDKBundled");
+
     await init();
     initializeLogger("debug");
 
