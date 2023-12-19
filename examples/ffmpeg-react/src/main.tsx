@@ -2,12 +2,12 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
-import { WasmerSDK } from './hooks.tsx'
+import { WasmerSdk } from './hooks.tsx'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <WasmerSDK>
+    <WasmerSdk log="info,wasmer_wasix=debug,wasmer_js=debug">
       <App />
-    </WasmerSDK>
+    </WasmerSdk>
   </React.StrictMode>,
 )

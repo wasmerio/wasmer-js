@@ -1,11 +1,10 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import {
-    Wasmer,
     Directory,
 } from "@wasmer/sdk";
 import { PhotoIcon } from "@heroicons/react/24/solid";
 import { useDropzone } from "react-dropzone";
-import { useWasmerPackage, useWasmerSdk } from "./hooks";
+import { useWasmerPackage } from "./hooks";
 
 interface VideoProps {
     preview: boolean;
@@ -22,8 +21,8 @@ enum PROCESSING_STATUS {
 }
 
 export default function App() {
-    const pkgState = useWasmerPackage("wasmer/ffmpeg");
-    console.log(pkgState);
+    const pkg = useWasmerPackage("wasmer/ffmpeg");
+    console.log(pkg);
 
     const [userVideo, setUserVideo] = useState<VideoProps>({
         preview: false,
@@ -106,9 +105,8 @@ export default function App() {
 
         const tmp = new Directory();
         await tmp.writeFile("input.mp4", fileU8Arr);
-        const pkg = await Wasmer.fromRegistry("wasmer/ffmpeg");
 
-        if (!pkg.entrypoint) return;
+        if (pkg.state != "loaded" || !pkg.pkg.entrypoint) return;
 
         const instance = await pkg.entrypoint!.run({
             args: [
@@ -225,7 +223,7 @@ export default function App() {
             )}
 
             <button
-                disabled={!fileU8Arr}
+                disabled={!fileU8Arr || pkg.state != "loaded"}
                 onClick={runFfmpegProcessing}
                 type="button"
                 className="rounded-md bg-indigo-50 px-3.5 py-2.5 text-sm font-semibold shadow-sm hover:bg-indigo-100"
