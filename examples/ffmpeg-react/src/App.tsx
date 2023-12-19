@@ -1,30 +1,11 @@
-import React, { useState, useRef, useCallback, useEffect } from "react";
-
+import { useState, useRef, useCallback, useEffect } from "react";
 import {
     Wasmer,
-    init,
-    initializeLogger,
     Directory,
-    runWasix,
-    Runtime,
-} from "@wasmer/sdk/dist/WasmerSDKBundled.js";
-
+} from "@wasmer/sdk";
 import { PhotoIcon } from "@heroicons/react/24/solid";
 import { useDropzone } from "react-dropzone";
-
-async function readStream<T>(
-    stream: ReadableStream<T>,
-    cb: (data: T) => Promise<void> | void,
-) {
-    const reader = stream.getReader();
-    for (
-        let result = await reader.read();
-        !result.done;
-        result = await reader.read()
-    ) {
-        await cb(result.value);
-    }
-}
+import { useWasmerPackage, useWasmerSdk } from "./hooks";
 
 interface VideoProps {
     preview: boolean;
@@ -32,7 +13,6 @@ interface VideoProps {
     file: File | null;
 }
 
-let loggerInitialized = false;
 
 enum PROCESSING_STATUS {
     NOT_STARTED,
@@ -41,7 +21,10 @@ enum PROCESSING_STATUS {
     FAILED,
 }
 
-function App() {
+export default function App() {
+    const pkgState = useWasmerPackage("wasmer/ffmpeg");
+    console.log(pkgState);
+
     const [userVideo, setUserVideo] = useState<VideoProps>({
         preview: false,
         fileSrc: "",
@@ -91,16 +74,6 @@ function App() {
         outputVideoRef.current?.load();
     }, [outputVideo.fileSrc]);
 
-    useEffect(() => {
-        (async () => {
-            if (loggerInitialized) return;
-            loggerInitialized = true;
-            await init();
-            initializeLogger(
-                "info,wasmer_wasix=debug,wasmer_wasix::syscalls=debug,wasmer_js=debug",
-            );
-        })();
-    }, []);
 
     useEffect(() => {
         if (!userVideo.file) {
@@ -129,8 +102,6 @@ function App() {
     const runFfmpegProcessing = async () => {
         if (!fileU8Arr) return;
 
-        // const runtime = new Runtime();
-
         setProcessingStatus(PROCESSING_STATUS.RUNNING);
 
         const tmp = new Directory();
@@ -149,10 +120,6 @@ function App() {
             ],
             mount: { "/videos": tmp },
         });
-
-        // await readStream(instance.stderr, (data: Uint8Array) => {
-        //     console.log(new TextDecoder().decode(data));
-        // });
 
         await instance.stdin?.close();
         let output = await instance.wait();
@@ -174,31 +141,6 @@ function App() {
         } else {
             console.log(output.stderr);
             setProcessingStatus(PROCESSING_STATUS.FAILED);
-        }
-    };
-
-    const showProcessingStatus = () => {
-        switch (processingStatus) {
-            case PROCESSING_STATUS.FAILED:
-                return (
-                    <div className="text-red-600">
-                        Processing failed. Please try again.
-                    </div>
-                );
-            case PROCESSING_STATUS.FINISHED:
-                return (
-                    <div className="text-green-600">Processing finished.</div>
-                );
-            case PROCESSING_STATUS.RUNNING:
-                return (
-                    <div className="text-yellow-600">
-                        FFmpeg is processing. Please wait.
-                    </div>
-                );
-            case PROCESSING_STATUS.NOT_STARTED:
-                return (
-                    <div className="text-indigo-600">Run FFmpeg Processing</div>
-                );
         }
     };
 
@@ -288,10 +230,29 @@ function App() {
                 type="button"
                 className="rounded-md bg-indigo-50 px-3.5 py-2.5 text-sm font-semibold shadow-sm hover:bg-indigo-100"
             >
-                {showProcessingStatus()}
+                <ProcessingStatus status={processingStatus} />
             </button>
         </main>
     );
 }
 
-export default App;
+function ProcessingStatus({ status }: { status: PROCESSING_STATUS }) {
+    switch (status) {
+        case PROCESSING_STATUS.FAILED:
+            return (
+                <div className="text-red-600">
+                    Processing failed. Please try again.
+                </div>
+            );
+        case PROCESSING_STATUS.FINISHED:
+            return <div className="text-green-600">Processing finished.</div>;
+        case PROCESSING_STATUS.RUNNING:
+            return (
+                <div className="text-yellow-600">
+                    FFmpeg is processing. Please wait.
+                </div>
+            );
+        case PROCESSING_STATUS.NOT_STARTED:
+            return <div className="text-indigo-600">Run FFmpeg Processing</div>;
+    }
+}
