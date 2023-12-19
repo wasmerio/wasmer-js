@@ -1,6 +1,6 @@
 {
   "name": "@wasmer/sdk",
-  "version": "0.5.1",
+  "version": "0.6.0-alpha",
   "main": "dist/WasmerSDKBundled.js",
   "unpkg": "dist/WasmerSDKBundled.umd.js",
   "module": "dist/WasmerSDKBundled.js",
