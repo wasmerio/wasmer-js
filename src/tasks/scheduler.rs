@@ -1,7 +1,6 @@
 use std::{
     collections::{BTreeMap, VecDeque},
     fmt::Debug,
-    num::NonZeroUsize,
     sync::atomic::{AtomicU32, Ordering},
 };
 
@@ -22,21 +21,20 @@ use crate::tasks::{
 #[derive(Debug, Clone)]
 pub(crate) struct Scheduler {
     scheduler_thread_id: u32,
-    capacity: NonZeroUsize,
     channel: UnboundedSender<SchedulerMessage>,
 }
 
 impl Scheduler {
     /// Spin up a scheduler on the current thread and get a channel that can be
     /// used to communicate with it.
-    pub(crate) fn spawn(capacity: NonZeroUsize) -> Scheduler {
+    pub(crate) fn spawn() -> Scheduler {
         let (sender, mut receiver) = mpsc::unbounded_channel();
 
         let thread_id = wasmer::current_thread_id();
         // Safety: we just got the thread ID.
-        let sender = unsafe { Scheduler::new(sender, thread_id, capacity) };
+        let sender = unsafe { Scheduler::new(sender, thread_id) };
 
-        let mut scheduler = SchedulerState::new(capacity, sender.clone());
+        let mut scheduler = SchedulerState::new(sender.clone());
 
         tracing::debug!(thread_id, "Spinning up the scheduler");
         wasm_bindgen_futures::spawn_local(
@@ -67,16 +65,11 @@ impl Scheduler {
     ///
     /// The `scheduler_thread_id` must match the [`wasmer::current_thread_id()`]
     /// otherwise these `!Send` values will be sent between threads.
-    unsafe fn new(
-        channel: UnboundedSender<SchedulerMessage>,
-        scheduler_thread_id: u32,
-        capacity: NonZeroUsize,
-    ) -> Self {
+    unsafe fn new(channel: UnboundedSender<SchedulerMessage>, scheduler_thread_id: u32) -> Self {
         debug_assert_eq!(scheduler_thread_id, wasmer::current_thread_id());
         Scheduler {
             channel,
             scheduler_thread_id,
-            capacity,
         }
     }
 
@@ -102,10 +95,6 @@ impl Scheduler {
             Ok(())
         }
     }
-
-    pub(crate) fn capacity(&self) -> NonZeroUsize {
-        self.capacity
-    }
 }
 
 // Safety: The only way our !Send messages will be sent to the scheduler is if
@@ -117,8 +106,6 @@ unsafe impl Sync for Scheduler {}
 /// The state for the actor in charge of the threadpool.
 #[derive(Debug)]
 struct SchedulerState {
-    /// The maximum number of workers we will start.
-    capacity: NonZeroUsize,
     /// Workers that are able to receive work.
     idle: VecDeque<WorkerHandle>,
     /// Workers that are currently blocked on synchronous operations and can't
@@ -130,9 +117,8 @@ struct SchedulerState {
 }
 
 impl SchedulerState {
-    fn new(capacity: NonZeroUsize, mailbox: Scheduler) -> Self {
+    fn new(mailbox: Scheduler) -> Self {
         SchedulerState {
-            capacity,
             idle: VecDeque::new(),
             busy: VecDeque::new(),
             mailbox,
@@ -213,14 +199,14 @@ impl SchedulerState {
     /// Send a task to one of the worker threads, preferring workers that aren't
     /// running synchronous work.
     fn post_message(&mut self, msg: PostMessagePayload) -> Result<(), Error> {
-        let (worker, already_blocked) = self.next_available_worker()?;
+        let worker = self.next_available_worker()?;
 
         let would_block = msg.would_block();
         worker
             .send(msg)
             .with_context(|| format!("Unable to send a message to worker {}", worker.id()))?;
 
-        if would_block || already_blocked {
+        if would_block {
             self.busy.push_back(worker);
         } else {
             self.idle.push_back(worker);
@@ -229,43 +215,25 @@ impl SchedulerState {
         Ok(())
     }
 
-    fn next_available_worker(&mut self) -> Result<(WorkerHandle, bool), Error> {
+    fn next_available_worker(&mut self) -> Result<WorkerHandle, Error> {
         // First, try to send the message to an idle worker
         if let Some(worker) = self.idle.pop_front() {
             tracing::trace!(
                 worker.id = worker.id(),
                 "Sending the message to an idle worker"
             );
-            return Ok((worker, false));
+            return Ok(worker);
         }
 
-        if self.busy.len() + self.idle.len() < self.capacity.get() {
-            // Rather than sending the task to one of the blocking workers,
-            // let's spawn a new worker
+        // Rather than sending the task to one of the blocking workers,
+        // let's spawn a new worker
 
-            let worker = self.start_worker()?;
-            tracing::trace!(
-                worker.id = worker.id(),
-                "Sending the message to a new worker"
-            );
-            return Ok((worker, false));
-        }
-
-        // Oh well, looks like there aren't any more idle workers and we can't
-        // spin up any new workers, so we'll need to add load to a worker that
-        // is already blocking.
-        //
-        // Note: This shouldn't panic because if there were no idle workers and
-        // we didn't start a new worker, there should always be at least one
-        // busy worker because our capacity is non-zero.
-        let worker = self.busy.pop_front().unwrap();
-
+        let worker = self.start_worker()?;
         tracing::trace!(
             worker.id = worker.id(),
-            "Sending the message to a busy worker"
+            "Sending the message to a new worker"
         );
-
-        Ok((worker, true))
+        Ok(worker)
     }
 
     fn start_worker(&mut self) -> Result<WorkerHandle, Error> {
@@ -309,8 +277,8 @@ mod tests {
     async fn spawn_an_async_function() {
         let (sender, receiver) = oneshot::channel();
         let (tx, _) = mpsc::unbounded_channel();
-        let tx = unsafe { Scheduler::new(tx, wasmer::current_thread_id(), NonZeroUsize::MAX) };
-        let mut scheduler = SchedulerState::new(NonZeroUsize::MAX, tx);
+        let tx = unsafe { Scheduler::new(tx, wasmer::current_thread_id()) };
+        let mut scheduler = SchedulerState::new(tx);
         let message = SchedulerMessage::SpawnAsync(Box::new(move || {
             Box::pin(async move {
                 let _ = sender.send(42);
