@@ -7,4 +7,9 @@ export default defineConfig({
             "Cross-Origin-Embedder-Policy": "require-corp",
         },
     },
+    build: {
+        modulePreload: {
+            polyfill: false,
+        },
+    },
 });
