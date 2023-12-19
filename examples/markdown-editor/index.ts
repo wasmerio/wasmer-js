@@ -1,4 +1,4 @@
-import { init, runWasix } from "@wasmer/sdk/dist/WasmerSDKBundled.js";
+import { init, runWasix } from "@wasmer/sdk";
 import markdownRendererUrl from "./markdown-renderer/target/wasm32-wasi/release/markdown-renderer.wasm?url";
 
 async function initialize() {
