@@ -1,10 +1,12 @@
 import "xterm/css/xterm.css";
+import wasmerSDKUrl from "@wasmer/sdk/dist/wasmer_js_bg.wasm?url";
 
 import type { Instance } from "@wasmer/sdk";
 import { Terminal } from "xterm";
 import { FitAddon } from "xterm-addon-fit";
 
 const encoder = new TextEncoder();
+
 
 async function main() {
     // Note: We dynamically import the Wasmer SDK to make sure the bundler puts
@@ -15,7 +17,7 @@ async function main() {
     // See https://github.com/wasmerio/wasmer-js/issues/373
     const { Wasmer, init, initializeLogger } = await import("@wasmer/sdk");
 
-    await init();
+    await init(wasmerSDKUrl);
     initializeLogger("debug");
 
     const term = new Terminal({ cursorBlink: true, convertEol: true });

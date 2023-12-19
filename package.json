@@ -1,10 +1,10 @@
 {
   "name": "@wasmer/sdk",
   "version": "0.6.0-alpha",
-  "main": "dist/WasmerSDKBundled.js",
-  "unpkg": "dist/WasmerSDKBundled.umd.js",
-  "module": "dist/WasmerSDKBundled.js",
-  "types": "dist/WasmerSDKBundled.d.ts",
+  "main": "dist/WasmerSDK.cjs",
+  "unpkg": "dist/WasmerSDK.umd.js",
+  "module": "dist/WasmerSDK.js",
+  "types": "dist/WasmerSDK.d.ts",
   "keywords": [
     "webassembly",
     "wasm",
@@ -45,6 +45,7 @@
     "@babel/preset-env": "^7.23.3",
     "@esm-bundle/chai": "^4.3.4-fix.0",
     "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-replace": "^5.0.5",
     "@rollup/plugin-terser": "^0.4.4",
     "@rollup/plugin-typescript": "^11.1.5",
     "@rollup/plugin-wasm": "^6.2.2",

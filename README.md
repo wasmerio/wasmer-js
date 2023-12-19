@@ -33,8 +33,7 @@ const instance = await pkg.entrypoint.run({
 const { code, stdout } = await instance.wait();
 console.log(`Python exited with ${code}: ${stdout}`);
 ```
-
-### Use from CDN
+### Use with a `<script>` tag (without bundler)
 
 It is possible to avoid needing to use a bundler by importing `@wasmer/sdk` as
 a UMD module.
@@ -81,6 +80,33 @@ script into a module.
     runPython();
 </script>
 ```
+
+
+### Using a custom Wasm file
+
+By default, `WasmerSDK.init` will load the Wasmer SDK WebAssembly file from unpkg.com.
+If you want to customize this behavior you can pass a custom url to the init, so the the wasm file
+of the Wasmer SDK can ve served by your HTTP server instead:
+
+```js
+import { init, Wasmer } from "@wasmer/sdk";
+import wasmUrl from "@wasmer/sdk/dist/wasmer_js_bg.wasm?url";
+
+await init(wasmUrl); // This inits the SDK with a custom URL
+```
+
+
+### Using a JS with the Wasm bundled
+
+You can also load Wasmer-JS with a js file with the Wasmer SDK WebAssembly file bundled into it (using bas64 encoding),
+so no extra requests are required. If that's your use case, you can simply import `@wasmer/sdk/dist/WasmerSDKBundled.js` instead:
+
+```js
+import { init, Wasmer } from "@wasmer/sdk/dist/WasmerSDKBundled.js";
+
+await init(); // This inits the SDK in the bundled version
+```
+
 
 ### Cross-Origin Isolation
 
