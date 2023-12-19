@@ -70,7 +70,7 @@ impl Runtime {
     }
 
     pub(crate) fn with_defaults() -> Result<Self, Error> {
-        let pool = ThreadPool::new_with_max_threads()?;
+        let pool = ThreadPool::new();
         let mut rt = Runtime::new(pool);
 
         rt.set_registry(crate::DEFAULT_REGISTRY, None)?;

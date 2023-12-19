@@ -1,5 +1,4 @@
 use std::{
-    num::NonZeroUsize,
     ops::{Deref, DerefMut},
     sync::Arc,
 };
@@ -33,15 +32,7 @@ impl JsRuntime {
 impl JsRuntime {
     #[wasm_bindgen(constructor)]
     pub fn js_new(options: Option<RuntimeOptions>) -> Result<JsRuntime, Error> {
-        let pool_size = options.as_ref().and_then(|options| options.pool_size());
-
-        let pool = match pool_size {
-            Some(size) => {
-                let size = NonZeroUsize::new(size).unwrap_or(NonZeroUsize::MIN);
-                ThreadPool::new(size)
-            }
-            None => ThreadPool::new_with_max_threads()?,
-        };
+        let pool = ThreadPool::new();
 
         let registry = match options.as_ref().and_then(|opts| opts.registry()) {
             Some(registry_url) => registry_url.resolve(),
@@ -109,10 +100,6 @@ const RUNTIME_OPTIONS_TYPE_DECLARATION: &str = r#"
  */
 export type RuntimeOptions = {
     /**
-     * The number of worker threads to use.
-     */
-    poolSize?: number;
-    /**
      * The GraphQL endpoint for the Wasmer registry used when looking up
      * packages.
      *
@@ -136,9 +123,6 @@ export type RuntimeOptions = {
 extern "C" {
     #[wasm_bindgen(typescript_type = "RuntimeOptions")]
     pub type RuntimeOptions;
-
-    #[wasm_bindgen(method, getter, js_name = "poolSize")]
-    fn pool_size(this: &RuntimeOptions) -> Option<usize>;
 
     #[wasm_bindgen(method, getter)]
     fn registry(this: &RuntimeOptions) -> Option<MaybeRegistryUrl>;

@@ -1,6 +1,5 @@
-use std::{fmt::Debug, future::Future, num::NonZeroUsize, pin::Pin};
+use std::{fmt::Debug, future::Future, pin::Pin};
 
-use anyhow::Context;
 use futures::future::LocalBoxFuture;
 use instant::Duration;
 use wasm_bindgen_futures::JsFuture;
@@ -18,21 +17,9 @@ pub struct ThreadPool {
 }
 
 impl ThreadPool {
-    pub fn new(capacity: NonZeroUsize) -> Self {
-        let sender = Scheduler::spawn(capacity);
+    pub fn new() -> Self {
+        let sender = Scheduler::spawn();
         ThreadPool { scheduler: sender }
-    }
-
-    pub fn new_with_max_threads() -> Result<ThreadPool, anyhow::Error> {
-        let concurrency = crate::utils::GlobalScope::current()
-            .hardware_concurrency()
-            .context("Unable to determine the hardware concurrency")?;
-        // Note: We want to deliberately over-commit to avoid accidental
-        // deadlocks.
-        let concurrency = concurrency
-            .checked_mul(NonZeroUsize::new(16).unwrap())
-            .unwrap();
-        Ok(ThreadPool::new(concurrency))
     }
 
     /// Run an `async` function to completion on the threadpool.
@@ -113,7 +100,10 @@ impl VirtualTaskManager for ThreadPool {
 
     /// Returns the amount of parallelism that is possible on this platform
     fn thread_parallelism(&self) -> Result<usize, WasiThreadError> {
-        Ok(self.scheduler.capacity().get())
+        match crate::utils::GlobalScope::current().hardware_concurrency() {
+            Some(n) => Ok(n.get()),
+            None => Err(WasiThreadError::Unsupported),
+        }
     }
 
     fn spawn_with_module(
@@ -148,7 +138,7 @@ mod tests {
                 .dyn_into()
                 .unwrap();
         let module = wasmer::Module::from(module);
-        let pool = ThreadPool::new_with_max_threads().unwrap();
+        let pool = ThreadPool::new();
 
         let (sender, receiver) = oneshot::channel();
         pool.spawn_with_module(
@@ -166,7 +156,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     async fn spawned_tasks_can_communicate_with_the_main_thread() {
-        let pool = ThreadPool::new(2.try_into().unwrap());
+        let pool = ThreadPool::new();
         let (sender, receiver) = oneshot::channel();
 
         pool.task_shared(Box::new(move || {
@@ -203,7 +193,7 @@ mod tests {
         let (sender_1, receiver_1) = oneshot::channel();
         let (sender_2, mut receiver_2) = oneshot::channel();
         // Set things up so we can run 2 blocking tasks at the same time.
-        let pool = ThreadPool::new(NonZeroUsize::new(2).unwrap());
+        let pool = ThreadPool::new();
 
         // Note: The second task depends on the first one completing
         let first_task = Box::new(move || sender_1.send(()).unwrap());
