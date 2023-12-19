@@ -1,10 +1,10 @@
 {
   "name": "@wasmer/sdk",
   "version": "0.5.1",
-  "main": "dist/WasmerSDK.cjs",
-  "module": "dist/WasmerSDK.js",
-  "unpkg": "dist/WasmerSDK.umd.js",
-  "types": "dist/WasmerSDK.d.ts",
+  "main": "dist/WasmerSDKBundled.js",
+  "unpkg": "dist/WasmerSDKBundled.umd.js",
+  "module": "dist/WasmerSDKBundled.js",
+  "types": "dist/WasmerSDKBundled.d.ts",
   "keywords": [
     "webassembly",
     "wasm",

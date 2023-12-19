@@ -13,7 +13,7 @@ async function main() {
     // same chunk as @wasmer/sdk, each Web Worker will try to run this code and
     // crash.
     // See https://github.com/wasmerio/wasmer-js/issues/373
-    const { Wasmer, init, initializeLogger } = await import("@wasmer/sdk/dist/WasmerSDKBundled");
+    const { Wasmer, init, initializeLogger } = await import("@wasmer/sdk");
 
     await init();
     initializeLogger("debug");
