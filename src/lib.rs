@@ -50,7 +50,10 @@ pub fn wat2wasm(wat: String) -> Result<js_sys::Uint8Array, utils::Error> {
 
 #[wasm_bindgen(start, skip_typescript)]
 fn on_start() {
-    console_error_panic_hook::set_once();
+    std::panic::set_hook(Box::new(|p| {
+        tracing::error!("{p}");
+        console_error_panic_hook::hook(p);
+    }));
 
     if let Some(cross_origin_isolated) =
         crate::utils::GlobalScope::current().cross_origin_isolated()
