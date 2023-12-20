@@ -73,6 +73,7 @@ const makeConfig = (env = "development", input, name, plugins = []) => {
         replace({
             values: {
                 "globalThis.wasmUrl": `"https://unpkg.com/${pkg.name}@${pkg.version}/dist/wasmer_js_bg.wasm"`,
+                "globalThis.workerUrl": `"https://unpkg.com/${pkg.name}@${pkg.version}/dist/WasmerSDK.js"`,
             },
             preventAssignment: true,
         }),
