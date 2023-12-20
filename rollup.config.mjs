@@ -2,6 +2,7 @@ import terser from "@rollup/plugin-terser";
 import pkg from "./package.json" assert { type: "json" };
 import dts from "rollup-plugin-dts";
 import typescript from "@rollup/plugin-typescript";
+import replace from "@rollup/plugin-replace";
 import copy from 'rollup-plugin-copy';
 import { wasm } from '@rollup/plugin-wasm';
 
@@ -68,6 +69,14 @@ const makeConfig = (env = "development", input, name, plugins = []) => {
             }),
         );
     }
+    config.plugins.push(
+        replace({
+            values: {
+                "globalThis.wasmUrl": `"https://unpkg.com/${pkg.name}@${pkg.version}/dist/wasmer_js_bg.wasm"`,
+            },
+            preventAssignment: true,
+        }),
+    );
 
     return config;
 };

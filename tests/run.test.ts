@@ -6,10 +6,10 @@ import {
     init,
     initializeLogger,
     Directory,
-} from "..";
+} from "../dist/WasmerSDKBundled";
 
 const initialized = (async () => {
-    await init();
+    await init(new URL("../dist/wasmer_js_bg.wasm", import.meta.url));
     initializeLogger("warn");
 })();
 
