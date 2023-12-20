@@ -1,17 +1,13 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import {
-    Directory,
-} from "@wasmer/sdk";
 import { PhotoIcon } from "@heroicons/react/24/solid";
 import { useDropzone } from "react-dropzone";
-import { useWasmerPackage } from "./hooks";
+import { useWasmerPackage, useWasmerSdk } from "./hooks";
 
 interface VideoProps {
     preview: boolean;
     fileSrc?: ReturnType<typeof URL.createObjectURL>;
     file: File | null;
 }
-
 
 enum PROCESSING_STATUS {
     NOT_STARTED,
@@ -21,6 +17,7 @@ enum PROCESSING_STATUS {
 }
 
 export default function App() {
+    const sdk = useWasmerSdk();
     const pkg = useWasmerPackage("wasmer/ffmpeg");
     console.log(pkg);
 
@@ -99,11 +96,11 @@ export default function App() {
         }
     }, [processingStatus]);
     const runFfmpegProcessing = async () => {
-        if (!fileU8Arr) return;
+        if (!fileU8Arr || sdk.state != "loaded") return;
 
         setProcessingStatus(PROCESSING_STATUS.RUNNING);
 
-        const tmp = new Directory();
+        const tmp = new sdk.Directory();
         await tmp.writeFile("input.mp4", fileU8Arr);
 
         if (pkg.state != "loaded" || !pkg.pkg.entrypoint) return;

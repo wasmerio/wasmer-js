@@ -87,7 +87,7 @@ export default commandLineArgs => {
     const configs = [
         makeConfig(env, "WasmerSDK.ts", LIBRARY_NAME),
         makeConfig(env, "WasmerSDKBundled.ts", `${LIBRARY_NAME}Bundled`, [wasm({
-            maxFileSize: 10 * 1024 * 1024,
+            maxFileSize: 100 * 1024 * 1024,
         })]),
         {
             input: "./pkg/wasmer_js.d.ts",

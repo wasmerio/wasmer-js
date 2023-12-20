@@ -1,7 +1,8 @@
 import React, { useContext, useEffect, useState } from "react";
-import { Command, Runtime, Wasmer, init, initializeLogger } from "@wasmer/sdk";
+import type { Command, Runtime, Wasmer, init, initializeLogger } from "@wasmer/sdk";
 
-export type WasmerSdkState = { state: "loading" } | { state: "loaded" } | { state: "error", error: any };
+type LoadedSdkState = { state: "loaded" } & typeof import("@wasmer/sdk");
+export type WasmerSdkState = LoadedSdkState | { state: "loading" } | { state: "error", error: any };
 
 export type WasmerSdkProps = {
     /**
@@ -17,7 +18,7 @@ const Context = React.createContext<WasmerSdkState | null>(null);
 // Note: The wasm-bindgen glue code only needs to be initialized once, and
 // initializing the logger multiple times will throw an exception, so we use a
 // global variable to keep track of the in-progress initialization.
-let pending: Promise<void> | undefined = undefined;
+let pending: Promise<typeof import("@wasmer/sdk")> | undefined = undefined;
 
 /**
  * A wrapper component which will automatically initialize the Wasmer SDK.
@@ -27,11 +28,18 @@ export function WasmerSdk(props?: WasmerSdkProps) {
 
     useEffect(() => {
         if (typeof pending == "undefined") {
-            pending = init(props?.wasm).then(() => initializeLogger(props?.log));
+            pending = (async function () {
+                console.log("Importing @wasmer/sdk");
+                const imported = await import("@wasmer/sdk");
+                console.log("Imported @wasmer/sdk");
+                await imported.init(props?.wasm);
+                imported.initializeLogger(props?.log);
+                return imported;
+            })()
         }
 
         pending
-            .then(() => setState({ state: "loaded" }))
+            .then(sdk => setState({ state: "loaded", ...sdk }))
             .catch(e => setState({ state: "error", error: e }));
     }, [])
 
@@ -75,6 +83,10 @@ export function useWasmerPackage(pkg: string | Uint8Array, runtime?: Runtime): U
             return { state: "sdk-error", error: sdk.error };
         case "loading":
             return { state: "loading-sdk" };
+        case "loaded":
+            break;
+        default:
+            throw new Error(`Unknown SDK state: ${sdk}`);
     }
 
     if (typeof state != "undefined") {
@@ -84,9 +96,11 @@ export function useWasmerPackage(pkg: string | Uint8Array, runtime?: Runtime): U
     const newState = { state: "loading-package" } as const;
     setState(newState);
 
+    console.warn("Loading pkg", pkg, state);
+
     const pending = (typeof pkg == "string")
-        ? Wasmer.fromRegistry(pkg, runtime)
-        : Wasmer.fromFile(pkg, runtime);
+        ? sdk.Wasmer.fromRegistry(pkg, runtime)
+        : sdk.Wasmer.fromFile(pkg, runtime);
 
     pending
         .then(pkg => {
