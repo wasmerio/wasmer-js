@@ -25,7 +25,7 @@ import { init, Wasmer } from "@wasmer/sdk";
 
 await init();
 
-const pkg = await Wasmer.fromRegistry("python/python@3.12");
+const pkg = await Wasmer.fromRegistry("python/python");
 const instance = await pkg.entrypoint.run({
     args: ["-c", "print('Hello, World!')"],
 });
