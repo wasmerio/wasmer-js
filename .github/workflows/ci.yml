@@ -10,6 +10,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+env:
+  NODE_VERSION: "21"
+
 jobs:
   check:
     name: Compile and Test
@@ -19,7 +22,8 @@ jobs:
       - name: Install Node
         uses: actions/setup-node@v3
         with:
-          node-version: 16
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
       - name: Setup Rust
         uses: dsherret/rust-toolchain-file@v1
       - name: Install Nextest
@@ -49,7 +53,8 @@ jobs:
       - name: Install Node
         uses: actions/setup-node@v3
         with:
-          node-version: 16
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
       - name: Setup Rust
         uses: dsherret/rust-toolchain-file@v1
       - name: Install wasm-pack
