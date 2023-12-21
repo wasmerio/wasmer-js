@@ -18,7 +18,7 @@ async function main() {
     const { Wasmer, init, initializeLogger } = await import("@wasmer/sdk");
 
     await init(wasmerSDKUrl);
-    initializeLogger("debug");
+    // initializeLogger("debug");
 
     const term = new Terminal({ cursorBlink: true, convertEol: true });
     const fit = new FitAddon();
