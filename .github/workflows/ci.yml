@@ -77,6 +77,11 @@ jobs:
           npm install
           npm run build
         working-directory: "examples/markdown-editor-improved"
+      - name: Build the ffmpeg demo
+        run: |
+          npm install
+          npm run build
+        working-directory: "examples/ffmpeg-react"
 
   api-docs:
     name: API Docs
