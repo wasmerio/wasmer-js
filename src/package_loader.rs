@@ -5,7 +5,7 @@ use std::{
 
 use anyhow::{Context, Error};
 use bytes::Bytes;
-use http::{HeaderMap, HeaderValue, Method, StatusCode};
+use http::{HeaderMap, Method, StatusCode};
 use wasmer_wasix::{
     bin_factory::BinaryPackage,
     http::{HttpClient, HttpRequest, HttpResponse},
@@ -31,9 +31,7 @@ impl PackageLoader {
     }
 
     async fn download(&self, dist: &DistributionInfo) -> Result<Bytes, Error> {
-        let mut headers = HeaderMap::new();
-        headers.insert("Accept", HeaderValue::from_static("application/webc"));
-
+        let headers = HeaderMap::default();
         let request = HttpRequest {
             url: dist.webc.clone(),
             method: Method::GET,
