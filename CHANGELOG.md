@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.6.0](https://github.com/wasmerio/wasmer-js/compare/wasmer-sdk-v0.5.1...wasmer-sdk-v0.6.0) (2023-12-21)
+
+
+### ⚠ BREAKING CHANGES
+
+* The `@wasmer/sdk` `Runtime` has removed the limit on the maximum number of worker threads it is allowed to spawn. The corresponding `poolSize` option has been removed from `RuntimeOptions`.
+
+### Features
+
+* The `@wasmer/sdk` `Runtime` has removed the limit on the maximum number of worker threads it is allowed to spawn. The corresponding `poolSize` option has been removed from `RuntimeOptions`. ([d5da4ea](https://github.com/wasmerio/wasmer-js/commit/d5da4ea23278f084accc182dc65fd5188aef5dbd))
+
+
+### Bug Fixes
+
+* Bump the `wasmer` dependency to pick up wasmerio/wasmer[#4366](https://github.com/wasmerio/wasmer-js/issues/4366) ([c3c5a5d](https://github.com/wasmerio/wasmer-js/commit/c3c5a5d4a098b2250c7d9b34debf82f214e78cd9))
+
 ## [0.5.1](https://github.com/wasmerio/wasmer-js/compare/wasmer-sdk-v0.5.0...wasmer-sdk-v0.5.1) (2023-12-15)
 
 
