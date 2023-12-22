@@ -1,0 +1,10 @@
+[package]
+name = "wasmer-examples/ffmpeg-react"
+version = "0.1.1"
+description = "wasmer-examples/ffmpeg-react website"
+
+[dependencies]
+"wasmer/static-web-server" = "^1"
+
+[fs]
+"/public" = "./dist"
