@@ -8,3 +8,4 @@ description = "wasmer-examples/ffmpeg-react website"
 
 [fs]
 "/public" = "./dist"
+"/etc/static-web-server" = "etc"
