@@ -1,0 +1,6 @@
+---
+kind: wasmer.io/App.v0
+name: wasmer-examples-ffmpeg-react
+app_id: da_oR36ILtlULdn
+package: wasmer-examples/ffmpeg-react@0.1.1
+debug: false
