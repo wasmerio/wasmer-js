@@ -55,11 +55,18 @@ impl VirtualTaskManager for ThreadPool {
             i32::MAX
         };
 
-        wasm_bindgen_futures::spawn_local(async move {
-            let global = GlobalScope::current();
-            let _ = JsFuture::from(global.sleep(time)).await;
-            let _ = tx.send(());
-        });
+        // Note: We can't use wasm_bindgen_futures::spawn_local() directly
+        // because we might be invoked from inside a syscall. This causes a
+        // deadlock because the syscall will block block until the future
+        // resolves, but the JsFuture will never get a chance to mark itself as
+        // resolved because the JavaScript VM is still blocked by the syscall.
+        let _ = self.task_dedicated(Box::new(move || {
+            wasm_bindgen_futures::spawn_local(async move {
+                let global = GlobalScope::current();
+                let _ = JsFuture::from(global.sleep(time)).await;
+                let _ = tx.send(());
+            })
+        }));
 
         Box::pin(async move {
             let _ = rx.await;
