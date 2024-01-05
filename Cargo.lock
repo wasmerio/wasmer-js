@@ -939,6 +939,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b5e6163cb8c49088c2c36f57875e58ccd8c87c7427f7fbd50ea6710b2f3f2e8f"
 
 [[package]]
+name = "lz4_flex"
+version = "0.11.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3ea9b256699eda7b0387ffbc776dd625e28bde3918446381781245b7a50349d8"
+dependencies = [
+ "twox-hash",
+]
+
+[[package]]
 name = "mach"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1651,6 +1660,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 
 [[package]]
+name = "static_assertions"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
+
+[[package]]
 name = "strsim"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1991,6 +2006,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "twox-hash"
+version = "1.6.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "97fee6b57c6a41524a810daee9286c02d7752c4253064d0b05472833a438f675"
+dependencies = [
+ "cfg-if",
+ "static_assertions",
+]
+
+[[package]]
 name = "typenum"
 version = "1.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2088,8 +2113,8 @@ checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
 
 [[package]]
 name = "virtual-fs"
-version = "0.10.0"
-source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#d2ac6c26c70714a2d6e88b6487878811b6e651e2"
+version = "0.11.0"
+source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#d37aa0d358158bb64b35e88ce62a657b839cb18b"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2112,7 +2137,7 @@ dependencies = [
 [[package]]
 name = "virtual-mio"
 version = "0.3.0"
-source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#d2ac6c26c70714a2d6e88b6487878811b6e651e2"
+source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#d37aa0d358158bb64b35e88ce62a657b839cb18b"
 dependencies = [
  "async-trait",
  "bytes",
@@ -2125,18 +2150,20 @@ dependencies = [
 
 [[package]]
 name = "virtual-net"
-version = "0.6.1"
-source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#d2ac6c26c70714a2d6e88b6487878811b6e651e2"
+version = "0.6.2"
+source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#d37aa0d358158bb64b35e88ce62a657b839cb18b"
 dependencies = [
  "anyhow",
  "async-trait",
  "base64",
  "bincode",
+ "bytecheck",
  "bytes",
  "derivative",
  "futures-util",
  "libc",
  "pin-project-lite",
+ "rkyv",
  "serde",
  "thiserror",
  "tokio",
@@ -2212,8 +2239,8 @@ dependencies = [
 
 [[package]]
 name = "wai-bindgen-wasmer"
-version = "0.17.0"
-source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#d2ac6c26c70714a2d6e88b6487878811b6e651e2"
+version = "0.18.0"
+source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#d37aa0d358158bb64b35e88ce62a657b839cb18b"
 dependencies = [
  "anyhow",
  "bitflags 1.3.2",
@@ -2418,8 +2445,8 @@ dependencies = [
 
 [[package]]
 name = "wasmer"
-version = "4.2.4"
-source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#d2ac6c26c70714a2d6e88b6487878811b6e651e2"
+version = "4.2.5"
+source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#d37aa0d358158bb64b35e88ce62a657b839cb18b"
 dependencies = [
  "bytes",
  "cfg-if",
@@ -2447,8 +2474,8 @@ dependencies = [
 
 [[package]]
 name = "wasmer-compiler"
-version = "4.2.4"
-source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#d2ac6c26c70714a2d6e88b6487878811b6e651e2"
+version = "4.2.5"
+source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#d37aa0d358158bb64b35e88ce62a657b839cb18b"
 dependencies = [
  "backtrace",
  "bytes",
@@ -2474,13 +2501,37 @@ dependencies = [
 
 [[package]]
 name = "wasmer-derive"
-version = "4.2.4"
-source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#d2ac6c26c70714a2d6e88b6487878811b6e651e2"
+version = "4.2.5"
+source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#d37aa0d358158bb64b35e88ce62a657b839cb18b"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
  "quote",
  "syn 1.0.109",
+]
+
+[[package]]
+name = "wasmer-journal"
+version = "0.1.0"
+source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#d37aa0d358158bb64b35e88ce62a657b839cb18b"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "base64",
+ "bincode",
+ "bytecheck",
+ "bytes",
+ "derivative",
+ "lz4_flex",
+ "num_enum",
+ "rkyv",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tracing",
+ "virtual-net",
+ "wasmer",
+ "wasmer-wasix-types",
 ]
 
 [[package]]
@@ -2540,8 +2591,8 @@ dependencies = [
 
 [[package]]
 name = "wasmer-types"
-version = "4.2.4"
-source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#d2ac6c26c70714a2d6e88b6487878811b6e651e2"
+version = "4.2.5"
+source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#d37aa0d358158bb64b35e88ce62a657b839cb18b"
 dependencies = [
  "bytecheck",
  "enum-iterator",
@@ -2557,8 +2608,8 @@ dependencies = [
 
 [[package]]
 name = "wasmer-vm"
-version = "4.2.4"
-source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#d2ac6c26c70714a2d6e88b6487878811b6e651e2"
+version = "4.2.5"
+source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#d37aa0d358158bb64b35e88ce62a657b839cb18b"
 dependencies = [
  "backtrace",
  "cc",
@@ -2585,12 +2636,14 @@ dependencies = [
 
 [[package]]
 name = "wasmer-wasix"
-version = "0.17.0"
-source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#d2ac6c26c70714a2d6e88b6487878811b6e651e2"
+version = "0.18.0"
+source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#d37aa0d358158bb64b35e88ce62a657b839cb18b"
 dependencies = [
  "anyhow",
  "async-trait",
+ "base64",
  "bincode",
+ "bytecheck",
  "bytes",
  "cfg-if",
  "chrono",
@@ -2606,10 +2659,13 @@ dependencies = [
  "lazy_static",
  "libc",
  "linked_hash_set",
+ "lz4_flex",
+ "num_enum",
  "once_cell",
  "petgraph",
  "pin-project",
  "rand",
+ "rkyv",
  "semver",
  "serde",
  "serde_cbor",
@@ -2617,6 +2673,7 @@ dependencies = [
  "serde_json",
  "serde_yaml 0.8.26",
  "sha2",
+ "shared-buffer",
  "tempfile",
  "term_size",
  "termios",
@@ -2633,18 +2690,20 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "wasmer",
+ "wasmer-journal",
  "wasmer-types",
  "wasmer-wasix-types",
  "web-sys",
  "webc",
  "weezl",
  "winapi",
+ "xxhash-rust",
 ]
 
 [[package]]
 name = "wasmer-wasix-types"
-version = "0.17.0"
-source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#d2ac6c26c70714a2d6e88b6487878811b6e651e2"
+version = "0.18.0"
+source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#d37aa0d358158bb64b35e88ce62a657b839cb18b"
 dependencies = [
  "anyhow",
  "bitflags 1.3.2",
@@ -2924,6 +2983,12 @@ checksum = "f4686009f71ff3e5c4dbcf1a282d0a44db3f021ba69350cd42086b3e5f1c6985"
 dependencies = [
  "libc",
 ]
+
+[[package]]
+name = "xxhash-rust"
+version = "0.8.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "53be06678ed9e83edb1745eb72efc0bbcd7b5c3c35711a860906aed827a13d61"
 
 [[package]]
 name = "yaml-rust"

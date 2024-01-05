@@ -10,7 +10,9 @@ use wasm_bindgen::{JsCast, JsValue};
 use wasmer::{AsJs, AsStoreRef, Memory, MemoryType, Module, Store};
 use wasmer_wasix::{
     runtime::{
-        task_manager::{TaskWasm, TaskWasmRun, TaskWasmRunProperties, WasmResumeTrigger},
+        task_manager::{
+            TaskWasm, TaskWasmRecycle, TaskWasmRun, TaskWasmRunProperties, WasmResumeTrigger,
+        },
         SpawnMemoryType,
     },
     wasmer_wasix_types::wasi::ExitCode,
@@ -30,6 +32,7 @@ pub(crate) fn to_scheduler_message(
         spawn_type,
         trigger,
         update_layout,
+        recycle,
     } = task;
 
     let module_bytes = module.serialize().unwrap();
@@ -94,6 +97,7 @@ pub(crate) fn to_scheduler_message(
         snapshot,
         update_layout,
         result: None,
+        recycle,
     };
 
     Ok(SchedulerMessage::SpawnWithModuleAndMemory {
@@ -195,6 +199,8 @@ pub(crate) struct SpawnWasm {
     update_layout: bool,
     /// The result of running the trigger.
     result: Option<Result<Bytes, ExitCode>>,
+    #[derivative(Debug(format_with = "crate::utils::hidden"))]
+    recycle: Option<Box<TaskWasmRecycle>>,
 }
 
 impl SpawnWasm {
@@ -240,6 +246,7 @@ impl ReadySpawnWasm {
             update_layout,
             result,
             trigger: _,
+            recycle,
         }) = self;
 
         // Invoke the callback which will run the web assembly module
@@ -258,6 +265,7 @@ impl ReadySpawnWasm {
             ctx,
             store,
             trigger_result: result,
+            recycle,
         };
         run(properties);
 

@@ -6,7 +6,12 @@ import { Terminal } from "xterm";
 import { FitAddon } from "xterm-addon-fit";
 
 const encoder = new TextEncoder();
+const params = new URLSearchParams(window.location.search);
 
+const packageName = params.get("package") || "sharrattj/bash";
+const uses = params.getAll("use");
+const args = params.getAll("arg");
+const logFilter = params.get("log") || "warn";
 
 async function main() {
     // Note: We dynamically import the Wasmer SDK to make sure the bundler puts
@@ -18,7 +23,7 @@ async function main() {
     const { Wasmer, init, initializeLogger } = await import("@wasmer/sdk");
 
     await init(wasmerSDKUrl);
-    // initializeLogger("debug");
+    initializeLogger(logFilter);
 
     const term = new Terminal({ cursorBlink: true, convertEol: true });
     const fit = new FitAddon();
@@ -27,9 +32,9 @@ async function main() {
     fit.fit();
 
     term.writeln("Starting...");
-    const pkg = await Wasmer.fromRegistry("sharrattj/bash");
+    const pkg = await Wasmer.fromRegistry(packageName);
     term.reset();
-    const instance = await pkg.entrypoint!.run();
+    const instance = await pkg.entrypoint!.run({ args, uses });
     connectStreams(instance, term);
 }
 
