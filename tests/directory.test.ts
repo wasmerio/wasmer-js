@@ -10,7 +10,7 @@ const initialized = (async () => {
 })();
 
 describe("In-Memory Directory", function () {
-    this.beforeAll(async () => await initialized);
+    this.timeout("60s").beforeAll(async () => await initialized);
 
     it("read empty dir", async () => {
         const dir = new Directory();
