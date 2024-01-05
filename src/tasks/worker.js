@@ -14,9 +14,9 @@ let handleMessage = async data => {
 
 globalThis.onmessage = async ev => {
     if (ev.data.type == "init") {
-        const { memory, module, id } = ev.data;
+        const { memory, module, id, import_url } = ev.data;
         const imported = await import(
-            new URL("$IMPORT_META_URL", self.location.origin)
+            new URL(import_url, self.location.origin)
         );
 
         // HACK: How we load our imports will change depending on how the code
