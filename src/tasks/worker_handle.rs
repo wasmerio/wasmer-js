@@ -134,6 +134,11 @@ fn init_message(id: u32) -> Result<JsValue, JsValue> {
     js_sys::Reflect::set(&msg, &JsString::from("id"), &JsValue::from(id))?;
     js_sys::Reflect::set(
         &msg,
+        &JsString::from("import_url"),
+        &JsValue::from(import_meta_url()),
+    )?;
+    js_sys::Reflect::set(
+        &msg,
         &JsString::from("module"),
         &crate::utils::current_module(),
     )?;
@@ -141,8 +146,9 @@ fn init_message(id: u32) -> Result<JsValue, JsValue> {
     Ok(msg.into())
 }
 
-/// A data URL containing our worker's bootstrap script.
-static WORKER_URL: Lazy<String> = Lazy::new(|| {
+/// The URL used by the bootstrapping script to import the `wasm-bindgen` glue
+/// code.
+fn import_meta_url() -> String {
     #[wasm_bindgen]
     #[allow(non_snake_case)]
     extern "C" {
@@ -152,9 +158,13 @@ static WORKER_URL: Lazy<String> = Lazy::new(|| {
 
     let import_url = crate::CUSTOM_WORKER_URL.lock().unwrap();
     let import_url = import_url.as_deref().unwrap_or(IMPORT_META_URL.as_str());
-    tracing::trace!(import_url);
 
-    let script = include_str!("worker.js").replace("$IMPORT_META_URL", import_url);
+    import_url.to_string()
+}
+
+/// A data URL containing our worker's bootstrap script.
+static WORKER_URL: Lazy<String> = Lazy::new(|| {
+    let script = include_str!("worker.js");
 
     let blob = web_sys::Blob::new_with_u8_array_sequence_and_options(
         Array::from_iter([Uint8Array::from(script.as_bytes())]).as_ref(),
