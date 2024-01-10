@@ -2114,7 +2114,7 @@ checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
 [[package]]
 name = "virtual-fs"
 version = "0.11.0"
-source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#d37aa0d358158bb64b35e88ce62a657b839cb18b"
+source = "git+https://github.com/wasmerio/wasmer?branch=master#0cf0f5b26debffa1d4e615732ab1b55b991ef687"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2137,7 +2137,7 @@ dependencies = [
 [[package]]
 name = "virtual-mio"
 version = "0.3.0"
-source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#d37aa0d358158bb64b35e88ce62a657b839cb18b"
+source = "git+https://github.com/wasmerio/wasmer?branch=master#0cf0f5b26debffa1d4e615732ab1b55b991ef687"
 dependencies = [
  "async-trait",
  "bytes",
@@ -2151,7 +2151,7 @@ dependencies = [
 [[package]]
 name = "virtual-net"
 version = "0.6.2"
-source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#d37aa0d358158bb64b35e88ce62a657b839cb18b"
+source = "git+https://github.com/wasmerio/wasmer?branch=master#0cf0f5b26debffa1d4e615732ab1b55b991ef687"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2240,7 +2240,7 @@ dependencies = [
 [[package]]
 name = "wai-bindgen-wasmer"
 version = "0.18.0"
-source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#d37aa0d358158bb64b35e88ce62a657b839cb18b"
+source = "git+https://github.com/wasmerio/wasmer?branch=master#0cf0f5b26debffa1d4e615732ab1b55b991ef687"
 dependencies = [
  "anyhow",
  "bitflags 1.3.2",
@@ -2446,7 +2446,7 @@ dependencies = [
 [[package]]
 name = "wasmer"
 version = "4.2.5"
-source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#d37aa0d358158bb64b35e88ce62a657b839cb18b"
+source = "git+https://github.com/wasmerio/wasmer?branch=master#0cf0f5b26debffa1d4e615732ab1b55b991ef687"
 dependencies = [
  "bytes",
  "cfg-if",
@@ -2475,7 +2475,7 @@ dependencies = [
 [[package]]
 name = "wasmer-compiler"
 version = "4.2.5"
-source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#d37aa0d358158bb64b35e88ce62a657b839cb18b"
+source = "git+https://github.com/wasmerio/wasmer?branch=master#0cf0f5b26debffa1d4e615732ab1b55b991ef687"
 dependencies = [
  "backtrace",
  "bytes",
@@ -2502,7 +2502,7 @@ dependencies = [
 [[package]]
 name = "wasmer-derive"
 version = "4.2.5"
-source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#d37aa0d358158bb64b35e88ce62a657b839cb18b"
+source = "git+https://github.com/wasmerio/wasmer?branch=master#0cf0f5b26debffa1d4e615732ab1b55b991ef687"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
@@ -2513,7 +2513,7 @@ dependencies = [
 [[package]]
 name = "wasmer-journal"
 version = "0.1.0"
-source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#d37aa0d358158bb64b35e88ce62a657b839cb18b"
+source = "git+https://github.com/wasmerio/wasmer?branch=master#0cf0f5b26debffa1d4e615732ab1b55b991ef687"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2592,7 +2592,7 @@ dependencies = [
 [[package]]
 name = "wasmer-types"
 version = "4.2.5"
-source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#d37aa0d358158bb64b35e88ce62a657b839cb18b"
+source = "git+https://github.com/wasmerio/wasmer?branch=master#0cf0f5b26debffa1d4e615732ab1b55b991ef687"
 dependencies = [
  "bytecheck",
  "enum-iterator",
@@ -2609,7 +2609,7 @@ dependencies = [
 [[package]]
 name = "wasmer-vm"
 version = "4.2.5"
-source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#d37aa0d358158bb64b35e88ce62a657b839cb18b"
+source = "git+https://github.com/wasmerio/wasmer?branch=master#0cf0f5b26debffa1d4e615732ab1b55b991ef687"
 dependencies = [
  "backtrace",
  "cc",
@@ -2637,7 +2637,7 @@ dependencies = [
 [[package]]
 name = "wasmer-wasix"
 version = "0.18.0"
-source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#d37aa0d358158bb64b35e88ce62a657b839cb18b"
+source = "git+https://github.com/wasmerio/wasmer?branch=master#0cf0f5b26debffa1d4e615732ab1b55b991ef687"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2703,7 +2703,7 @@ dependencies = [
 [[package]]
 name = "wasmer-wasix-types"
 version = "0.18.0"
-source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-mount-fs-instances#d37aa0d358158bb64b35e88ce62a657b839cb18b"
+source = "git+https://github.com/wasmerio/wasmer?branch=master#0cf0f5b26debffa1d4e615732ab1b55b991ef687"
 dependencies = [
  "anyhow",
  "bitflags 1.3.2",
