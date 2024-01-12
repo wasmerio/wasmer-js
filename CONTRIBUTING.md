@@ -56,6 +56,14 @@ TL;DR:
 2. Merge the release PR when ready to release
 3. Let the automation do everything else
 
+### Pre-Releases
+
+We don't do too many pre-releases, so it's not automated through *Release
+Please*. Instead, if you want to make a pre-release you'll need to bump version
+numbers tag a commit, and push the tagged commmit to GitHub.
+
+CI should publish to NPM, automatically.
+
 [binaryen]: https://github.com/WebAssembly/binaryen
 [conv]: https://www.conventionalcommits.org/en/v1.0.0/
 [release-please]: https://github.com/googleapis/release-please
