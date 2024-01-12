@@ -1,6 +1,7 @@
 [workspace]
 members = [
-    "packages/sdk"
+    "packages/sdk",
+    "examples/simplimage/simplimage"
 ]
 resolver = "2"
 

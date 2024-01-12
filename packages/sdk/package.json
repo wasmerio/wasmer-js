@@ -30,9 +30,9 @@
     "build:rollup": "rollup -c --environment BUILD:production",
     "build:dev": "wasm-pack build --dev --target=web --weak-refs --no-pack && rollup -c --environment BUILD:development",
     "dev": "rollup -c -w",
-    "test": "web-test-runner --node-resolve --esbuild-target auto --config ./web-dev-server.config.mjs",
     "docs": "typedoc --options docs/typedoc.json",
     "doc:watch": "typedoc --watch",
+    "test": "web-test-runner --node-resolve --esbuild-target auto --config ./web-dev-server.config.mjs",
     "fmt": "prettier . --write",
     "clean": "rimraf dist coverage pkg target"
   },
