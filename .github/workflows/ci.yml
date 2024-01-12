@@ -35,58 +35,17 @@ jobs:
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
       - name: Install JS Dependencies
-        run: npm ci
+        run: npm ci --workspaces
       - name: Type Checking
         run: cargo check --workspace --verbose --locked
+        working-directory: packages/sdk
       - name: Unit Tests
         run: wasm-pack test --headless --firefox
+        working-directory: packages/sdk
       - name: Build Package
-        run: npm run build
+        run: npm run build --workspaces --if-present
       - name: Integration Tests
-        run: npm run test
-
-  examples:
-    name: Build Examples
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Install Node
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
-      - name: Setup Rust
-        uses: dsherret/rust-toolchain-file@v1
-      - name: Install wasm-pack
-        uses: taiki-e/install-action@wasm-pack
-      - name: Install wasm-strip and wasm-opt
-        run: sudo apt-get update && sudo apt-get install -y wabt binaryen
-      - name: Rust Cache
-        uses: Swatinem/rust-cache@v2
-      - name: Install JS Dependencies
-        run: npm ci
-      - name: Build Package
-        run: npm run build
-      - name: Build the wasmer.sh Example
-        run: |
-          npm ci
-          npm run build
-        working-directory: "examples/wasmer.sh"
-      - name: Build the Markdown Editor Example
-        run: |
-          npm ci
-          npm run build
-        working-directory: "examples/markdown-editor"
-      - name: Build the (Improved) Markdown Editor Example
-        run: |
-          npm ci
-          npm run build
-        working-directory: "examples/markdown-editor-improved"
-      - name: Build the ffmpeg demo
-        run: |
-          npm ci
-          npm run build
-        working-directory: "examples/ffmpeg-react"
+        run: npm run test --workspaces --if-present
 
   api-docs:
     name: API Docs
@@ -106,17 +65,17 @@ jobs:
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
       - name: Install JS Dependencies
-        run: npm ci
+        run: npm ci --workspaces
       - name: Build
-        run: npm run build
+        run: npm run build:dev --workspace=@wasmer/sdk
       - name: Generate Docs
-        run: npm run docs
+        run: npm run docs --workspace=@wasmer/sdk
       - name: Upload API Docs
         uses: JamesIves/github-pages-deploy-action@v4.4.0
         if: github.ref == 'refs/heads/main'
         with:
           branch: gh-pages
-          folder: docs/public
+          folder: packages/sdk/docs/public
           single-commit: true
 
   lints:
@@ -138,7 +97,6 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - check
-      - examples
     steps:
       - name: Time Reporter
         uses: Michael-F-Bryan/workflow-timer@v0.2.3
@@ -146,7 +104,6 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           jobs: |
             Compile and Test
-            Build Examples
           message: |
             Make sure you keep an eye on build times!
 

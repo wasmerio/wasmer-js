@@ -1,5 +1,5 @@
 {
-  "name": "wasimg",
+  "name": "simplimage",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -20,7 +20,7 @@
     "vite": "^5.0.8"
   },
   "dependencies": {
-    "@wasmer/sdk": "../../",
+    "@wasmer/sdk": "*",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   }

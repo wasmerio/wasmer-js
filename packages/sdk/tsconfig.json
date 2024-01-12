@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.json",
+  "include": [
+    "pkg",
+    "WasmerSDK.ts",
+    "WasmerSDKBundled.ts"
+  ],
+  "exclude": [
+    "dist"
+  ],
+  "compilerOptions": {
+    "outDir": "./dist/",
+    "rootDir": "."
+  }
+}

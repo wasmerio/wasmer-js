@@ -1,11 +1,8 @@
 {
     "release-type": "node",
     "packages": {
-        ".": {
-            "package-name": "wasmer-sdk",
-            "exclude-paths": [
-                "examples/"
-            ]
+        "packages/sdk": {
+            "package-name": "wasmer-sdk"
         }
     },
     "bump-minor-pre-major": true,

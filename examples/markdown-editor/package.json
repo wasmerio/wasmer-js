@@ -1,5 +1,5 @@
 {
-  "name": "@wasmer/wasi-modules-example",
+  "name": "markdown-editor",
   "version": "0.0.0",
   "description": "An example that shows how you can run a `*.wasm` binary compiled for WASI preview 1 (or WASIX).",
   "scripts": {
@@ -18,10 +18,10 @@
     "url": "https://github.com/wasmerio/wasmer-js/issues"
   },
   "homepage": "https://github.com/wasmerio/wasmer-js#readme",
+  "dependencies": {
+    "@wasmer/sdk": "*"
+  },
   "devDependencies": {
     "vite": "^5.0.4"
-  },
-  "dependencies": {
-    "@wasmer/sdk": "file:../.."
   }
 }

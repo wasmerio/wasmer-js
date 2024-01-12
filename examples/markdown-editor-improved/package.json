@@ -1,5 +1,5 @@
 {
-  "name": "@wasmer/wasi-package-example",
+  "name": "markdown-editor-improved",
   "version": "0.0.0",
   "description": "An example that shows how you can run a `*.wasm` binary compiled for WASI preview 1 (or WASIX).",
   "scripts": {
@@ -22,6 +22,6 @@
     "vite": "^5.0.4"
   },
   "dependencies": {
-    "@wasmer/sdk": "file:../.."
+    "@wasmer/sdk": "*"
   }
 }
