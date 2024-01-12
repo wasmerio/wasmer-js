@@ -1,4 +1,5 @@
 {
+  "extends": "../../tsconfig.json",
   "include": [
     "pkg",
     "WasmerSDK.ts",
@@ -9,16 +10,6 @@
   ],
   "compilerOptions": {
     "outDir": "./dist/",
-    "rootDir": ".",
-    "noImplicitAny": true,
-    "declaration": true,
-    "module": "es2020",
-    "target": "ES2015",
-    "jsx": "react",
-    "allowJs": true,
-    "emitDeclarationOnly": true,
-    "skipLibCheck": true,
-    "allowSyntheticDefaultImports": true,
-    "moduleResolution": "node"
+    "rootDir": "."
   }
 }

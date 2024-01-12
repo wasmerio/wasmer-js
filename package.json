@@ -1,12 +1,15 @@
 {
   "workspaces": [
-    "packages/sdk"
+    "packages/*",
+    "examples/*"
   ],
-  "private": true,
   "scripts": {
     "fmt": "prettier . --write"
   },
   "devDependencies": {
     "prettier": "^3.1.0"
+  },
+  "dependencies": {
+    "@wasmer/sdk": "^0.6.0"
   }
 }

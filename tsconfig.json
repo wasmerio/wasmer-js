@@ -1,0 +1,14 @@
+{
+    "compilerOptions": {
+        "noImplicitAny": true,
+        "declaration": true,
+        "module": "es2020",
+        "target": "ES2015",
+        "jsx": "react",
+        "allowJs": true,
+        "emitDeclarationOnly": true,
+        "skipLibCheck": true,
+        "allowSyntheticDefaultImports": true,
+        "moduleResolution": "node"
+    }
+}

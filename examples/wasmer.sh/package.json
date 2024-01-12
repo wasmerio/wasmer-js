@@ -19,7 +19,7 @@
     "url": "git+https://github.com/wasmerio/wasmer-js.git"
   },
   "dependencies": {
-    "@wasmer/sdk": "../..",
+    "@wasmer/sdk": "^0.6.0",
     "xterm": "^5.3.0",
     "xterm-addon-fit": "^0.8.0"
   },
