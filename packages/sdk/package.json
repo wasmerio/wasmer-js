@@ -1,0 +1,64 @@
+{
+  "name": "@wasmer/sdk",
+  "version": "0.6.0",
+  "main": "dist/WasmerSDK.cjs",
+  "unpkg": "dist/WasmerSDK.umd.js",
+  "module": "dist/WasmerSDK.js",
+  "types": "dist/WasmerSDK.d.ts",
+  "keywords": [
+    "webassembly",
+    "wasm",
+    "wasi",
+    "wasix"
+  ],
+  "description": "Isomorphic Javascript library for interacting with WASI Modules in Node.js and the Browser.",
+  "author": "Wasmer Engineering Team <engineering@wasmer.io>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/wasmerio/wasmer-js/issues"
+  },
+  "homepage": "https://github.com/wasmerio/wasmer-js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wasmerio/wasmer-js.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "wasm-pack build --release --target=web --weak-refs --no-pack && wasm-opt pkg/wasmer_js_bg.wasm -O2 -o pkg/wasmer_js_bg.wasm && npm run build:rollup",
+    "build:rollup": "rollup -c --environment BUILD:production",
+    "build:dev": "wasm-pack build --dev --target=web --weak-refs --no-pack && rollup -c --environment BUILD:development",
+    "dev": "rollup -c -w",
+    "test": "web-test-runner --node-resolve --esbuild-target auto --config ./web-dev-server.config.mjs",
+    "docs": "typedoc --options docs/typedoc.json",
+    "doc:watch": "typedoc --watch",
+    "fmt": "prettier . --write",
+    "clean": "rimraf dist coverage pkg target"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "devDependencies": {
+    "@babel/preset-env": "^7.23.3",
+    "@esm-bundle/chai": "^4.3.4-fix.0",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-replace": "^5.0.5",
+    "@rollup/plugin-terser": "^0.4.4",
+    "@rollup/plugin-typescript": "^11.1.5",
+    "@rollup/plugin-wasm": "^6.2.2",
+    "@web/dev-server-esbuild": "^1.0.1",
+    "@web/test-runner": "^0.18.0",
+    "prettier": "^3.1.0",
+    "rimraf": "^5.0.5",
+    "rollup-plugin-copy": "^3.5.0",
+    "rollup-plugin-dts": "^6.1.0",
+    "rollup": "^4.8.0",
+    "typedoc": "^0.25.4",
+    "typescript": "^5.3.3"
+  },
+  "browserslist": "> 0.5%, last 2 versions, Firefox ESR, not dead",
+  "dependencies": {}
+}
