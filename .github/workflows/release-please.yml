@@ -56,13 +56,13 @@ jobs:
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
       - name: Install JS Dependencies
-        run: npm ci
+        run: npm ci --workspaces
       - name: Build Packages
-        run: npm run build
+        run: npm run build --package=@wasmer/sdk
       # Release Please has already incremented versions and published tags, so
       # we just need to publish to NPM
       - name: Publish to NPM
-        run: npm publish --access=public
+        run: npm publish --access=public --package=@wasmer/sdk
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
