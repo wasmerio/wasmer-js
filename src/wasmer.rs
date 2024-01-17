@@ -216,23 +216,26 @@ pub(crate) async fn configure_runner(
     Error,
 > {
     let args = options.parse_args()?;
-    runner.set_args(args);
+    runner.with_args(args);
 
     let env = options.parse_env()?;
-    runner.set_envs(env);
+    runner.with_envs(env);
+
+    let imports = options.load_imports()?;
+    runner.with_imports(&imports);
 
     for (dest, dir) in options.mounted_directories()? {
-        runner.mount(dest, Arc::new(dir));
+        runner.with_mount(dest, Arc::new(dir));
     }
 
     if let Some(uses) = options.uses() {
         let uses = crate::utils::js_string_array(uses)?;
         let packages = load_injected_packages(uses, runtime).await?;
-        runner.add_injected_packages(packages);
+        runner.with_injected_packages(packages);
     }
 
     let (stderr_pipe, stderr_stream) = crate::streams::output_pipe();
-    runner.set_stderr(Box::new(stderr_pipe));
+    runner.with_stderr(Box::new(stderr_pipe));
 
     let tty_options = runtime.tty_options().clone();
     match setup_tty(options, tty_options) {
@@ -243,16 +246,16 @@ pub(crate) async fn configure_runner(
             stdin_stream,
         } => {
             tracing::debug!("Setting up interactive TTY");
-            runner.set_stdin(Box::new(stdin_pipe));
-            runner.set_stdout(Box::new(stdout_pipe));
+            runner.with_stdin(Box::new(stdin_pipe));
+            runner.with_stdout(Box::new(stdout_pipe));
             runtime.set_connected_to_tty(true);
             Ok((Some(stdin_stream), stdout_stream, stderr_stream))
         }
         TerminalMode::NonInteractive { stdin } => {
             tracing::debug!("Setting up non-interactive TTY");
             let (stdout_pipe, stdout_stream) = crate::streams::output_pipe();
-            runner.set_stdin(Box::new(stdin));
-            runner.set_stdout(Box::new(stdout_pipe));
+            runner.with_stdin(Box::new(stdin));
+            runner.with_stdout(Box::new(stdout_pipe));
 
             // HACK: Make sure we don't report stdin as interactive.  This
             // doesn't belong here because now it'll affect every other

@@ -4,6 +4,7 @@ use anyhow::Context;
 use js_sys::Array;
 use virtual_fs::TmpFileSystem;
 use wasm_bindgen::{prelude::wasm_bindgen, JsCast, JsValue, UnwrapThrowExt};
+use wasmer::{Extern, Imports};
 use wasmer_wasix::WasiEnvBuilder;
 
 use crate::{runtime::Runtime, utils::Error, Directory, DirectoryInit, JsRuntime, StringOrBytes};
@@ -41,6 +42,10 @@ type CommonOptions = {
      * files.
      */
     mount?: Record<string, DirectoryInit | Directory>;
+    /**
+     * Additional items that may be imported by the WebAssembly instance.
+     */
+    imports?: Record<string, Record<string, any>>;
 };
 
 /**
@@ -81,6 +86,9 @@ extern "C" {
 
     #[wasm_bindgen(method, getter)]
     fn env(this: &CommonOptions) -> JsValue;
+
+    #[wasm_bindgen(method, getter)]
+    fn imports(this: &CommonOptions) -> JsValue;
 
     #[wasm_bindgen(method, getter)]
     fn stdin(this: &CommonOptions) -> Option<StringOrBytes>;
@@ -139,6 +147,31 @@ impl CommonOptions {
 
         Ok(mounted_directories)
     }
+
+    pub(crate) fn load_imports(&self) -> Result<Imports, Error> {
+        let mut imports = Imports::default();
+
+        if let Ok(obj) = self.imports().dyn_into() {
+            for (namespace, ns) in crate::utils::object_entries(&obj)? {
+                let namespace = String::from(namespace);
+                let ns = ns
+                    .dyn_ref::<js_sys::Object>()
+                    .context("Expected a record of records")?;
+
+                for (name, value) in crate::utils::object_entries(&ns)? {
+                    let name = String::from(name);
+                    let extern_value = interpret_import(value).ok_or_else(|| {
+                        Error::js(js_sys::TypeError::new(&format!(
+                            "Invalid type for {namespace}/{name}"
+                        )))
+                    })?;
+                    imports.define(&namespace, &name, extern_value);
+                }
+            }
+        }
+
+        Ok(Imports::default())
+    }
 }
 
 impl Default for CommonOptions {
@@ -148,6 +181,10 @@ impl Default for CommonOptions {
             obj: js_sys::Object::new(),
         }
     }
+}
+
+fn interpret_import(_value: JsValue) -> Option<Extern> {
+    todo!()
 }
 
 #[wasm_bindgen]
