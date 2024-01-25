@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.1](https://github.com/wasmerio/wasmer-js/compare/wasmer-sdk-v0.6.0...wasmer-sdk-v0.6.1) (2024-01-25)
+
+
+### Bug Fixes
+
+* Resolve a deadlock where the future returned by thread pool's sleep_now() method will never resolve when invoked from a syscall ([4ce8a54](https://github.com/wasmerio/wasmer-js/commit/4ce8a54361924b91ae77a00d8c0a6eda4b766f0d))
+
 ## [0.6.0](https://github.com/wasmerio/wasmer-js/compare/wasmer-sdk-v0.5.1...wasmer-sdk-v0.6.0) (2023-12-21)
 
 
