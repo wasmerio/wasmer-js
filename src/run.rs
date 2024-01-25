@@ -37,6 +37,9 @@ async fn run_wasix_inner(wasm_module: WasmModule, config: RunOptions) -> Result<
     let mut builder = WasiEnvBuilder::new(program_name).runtime(runtime.clone());
     let (stdin, stdout, stderr) = config.configure_builder(&mut builder)?;
 
+    let imports = config.load_imports()?;
+    builder.add_imports(&imports);
+
     let (exit_code_tx, exit_code_rx) = oneshot::channel();
 
     let module: wasmer::Module = wasm_module.to_module(&*runtime).await?;

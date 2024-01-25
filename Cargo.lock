@@ -1507,15 +1507,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "serde_bytes"
-version = "0.11.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8b8497c313fd43ab992087548117643f6fcd935cbf36f176ffda0aacf9591734"
-dependencies = [
- "serde",
-]
-
-[[package]]
 name = "serde_cbor"
 version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1554,18 +1545,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eb3622f419d1296904700073ea6cc23ad690adbd66f13ea683df73298736f0c1"
 dependencies = [
  "serde",
-]
-
-[[package]]
-name = "serde_yaml"
-version = "0.8.26"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "578a7433b776b56a35785ed5ce9a7e777ac0598aac5a6dd1b4b18a307c7fc71b"
-dependencies = [
- "indexmap 1.9.3",
- "ryu",
- "serde",
- "yaml-rust",
 ]
 
 [[package]]
@@ -1850,16 +1829,16 @@ dependencies = [
 
 [[package]]
 name = "tokio-util"
-version = "0.6.10"
+version = "0.7.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "36943ee01a6d67977dd3f84a5a1d2efeb4ada3a1ae771cadfaa535d9d9fc6507"
+checksum = "5419f34732d9eb6ee4c3578b7989078579b7f039cbbb9ca2c4da015749371e15"
 dependencies = [
  "bytes",
  "futures-core",
  "futures-sink",
- "log",
  "pin-project-lite",
  "tokio",
+ "tracing",
 ]
 
 [[package]]
@@ -2092,7 +2071,7 @@ checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
 [[package]]
 name = "virtual-fs"
 version = "0.11.0"
-source = "git+https://github.com/wasmerio/wasmer?branch=master#0cf0f5b26debffa1d4e615732ab1b55b991ef687"
+source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-custom-imports#0426d8fc7dd14cd8977b1a24a7d7975d27734910"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2115,7 +2094,7 @@ dependencies = [
 [[package]]
 name = "virtual-mio"
 version = "0.3.0"
-source = "git+https://github.com/wasmerio/wasmer?branch=master#0cf0f5b26debffa1d4e615732ab1b55b991ef687"
+source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-custom-imports#0426d8fc7dd14cd8977b1a24a7d7975d27734910"
 dependencies = [
  "async-trait",
  "bytes",
@@ -2129,7 +2108,7 @@ dependencies = [
 [[package]]
 name = "virtual-net"
 version = "0.6.2"
-source = "git+https://github.com/wasmerio/wasmer?branch=master#0cf0f5b26debffa1d4e615732ab1b55b991ef687"
+source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-custom-imports#0426d8fc7dd14cd8977b1a24a7d7975d27734910"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2218,7 +2197,7 @@ dependencies = [
 [[package]]
 name = "wai-bindgen-wasmer"
 version = "0.18.0"
-source = "git+https://github.com/wasmerio/wasmer?branch=master#0cf0f5b26debffa1d4e615732ab1b55b991ef687"
+source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-custom-imports#0426d8fc7dd14cd8977b1a24a7d7975d27734910"
 dependencies = [
  "anyhow",
  "bitflags 1.3.2",
@@ -2401,7 +2380,7 @@ dependencies = [
 [[package]]
 name = "wasmer"
 version = "4.2.5"
-source = "git+https://github.com/wasmerio/wasmer?branch=master#0cf0f5b26debffa1d4e615732ab1b55b991ef687"
+source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-custom-imports#0426d8fc7dd14cd8977b1a24a7d7975d27734910"
 dependencies = [
  "bytes",
  "cfg-if",
@@ -2430,7 +2409,7 @@ dependencies = [
 [[package]]
 name = "wasmer-compiler"
 version = "4.2.5"
-source = "git+https://github.com/wasmerio/wasmer?branch=master#0cf0f5b26debffa1d4e615732ab1b55b991ef687"
+source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-custom-imports#0426d8fc7dd14cd8977b1a24a7d7975d27734910"
 dependencies = [
  "backtrace",
  "bytes",
@@ -2444,8 +2423,6 @@ dependencies = [
  "region",
  "rkyv",
  "self_cell",
- "serde",
- "serde_bytes",
  "shared-buffer",
  "smallvec",
  "thiserror",
@@ -2457,7 +2434,7 @@ dependencies = [
 [[package]]
 name = "wasmer-derive"
 version = "4.2.5"
-source = "git+https://github.com/wasmerio/wasmer?branch=master#0cf0f5b26debffa1d4e615732ab1b55b991ef687"
+source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-custom-imports#0426d8fc7dd14cd8977b1a24a7d7975d27734910"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
@@ -2468,7 +2445,7 @@ dependencies = [
 [[package]]
 name = "wasmer-journal"
 version = "0.1.0"
-source = "git+https://github.com/wasmerio/wasmer?branch=master#0cf0f5b26debffa1d4e615732ab1b55b991ef687"
+source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-custom-imports#0426d8fc7dd14cd8977b1a24a7d7975d27734910"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2535,7 +2512,7 @@ dependencies = [
  "serde",
  "serde_cbor",
  "serde_json",
- "serde_yaml 0.9.30",
+ "serde_yaml",
  "thiserror",
  "toml 0.8.8",
 ]
@@ -2543,7 +2520,7 @@ dependencies = [
 [[package]]
 name = "wasmer-types"
 version = "4.2.5"
-source = "git+https://github.com/wasmerio/wasmer?branch=master#0cf0f5b26debffa1d4e615732ab1b55b991ef687"
+source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-custom-imports#0426d8fc7dd14cd8977b1a24a7d7975d27734910"
 dependencies = [
  "bytecheck",
  "enum-iterator",
@@ -2552,7 +2529,6 @@ dependencies = [
  "more-asserts",
  "rkyv",
  "serde",
- "serde_bytes",
  "target-lexicon",
  "thiserror",
 ]
@@ -2560,7 +2536,7 @@ dependencies = [
 [[package]]
 name = "wasmer-vm"
 version = "4.2.5"
-source = "git+https://github.com/wasmerio/wasmer?branch=master#0cf0f5b26debffa1d4e615732ab1b55b991ef687"
+source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-custom-imports#0426d8fc7dd14cd8977b1a24a7d7975d27734910"
 dependencies = [
  "backtrace",
  "cc",
@@ -2579,7 +2555,6 @@ dependencies = [
  "more-asserts",
  "region",
  "scopeguard",
- "serde",
  "thiserror",
  "wasmer-types",
  "winapi",
@@ -2588,7 +2563,7 @@ dependencies = [
 [[package]]
 name = "wasmer-wasix"
 version = "0.18.0"
-source = "git+https://github.com/wasmerio/wasmer?branch=master#0cf0f5b26debffa1d4e615732ab1b55b991ef687"
+source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-custom-imports#0426d8fc7dd14cd8977b1a24a7d7975d27734910"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2622,7 +2597,7 @@ dependencies = [
  "serde_cbor",
  "serde_derive",
  "serde_json",
- "serde_yaml 0.8.26",
+ "serde_yaml",
  "sha2",
  "shared-buffer",
  "tempfile",
@@ -2654,7 +2629,7 @@ dependencies = [
 [[package]]
 name = "wasmer-wasix-types"
 version = "0.18.0"
-source = "git+https://github.com/wasmerio/wasmer?branch=master#0cf0f5b26debffa1d4e615732ab1b55b991ef687"
+source = "git+https://github.com/wasmerio/wasmer?branch=wasi-runner-custom-imports#0426d8fc7dd14cd8977b1a24a7d7975d27734910"
 dependencies = [
  "anyhow",
  "bitflags 1.3.2",
@@ -2999,12 +2974,3 @@ name = "xxhash-rust"
 version = "0.8.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "53be06678ed9e83edb1745eb72efc0bbcd7b5c3c35711a860906aed827a13d61"
-
-[[package]]
-name = "yaml-rust"
-version = "0.4.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "56c1936c4cc7a1c9ab21a1ebb602eb942ba868cbd44a99cb7cdc5892335e1c85"
-dependencies = [
- "linked-hash-map",
-]
