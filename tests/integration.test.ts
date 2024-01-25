@@ -318,6 +318,50 @@ describe("Wasmer.spawn", function () {
     });
 });
 
+describe("fs tests", function() {
+    let wasmer: Wasmer;
+
+    this.timeout("120s")
+        .beforeAll(async () => {
+            await initialized;
+
+            // Note: technically we should use a separate Wasmer instance so tests can't
+            // interact with each other, but in this case the caching benefits mean we
+            // complete in tens of seconds rather than several minutes.
+            wasmer = new Wasmer();
+        });
+
+    it("can do all fs operations using the FileSystem API", async () => {
+        const dirHandle = await navigator.storage.getDirectory();
+        const dir = Directory.fromBrowser(dirHandle);
+        const script = `
+            ls /
+            ls /mounted
+            echo "Hello, World!" > /mounted/file.txt
+            cat /mounted/file.txt
+            mkdir /mounted/nested
+            ls /mounted
+            rm /mounted/file.txt
+            rmdir /mounted/nested/
+        `;
+
+        const instance = await wasmer.spawn("sharrattj/bash", {
+            command: "bash",
+            args: ["-xe", "-c", script],
+            mount: { "/mounted": dir },
+        });
+        const output = await instance.wait();
+
+        console.log({
+            ...output,
+            stdout: decoder.decode(output.stdout),
+            stderr: decoder.decode(output.stderr),
+        });
+        expect(output.ok).to.be.true;
+        expect(decoder.decode(output.stdout)).to.equal("asdf");
+    });
+});
+
 // FIXME: Re-enable these test and move it to the "Wasmer.spawn" test suite
 // when we fix TTY handling with static inputs.
 describe.skip("failing tty handling tests", function () {
