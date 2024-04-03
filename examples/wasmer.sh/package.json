@@ -24,6 +24,6 @@
     "xterm-addon-fit": "^0.8.0"
   },
   "devDependencies": {
-    "vite": "^5.0.4"
+    "vite": "^5.1.7"
   }
 }
