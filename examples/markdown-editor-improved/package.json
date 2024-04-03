@@ -19,7 +19,7 @@
   },
   "homepage": "https://github.com/wasmerio/wasmer-js#readme",
   "devDependencies": {
-    "vite": "^5.0.4"
+    "vite": "^5.0.13"
   },
   "dependencies": {
     "@wasmer/sdk": "file:../.."
