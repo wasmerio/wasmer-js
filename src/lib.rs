@@ -1,3 +1,5 @@
+#![feature(once_cell_try)]
+
 #[cfg(test)]
 wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
@@ -10,6 +12,7 @@ mod logging;
 mod net;
 mod options;
 mod package_loader;
+pub mod registry;
 mod run;
 mod runtime;
 mod streams;
