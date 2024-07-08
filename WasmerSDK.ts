@@ -1,20 +1,28 @@
 export * from "./pkg/wasmer_js";
 // @ts-ignore
-import load, { InitInput, InitOutput, ThreadPoolWorker, setWorkerUrl } from "./pkg/wasmer_js";
+import load, { InitInput, InitOutput, ThreadPoolWorker, setWorkerUrl, RegistryConfig } from "./pkg/wasmer_js";
+
+type RegistryInput = {
+	registry_url: string,
+	token?: string
+}
 
 /**
  * Initialize the underlying WebAssembly module.
  */
-export const init = async (module_or_path?: InitInput | Promise<InitInput>, maybe_memory?: WebAssembly.Memory): Promise<InitOutput> => {
-    if (!module_or_path) {
-        // This will be replaced by the rollup bundler at the SDK build time
-        // to point to a valid http location of the SDK using unpkg.com.
-        let wasmUrl = (globalThis as any)["wasmUrl"];
-        if (wasmUrl) {
-            module_or_path = new URL(wasmUrl);
-        }
-    }
-    return load(module_or_path, maybe_memory);
+export const init = async (module_or_path?: InitInput | Promise<InitInput>, maybe_memory?: WebAssembly.Memory, maybe_registry?: RegistryInput): Promise<InitOutput> => {
+	if (!module_or_path) {
+		// This will be replaced by the rollup bundler at the SDK build time
+		// to point to a valid http location of the SDK using unpkg.com.
+		let wasmUrl = (globalThis as any)["wasmUrl"];
+		if (wasmUrl) {
+			module_or_path = new URL(wasmUrl);
+		}
+	}
+
+	(globalThis as any)["__WASMER_REGISTRY__"] = maybe_registry;
+
+	return load(module_or_path, maybe_memory);
 }
 
 /**
@@ -22,10 +30,10 @@ export const init = async (module_or_path?: InitInput | Promise<InitInput>, mayb
  * an unpkg url that is set up at the SDK build time.
  */
 export const setDefaultWorkerUrl = () => {
-    let workerUrl = (globalThis as any)["workerUrl"];
-    if (workerUrl) {
-        setWorkerUrl(workerUrl)
-    }
+	let workerUrl = (globalThis as any)["workerUrl"];
+	if (workerUrl) {
+		setWorkerUrl(workerUrl)
+	}
 }
 
 // HACK: We save these to the global scope because it's the most reliable way to
@@ -35,5 +43,5 @@ export const setDefaultWorkerUrl = () => {
 
 // HACK: some bundlers such as webpack uses this on dev mode.
 // We add this functions to allow dev mode work in those bundlers.
-(globalThis as any).$RefreshReg$ = (globalThis as any).$RefreshReg$ || function () {/**/ };
-(globalThis as any).$RefreshSig$ = (globalThis as any).$RefreshSig$ || function () { return function () { } };
+(globalThis as any).$RefreshReg$ = (globalThis as any).$RefreshReg$ || function() {/**/ };
+(globalThis as any).$RefreshSig$ = (globalThis as any).$RefreshSig$ || function() { return function() { } };
