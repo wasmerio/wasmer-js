@@ -1,5 +1,6 @@
 use crate::{
     utils::{self, Error},
+    wasmer::OptionalRuntime,
     Wasmer,
 };
 use anyhow::Context;
@@ -41,7 +42,7 @@ impl Wasmer {
     /// Create a `WasmerPackage`.
     #[wasm_bindgen(js_name = "createPackage")]
     #[allow(non_snake_case)]
-    pub async fn createPackage(manifest: js_sys::Object) -> Result<WasmerPackage, Error> {
+    pub async fn createPackage(manifest: js_sys::Object) -> Result<Wasmer, Error> {
         let volumes: BTreeMap<String, MemoryVolume> = if let Ok(volumes) =
             js_sys::Reflect::get(&manifest, &JsValue::from(String::from("fs")))
         {
@@ -97,36 +98,34 @@ impl Wasmer {
         wasmer_manifest.validate()?;
 
         let pkg: Package = webc::wasmer_package::Package::from_in_memory(
-            wasmer_manifest,
+            wasmer_manifest.clone(),
             volumes,
             BTreeMap::default(),
             Strictness::default(),
         )
         .context("While parsing the manifest")?;
-        let data = pkg
-            .serialize()
-            .context("While validating the package")?
-            .to_vec();
 
-        Ok(WasmerPackage { manifest, data })
+        let runtime = OptionalRuntime::default().resolve()?.into_inner();
+        Wasmer::from_user_package(pkg, wasmer_manifest, runtime).await
     }
 
     /// Publish a package to the registry.
     #[wasm_bindgen(js_name = "publishPackage")]
     #[allow(non_snake_case)]
-    pub async fn publishPackage(
-        wasmerPackage: WasmerPackage,
-    ) -> Result<PublishPackageOutput, Error> {
-        let manifest: Manifest = serde_wasm_bindgen::from_value(wasmerPackage.manifest.into())
-            .map_err(|e| anyhow::anyhow!(e.to_string()))?;
-        Wasmer::publish_package_inner(manifest, wasmerPackage.data.into()).await
+    pub async fn publishPackage(wasmerPackage: Wasmer) -> Result<PublishPackageOutput, Error> {
+        match wasmerPackage.pkg {
+            Some(p) => Wasmer::publish_package_inner(p.manifest.clone(), p.data).await,
+            None => Err(Error::Rust(anyhow::anyhow!(
+                "The selected package has no container!"
+            ))),
+        }
     }
 }
 
 impl Wasmer {
     async fn publish_package_inner(
         manifest: Manifest,
-        bytes: Bytes,
+        bytes: bytes::Bytes,
     ) -> Result<PublishPackageOutput, Error> {
         let client = Wasmer::get_client()?;
 
@@ -304,7 +303,18 @@ fn create_memory_volume(value: JsValue) -> Result<MemoryVolume, Error> {
 }
 
 fn create_memory_node(value: JsValue) -> Result<MemoryNode, Error> {
-    if value.is_array() {
+    if value.is_string() {
+        let data = value.as_string().unwrap().as_bytes().to_vec();
+        let file = MemoryNode::File(MemoryFile {
+            metadata: Some(webc::Metadata::File {
+                timestamps: Some(Timestamps::default()),
+                length: data.len(),
+            }),
+            data,
+        });
+
+        Ok(file)
+    } else if value.is_array() {
         let data = js_sys::Uint8Array::from(value).to_vec();
 
         let file = MemoryNode::File(MemoryFile {

@@ -3512,6 +3512,7 @@ dependencies = [
 [[package]]
 name = "wasmer-api"
 version = "0.0.30"
+source = "git+https://github.com/wasmerio/wasmer?branch=backend-api-wasm32#17b77586782c657610e2cc329b1c4b6ae0924bed"
 dependencies = [
  "anyhow",
  "cynic",
@@ -3529,7 +3530,7 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
- "wasmer-config 0.4.0",
+ "wasmer-config 0.4.0 (git+https://github.com/wasmerio/wasmer?branch=backend-api-wasm32)",
  "webc",
 ]
 
@@ -3565,6 +3566,8 @@ dependencies = [
 [[package]]
 name = "wasmer-config"
 version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4b4a632496950fde9ad821e195ef1a301440076f7c7d80de55239a140359bcbd"
 dependencies = [
  "anyhow",
  "bytesize",
@@ -3585,8 +3588,7 @@ dependencies = [
 [[package]]
 name = "wasmer-config"
 version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4b4a632496950fde9ad821e195ef1a301440076f7c7d80de55239a140359bcbd"
+source = "git+https://github.com/wasmerio/wasmer?branch=backend-api-wasm32#17b77586782c657610e2cc329b1c4b6ae0924bed"
 dependencies = [
  "anyhow",
  "bytesize",
@@ -3660,6 +3662,7 @@ dependencies = [
  "reqwest 0.12.5",
  "serde",
  "serde-wasm-bindgen 0.6.3",
+ "sha2",
  "tempfile",
  "tokio",
  "toml 0.8.14",

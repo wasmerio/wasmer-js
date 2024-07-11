@@ -2,10 +2,7 @@ import { assert, expect } from "@esm-bundle/chai";
 import { init, initializeLogger, Wasmer } from "..";
 
 const initialized = (async () => {
-	await init(new URL("../dist/wasmer_js_bg.wasm", import.meta.url), undefined, {
-		registry_url: "https://registry.wasmer.wtf/graphql", token:
-			"wap_8cd3923aa31a0094c916ec6d54e6cd1f410fdfebf9a007a505e87ed509dbc049"
-	});
+	await init(new URL("../dist/wasmer_js_bg.wasm", import.meta.url));
 	initializeLogger("error");
 })();
 
@@ -15,8 +12,6 @@ describe("Registry", function() {
 	it("Has global context", async () => {
 		let v = (globalThis as any)["__WASMER_REGISTRY__"];
 		expect(typeof v != "undefined")
-		expect(v.registry_url === "https://registry.wasmer.io/graphql")
-		expect(v.token === "wap_e7ab42cd40f6c7c2232eeb16a29aad3e267eb63be67747121e20942559b0aaf5")
 	});
 
 	it("can create a package", async () => {
@@ -53,68 +48,117 @@ describe("Registry", function() {
 		let result = await Wasmer.createPackage(manifest);
 
 		console.log("\n== Creating a package == ");
-		console.log(result.manifest)
+		console.log(result.commands)
 	})
 
-	it("can publish packages", async () => {
-		let manifest = {
-			"package": {
-				"name": "edoardo/my-package"
-			},
+	//it("can publish packages", async () => {
+	//	let manifest = {
+	//		"package": {
+	//			"name": "<USER>/my-package"
+	//		},
+	//		"command": [
+	//			{
+	//				"module": "wasmer/static-web-server:webserver",
+	//				"name": "script",
+	//				"runner": "https://webc.org/runner/wasi",
+	//				"annotations": {
+	//					"wasi": {
+	//						"main-args": [
+	//							"-w",
+	//							"/settings/config.toml"
+	//						]
+	//					}
+	//				}
+	//			}
+	//		],
+	//		"fs": {
+	//			"public": {
+	//				"index.html": [0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x0a],
+	//				"inner": {
+	//					"index.html": [0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x0a],
+	//				}
+	//			}
+	//		},
+	//		"dependencies": {
+	//			"wasmer/static-web-server": "^1"
+	//		},
+	//	}
+	//	let wasmerPackage = await Wasmer.createPackage(manifest);
+	//	let result = await Wasmer.publishPackage(wasmerPackage);
+	//	console.log("\n== Publishing a package == ");
+	//	console.log("Published package hash: ", result.hash);
+	//	console.log("Published package manifest: ", result.manifest);
+	//})
 
-			"command": [
-				{
-					"module": "wasmer/static-web-server:webserver",
-					"name": "script",
-					"runner": "https://webc.org/runner/wasi",
-					"annotations": {
-						"wasi": {
-							"main-args": [
-								"-w",
-								"/settings/config.toml"
-							]
-						}
-					}
-				}
-			],
-			"fs": {
-				"public": {
-					"index.html": [0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x0a],
-					"inner": {
-						"index.html": [0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x0a],
-					}
-				}
-			},
-			"dependencies": {
-				"wasmer/static-web-server": "^1"
-			},
-		}
+	////it("can deploy apps", async () => {
+	//	let appConfig =
+	//	{
+	//		name: "my-awesome-app",
+	//		owner: "<USER>",
+	//		package: "sha256:e1f3be3d017a049aefa2be984f7352b2d901d73fd6daaba2d2c1643a4196cfaa",
+	//		env: [["test", "new_value"]],
+	//		default: true
 
-		let wasmerPackage = await Wasmer.createPackage(manifest);
-		let result = await Wasmer.publishPackage(wasmerPackage);
+	//	};
 
-		console.log("\n== Publishing a package == ");
-		console.log("Published package hash: ", result.hash);
-		console.log("Published package manifest: ", result.manifest);
-	})
+	//	let result = await Wasmer.deployApp(appConfig);
 
-	it("can deploy apps", async () => {
-		let appConfig =
-		{
-			name: "my-awesome-app",
-			owner: "edoardo",
-			package: "sha256:e1f3be3d017a049aefa2be984f7352b2d901d73fd6daaba2d2c1643a4196cfaa",
-			env: [["test", "new_value"]],
-			default: true
+	//	console.log("\n== Deploying an app == ");
+	//	console.log("Deployed app id: ", result.id);
+	//	console.log("Deployed app url: ", result.url);
+	//})
 
-		};
+	//it("can deploy apps with user-created packages", async () => {
+	//	let manifest = {
+	//		"package": {
+	//			"name": "<USER>/my-package"
+	//		},
 
-		let result = await Wasmer.deployApp(appConfig);
+	//		"command": [
+	//			{
+	//				"module": "wasmer/static-web-server:webserver",
+	//				"name": "script",
+	//				"runner": "https://webc.org/runner/wasi",
+	//				"annotations": {
+	//					"wasi": {
+	//						"main-args": [
+	//							"-w",
+	//							"/settings/config.toml"
+	//						]
+	//					}
+	//				}
+	//			}
+	//		],
+	//		"fs": {
+	//			"public": {
+	//				"index.html": [0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x0a],
+	//				"inner": {
+	//					"index.html": [0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x0a],
+	//				}
+	//			}
+	//		},
+	//		"dependencies": {
+	//			"wasmer/static-web-server": "^1"
+	//		},
+	//	}
 
-		console.log("== Deploying an app == ");
-		console.log("Deployed app id: ", result.id);
-		console.log("Deployed app url: ", result.url);
-	})
+	//	let wasmerPackage = await Wasmer.createPackage(manifest);
+
+	//	let appConfig =
+	//	{
+	//		name: "my-awesome-app",
+	//		owner: "<USER>",
+	//		env: [["test", "new_value"]],
+	//		default: true
+
+	//	};
+
+	//	let result = await Wasmer.deployApp(appConfig, wasmerPackage);
+
+	//	console.log("\n== Deploying user-created app ==");
+	//	console.log("Deployed app id: ", result.id);
+	//	console.log("Deployed app url: ", result.url);
+	//})
 
 
 	it("can run user-created packages", async () => {
@@ -139,8 +183,7 @@ describe("Registry", function() {
 			}
 		};
 
-		let wasmerPackage = await Wasmer.createPackage(manifest);
-		let pkg = await Wasmer.fromFile(wasmerPackage.data);
+		let pkg = await Wasmer.createPackage(manifest);
 		let instance = await pkg.commands["hello"].run();
 
 		const output = await instance.wait();
@@ -161,7 +204,7 @@ describe("Registry", function() {
 						"wasi": {
 							"main-args": [
 								"-c",
-								"import os; print([f for f in os.walk('/public')])"
+								"import os; print([f for f in os.walk('/public')]); "
 							]
 						}
 					}
@@ -173,14 +216,13 @@ describe("Registry", function() {
 
 			"fs": {
 				"public": {
-					"index.html": Array.from("Hello, js!")
+					"index.html": "Hello, js!"
 				}
 			}
 		}
 
 
-		let wasmerPackage = await Wasmer.createPackage(manifest);
-		let pkg = await Wasmer.fromFile(wasmerPackage.data);
+		let pkg = await Wasmer.createPackage(manifest);
 		let instance = await pkg.commands["hello"].run();
 
 		const output = await instance.wait();

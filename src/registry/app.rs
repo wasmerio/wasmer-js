@@ -1,4 +1,4 @@
-use wasm_bindgen::prelude::wasm_bindgen;
+use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 use wasmer_api::types::{DeployAppVersion, PublishDeployAppVars};
 use wasmer_config::app::AppConfigV1;
 
@@ -42,7 +42,21 @@ impl Wasmer {
     /// Deploy an app to the registry.
     #[wasm_bindgen(js_name = "deployApp")]
     #[allow(non_snake_case)]
-    pub async fn deploy_app(appConfig: wasm_bindgen::JsValue) -> Result<DeployedApp, Error> {
+    pub async fn deploy_app(appConfig: JsValue, pkg: Option<Wasmer>) -> Result<DeployedApp, Error> {
+        let maybe_app_pkg = js_sys::Reflect::get(&appConfig, &(String::from("package").into()));
+        let maybe_wasmer_pkg = pkg.and_then(|p| p.pkg);
+
+        let pkg = match (maybe_app_pkg, maybe_wasmer_pkg) {
+            (Ok(pkg), None) => pkg.as_string().unwrap(),
+            (_, Some(p)) => p.hash.to_string(),
+            (Err(_), None) => Err(Error::Rust(anyhow::anyhow!("No package identified!")))?,
+        };
+
+        js_sys::Reflect::set(&appConfig, &(String::from("package").into()), &(pkg.into()))
+            .map_err(|e| {
+                anyhow::anyhow!("While setting the 'package' field in the app config: {e:?}")
+            })?;
+
         let default = js_sys::Reflect::get(&appConfig, &(String::from("default").into()))
             .map_err(utils::js_error)?
             .as_bool();

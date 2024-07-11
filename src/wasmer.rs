@@ -1,8 +1,10 @@
 use std::{str::FromStr, sync::Arc};
 
-use bytes::BytesMut;
+use anyhow::Context;
+use bytes::{Bytes, BytesMut};
 use futures::{channel::oneshot, TryStreamExt};
 use js_sys::{JsString, Reflect, Uint8Array};
+use sha2::Digest;
 use tracing::Instrument;
 use virtual_fs::{AsyncReadExt, Pipe};
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue, UnwrapThrowExt};
@@ -14,6 +16,7 @@ use wasmer_wasix::{
     Runtime as _,
 };
 use web_sys::{ReadableStream, WritableStream};
+use webc::wasmer_package::Package;
 
 use crate::{
     instance::ExitCondition,
@@ -48,6 +51,16 @@ pub struct Wasmer {
     /// dependencies).
     #[wasm_bindgen(getter_with_clone)]
     pub commands: Commands,
+
+    pub(crate) pkg: Option<UserPackageDefinition>,
+}
+
+#[derive(Debug, Clone)]
+#[wasm_bindgen]
+pub(crate) struct UserPackageDefinition {
+    pub(crate) manifest: wasmer_config::package::Manifest,
+    pub(crate) data: bytes::Bytes,
+    pub(crate) hash: String,
 }
 
 #[wasm_bindgen]
@@ -117,7 +130,33 @@ impl Wasmer {
         Ok(Wasmer {
             entrypoint,
             commands,
+            pkg: None,
         })
+    }
+
+    pub(crate) async fn from_user_package(
+        pkg: Package,
+        manifest: wasmer_config::package::Manifest,
+        runtime: Arc<Runtime>,
+    ) -> Result<Self, Error> {
+        let data: Bytes = pkg
+            .serialize()
+            .context("While validating the package")?
+            .to_vec()
+            .into();
+
+        let hash = sha2::Sha256::digest(&data).into();
+        let hash = wasmer_config::package::PackageHash::from_sha256_bytes(hash);
+        let hash = hash.to_string();
+        let container = webc::Container::from_bytes(data.clone())?;
+        let bin_pkg = BinaryPackage::from_webc(&container, &*runtime).await?;
+        let mut ret = Wasmer::from_package(bin_pkg, runtime)?;
+        ret.pkg = Some(UserPackageDefinition {
+            manifest,
+            data,
+            hash,
+        });
+        Ok(ret)
     }
 }
 
@@ -183,7 +222,7 @@ extern "C" {
 }
 
 impl OptionalRuntime {
-    fn resolve(&self) -> Result<JsRuntime, Error> {
+    pub(crate) fn resolve(&self) -> Result<JsRuntime, Error> {
         let js_value: &JsValue = self.as_ref();
 
         if js_value.is_undefined() {
