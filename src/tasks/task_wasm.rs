@@ -302,16 +302,21 @@ fn build_ctx_and_store(
         }
     };
 
-    let (ctx, store) =
-        match WasiFunctionEnv::new_with_store(module, env, store_snapshot.as_ref(), spawn_type, update_layout) {
-            Ok(a) => a,
-            Err(err) => {
-                tracing::error!(
-                    error = &err as &dyn std::error::Error,
-                    "Failed to crate wasi context",
-                );
-                return None;
-            }
-        };
+    let (ctx, store) = match WasiFunctionEnv::new_with_store(
+        module,
+        env,
+        store_snapshot.as_ref(),
+        spawn_type,
+        update_layout,
+    ) {
+        Ok(a) => a,
+        Err(err) => {
+            tracing::error!(
+                error = &err as &dyn std::error::Error,
+                "Failed to crate wasi context",
+            );
+            return None;
+        }
+    };
     Some((ctx, store))
 }
