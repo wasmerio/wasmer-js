@@ -52,15 +52,17 @@ pub struct Wasmer {
     #[wasm_bindgen(getter_with_clone)]
     pub commands: Commands,
 
-    pub(crate) pkg: Option<UserPackageDefinition>,
+    #[wasm_bindgen(getter_with_clone)]
+    pub pkg: Option<UserPackageDefinition>,
 }
 
 #[derive(Debug, Clone)]
 #[wasm_bindgen]
-pub(crate) struct UserPackageDefinition {
+pub struct UserPackageDefinition {
     pub(crate) manifest: wasmer_config::package::Manifest,
     pub(crate) data: bytes::Bytes,
-    pub(crate) hash: String,
+    #[wasm_bindgen(getter_with_clone)]
+    pub hash: String,
 }
 
 #[wasm_bindgen]

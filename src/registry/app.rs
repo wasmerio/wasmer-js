@@ -37,31 +37,60 @@ impl From<DeployAppVersion> for DeployedApp {
     }
 }
 
+fn resolve_pkg(app_config: &JsValue) -> anyhow::Result<()> {
+    // The app config must have a 'package' field.
+    //
+    // The package field can either be a raw string or a [`Wasmer`].
+
+    let package_key = JsValue::from_str("package");
+    let package = js_sys::Reflect::get(app_config, &package_key).map_err(|e| {
+        anyhow::anyhow!("While trying to get the package field from the app config: {e:?}")
+    })?;
+
+    if package.is_undefined() {
+        anyhow::bail!(
+            "While trying to get the package field from the app config: undefined field name"
+        )
+    }
+
+    tracing::error!("{package:?}");
+
+    let pkg_key = JsValue::from_str("pkg");
+
+    if package.is_string() {
+        // Do nothing
+        Ok(())
+    } else if js_sys::Reflect::has(&package, &pkg_key).map_err(|e| anyhow::anyhow!("{e:?}"))? {
+        let pkg = js_sys::Reflect::get(&package, &pkg_key).unwrap();
+        let hash_key = JsValue::from_str("hash");
+        if js_sys::Reflect::has(&pkg, &hash_key).map_err(|e| anyhow::anyhow!("{e:?}"))? {
+            let hash = js_sys::Reflect::get(&pkg, &hash_key).unwrap();
+            js_sys::Reflect::set(app_config, &package_key, &hash)
+                .map_err(|e| anyhow::anyhow!("{e:?}"))?;
+
+            Ok(())
+        } else {
+            anyhow::bail!("No package information provided! Set the 'package'")
+        }
+    } else {
+        anyhow::bail!("No package information provided! Set the 'package'")
+    }
+}
+
 #[wasm_bindgen]
 impl Wasmer {
     /// Deploy an app to the registry.
     #[wasm_bindgen(js_name = "deployApp")]
     #[allow(non_snake_case)]
-    pub async fn deploy_app(appConfig: JsValue, pkg: Option<Wasmer>) -> Result<DeployedApp, Error> {
-        let maybe_app_pkg = js_sys::Reflect::get(&appConfig, &(String::from("package").into()));
-        let maybe_wasmer_pkg = pkg.and_then(|p| p.pkg);
-
-        let pkg = match (maybe_app_pkg, maybe_wasmer_pkg) {
-            (Ok(pkg), None) => pkg.as_string().unwrap(),
-            (_, Some(p)) => p.hash.to_string(),
-            (Err(_), None) => Err(Error::Rust(anyhow::anyhow!("No package identified!")))?,
-        };
-
-        js_sys::Reflect::set(&appConfig, &(String::from("package").into()), &(pkg.into()))
-            .map_err(|e| {
-                anyhow::anyhow!("While setting the 'package' field in the app config: {e:?}")
-            })?;
+    pub async fn deploy_app(appConfig: JsValue) -> Result<DeployedApp, Error> {
+        resolve_pkg(&appConfig)?;
 
         let default = js_sys::Reflect::get(&appConfig, &(String::from("default").into()))
             .map_err(utils::js_error)?
             .as_bool();
         let app_config = serde_wasm_bindgen::from_value(appConfig)
             .map_err(|e| anyhow::anyhow!(e.to_string()))?;
+
         Wasmer::deploy_app_inner(app_config, default).await
     }
 }
