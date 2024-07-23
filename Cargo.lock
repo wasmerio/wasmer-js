@@ -3911,6 +3911,7 @@ dependencies = [
 [[package]]
 name = "webc"
 version = "6.0.0-rc1"
+source = "git+https://github.com/xdoardo/pirita?branch=in-memory-manifest#5193aaae510f263c33ac8635f2c9ff0a10bd2101"
 dependencies = [
  "anyhow",
  "base64 0.21.6",

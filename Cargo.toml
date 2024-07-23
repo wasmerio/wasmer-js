@@ -102,7 +102,7 @@ dwarf-debug-info = false
 wasm-opt = ["--enable-threads", "--enable-bulk-memory", "-Oz"]
 
 [patch.crates-io]
-webc = {path = "../pirita/crates/webc"}
+webc = {git = "https://github.com/xdoardo/pirita", branch = "in-memory-manifest"}
 #virtual-net = { git = "https://github.com/wasmerio/wasmer", branch = "master" }
 #virtual-fs = { git = "https://github.com/wasmerio/wasmer", branch = "master" }
 #wasmer-wasix = { git = "https://github.com/wasmerio/wasmer", branch = "master" }
