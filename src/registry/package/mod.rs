@@ -1,14 +1,12 @@
 mod package_utils;
 
-use package_utils::*;
-
 use crate::{
     utils::{self, Error},
     wasmer::OptionalRuntime,
     Wasmer,
 };
-use anyhow::Context;
 use js_sys::Math::random;
+use package_utils::*;
 use std::path::PathBuf;
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasmer_config::package::Manifest;
@@ -51,7 +49,7 @@ impl Wasmer {
         let atoms = package_utils::create_atoms(&manifest)?;
 
         let wasmer_manifest: Manifest = serde_wasm_bindgen::from_value(manifest.clone().into())
-            .map_err(|e| anyhow::anyhow!(e.to_string()))?;
+            .map_err(|e| anyhow::anyhow!("While parsing the manifest: {e}"))?;
         wasmer_manifest.validate()?;
 
         let pkg: Package = webc::wasmer_package::Package::from_in_memory(
@@ -60,9 +58,8 @@ impl Wasmer {
             atoms,
             metadata,
             Strictness::default(),
-            &base_dir,
         )
-        .context("While parsing the manifest")?;
+        .map_err(|e| anyhow::anyhow!("{e:?}"))?;
 
         let runtime = OptionalRuntime::default().resolve()?.into_inner();
         Wasmer::from_user_package(pkg, wasmer_manifest, runtime).await
@@ -124,12 +121,13 @@ impl Wasmer {
             &signed_url,
             manifest.package.as_ref().map(|p| p.private),
         )
-        .await?
+        .await
+        .map_err(|e| anyhow::anyhow!("{e:?}"))?
         .ok_or_else(|| anyhow::anyhow!("Backend returned no data!"))?;
 
         Ok(PublishPackageOutput {
             manifest: serde_wasm_bindgen::to_value(&manifest)
-                .map_err(|e| anyhow::anyhow!(e.to_string()))?,
+                .map_err(|e| anyhow::anyhow!("{e:?}"))?,
             hash: out
                 .package_webc
                 .and_then(|p| p.webc_v3)

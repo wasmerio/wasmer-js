@@ -171,11 +171,66 @@ pub fn create_volumes(
 }
 
 pub fn create_atoms(
-    _manifest: &js_sys::Object,
-) -> anyhow::Result<BTreeMap<String, webc::compat::SharedBytes>> {
-    // @xdoardo: [todo]
+    manifest: &js_sys::Object,
+) -> anyhow::Result<BTreeMap<String, (Option<String>, webc::compat::SharedBytes)>> {
+    // [todo]:
+    // [module]
+    // name = .sdasd
+    // source = []
+    //
+    // ->
+    //
+    // [module]
+    // name = .sdasda
+    // source = .sdasda
+    let module_key = JsString::from("module");
+    let mut atoms_data = BTreeMap::new();
 
-    Ok(BTreeMap::new())
+    if let Ok(modules) = get(manifest, &module_key) {
+        if !modules.is_undefined() {
+            if !modules.is_array() {
+                anyhow::bail!("'module' must be an array!")
+            } else {
+                let modules = js_sys::Array::from(&modules);
+                let name_key = JsString::from("name");
+                let source_key = JsString::from("source");
+                for o in modules.to_vec().into_iter() {
+                    let (name, source) = (
+                        get(&o, &name_key).map_err(|e| anyhow::anyhow!("{e:?}"))?,
+                        get(&o, &source_key).map_err(|e| anyhow::anyhow!("{e:?}"))?,
+                    );
+
+                    if name.is_undefined()
+                        || name.is_null()
+                        || source.is_undefined()
+                        || source.is_null()
+                    {
+                        anyhow::bail!("'name', or 'source' undefined")
+                    }
+
+                    if !name.is_string() {
+                        anyhow::bail!("'name' must be a string")
+                    }
+
+                    let name = name.as_string().unwrap();
+
+                    let MemoryFile { data, .. } = match create_node(source)? {
+                        MemoryNode::File(f) => f,
+                        MemoryNode::Dir(_) => anyhow::bail!("The atom must be a file!"),
+                    };
+
+                    atoms_data.insert(
+                        name.clone(),
+                        (None, webc::compat::SharedBytes::from_bytes(data)),
+                    );
+                    set(&o, &source_key, &JsValue::from_str(&name))
+                        .map_err(|e| anyhow::anyhow!("While setting object values: {e:?}"))?;
+                }
+            }
+        }
+    }
+
+    Ok(atoms_data)
 }
 
 pub fn create_metadata(manifest: &js_sys::Object, base_dir: &Path) -> anyhow::Result<MemoryVolume> {
@@ -202,7 +257,6 @@ pub fn create_metadata(manifest: &js_sys::Object, base_dir: &Path) -> anyhow::Re
             }
         }
 
-        tracing::error!("{meta_obj:?}");
         create_dir(meta_obj.into(), SystemTime::UNIX_EPOCH)?
     } else {
         MemoryDir {

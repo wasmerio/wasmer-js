@@ -89,7 +89,7 @@ impl Wasmer {
             .map_err(utils::js_error)?
             .as_bool();
         let app_config = serde_wasm_bindgen::from_value(appConfig)
-            .map_err(|e| anyhow::anyhow!(e.to_string()))?;
+            .map_err(|e| anyhow::anyhow!("{e:?}"))?;
 
         Wasmer::deploy_app_inner(app_config, default).await
     }
@@ -114,6 +114,6 @@ impl Wasmer {
         )
         .await
         .map(|v| v.into())
-        .map_err(utils::Error::Rust)
+        .map_err(|e| utils::Error::Rust(anyhow::anyhow!("{e:?}")))
     }
 }

@@ -2908,18 +2908,6 @@ dependencies = [
 
 [[package]]
 name = "toml"
-version = "0.7.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd79e69d3b627db300ff956027cc6c3798cef26d22526befdfcd12feeb6d2257"
-dependencies = [
- "serde",
- "serde_spanned",
- "toml_datetime",
- "toml_edit 0.19.15",
-]
-
-[[package]]
-name = "toml"
 version = "0.8.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6f49eb2ab21d2f26bd6db7bf383edc527a7ebaee412d17af4d40fdccd442f335"
@@ -2946,8 +2934,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1b5bb770da30e5cbfde35a2d7b9b8a2c4b8ef89548a7a6aeab5c9a576e3e7421"
 dependencies = [
  "indexmap 2.2.6",
- "serde",
- "serde_spanned",
  "toml_datetime",
  "winnow 0.5.33",
 ]
@@ -3581,7 +3567,7 @@ dependencies = [
  "serde_json",
  "serde_yaml 0.9.34+deprecated",
  "thiserror",
- "toml 0.8.14",
+ "toml",
  "url",
 ]
 
@@ -3602,7 +3588,7 @@ dependencies = [
  "serde_json",
  "serde_yaml 0.9.34+deprecated",
  "thiserror",
- "toml 0.8.14",
+ "toml",
  "url",
 ]
 
@@ -3665,7 +3651,7 @@ dependencies = [
  "sha2",
  "tempfile",
  "tokio",
- "toml 0.8.14",
+ "toml",
  "tracing",
  "tracing-subscriber",
  "url",
@@ -3911,7 +3897,7 @@ dependencies = [
 [[package]]
 name = "webc"
 version = "6.0.0-rc1"
-source = "git+https://github.com/xdoardo/pirita?branch=in-memory-manifest#5193aaae510f263c33ac8635f2c9ff0a10bd2101"
+source = "git+https://github.com/wasmerio/pirita?branch=in-memory-manifest#51d0f017992424bfc8185fa5486a83dbc2de029a"
 dependencies = [
  "anyhow",
  "base64 0.21.6",
@@ -3936,7 +3922,7 @@ dependencies = [
  "tar",
  "tempfile",
  "thiserror",
- "toml 0.7.8",
+ "toml",
  "url",
  "wasmer-config 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]

@@ -2,13 +2,15 @@ import { assert, expect } from "@esm-bundle/chai";
 import { init, initializeLogger, Wasmer } from "..";
 
 const initialized = (async () => {
-	await init(new URL("../dist/wasmer_js_bg.wasm", import.meta.url));
-	//, undefined, { registry_url: "https://registry.wasmer.wtf/graphql", token: "<YOUR_TOKEN>" });
+	await init(new URL("../dist/wasmer_js_bg.wasm", import.meta.url), undefined, {
+		registry_url: "https://registry.wasmer.wtf/graphql", token:
+			"<YOUR_TOKEN>"
+	});
 	initializeLogger("error");
 })();
 
 
-const owner = "ciuser"
+const owner = "<YOUR_NAME>"
 const pkg_name = "test-js-sdk"
 const app_name = "test-js-sdk"
 
@@ -19,6 +21,54 @@ describe("Registry", function() {
 		let v = (globalThis as any)["__WASMER_REGISTRY__"];
 		expect(typeof v != "undefined")
 	});
+
+
+	it("can create a package with atoms", async () => {
+		let manifest =
+		{
+			"module": [
+				{
+					"name": "test",
+					"abi": "wasi",
+					"source": new Uint8Array([0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00])
+				},
+				{
+					"name": "other-test",
+					"source": new Uint8Array([0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00])
+				}
+			],
+			"command": [
+				{
+					"module": "wasmer/python:python",
+					"name": "hello",
+					"runner": "wasi",
+					"annotations": {
+						"wasi": {
+							"main-args": [
+								"-c",
+								"import os; print([f for f in os.walk('/public')]); "
+							]
+						}
+					}
+				}
+			],
+			"dependencies": {
+				"wasmer/python": "3.12.5+build.7"
+			},
+
+			"fs": {
+				"public": {
+					"index.html": "Hello, js!",
+					"index_timestamp.html": { data: "Hello, js!", modified: 987656789 },
+					"index_date.html": { data: "Hello, js!", modified: new Date() }
+				}
+			}
+		}
+		let result = await Wasmer.createPackage(manifest);
+		console.log("\n== Creating a package == ");
+		console.log(result.commands)
+	})
+
 
 	it("can create a package", async () => {
 		let manifest =
