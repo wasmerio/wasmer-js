@@ -20,17 +20,16 @@ export const init = async (module_or_path?: InitInput | Promise<InitInput>, mayb
 		}
 	}
 
-	const DEFAULT_REGISTRY = "https://registry.wasmer.io/graphql";
+    const DEFAULT_REGISTRY = "https://registry.wasmer.io/graphql";
 
-	if (typeof maybe_registry === 'string' || maybe_registry instanceof String) {
-		(globalThis as any)["__WASMER_REGISTRY__"] = {
-			"registry": DEFAULT_REGISTRY,
-			"token": maybe_registry
-		};
-	} else {
-		(globalThis as any)["__WASMER_REGISTRY__"] = maybe_registry;
-	}
-
+    if (typeof maybe_registry === 'string' || maybe_registry instanceof String) {
+       (globalThis as any)["__WASMER_REGISTRY__"] = {
+            "registry": DEFAULT_REGISTRY,
+            "token": maybe_registry
+       };
+    } else {
+       (globalThis as any)["__WASMER_REGISTRY__"] = maybe_registry;
+    }
 
 	return load(module_or_path, maybe_memory);
 }
