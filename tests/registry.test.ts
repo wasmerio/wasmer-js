@@ -2,15 +2,14 @@ import { assert, expect } from "@esm-bundle/chai";
 import { init, initializeLogger, Wasmer } from "..";
 
 const initialized = (async () => {
-	await init(new URL("../dist/wasmer_js_bg.wasm", import.meta.url), undefined, {
-		registry_url: "https://registry.wasmer.wtf/graphql", token:
-			"<YOUR_TOKEN>"
-	});
+	await init(new URL("../dist/wasmer_js_bg.wasm", import.meta.url), undefined,
+		{ registry_url: "https://registry.wasmer.wtf/graphql", token: "<YOUR_TOKEN>" }
+	);
 	initializeLogger("error");
 })();
 
 
-const owner = "<YOUR_NAME>"
+const owner = "YOUR_NAME"
 const pkg_name = "test-js-sdk"
 const app_name = "test-js-sdk"
 
@@ -292,7 +291,7 @@ describe("Registry", function() {
 		{
 			"package": {
 				"readme": "This is my readme!",
-				"manifest": { data: "This is my manifest!", modified: new Date() }
+				"license": { data: "This is my license!", modified: new Date() }
 			},
 			"command": [
 				{

@@ -10,19 +10,29 @@ type RegistryInput = {
 /**
  * Initialize the underlying WebAssembly module.
  */
-export const init = async (module_or_path?: InitInput | Promise<InitInput>, maybe_memory?: WebAssembly.Memory, maybe_registry?: RegistryInput): Promise<InitOutput> => {
-    if (!module_or_path) {
-        // This will be replaced by the rollup bundler at the SDK build time
-        // to point to a valid http location of the SDK using unpkg.com.
-        let wasmUrl = (globalThis as any)["wasmUrl"];
-        if (wasmUrl) {
-            module_or_path = new URL(wasmUrl);
-        }
-    }
+export const init = async (module_or_path?: InitInput | Promise<InitInput>, maybe_memory?: WebAssembly.Memory, maybe_registry?: string | RegistryInput): Promise<InitOutput> => {
+	if (!module_or_path) {
+		// This will be replaced by the rollup bundler at the SDK build time
+		// to point to a valid http location of the SDK using unpkg.com.
+		let wasmUrl = (globalThis as any)["wasmUrl"];
+		if (wasmUrl) {
+			module_or_path = new URL(wasmUrl);
+		}
+	}
 
-    (globalThis as any)["__WASMER_REGISTRY__"] = maybe_registry;
+	const DEFAULT_REGISTRY = "https://registry.wasmer.io/graphql";
 
-    return load(module_or_path, maybe_memory);
+	if (typeof maybe_registry === 'string' || maybe_registry instanceof String) {
+		(globalThis as any)["__WASMER_REGISTRY__"] = {
+			"registry": DEFAULT_REGISTRY,
+			"token": maybe_registry
+		};
+	} else {
+		(globalThis as any)["__WASMER_REGISTRY__"] = maybe_registry;
+	}
+
+
+	return load(module_or_path, maybe_memory);
 }
 
 /**
@@ -30,10 +40,10 @@ export const init = async (module_or_path?: InitInput | Promise<InitInput>, mayb
  * an unpkg url that is set up at the SDK build time.
  */
 export const setDefaultWorkerUrl = () => {
-    let workerUrl = (globalThis as any)["workerUrl"];
-    if (workerUrl) {
-        setWorkerUrl(workerUrl)
-    }
+	let workerUrl = (globalThis as any)["workerUrl"];
+	if (workerUrl) {
+		setWorkerUrl(workerUrl)
+	}
 }
 
 // HACK: We save these to the global scope because it's the most reliable way to

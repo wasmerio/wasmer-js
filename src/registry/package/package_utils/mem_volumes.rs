@@ -248,12 +248,16 @@ pub fn create_metadata(manifest: &js_sys::Object, base_dir: &Path) -> anyhow::Re
             if !readme_file.is_undefined() {
                 set(&meta_obj, &guest_readme_key, &readme_file)
                     .map_err(|e| anyhow::anyhow!("{e:?}"))?;
+                set(&pkg, &readme_key, &guest_readme_key)
+                    .map_err(|e| anyhow::anyhow!("While setting object values: {e:?}"))?;
             }
         }
         if let Ok(license_file) = get(&pkg, &license_key) {
             if !license_file.is_undefined() {
                 set(&meta_obj, &guest_license_key, &license_file)
                     .map_err(|e| anyhow::anyhow!("{e:?}"))?;
+                set(&pkg, &license_key, &guest_license_key)
+                    .map_err(|e| anyhow::anyhow!("While setting object values: {e:?}"))?;
             }
         }
 
