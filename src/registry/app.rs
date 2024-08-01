@@ -53,8 +53,6 @@ fn resolve_pkg(app_config: &JsValue) -> anyhow::Result<()> {
         )
     }
 
-    tracing::error!("{package:?}");
-
     let pkg_key = JsValue::from_str("pkg");
 
     if package.is_string() {

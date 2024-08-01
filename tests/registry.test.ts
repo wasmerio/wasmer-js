@@ -9,7 +9,7 @@ const initialized = (async () => {
 })();
 
 
-const owner = "YOUR_NAME"
+const owner = "<YOUR_NAME>"
 const pkg_name = "test-js-sdk"
 const app_name = "test-js-sdk"
 
@@ -63,13 +63,11 @@ describe("Registry", function() {
 				}
 			}
 		}
-		let result = await Wasmer.createPackage(manifest);
-		console.log("\n== Creating a package == ");
-		console.log(result.commands)
+		await Wasmer.createPackage(manifest);
 	})
 
 
-	it("can create a package", async () => {
+	it("can create an unnamed package", async () => {
 		let manifest =
 		{
 			"command": [
@@ -99,14 +97,48 @@ describe("Registry", function() {
 				}
 			}
 		}
-		let result = await Wasmer.createPackage(manifest);
-		console.log("\n== Creating a package == ");
-		console.log(result.commands)
+		await Wasmer.createPackage(manifest);
 	})
 
 
 
-	it("can publish packages", async () => {
+	it("can publish unnamed packages", async () => {
+		let manifest =
+		{
+			"package": {
+				"name": owner + "/"
+			},
+			"command": [
+				{
+					"module": "wasmer/python:python",
+					"name": "hello",
+					"runner": "wasi",
+					"annotations": {
+						"wasi": {
+							"main-args": [
+								"-c",
+								"import os; print([f for f in os.walk('/public')]); "
+							]
+						}
+					}
+				}
+			],
+			"dependencies": {
+				"wasmer/python": "3.12.5+build.7"
+			},
+
+			"fs": {
+				"public": {
+					"index.html": "Hello, js!"
+				}
+			}
+		}
+
+		let wasmerPackage = await Wasmer.createPackage(manifest);
+		await Wasmer.publishPackage(wasmerPackage);
+	})
+
+	it("can publish named packages", async () => {
 		let manifest =
 		{
 			"package": {
@@ -139,11 +171,9 @@ describe("Registry", function() {
 		}
 
 		let wasmerPackage = await Wasmer.createPackage(manifest);
-		let result = await Wasmer.publishPackage(wasmerPackage);
-		console.log("\n== Publishing a package == ");
-		console.log("Published package hash: ", result.hash);
-		console.log("Published package manifest: ", result.manifest);
+		await Wasmer.publishPackage(wasmerPackage);
 	})
+
 
 	it("can deploy apps", async () => {
 		let appConfig = {
@@ -155,12 +185,61 @@ describe("Registry", function() {
 
 		};
 
-		let result = await Wasmer.deployApp(appConfig);
-
-		console.log("\n== Deploying an app == ");
-		console.log("Deployed app id: ", result.id);
-		console.log("Deployed app url: ", result.url);
+		await Wasmer.deployApp(appConfig);
 	})
+
+	it("fails deploying apps with unpublished packages", async () => {
+
+		let manifest =
+		{
+			"package": {
+				"name": owner + "/" + pkg_name
+			},
+			"command": [
+				{
+					"module": "wasmer/python:python",
+					"name": "hello",
+					"runner": "wasi",
+					"annotations": {
+						"wasi": {
+							"main-args": [
+								"-c",
+								"import os; print([f for f in os.walk('/public')]); "
+							]
+						}
+					}
+				}
+			],
+			"dependencies": {
+				"wasmer/python": "3.12.5+build.7"
+			},
+
+			"fs": {
+				"public": {
+					"index.html": "A totally new file!"
+				}
+			}
+		}
+
+		let wasmerPackage = await Wasmer.createPackage(manifest);
+
+		let appConfig = {
+			name: app_name,
+			owner: owner,
+			package: wasmerPackage,
+			env: [["test", "new_value"]],
+			default: true
+
+		};
+
+		try {
+			await Wasmer.deployApp(appConfig);
+			assert.fail("deploys the app", "should not deploy the app")
+		} catch {
+		  return
+		}
+	})
+
 
 	it("can deploy apps with user-created packages", async () => {
 
@@ -208,11 +287,7 @@ describe("Registry", function() {
 
 		};
 
-		let result = await Wasmer.deployApp(appConfig);
-
-		console.log("\n== Deploying user-created app ==");
-		console.log("Deployed app id: ", result.id);
-		console.log("Deployed app url: ", result.url);
+		await Wasmer.deployApp(appConfig);
 	})
 
 	it("can run user-created packages", async () => {
@@ -280,9 +355,6 @@ describe("Registry", function() {
 		let instance = await pkg.commands["hello"].run();
 
 		const output = await instance.wait();
-		console.log("\n== Mounting and running user-defined fs == ");
-		console.log(manifest);
-		console.log("Does this contain 'index.html'?", output.stdout)
 		assert(output.stdout.includes("index.html"))
 	})
 
@@ -324,10 +396,50 @@ describe("Registry", function() {
 		let instance = await pkg.commands["hello"].run();
 
 		const output = await instance.wait();
-		console.log("\n== Mounting and running user-defined fs == ");
-		console.log(manifest);
-		console.log("Does this contain 'index.html'?", output.stdout)
 		assert(output.stdout.includes("index.html"))
 	})
 
+	it("can deploy a php app", async () => {
+		let manifest = {
+			"package": { "name": owner + "/" },
+			"command": [
+				{
+					"module": "php/php:php",
+					"name": "run",
+					"runner": "wasi",
+					"annotations": {
+						"wasi": {
+							"main-args": [
+								"-t",
+								"/app",
+								"-S",
+								"localhost:8080"
+							]
+						}
+					}
+				}
+			],
+			"dependencies": {
+				"php/php": "=8.3.4"
+			},
+			"fs": {
+				"/app": {
+					"index.php": "<?php phpinfo();"
+				}
+			}
+		};
+
+		let pkg = await Wasmer.createPackage(manifest);
+		await Wasmer.publishPackage(pkg);
+
+		let appConfig =
+		{
+			name: app_name,
+			owner: owner,
+			package: pkg,
+			default: true
+		};
+
+		await Wasmer.deployApp(appConfig);
+	})
 });
