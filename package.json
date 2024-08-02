@@ -31,6 +31,7 @@
     "build:dev": "wasm-pack build --dev --target=web --weak-refs --no-pack && rollup -c --environment BUILD:development",
     "dev": "rollup -c -w",
     "test": "web-test-runner --node-resolve --esbuild-target auto --config ./web-dev-server.config.mjs",
+    "test-reg": "web-test-runner --node-resolve --esbuild-target auto --config ./web-dev-server.config.mjs --group reg",
     "docs": "typedoc --options docs/typedoc.json",
     "doc:watch": "typedoc --watch",
     "fmt": "prettier . --write",
@@ -49,16 +50,19 @@
     "@rollup/plugin-terser": "^0.4.4",
     "@rollup/plugin-typescript": "^11.1.5",
     "@rollup/plugin-wasm": "^6.2.2",
+    "@types/mocha": "^10.0.7",
     "@web/dev-server-esbuild": "^1.0.1",
     "@web/test-runner": "^0.18.0",
     "prettier": "^3.1.0",
     "rimraf": "^5.0.5",
+    "rollup": "^4.8.0",
     "rollup-plugin-copy": "^3.5.0",
     "rollup-plugin-dts": "^6.1.0",
-    "rollup": "^4.8.0",
     "typedoc": "^0.25.4",
     "typescript": "^5.3.3"
   },
   "browserslist": "> 0.5%, last 2 versions, Firefox ESR, not dead",
-  "dependencies": {}
+  "dependencies": {
+    "dotenv": "^16.4.5"
+  }
 }

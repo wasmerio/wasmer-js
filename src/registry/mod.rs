@@ -1,25 +1,57 @@
 pub mod app;
 pub mod package;
 
-use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
+use anyhow::anyhow;
+use js_sys::Reflect::{get, has};
+use wasm_bindgen::{convert::TryFromJsValue, JsValue};
 use wasmer_api::WasmerClient;
 
 use crate::{utils::Error, Wasmer};
 
 static WASMER_CLIENT: std::sync::OnceLock<WasmerClient> = std::sync::OnceLock::new();
 
-#[wasm_bindgen(getter_with_clone)]
+#[derive(Debug, Default, Clone)]
 pub struct RegistryConfig {
-    pub registry_url: String,
+    pub registry_url: Option<String>,
     pub token: Option<String>,
 }
 
-impl Default for RegistryConfig {
-    fn default() -> Self {
-        Self {
-            registry_url: String::from("https://registry.wasmer.io/graphql"),
-            token: Default::default(),
-        }
+impl TryFromJsValue for RegistryConfig {
+    type Error = JsValue;
+
+    fn try_from_js_value(value: wasm_bindgen::prelude::JsValue) -> Result<Self, Self::Error> {
+        let token_key = JsValue::from_str("token");
+        let registry_url_key = JsValue::from_str("registry_url");
+        let token = if has(&value, &token_key)? {
+            let token = get(&value, &token_key)?;
+            if let Some(token) = token.as_string() {
+                Some(token)
+            } else {
+                return Err(JsValue::from_str(
+                    "Cannot create token from non-string object!",
+                ));
+            }
+        } else {
+            None
+        };
+
+        let registry_url = if has(&value, &registry_url_key)? {
+            let registry_url = get(&value, &registry_url_key)?;
+            if let Some(registry_url) = registry_url.as_string() {
+                Some(registry_url)
+            } else {
+                return Err(JsValue::from_str(
+                    "Cannot create registry url from non-string object!",
+                ));
+            }
+        } else {
+            None
+        };
+
+        Ok(Self {
+            registry_url,
+            token,
+        })
     }
 }
 
@@ -29,38 +61,18 @@ impl Wasmer {
             let registry_input = if let Some(registry_info) =
                 web_sys::window().and_then(|w| w.get("__WASMER_REGISTRY__"))
             {
-                if registry_info.is_undefined() {
-                    RegistryConfig::default()
-                } else {
-                    let registry_url = js_sys::Reflect::get(
-                        &registry_info,
-                        &JsValue::from(String::from("registry_url")),
-                    )
-                    .ok()
-                    .and_then(|u| u.as_string());
-                    let token =
-                        js_sys::Reflect::get(&registry_info, &JsValue::from(String::from("token")))
-                            .ok()
-                            .and_then(|u| u.as_string());
-
-                    if let Some(registry_url) = registry_url {
-                        RegistryConfig {
-                            registry_url,
-                            token,
-                        }
-                    } else {
-                        RegistryConfig {
-                            token,
-                            ..Default::default()
-                        }
-                    }
-                }
+                RegistryConfig::try_from_js_value(registry_info.into())
+                    .map_err(|e| anyhow!("while reading registry configuration: {e:?}"))?
             } else {
                 RegistryConfig::default()
             };
 
             let mut client = wasmer_api::WasmerClient::new(
-                url::Url::parse(&registry_input.registry_url)?,
+                url::Url::parse(
+                    &registry_input
+                        .registry_url
+                        .unwrap_or(crate::DEFAULT_REGISTRY.into()),
+                )?,
                 "Wasmer JS SDK",
             )?;
             if let Some(token) = registry_input.token {

@@ -2,6 +2,9 @@ import { chromeLauncher } from "@web/test-runner";
 import { esbuildPlugin } from "@web/dev-server-esbuild";
 import { fromRollup } from '@web/dev-server-rollup';
 import rollupReplace from '@rollup/plugin-replace';
+import dotenv from 'dotenv';
+dotenv.config();
+
 
 async function add_headers(ctx, next) {
 	ctx.set("Cross-Origin-Opener-Policy", "same-origin");
@@ -27,6 +30,10 @@ export default {
 	environmentVariables: {
 		API_URL: process.env.HELLO,
 	},
+	groups: [{
+		"name": "reg",
+		"files": ["tests/registry.test.ts"]
+	}]
 };
 
 

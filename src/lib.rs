@@ -32,6 +32,7 @@ pub use crate::{
     run::run_wasix,
     utils::StringOrBytes,
     wasmer::Wasmer,
+    registry::RegistryConfig,
 };
 
 use once_cell::sync::Lazy;

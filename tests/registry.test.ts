@@ -6,6 +6,7 @@ const app_name = "test-js-sdk-app"
 
 describe("Registry", function() {
 	this.timeout("60s");
+
 	it("can be initialized", async () => {
 		await init(new URL("../dist/wasmer_js_bg.wasm", import.meta.url), undefined,
 			{ registry_url: "https://registry.wasmer.wtf/graphql", token: process.env.WASMER_TOKEN }
@@ -14,6 +15,107 @@ describe("Registry", function() {
 
 		(globalThis as any)["__WASMER_TEST_OWNER__"] = process.env.WASMER_TEST_OWNER;
 	})
+
+	it("can use unnamed packages twice", async () => {
+		let manifest =
+		{
+			"command": [
+				{
+					"module": "wasmer/python:python",
+					"name": "hello",
+					"runner": "wasi",
+					"annotations": {
+						"wasi": {
+							"main-args": [
+								"-c",
+								"import os; print([f for f in os.walk('/public')]); "
+							]
+						}
+					}
+				}
+			],
+			"dependencies": {
+				"wasmer/python": "3.12.5+build.7"
+			},
+
+			"fs": {
+				"public": {
+					"index.html": "Hello, js!"
+				}
+			}
+		}
+
+		let wasmerPackage = await Wasmer.createPackage(manifest);
+
+		let owner = (globalThis as any)["__WASMER_TEST_OWNER__"];
+		let appConfig = {
+			name: app_name,
+			owner: owner,
+			package: wasmerPackage,
+			env: [["test", "new_value"]],
+			default: true
+
+		};
+
+		await Wasmer.deployApp(appConfig);
+
+		let appConfig2 = {
+			name: app_name + "2",
+			owner: owner,
+			package: wasmerPackage,
+			env: [["test", "new_value"]],
+			default: true
+
+		};
+
+		await Wasmer.deployApp(appConfig2);
+	})
+
+	it("can deploy unnamed packages", async () => {
+		let manifest =
+		{
+			"command": [
+				{
+					"module": "wasmer/python:python",
+					"name": "hello",
+					"runner": "wasi",
+					"annotations": {
+						"wasi": {
+							"main-args": [
+								"-c",
+								"import os; print([f for f in os.walk('/public')]); "
+							]
+						}
+					}
+				}
+			],
+			"dependencies": {
+				"wasmer/python": "3.12.5+build.7"
+			},
+
+			"fs": {
+				"public": {
+					"index.html": "Hello, js!"
+				}
+			}
+		}
+
+		let wasmerPackage = await Wasmer.createPackage(manifest);
+
+		let owner = (globalThis as any)["__WASMER_TEST_OWNER__"];
+		let appConfig = {
+			name: app_name,
+			owner: owner,
+			package: wasmerPackage,
+			env: [["test", "new_value"]],
+			default: true
+
+		};
+
+		await Wasmer.deployApp(appConfig);
+
+	})
+
 
 	it("has global context", async () => {
 		let v = (globalThis as any)["__WASMER_REGISTRY__"];

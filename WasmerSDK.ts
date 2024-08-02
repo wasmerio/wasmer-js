@@ -3,10 +3,9 @@ export * from "./pkg/wasmer_js";
 import load, { InitInput, InitOutput, ThreadPoolWorker, setWorkerUrl, RegistryConfig } from "./pkg/wasmer_js";
 
 type RegistryInput = {
-	registry_url: string,
+	registry_url?: string,
 	token?: string
 }
-
 /**
  * Initialize the underlying WebAssembly module.
  */
@@ -20,16 +19,12 @@ export const init = async (module_or_path?: InitInput | Promise<InitInput>, mayb
 		}
 	}
 
-    const DEFAULT_REGISTRY = "https://registry.wasmer.io/graphql";
-
-    if (typeof maybe_registry === 'string' || maybe_registry instanceof String) {
-       (globalThis as any)["__WASMER_REGISTRY__"] = {
-            "registry": DEFAULT_REGISTRY,
-            "token": maybe_registry
-       };
-    } else {
-       (globalThis as any)["__WASMER_REGISTRY__"] = maybe_registry;
-    }
+	if (typeof maybe_registry === 'string' || maybe_registry instanceof String) {
+		let token = String(maybe_registry);
+		(globalThis as any)["__WASMER_REGISTRY__"] = { token: token };
+	} else {
+		(globalThis as any)["__WASMER_REGISTRY__"] = maybe_registry;
+	}
 
 	return load(module_or_path, maybe_memory);
 }

@@ -41,7 +41,7 @@ use crate::{
 ///     throw new Error(`Python exited with ${code}: ${stderr}`);
 /// }
 /// ```
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, wasm_bindgen_derive::TryFromJsValue)]
 #[wasm_bindgen]
 pub struct Wasmer {
     /// The package's entrypoint.
@@ -56,7 +56,7 @@ pub struct Wasmer {
     pub pkg: Option<UserPackageDefinition>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, wasm_bindgen_derive::TryFromJsValue)]
 #[wasm_bindgen]
 pub struct UserPackageDefinition {
     pub(crate) manifest: wasmer_config::package::Manifest,

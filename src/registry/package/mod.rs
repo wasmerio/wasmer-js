@@ -70,7 +70,9 @@ impl Wasmer {
     #[allow(non_snake_case)]
     pub async fn publishPackage(wasmerPackage: &Wasmer) -> Result<PublishPackageOutput, Error> {
         match &wasmerPackage.pkg {
-            Some(p) => Wasmer::publish_package_inner(p.manifest.clone(), p.data.clone()).await,
+            Some(p) => {
+                Wasmer::publish_package_inner(&p.hash, p.manifest.clone(), p.data.clone()).await
+            }
             None => Err(Error::Rust(anyhow::anyhow!(
                 "The selected package has no container!"
             ))),
@@ -79,11 +81,21 @@ impl Wasmer {
 }
 
 impl Wasmer {
-    async fn publish_package_inner(
+    pub(super) async fn publish_package_inner(
+        hash: &str,
         manifest: Manifest,
         bytes: bytes::Bytes,
     ) -> Result<PublishPackageOutput, Error> {
         let client = Wasmer::get_client()?;
+
+        if wasmer_api::query::get_package_release(client, &hash).await?.is_some() {
+            // The package was already published.
+            return Ok(PublishPackageOutput {
+                manifest: serde_wasm_bindgen::to_value(&manifest)
+                    .map_err(|e| anyhow::anyhow!("{e:?}"))?,
+                hash: hash.to_string(),
+            });
+        }
 
         let signed_url = wasmer_api::query::get_signed_url_for_package_upload(
             client,
