@@ -43,7 +43,7 @@ jobs:
       - name: Build Package
         run: npm run build
       - name: Integration Tests
-        run: npm run test
+        run: WASMER_TOKEN=${{ secrets.WAPM_DEV_TOKEN }} WASMER_TEST_OWNER=ciuser npm run test
 
   examples:
     name: Build Examples
