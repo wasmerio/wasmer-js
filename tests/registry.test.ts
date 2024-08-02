@@ -6,14 +6,13 @@ const app_name = "test-js-sdk-app"
 
 describe("Registry", function() {
 	this.timeout("60s");
+	const WASMER_TEST_OWNER = process.env.WASMER_TEST_OWNER;
 
 	it("can be initialized", async () => {
 		await init(new URL("../dist/wasmer_js_bg.wasm", import.meta.url), undefined,
 			{ registry_url: "https://registry.wasmer.wtf/graphql", token: process.env.WASMER_TOKEN }
 		);
 		initializeLogger("error");
-
-		(globalThis as any)["__WASMER_TEST_OWNER__"] = process.env.WASMER_TEST_OWNER;
 	})
 
 	it("can use unnamed packages twice", async () => {
@@ -47,10 +46,9 @@ describe("Registry", function() {
 
 		let wasmerPackage = await Wasmer.createPackage(manifest);
 
-		let owner = (globalThis as any)["__WASMER_TEST_OWNER__"];
 		let appConfig = {
 			name: app_name,
-			owner: owner,
+			owner: WASMER_TEST_OWNER,
 			package: wasmerPackage,
 			env: [["test", "new_value"]],
 			default: true
@@ -61,7 +59,7 @@ describe("Registry", function() {
 
 		let appConfig2 = {
 			name: app_name + "2",
-			owner: owner,
+			owner: WASMER_TEST_OWNER,
 			package: wasmerPackage,
 			env: [["test", "new_value"]],
 			default: true
@@ -102,10 +100,9 @@ describe("Registry", function() {
 
 		let wasmerPackage = await Wasmer.createPackage(manifest);
 
-		let owner = (globalThis as any)["__WASMER_TEST_OWNER__"];
 		let appConfig = {
 			name: app_name,
-			owner: owner,
+			owner: WASMER_TEST_OWNER,
 			package: wasmerPackage,
 			env: [["test", "new_value"]],
 			default: true
@@ -242,11 +239,10 @@ describe("Registry", function() {
 	})
 
 	it("can publish named packages", async () => {
-		let owner = (globalThis as any)["__WASMER_TEST_OWNER__"];
 		let manifest =
 		{
 			"package": {
-				"name": owner + "/" + pkg_name
+				"name": WASMER_TEST_OWNER + "/" + pkg_name
 			},
 			"command": [
 				{
@@ -280,10 +276,9 @@ describe("Registry", function() {
 
 
 	it("can deploy apps", async () => {
-		let owner = (globalThis as any)["__WASMER_TEST_OWNER__"];
 		let appConfig = {
 			name: app_name,
-			owner: owner,
+			owner: WASMER_TEST_OWNER,
 			package: "sha256:34a3b5f5a9108c2b258eb51e9d0978b6778a3696b9c7e713adab33293fb5e4f1",
 			env: [["test", "new_value"]],
 			default: true
@@ -295,11 +290,10 @@ describe("Registry", function() {
 
 	it("fails deploying apps with unpublished packages", async () => {
 
-		let owner = (globalThis as any)["__WASMER_TEST_OWNER__"];
 		let manifest =
 		{
 			"package": {
-				"name": owner + "/" + pkg_name
+				"name": WASMER_TEST_OWNER + "/" + pkg_name
 			},
 			"command": [
 				{
@@ -331,7 +325,7 @@ describe("Registry", function() {
 
 		let appConfig = {
 			name: app_name,
-			owner: owner,
+			owner: WASMER_TEST_OWNER,
 			package: wasmerPackage,
 			env: [["test", "new_value"]],
 			default: true
@@ -348,12 +342,11 @@ describe("Registry", function() {
 
 
 	it("can deploy apps with user-created packages", async () => {
-		let owner = (globalThis as any)["__WASMER_TEST_OWNER__"];
 
 		let manifest =
 		{
 			"package": {
-				"name": owner + "/" + pkg_name
+				"name": WASMER_TEST_OWNER + "/" + pkg_name
 			},
 			"command": [
 				{
@@ -387,7 +380,7 @@ describe("Registry", function() {
 		let appConfig =
 		{
 			name: app_name,
-			owner: owner,
+			owner: WASMER_TEST_OWNER,
 			package: wasmerPackage,
 			env: [["test", "new_value"]],
 			default: true
@@ -508,9 +501,8 @@ describe("Registry", function() {
 
 	it("can deploy a php app", async () => {
 
-		let owner = (globalThis as any)["__WASMER_TEST_OWNER__"];
 		let manifest = {
-			"package": { "name": owner + "/" },
+			"package": { "name": WASMER_TEST_OWNER + "/" },
 			"command": [
 				{
 					"module": "php/php:php",
@@ -544,7 +536,7 @@ describe("Registry", function() {
 		let appConfig =
 		{
 			name: app_name,
-			owner: owner,
+			owner: WASMER_TEST_OWNER,
 			package: pkg,
 			default: true
 		};
