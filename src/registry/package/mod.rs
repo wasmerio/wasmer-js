@@ -88,7 +88,10 @@ impl Wasmer {
     ) -> Result<PublishPackageOutput, Error> {
         let client = Wasmer::get_client()?;
 
-        if wasmer_api::query::get_package_release(client, &hash).await?.is_some() {
+        if wasmer_api::query::get_package_release(client, hash)
+            .await?
+            .is_some()
+        {
             // The package was already published.
             return Ok(PublishPackageOutput {
                 manifest: serde_wasm_bindgen::to_value(&manifest)

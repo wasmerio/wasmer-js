@@ -29,10 +29,10 @@ pub use crate::{
     js_runtime::{JsRuntime, RuntimeOptions},
     logging::initialize_logger,
     options::{RunOptions, SpawnOptions},
+    registry::RegistryConfig,
     run::run_wasix,
     utils::StringOrBytes,
     wasmer::Wasmer,
-    registry::RegistryConfig,
 };
 
 use once_cell::sync::Lazy;
