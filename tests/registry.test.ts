@@ -1,22 +1,21 @@
 import { assert, expect } from "@esm-bundle/chai";
 import { init, initializeLogger, Wasmer } from "..";
 
-const initialized = (async () => {
-	await init(new URL("../dist/wasmer_js_bg.wasm", import.meta.url), undefined,
-		{ registry_url: "https://registry.wasmer.wtf/graphql", token: "<YOUR_TOKEN>" }
-	);
-	initializeLogger("error");
-})();
-
-
-const owner = "<YOUR_NAME>"
-const pkg_name = "test-js-sdk"
-const app_name = "test-js-sdk"
+const pkg_name = "test-js-sdk-pkg"
+const app_name = "test-js-sdk-app"
 
 describe("Registry", function() {
-	this.timeout("60s").beforeAll(async () => await initialized);
+	this.timeout("60s");
+	it("can be initialized", async () => {
+		await init(new URL("../dist/wasmer_js_bg.wasm", import.meta.url), undefined,
+			{ registry_url: "https://registry.wasmer.wtf/graphql", token: process.env.WASMER_TOKEN }
+		);
+		initializeLogger("error");
 
-	it("Has global context", async () => {
+		(globalThis as any)["__WASMER_TEST_OWNER__"] = process.env.WASMER_TEST_OWNER;
+	})
+
+	it("has global context", async () => {
 		let v = (globalThis as any)["__WASMER_REGISTRY__"];
 		expect(typeof v != "undefined")
 	});
@@ -102,12 +101,9 @@ describe("Registry", function() {
 
 
 
-	it("can publish unnamed packages", async () => {
+	it("can't publish unnamed packages", async () => {
 		let manifest =
 		{
-			"package": {
-				"name": owner + "/"
-			},
 			"command": [
 				{
 					"module": "wasmer/python:python",
@@ -135,10 +131,16 @@ describe("Registry", function() {
 		}
 
 		let wasmerPackage = await Wasmer.createPackage(manifest);
-		await Wasmer.publishPackage(wasmerPackage);
+		try {
+			await Wasmer.publishPackage(wasmerPackage);
+			assert.fail("publishes the package", "should not publish the package")
+		} catch {
+			return
+		}
 	})
 
 	it("can publish named packages", async () => {
+		let owner = (globalThis as any)["__WASMER_TEST_OWNER__"];
 		let manifest =
 		{
 			"package": {
@@ -176,6 +178,7 @@ describe("Registry", function() {
 
 
 	it("can deploy apps", async () => {
+		let owner = (globalThis as any)["__WASMER_TEST_OWNER__"];
 		let appConfig = {
 			name: app_name,
 			owner: owner,
@@ -190,6 +193,7 @@ describe("Registry", function() {
 
 	it("fails deploying apps with unpublished packages", async () => {
 
+		let owner = (globalThis as any)["__WASMER_TEST_OWNER__"];
 		let manifest =
 		{
 			"package": {
@@ -236,12 +240,13 @@ describe("Registry", function() {
 			await Wasmer.deployApp(appConfig);
 			assert.fail("deploys the app", "should not deploy the app")
 		} catch {
-		  return
+			return
 		}
 	})
 
 
 	it("can deploy apps with user-created packages", async () => {
+		let owner = (globalThis as any)["__WASMER_TEST_OWNER__"];
 
 		let manifest =
 		{
@@ -400,6 +405,8 @@ describe("Registry", function() {
 	})
 
 	it("can deploy a php app", async () => {
+
+		let owner = (globalThis as any)["__WASMER_TEST_OWNER__"];
 		let manifest = {
 			"package": { "name": owner + "/" },
 			"command": [
