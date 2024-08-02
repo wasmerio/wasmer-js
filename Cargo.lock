@@ -3896,11 +3896,12 @@ dependencies = [
 
 [[package]]
 name = "webc"
-version = "6.0.0-rc1"
-source = "git+https://github.com/wasmerio/pirita?branch=in-memory-manifest#51d0f017992424bfc8185fa5486a83dbc2de029a"
+version = "6.0.0-rc2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fb3e2ccb43d303c5bd48f31db7a129481a9aaa5343d623f92951751df190df81"
 dependencies = [
  "anyhow",
- "base64 0.21.6",
+ "base64 0.22.1",
  "bytes",
  "cfg-if",
  "document-features",

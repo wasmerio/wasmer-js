@@ -41,7 +41,7 @@ wasmer-api = { version = "0.0.30", git = "https://github.com/wasmerio/wasmer", b
 wasmer-config = "0.4.0"
 wasmer-types = "4.3.2"
 wasmer-wasix = { version = "0.22.0", default-features = false, features = ["js", "js-default"] }
-webc = "6.0.0-rc1"
+webc = "6.0.0-rc2"
 
 [dependencies.web-sys]
 version = "0.3"
@@ -102,7 +102,7 @@ dwarf-debug-info = false
 wasm-opt = ["--enable-threads", "--enable-bulk-memory", "-Oz"]
 
 [patch.crates-io]
-webc = {git = "https://github.com/wasmerio/pirita", branch = "in-memory-manifest"}
+#webc = {git = "https://github.com/wasmerio/pirita", branch = "in-memory-manifest"}
 #virtual-net = { git = "https://github.com/wasmerio/wasmer", branch = "master" }
 #virtual-fs = { git = "https://github.com/wasmerio/wasmer", branch = "master" }
 #wasmer-wasix = { git = "https://github.com/wasmerio/wasmer", branch = "master" }
