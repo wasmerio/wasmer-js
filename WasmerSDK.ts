@@ -3,6 +3,7 @@ export * from "./pkg/wasmer_js";
 import load, {
   InitInput,
   InitOutput,
+  // @ts-ignore
   ThreadPoolWorker,
   setWorkerUrl,
 } from "./pkg/wasmer_js";
@@ -17,7 +18,12 @@ export type WasmerInitInput = {
 /**
  * Initialize the underlying WebAssembly module.
  */
-export const init = async (initValue: WasmerInitInput): Promise<InitOutput> => {
+export const init = async (initValue: WasmerInitInput | undefined): Promise<InitOutput> => {
+
+  if (!initValue) {
+	initValue = {};
+  }
+
   if (!initValue.module) {
     // This will be replaced by the rollup bundler at the SDK build time
     // to point to a valid http location of the SDK using unpkg.com.
