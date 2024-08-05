@@ -41,7 +41,7 @@ export function WasmerSdk(props?: WasmerSdkProps) {
         console.log("Importing @wasmer/sdk");
         const imported = await import("@wasmer/sdk/dist/WasmerSDKBundled");
         console.log("Imported @wasmer/sdk");
-        await imported.init(props?.wasm);
+        await imported.init({module: props?.wasm});
         imported.initializeLogger(props?.log);
         return imported;
       })();
