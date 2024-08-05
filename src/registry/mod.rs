@@ -21,7 +21,7 @@ impl TryFromJsValue for RegistryConfig {
 
     fn try_from_js_value(value: wasm_bindgen::prelude::JsValue) -> Result<Self, Self::Error> {
         let token_key = JsValue::from_str("token");
-        let registry_url_key = JsValue::from_str("registry_url");
+        let registry_url_key = JsValue::from_str("registryUrl");
         let token = if has(&value, &token_key)? {
             let token = get(&value, &token_key)?;
             if let Some(token) = token.as_string() {
@@ -39,6 +39,8 @@ impl TryFromJsValue for RegistryConfig {
             let registry_url = get(&value, &registry_url_key)?;
             if let Some(registry_url) = registry_url.as_string() {
                 Some(registry_url)
+            } else if registry_url.is_null() || registry_url.is_undefined() {
+                Some(crate::DEFAULT_REGISTRY.into())
             } else {
                 return Err(JsValue::from_str(
                     "Cannot create registry url from non-string object!",

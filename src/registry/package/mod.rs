@@ -103,7 +103,7 @@ impl Wasmer {
         let signed_url = wasmer_api::query::get_signed_url_for_package_upload(
             client,
             Some(60 * 30),
-            Some(format!("test-{}", random()).replace('.', "-")).as_deref(),
+            Some(format!("js-{}", random()).replace('.', "-")).as_deref(),
             None,
             None,
         )
