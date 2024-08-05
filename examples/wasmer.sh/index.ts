@@ -20,7 +20,7 @@ async function main() {
   // same chunk as @wasmer/sdk, each Web Worker will try to run this code and
   // crash.
   // See https://github.com/wasmerio/wasmer-js/issues/373
-  const { Wasmer, init, initializeLogger } = await import("@wasmer/sdk"});
+  const { Wasmer, init, initializeLogger } = await import("@wasmer/sdk");
 
   await init({module: wasmerSDKUrl});
   initializeLogger(logFilter);
