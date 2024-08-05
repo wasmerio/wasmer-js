@@ -20,12 +20,12 @@ function ImageEditor(props: { file: File }) {
   const onSubmit = () => {
     if ((resizeWidth ?? 0) > 0 && (resizeHeight ?? 0) > 0) {
       resizeImage(file, resizeWidth ?? 0, resizeHeight ?? 0)
-        .then((blob) => {
+        .then(blob => {
           const url = URL.createObjectURL(blob);
           setOutputBlob(blob);
           setOutputBlobUrl(url);
         })
-        .catch((e) => {
+        .catch(e => {
           setError(e.message);
         });
     }
@@ -64,7 +64,7 @@ function ImageEditor(props: { file: File }) {
                   placeholder="200"
                   aria-label="width"
                   value={resizeWidth ?? ""}
-                  onInput={(e) => {
+                  onInput={e => {
                     try {
                       const value = parseInt(e.currentTarget.value);
                       setResizeWidth(value);
@@ -78,7 +78,7 @@ function ImageEditor(props: { file: File }) {
                   placeholder="400"
                   aria-label="height"
                   value={resizeHeight ?? ""}
-                  onInput={(e) => {
+                  onInput={e => {
                     try {
                       const value = parseInt(e.currentTarget.value);
                       setResizeHeight(value);
@@ -143,7 +143,7 @@ function App() {
               type="file"
               id="img-input"
               accept="image/jpeg,image/jpg,image/png"
-              onChange={(e) => {
+              onChange={e => {
                 const file = e.currentTarget.files?.item(0);
                 if (!file) {
                   return;
@@ -199,7 +199,13 @@ async function resizeImage(
   const stdin = await file.arrayBuffer();
 
   const instance = await runWasix(MODULE, {
-    args: ["resize", "--width", width.toString(), "--height", height.toString()],
+    args: [
+      "resize",
+      "--width",
+      width.toString(),
+      "--height",
+      height.toString(),
+    ],
     stdin,
   });
 
