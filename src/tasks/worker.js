@@ -33,12 +33,14 @@ globalThis.onmessage = async ev => {
         init = imported.init;
       }
       ThreadPoolWorker = imported.ThreadPoolWorker;
+
+	  await init(module, memory);
     } else {
       init = globalThis["__WASMER_INTERNALS__"].init;
       ThreadPoolWorker = globalThis["__WASMER_INTERNALS__"].ThreadPoolWorker;
+	  await init({ module: module, memory: memory });
     }
 
-    await init({ module: module, memory: memory });
 
     worker = new ThreadPoolWorker(id);
 
