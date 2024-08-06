@@ -16,7 +16,7 @@ use wasmer_wasix::{
         SpawnMemoryType,
     },
     wasmer_wasix_types::wasi::ExitCode,
-    InstanceSnapshot, WasiEnv, WasiFunctionEnv, WasiThreadError,
+    StoreSnapshot, WasiEnv, WasiFunctionEnv, WasiThreadError,
 };
 
 use crate::tasks::SchedulerMessage;
@@ -28,15 +28,14 @@ pub(crate) fn to_scheduler_message(
         run,
         env,
         module,
-        snapshot,
         spawn_type,
         trigger,
         update_layout,
         recycle,
+        globals,
     } = task;
 
     let module_bytes = module.serialize().unwrap();
-    let snapshot = snapshot.map(InstanceSnapshot::clone);
 
     let (memory_ty, memory, run_type) = match spawn_type {
         wasmer_wasix::runtime::SpawnMemoryType::CreateMemory => {
@@ -84,6 +83,7 @@ pub(crate) fn to_scheduler_message(
         }
     });
 
+    let store_snapshot = globals.cloned();
     let spawn_wasm = SpawnWasm {
         trigger: trigger.map(|trigger| WasmRunTrigger {
             run: trigger,
@@ -94,10 +94,10 @@ pub(crate) fn to_scheduler_message(
         run_type,
         env,
         module_bytes,
-        snapshot,
         update_layout,
         result: None,
         recycle,
+        store_snapshot,
     };
 
     Ok(SchedulerMessage::SpawnWithModuleAndMemory {
@@ -190,8 +190,8 @@ pub(crate) struct SpawnWasm {
     /// The raw bytes for the WebAssembly module being run.
     #[derivative(Debug(format_with = "crate::utils::hidden"))]
     module_bytes: Bytes,
-    /// A snapshot of the instance, if we are forking an existing instance.
-    snapshot: Option<InstanceSnapshot>,
+    /// A snapshot of the instance store, used to fork from existing instances.
+    store_snapshot: Option<StoreSnapshot>,
     /// An asynchronous callback which is used to run asyncify methods. The
     /// returned value is used in [`wasmer_wasix::rewind()`] or instant
     /// responses.
@@ -242,11 +242,11 @@ impl ReadySpawnWasm {
             run_type,
             env,
             module_bytes,
-            snapshot,
             update_layout,
             result,
             trigger: _,
             recycle,
+            store_snapshot,
         }) = self;
 
         // Invoke the callback which will run the web assembly module
@@ -255,8 +255,8 @@ impl ReadySpawnWasm {
             wasm_memory,
             module_bytes,
             env,
+            store_snapshot,
             run_type,
-            snapshot,
             update_layout,
         )
         .context("Unable to initialize the context and store")?;
@@ -278,8 +278,8 @@ fn build_ctx_and_store(
     memory: JsValue,
     module_bytes: Bytes,
     env: WasiEnv,
+    store_snapshot: Option<StoreSnapshot>,
     run_type: WasmMemoryType,
-    snapshot: Option<InstanceSnapshot>,
     update_layout: bool,
 ) -> Option<(WasiFunctionEnv, Store)> {
     // Compile the web assembly module
@@ -302,17 +302,21 @@ fn build_ctx_and_store(
         }
     };
 
-    let snapshot = snapshot.as_ref();
-    let (ctx, store) =
-        match WasiFunctionEnv::new_with_store(module, env, snapshot, spawn_type, update_layout) {
-            Ok(a) => a,
-            Err(err) => {
-                tracing::error!(
-                    error = &err as &dyn std::error::Error,
-                    "Failed to crate wasi context",
-                );
-                return None;
-            }
-        };
+    let (ctx, store) = match WasiFunctionEnv::new_with_store(
+        module,
+        env,
+        store_snapshot.as_ref(),
+        spawn_type,
+        update_layout,
+    ) {
+        Ok(a) => a,
+        Err(err) => {
+            tracing::error!(
+                error = &err as &dyn std::error::Error,
+                "Failed to crate wasi context",
+            );
+            return None;
+        }
+    };
     Some((ctx, store))
 }
