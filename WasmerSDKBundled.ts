@@ -12,7 +12,11 @@ import wasm_bytes from "./pkg/wasmer_js_bg.wasm";
  * Initialize the underlying WebAssembly module, defaulting to an embedded
  * copy of the `*.wasm` file.
  */
-export const init = async (initValue: WasmerInitInput): Promise<InitOutput> => {
+export const init = async (initValue: WasmerInitInput | undefined): Promise<InitOutput> => {
+  if (!initValue) {
+	initValue = {}
+  }
+
   if (!initValue.module) {
     // @ts-ignore
     initValue.module = await wasm_bytes();
