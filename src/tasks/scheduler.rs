@@ -10,7 +10,7 @@ use tokio::sync::mpsc::{self};
 use tracing::Instrument;
 use wasm_bindgen::{JsCast, JsValue};
 use wasmer::AsJs;
-use wasmer_wasix::runtime::module_cache::ModuleHash;
+use wasmer_types::ModuleHash;
 
 use crate::tasks::{
     AsyncJob, BlockingJob, Notification, PostMessagePayload, SchedulerMessage, WorkerHandle,

@@ -1,43 +1,44 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Wasmer JavaScript SDK</title>
     <script defer type="module">
-        import { init, Wasmer } from "https://unpkg.com/@wasmer/sdk@latest?module";
+      import {
+        init,
+        Wasmer,
+      } from "https://unpkg.com/@wasmer/sdk@latest?module";
 
-        async function runPython() {
-            const status = document.getElementById("status");
+      async function runPython() {
+        const status = document.getElementById("status");
 
-            status.innerHTML = "Initializing...";
-            await init();
+        status.innerHTML = "Initializing...";
+        await init();
 
-            const packageName = "python/python";
-            status.innerHTML = `Fetching ${packageName}...`;
-            const pkg = await Wasmer.fromRegistry(packageName);
+        const packageName = "python/python";
+        status.innerHTML = `Fetching ${packageName}...`;
+        const pkg = await Wasmer.fromRegistry(packageName);
 
-            status.innerHTML = `Starting ${packageName}...`;
-            const instance = await pkg.entrypoint.run({
-                args: ["-c", "print('Hello, World!')"],
-            });
+        status.innerHTML = `Starting ${packageName}...`;
+        const instance = await pkg.entrypoint.run({
+          args: ["-c", "print('Hello, World!')"],
+        });
 
-            status.innerHTML = `Running ${packageName}...`;
-            const { code, stdout } = await instance.wait();
+        status.innerHTML = `Running ${packageName}...`;
+        const { code, stdout } = await instance.wait();
 
-            status.innerHTML = `Exited with status code: ${code}`;
-            const stdoutElement = document.getElementById("stdout");
-            stdoutElement.innerHTML = stdout;
-        }
+        status.innerHTML = `Exited with status code: ${code}`;
+        const stdoutElement = document.getElementById("stdout");
+        stdoutElement.innerHTML = stdout;
+      }
 
-        runPython();
+      runPython();
     </script>
-</head>
+  </head>
 
-<body>
+  <body>
     <h1 id="status"></h1>
     <pre><code id="stdout"></code></pre>
-</body>
-
+  </body>
 </html>

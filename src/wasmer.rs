@@ -1,19 +1,22 @@
-use std::sync::Arc;
+use std::{str::FromStr, sync::Arc};
 
-use bytes::BytesMut;
+use anyhow::Context;
+use bytes::{Bytes, BytesMut};
 use futures::{channel::oneshot, TryStreamExt};
 use js_sys::{JsString, Reflect, Uint8Array};
+use sha2::Digest;
 use tracing::Instrument;
 use virtual_fs::{AsyncReadExt, Pipe};
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue, UnwrapThrowExt};
+use wasmer_config::package::PackageSource;
 use wasmer_wasix::{
     bin_factory::BinaryPackage,
     os::{Tty, TtyOptions},
     runners::{wasi::WasiRunner, Runner},
-    runtime::resolver::PackageSpecifier,
     Runtime as _,
 };
 use web_sys::{ReadableStream, WritableStream};
+use webc::wasmer_package::Package;
 
 use crate::{
     instance::ExitCondition,
@@ -38,7 +41,7 @@ use crate::{
 ///     throw new Error(`Python exited with ${code}: ${stderr}`);
 /// }
 /// ```
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, wasm_bindgen_derive::TryFromJsValue)]
 #[wasm_bindgen]
 pub struct Wasmer {
     /// The package's entrypoint.
@@ -48,6 +51,18 @@ pub struct Wasmer {
     /// dependencies).
     #[wasm_bindgen(getter_with_clone)]
     pub commands: Commands,
+
+    #[wasm_bindgen(getter_with_clone)]
+    pub pkg: Option<UserPackageDefinition>,
+}
+
+#[derive(Debug, Clone, wasm_bindgen_derive::TryFromJsValue)]
+#[wasm_bindgen]
+pub struct UserPackageDefinition {
+    pub(crate) manifest: wasmer_config::package::Manifest,
+    pub(crate) data: bytes::Bytes,
+    #[wasm_bindgen(getter_with_clone)]
+    pub hash: String,
 }
 
 #[wasm_bindgen]
@@ -78,7 +93,7 @@ impl Wasmer {
         specifier: &str,
         runtime: Option<OptionalRuntime>,
     ) -> Result<Self, Error> {
-        let specifier = PackageSpecifier::parse(specifier)?;
+        let specifier = PackageSource::from_str(specifier)?;
         let runtime = runtime.unwrap_or_default().resolve()?.into_inner();
         let pkg = BinaryPackage::from_registry(&specifier, &*runtime).await?;
 
@@ -117,7 +132,33 @@ impl Wasmer {
         Ok(Wasmer {
             entrypoint,
             commands,
+            pkg: None,
         })
+    }
+
+    pub(crate) async fn from_user_package(
+        pkg: Package,
+        manifest: wasmer_config::package::Manifest,
+        runtime: Arc<Runtime>,
+    ) -> Result<Self, Error> {
+        let data: Bytes = pkg
+            .serialize()
+            .context("While validating the package")?
+            .to_vec()
+            .into();
+
+        let hash = sha2::Sha256::digest(&data).into();
+        let hash = wasmer_config::package::PackageHash::from_sha256_bytes(hash);
+        let hash = hash.to_string();
+        let container = webc::Container::from_bytes(data.clone())?;
+        let bin_pkg = BinaryPackage::from_webc(&container, &*runtime).await?;
+        let mut ret = Wasmer::from_package(bin_pkg, runtime)?;
+        ret.pkg = Some(UserPackageDefinition {
+            manifest,
+            data,
+            hash,
+        });
+        Ok(ret)
     }
 }
 
@@ -183,7 +224,7 @@ extern "C" {
 }
 
 impl OptionalRuntime {
-    fn resolve(&self) -> Result<JsRuntime, Error> {
+    pub(crate) fn resolve(&self) -> Result<JsRuntime, Error> {
         let js_value: &JsValue = self.as_ref();
 
         if js_value.is_undefined() {
@@ -216,23 +257,23 @@ pub(crate) async fn configure_runner(
     Error,
 > {
     let args = options.parse_args()?;
-    runner.set_args(args);
+    runner.with_args(args);
 
     let env = options.parse_env()?;
-    runner.set_envs(env);
+    runner.with_envs(env);
 
     for (dest, dir) in options.mounted_directories()? {
-        runner.mount(dest, Arc::new(dir));
+        runner.with_mount(dest, Arc::new(dir));
     }
 
     if let Some(uses) = options.uses() {
         let uses = crate::utils::js_string_array(uses)?;
         let packages = load_injected_packages(uses, runtime).await?;
-        runner.add_injected_packages(packages);
+        runner.with_injected_packages(packages);
     }
 
     let (stderr_pipe, stderr_stream) = crate::streams::output_pipe();
-    runner.set_stderr(Box::new(stderr_pipe));
+    runner.with_stderr(Box::new(stderr_pipe));
 
     let tty_options = runtime.tty_options().clone();
     match setup_tty(options, tty_options) {
@@ -243,16 +284,16 @@ pub(crate) async fn configure_runner(
             stdin_stream,
         } => {
             tracing::debug!("Setting up interactive TTY");
-            runner.set_stdin(Box::new(stdin_pipe));
-            runner.set_stdout(Box::new(stdout_pipe));
+            runner.with_stdin(Box::new(stdin_pipe));
+            runner.with_stdout(Box::new(stdout_pipe));
             runtime.set_connected_to_tty(true);
             Ok((Some(stdin_stream), stdout_stream, stderr_stream))
         }
         TerminalMode::NonInteractive { stdin } => {
             tracing::debug!("Setting up non-interactive TTY");
             let (stdout_pipe, stdout_stream) = crate::streams::output_pipe();
-            runner.set_stdin(Box::new(stdin));
-            runner.set_stdout(Box::new(stdout_pipe));
+            runner.with_stdin(Box::new(stdin));
+            runner.with_stdout(Box::new(stdout_pipe));
 
             // HACK: Make sure we don't report stdin as interactive.  This
             // doesn't belong here because now it'll affect every other
@@ -402,7 +443,7 @@ async fn load_injected_packages(
 
 #[tracing::instrument(level = "debug", skip(runtime))]
 async fn load_package(pkg: &str, runtime: &Runtime) -> Result<BinaryPackage, Error> {
-    let specifier: PackageSpecifier = pkg.parse()?;
+    let specifier: PackageSource = pkg.parse()?;
     let pkg = BinaryPackage::from_registry(&specifier, runtime).await?;
 
     Ok(pkg)

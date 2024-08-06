@@ -201,6 +201,16 @@ impl FileSystem for Directory {
     fn new_open_options(&self) -> virtual_fs::OpenOptions {
         virtual_fs::OpenOptions::new(self)
     }
+
+    #[tracing::instrument(level = "trace", skip(self))]
+    fn readlink(&self, path: &Path) -> virtual_fs::Result<PathBuf> {
+        self.0.readlink(path)
+    }
+
+    #[tracing::instrument(level = "trace", skip(self))]
+    fn symlink_metadata(&self, path: &Path) -> virtual_fs::Result<virtual_fs::Metadata> {
+        self.0.symlink_metadata(path)
+    }
 }
 
 impl virtual_fs::FileOpener for Directory {
