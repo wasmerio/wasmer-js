@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.7.0](https://github.com/wasmerio/wasmer-js/compare/wasmer-sdk-v0.6.0...wasmer-sdk-v0.7.0) (2024-08-06)
+
+
+### Features
+
+* Add atoms to manifests and use latest revision of webc crate ([29e26f4](https://github.com/wasmerio/wasmer-js/commit/29e26f4fb0a63f57566459fa654227e7654eb8e6))
+* Add registry API and tests ([12b00b7](https://github.com/wasmerio/wasmer-js/commit/12b00b70b88e292618eb972ce46cadd63cb63e1d))
+* Allow users to specify just their token while initializing the library + minor fixes ([2b4211c](https://github.com/wasmerio/wasmer-js/commit/2b4211cdd8945e9637fcffa4b713fcc3d7ce37b6))
+* Allow users to specify metadata in various formats ([a16acfa](https://github.com/wasmerio/wasmer-js/commit/a16acfac5e19a412d7e365e721b4148753f06d0d))
+* Update wasmer dependencies ([9f69d51](https://github.com/wasmerio/wasmer-js/commit/9f69d5166dde24620f952beb9bb8623502ee621c))
+* Use same `Wasmer` type as output of created packages, update tests ([21c8ff8](https://github.com/wasmerio/wasmer-js/commit/21c8ff8f81571ce3510b61b39aed7e897cc8e990))
+
+
+### Bug Fixes
+
+* Add more tests and remove spurious tracing messages ([c3081da](https://github.com/wasmerio/wasmer-js/commit/c3081da7c8ab3e6f8ef8d0c5596d79e4d65a0fb6))
+* address comments ([ec087eb](https://github.com/wasmerio/wasmer-js/commit/ec087ebae7cccb5de45628f6d1375e924846b4d8))
+* Resolve a deadlock where the future returned by thread pool's sleep_now() method will never resolve when invoked from a syscall ([4ce8a54](https://github.com/wasmerio/wasmer-js/commit/4ce8a54361924b91ae77a00d8c0a6eda4b766f0d))
+* Use a global variable to signal which init function to use ([0464d61](https://github.com/wasmerio/wasmer-js/commit/0464d616fc5a9c80a14f3ef609ea00d03f60f04b))
+* use env variables in tests ([0fdd6ba](https://github.com/wasmerio/wasmer-js/commit/0fdd6baee10e0d42bb5e00bee044144a5adbec24))
+* use git repository to patch `webc` ([9b256b2](https://github.com/wasmerio/wasmer-js/commit/9b256b2dd817fb5f733c8d7756a3119cc98bbb09))
+* Use single input for initalization function ([0b5eab9](https://github.com/wasmerio/wasmer-js/commit/0b5eab9f4922ded6a5fe6bcec34ff38ffa2080c9))
+* Use spaces instead of tabs in the js part of the code ([ff5db26](https://github.com/wasmerio/wasmer-js/commit/ff5db26e490175e59daa4b1aff234077b729031c))
+* with -&gt; assert ([591bdcb](https://github.com/wasmerio/wasmer-js/commit/591bdcbf6b9c77bab957c514cd7517797e0d1d15))
+
 ## [0.6.0](https://github.com/wasmerio/wasmer-js/compare/wasmer-sdk-v0.5.1...wasmer-sdk-v0.6.0) (2023-12-21)
 
 
