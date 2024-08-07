@@ -303,7 +303,7 @@ The Wasmer SDK Javascript Package supports:
 * [X] Running packages from the [Wasmer Registry](https://wasmer.io)
 * [X] Platforms
   * [X] Browser
-  * [X] NodeJS (using `import { init, Wasmer } from "@wasmer/sdk/WasmerSDKBundled.mjs"`)
+  * [ ] NodeJS
   * [ ] Deno
 * [X] Registry API
   * [X] Create a package
