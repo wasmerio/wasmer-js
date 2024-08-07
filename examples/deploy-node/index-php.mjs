@@ -1,4 +1,4 @@
-import { init, Wasmer } from "@wasmer/sdk/node";
+import { init, Wasmer, PackageManifest, AppConfig } from "@wasmer/sdk/node";
 
 const WASMER_TOKEN = process.env.WASMER_TOKEN;
 const APP_OWNER = process.env.APP_OWNER;
@@ -26,7 +26,7 @@ echo "PHP app created from @wasmer/sdk!<br />";
 
 var_dump($_ENV);`;
 
-const manifest = {
+const manifest: PackageManifest = {
     command: [
         {
             module: "php/php:php",
@@ -54,12 +54,14 @@ console.log("Creating Package...");
 let wasmerPackage = await Wasmer.createPackage(manifest);
 // console.log("NISE");
 
-let appConfig = {
+let appConfig: AppConfig = {
     name: APP_NAME,
     owner: APP_OWNER,
     package: wasmerPackage,
     domains: ["syrusakbary-my-echo-env-app.wasmer.app"],
-    default: true,
+    scaling: {
+        mode: "single_concurrency",
+    },
 };
 
 console.log("Deploying app...");
@@ -111,11 +113,14 @@ console.log(`Deployed successfully: ${res.url}`);
 // console.log("Creating Package...");
 // let wasmerNewPackage = await Wasmer.createPackage(newManifest);
 // console.log("Deploying app...");
+
 // let appNewConfig = {
 //     name: APP_NAME,
 //     owner: APP_OWNER,
 //     package: wasmerNewPackage,
-//     default: true,
+//     scaling: {
+//         mode: "single_concurrency",
+//     },
 // };
 
 // let newVersion = await Wasmer.deployApp(appNewConfig);

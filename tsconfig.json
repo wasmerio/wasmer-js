@@ -1,13 +1,14 @@
 {
   "include": [
     "pkg",
-    "src-js/*.ts"
+    "src-js"
   ],
   "exclude": [
     "dist"
   ],
   "compilerOptions": {
     "outDir": "./dist/",
+    "declarationDir": "./dist/",
     "rootDir": ".",
     "noImplicitAny": true,
     "declaration": true,

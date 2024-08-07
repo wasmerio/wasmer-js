@@ -35,12 +35,50 @@ pub struct PublishPackageOutput {
     pub hash: String,
 }
 
+#[wasm_bindgen(typescript_custom_section)]
+const TYPE_DEFINITIONS: &'static str = r#"
+/**
+ * A command available in a package
+ */
+export type PackageCommand = {
+    module: string;
+    name: string;
+    runner: "https://webc.org/runner/wasi";
+    annotations?: {
+        wasi?: {
+            env?: string[];
+            "main-args": string[];
+        }
+    };
+};
+/**
+ * Manifest of a package.
+ * For more information, please check the package manifest docs:
+ * https://docs.wasmer.io/registry/manifest
+ */
+export type PackageManifest = {
+    command?: PackageCommand[],
+    dependencies?: {
+        [name:string]: string
+    },
+    fs: Record<string, any>;
+};
+"#;
+
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(typescript_type = "PackageManifest", extends = js_sys::Object)]
+    pub type PackageManifest;
+}
+
+
 #[wasm_bindgen]
 impl Wasmer {
     /// Create a `WasmerPackage`.
     #[wasm_bindgen(js_name = "createPackage")]
     #[allow(non_snake_case)]
-    pub async fn createPackage(manifest: js_sys::Object) -> Result<Wasmer, Error> {
+    pub async fn createPackage(manifest: PackageManifest) -> Result<Wasmer, Error> {
         let base_dir = PathBuf::from("/");
         let volumes = package_utils::create_volumes(&manifest, &base_dir)?;
 

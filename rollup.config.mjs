@@ -3,7 +3,6 @@ import pkg from "./package.json" assert { type: "json" };
 import dts from "rollup-plugin-dts";
 import typescript from "@rollup/plugin-typescript";
 import replace from "@rollup/plugin-replace";
-import copy from "rollup-plugin-copy";
 import { wasm } from "@rollup/plugin-wasm";
 
 const LIBRARY_NAME = "WasmerSDK"; // Change with your library's name
@@ -50,16 +49,10 @@ const makeConfig = (env = "development", input, name, plugins = []) => {
       },
     ],
     plugins: [
-      typescript(),
-      ...plugins,
-      copy({
-        targets: [
-          {
-            src: ["pkg/wasmer_js_bg.wasm", "pkg/wasmer_js_bg.wasm.d.ts"],
-            dest: "dist",
-          },
-        ],
+      typescript({
+        rootDir: "src-js",
       }),
+      ...plugins,
     ],
   };
 
@@ -75,8 +68,8 @@ const makeConfig = (env = "development", input, name, plugins = []) => {
   config.plugins.push(
     replace({
       values: {
-        "globalThis.wasmUrl": `"https://unpkg.com/${pkg.name}@${pkg.version}/dist/wasmer_js_bg.wasm"`,
-        "globalThis.workerUrl": `"https://unpkg.com/${pkg.name}@${pkg.version}/dist/WasmerSDK.js"`,
+        "globalThis.wasmUrl": `"https://unpkg.com/${pkg.name}@${pkg.version}/pkg/wasmer_js_bg.wasm"`,
+        "globalThis.workerUrl": `"https://unpkg.com/${pkg.name}@${pkg.version}/dist/WasmerSDK.mjs"`,
       },
       preventAssignment: true,
     }),

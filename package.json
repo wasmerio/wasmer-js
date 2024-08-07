@@ -1,6 +1,6 @@
 {
   "name": "@wasmer/sdk",
-  "version": "0.7.0-beta.1",
+  "version": "0.7.0-beta.2",
   "main": "dist/WasmerSDK.cjs",
   "unpkg": "dist/WasmerSDK.umd.js",
   "module": "dist/WasmerSDK.mjs",
@@ -44,7 +44,8 @@
       "default": "./dist/wasmer_js_bg.wasm"
     },
     "./package.json": "./package.json",
-    "./*": "./dist/*"
+    "./*": "./dist/*",
+    "./pkg/*": "./pkg/*"
   },
   "scripts": {
     "build": "wasm-pack build --release --target=web --weak-refs --no-pack && wasm-opt pkg/wasmer_js_bg.wasm -O2 -o pkg/wasmer_js_bg.wasm && npm run build:rollup",
@@ -60,6 +61,7 @@
   },
   "files": [
     "dist",
+    "pkg/*",
     "README.md",
     "LICENSE"
   ],

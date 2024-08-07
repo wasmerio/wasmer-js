@@ -24,7 +24,7 @@ await init({
 const echo_server_index = `
 	async function handler(request) {
 	  const out = JSON.stringify({
-	    "THIS":"WORKS!",
+	    "HEY":"SDSFD!",
 	  });
 	  return new Response(out, {
 	    headers: { "content-type": "application/json" },
@@ -68,64 +68,63 @@ let appConfig = {
     name: APP_NAME,
     owner: APP_OWNER,
     package: wasmerPackage,
-    default: true,
 };
 
 console.log("Deploying app...");
 let res = await Wasmer.deployApp(appConfig);
 console.log(`Deployed successfully: ${res.url}`);
 
-console.log("------");
-console.log("Deploying a new version of the app");
+// console.log("------");
+// console.log("Deploying a new version of the app");
 
-const newEchoServer = `
-async function handler(request) {
-  const out = JSON.stringify({
-	"second":"version!",
-  });
-  return new Response(out, {
-	headers: { "content-type": "application/json" },
-  });
-}
+// const newEchoServer = `
+// async function handler(request) {
+//   const out = JSON.stringify({
+// 	"second":"version!",
+//   });
+//   return new Response(out, {
+// 	headers: { "content-type": "application/json" },
+//   });
+// }
 
-addEventListener("fetch", (fetchEvent) => {
-  fetchEvent.respondWith(handler(fetchEvent.request));
-});
-`;
+// addEventListener("fetch", (fetchEvent) => {
+//   fetchEvent.respondWith(handler(fetchEvent.request));
+// });
+// `;
 
-let newManifest = {
-    command: [
-        {
-            module: "wasmer/winterjs:winterjs",
-            name: "script",
-            runner: "https://webc.org/runner/wasi",
-            annotations: {
-                wasi: {
-                    env: ["JS_PATH=/src/index.js"],
-                    "main-args": ["/src/index.js"],
-                },
-            },
-        },
-    ],
-    dependencies: {
-        "wasmer/winterjs": "1.2.0",
-    },
-    fs: {
-        "/src": {
-            "index.js": newEchoServer,
-        },
-    },
-};
+// let newManifest = {
+//     command: [
+//         {
+//             module: "wasmer/winterjs:winterjs",
+//             name: "script",
+//             runner: "https://webc.org/runner/wasi",
+//             annotations: {
+//                 wasi: {
+//                     env: ["JS_PATH=/src/index.js"],
+//                     "main-args": ["/src/index.js"],
+//                 },
+//             },
+//         },
+//     ],
+//     dependencies: {
+//         "wasmer/winterjs": "1.2.0",
+//     },
+//     fs: {
+//         "/src": {
+//             "index.js": newEchoServer,
+//         },
+//     },
+// };
 
-console.log("Creating Package...");
-let wasmerNewPackage = await Wasmer.createPackage(newManifest);
-console.log("Deploying app...");
-let appNewConfig = {
-    name: APP_NAME,
-    owner: APP_OWNER,
-    package: wasmerNewPackage,
-    default: true,
-};
+// console.log("Creating Package...");
+// let wasmerNewPackage = await Wasmer.createPackage(newManifest);
+// console.log("Deploying app...");
+// let appNewConfig = {
+//     name: APP_NAME,
+//     owner: APP_OWNER,
+//     package: wasmerNewPackage,
+//     default: true,
+// };
 
-let newVersion = await Wasmer.deployApp(appNewConfig);
-console.log(`Deployed successfully: ${newVersion.url}`);
+// let newVersion = await Wasmer.deployApp(appNewConfig);
+// console.log(`Deployed successfully: ${newVersion.url}`);
