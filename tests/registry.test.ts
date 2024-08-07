@@ -4,6 +4,11 @@ import { init, initializeLogger, Wasmer } from "..";
 const pkg_name = "test-js-sdk-pkg";
 const app_name = "test-js-sdk-app";
 
+
+function getRandomInt(max) {
+  return Math.floor(Math.random() * max);
+}
+
 describe("Registry", function () {
   this.timeout("60s").beforeAll(async () => {
     await init({
@@ -259,7 +264,8 @@ describe("Registry", function () {
   it("can publish named packages", async () => {
     let manifest = {
       package: {
-        name: WASMER_TEST_OWNER + "/" + pkg_name,
+        name: WASMER_TEST_OWNER + "/" + pkg_name + getRandomInt(1000),
+        version: "0.1."+ getRandomInt(10000),
       },
       command: [
         {
@@ -294,7 +300,8 @@ describe("Registry", function () {
   it("fails deploying apps with unpublished packages", async () => {
     let manifest = {
       package: {
-        name: WASMER_TEST_OWNER + "/" + pkg_name,
+        name: WASMER_TEST_OWNER + "/" + pkg_name + getRandomInt(1000),
+        version: "0.1."+ getRandomInt(10000),
       },
       command: [
         {
@@ -343,7 +350,8 @@ describe("Registry", function () {
   it("can deploy apps with user-created packages", async () => {
     let manifest = {
       package: {
-        name: WASMER_TEST_OWNER + "/" + pkg_name,
+        name: WASMER_TEST_OWNER + "/" + pkg_name + getRandomInt(1000),
+        version: "0.1."+ getRandomInt(10000),
       },
       command: [
         {
@@ -487,7 +495,6 @@ describe("Registry", function () {
 
   it("can deploy a php app", async () => {
     let manifest = {
-      package: { name: WASMER_TEST_OWNER + "/" },
       command: [
         {
           module: "php/php:php",
@@ -511,7 +518,6 @@ describe("Registry", function () {
     };
 
     let pkg = await Wasmer.createPackage(manifest);
-    await Wasmer.publishPackage(pkg);
 
     let appConfig = {
       name: app_name,

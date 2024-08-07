@@ -92,17 +92,17 @@ of the Wasmer SDK can ve served by your HTTP server instead:
 import { init, Wasmer } from "@wasmer/sdk";
 import wasmUrl from "@wasmer/sdk/dist/wasmer_js_bg.wasm?url";
 
-await init(wasmUrl); // This inits the SDK with a custom URL
+await init({module: wasmUrl}); // This inits the SDK with a custom URL
 ```
 
 
 ### Using a JS with the Wasm bundled
 
-You can also load Wasmer-JS with a js file with the Wasmer SDK WebAssembly file bundled into it (using bas64 encoding),
-so no extra requests are required. If that's your use case, you can simply import `@wasmer/sdk/dist/WasmerSDKBundled.js` instead:
+You can also load Wasmer-JS with a js file with the Wasmer SDK WebAssembly file bundled into it (using base64 encoding),
+so no extra requests are required. If that's your use case, you can simply import `@wasmer/sdk/dist/WasmerSDKBundled.mjs` instead:
 
 ```js
-import { init, Wasmer } from "@wasmer/sdk/dist/WasmerSDKBundled.js";
+import { init, Wasmer } from "@wasmer/sdk/dist/WasmerSDKBundled.mjs";
 
 await init(); // This inits the SDK in the bundled version
 ```
@@ -133,6 +133,159 @@ To avoid Cross-Origin Isolation issues, make sure any web pages using
 See the [`SharedArrayBuffer` and Cross-Origin Isolation][coi-docs] section under
 the *Troubleshooting Common Problems* docs for more.
 
+### Creating packages 
+
+Users can create packages providing a manifest and using the `Wasmer.createPackage()` function: 
+```js
+import wasmUrl from "@wasmer/sdk";
+
+await init({token: "YOUR_TOKEN"});
+
+const manifest = {
+	command: [
+		{
+			module: "wasmer/python:python",
+			name: "hello",
+			runner: "wasi",
+			annotations: {
+				wasi: {
+					"main-args": [
+						"-c",
+						"print('Hello, js!'); ",
+					],
+				},
+			},
+		},
+	],
+	dependencies: {
+		"wasmer/python": "3.12.9+build.9",
+	}
+};
+
+let pkg = await Wasmer.createPackage(manifest);
+let instance = await pkg.commands["hello"].run();
+
+const output = await instance.wait();
+console.log(output)
+```
+
+### Publishing packages
+User can publish packages following the same flow used to create a package and then calling the `Wasmer.publishPackage()` function:
+```js
+import wasmUrl from "@wasmer/sdk";
+
+await init({token: "YOUR_TOKEN"});
+
+const manifest = {
+    package: {
+        name: "<YOUR_NAME>/<YOUR_PACKAGE_NAME>"
+    }
+	command: [
+		{
+			module: "wasmer/python:python",
+			name: "hello",
+			runner: "wasi",
+			annotations: {
+				wasi: {
+					"main-args": [
+						"-c",
+						"print('Hello, js!'); ",
+					],
+				},
+			},
+		},
+	],
+	dependencies: {
+		"wasmer/python": "3.12.9+build.9",
+	}
+};
+
+let pkg = await Wasmer.createPackage(manifest);
+await Wasmer.publishPackage(pkg);
+```
+Trying to publish packages without a `package.name` property in the manifest will result in a failure. 
+
+### Deploying apps  
+User can deploy apps by providing an app configuration and calling the `Wasmer.deployApp()` function:
+```js
+import wasmUrl from "@wasmer/sdk";
+
+await init({token: "YOUR_TOKEN"});
+
+let appConfig = {
+  name: "<YOUR_APP_NAME>",
+  owner: "<YOUR_NAME>",
+  package: "wasmer/hello"
+  default: true,
+};
+
+await Wasmer.deployApp(appConfig);
+```
+
+Users can also publish apps with their own packages simply providing the package in the config: 
+
+```js
+import wasmUrl from "@wasmer/sdk";
+
+await init({token: "YOUR_TOKEN"});
+
+const echo_server_index = `
+	async function handler(request) {
+	  const out = JSON.stringify({
+	    env: process.env,
+	  });
+	  return new Response(out, {
+	    headers: { "content-type": "application/json" },
+	  });
+	}
+	
+	addEventListener("fetch", (fetchEvent) => {
+	  fetchEvent.respondWith(handler(fetchEvent.request));
+	});
+	`;
+
+
+const manifest =
+{
+	"command": [
+		{
+			"module": "wasmer/winterjs:winterjs",
+			"name": "script",
+			"runner": "https://webc.org/runner/wasi",
+			"annotations": {
+				"wasi": {
+					"env": [
+						"JS_PATH=/src/index.js"
+					],
+					"main-args": [
+						"/src/index.js"
+					]
+				}
+			}
+		}
+	],
+	"dependencies": {
+		"wasmer/winterjs": "1.2.0"
+	},
+	"fs": {
+		"/src": {
+			"index.js": echo_server_index
+		}
+	},
+};
+
+let wasmerPackage = await Wasmer.createPackage(manifest);
+
+let appConfig = {
+	name: "my-echo-env-app",
+	owner: "edoardo",
+	package: wasmerPackage,
+	default: true,
+};
+
+let res = await Wasmer.deployApp(appConfig);
+console.log(res.url)
+```
 # Features
 
 The Wasmer SDK Javascript Package supports:
@@ -148,10 +301,14 @@ The Wasmer SDK Javascript Package supports:
   * [ ] Networking (on the works)
 * [X] Mounting directories inside the WASIX instance
 * [X] Running packages from the [Wasmer Registry](https://wasmer.io)
-* Platforms
+* [X] Platforms
   * [X] Browser
   * [ ] NodeJS
   * [ ] Deno
+* [X] Registry API
+  * [X] Create a package
+  * [X] Publish a package
+  * [X] Deploy an application 
 
 # License
 

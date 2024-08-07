@@ -126,66 +126,136 @@ impl Wasmer {
     ) -> Result<PublishPackageOutput, Error> {
         let client = Wasmer::get_client()?;
 
-        if wasmer_api::query::get_package_release(client, hash)
-            .await?
-            .is_some()
+        let (id, hash) = if let Some(release) =
+            wasmer_api::query::get_package_release(client, hash).await?
         {
-            // The package was already published.
-            return Ok(PublishPackageOutput {
-                manifest: serde_wasm_bindgen::to_value(&manifest)
-                    .map_err(|e| anyhow::anyhow!("{e:?}"))?,
-                hash: hash.to_string(),
-            });
-        }
+            (release.id, release.webc_v3.map(|v| v.webc_sha256))
+        } else {
+            let signed_url = wasmer_api::query::get_signed_url_for_package_upload(
+                client,
+                Some(60 * 30),
+                Some(format!("js-{}", random()).replace('.', "-")).as_deref(),
+                None,
+                None,
+            )
+            .await?
+            .ok_or_else(|| anyhow::anyhow!("No signed url!"))?
+            .url;
 
-        let signed_url = wasmer_api::query::get_signed_url_for_package_upload(
-            client,
-            Some(60 * 30),
-            Some(format!("js-{}", random()).replace('.', "-")).as_deref(),
-            None,
-            None,
-        )
-        .await?
-        .ok_or_else(|| anyhow::anyhow!("No signed url!"))?
-        .url;
+            upload(bytes, &signed_url).await?;
 
-        upload(bytes, &signed_url).await?;
+            let (namespace, name) =
+                if let Some(full_name) = manifest.package.as_ref().and_then(|p| p.name.clone()) {
+                    let splits: Vec<String> = full_name.split('/').map(|s| s.to_string()).collect();
+                    (
+                        splits
+                            .first()
+                            .ok_or_else(|| anyhow::anyhow!("No namespace provided!"))?
+                            .clone(),
+                        splits.get(1).cloned(),
+                    )
+                } else {
+                    return Err(utils::Error::Rust(anyhow::anyhow!(
+                        "No namespace provided!"
+                    )));
+                };
 
-        let (namespace, name) =
-            if let Some(full_name) = manifest.package.as_ref().and_then(|p| p.name.clone()) {
-                let splits: Vec<String> = full_name.split('/').map(|s| s.to_string()).collect();
-                (
-                    splits
-                        .first()
-                        .ok_or_else(|| anyhow::anyhow!("No namespace provided!"))?
-                        .clone(),
-                    splits.get(1).cloned(),
-                )
+            tracing::debug!("Pushing package release...");
+            let out = wasmer_api::query::push_package_release(
+                client,
+                name.as_deref(),
+                &namespace,
+                &signed_url,
+                manifest.package.as_ref().map(|p| p.private),
+            )
+            .await
+            .map_err(|e| anyhow::anyhow!("{e:?}"))?
+            .ok_or_else(|| anyhow::anyhow!("Backend returned no data!"))?;
+            if let Some(package_web) = out.package_webc {
+                (package_web.id, package_web.webc_v3.map(|v| v.webc_sha256))
             } else {
-                return Err(utils::Error::Rust(anyhow::anyhow!(
-                    "No namespace provided!"
-                )));
+                return Err(
+                    anyhow::anyhow!("No package identifier was found, tagging failed!").into(),
+                );
+            }
+        };
+
+        let hash =
+            hash.ok_or_else(|| anyhow::anyhow!("No hash given for the uploaded package!"))?;
+
+        if let Some(name) = manifest.package.as_ref().and_then(|p| p.name.as_ref()) {
+            // We use a hack to deploy with unnamed packages that fills in the namespace in the
+            // manifest, so just checking if "name" is some is not enough. The logical solution?
+            // Another - smaller - hack!
+            let splits = name
+                .split('/')
+                .filter(|v| !v.is_empty())
+                .collect::<Vec<_>>();
+
+            if splits.len() <= 1 {
+                return Ok(PublishPackageOutput {
+                    manifest: serde_wasm_bindgen::to_value(&manifest)
+                        .map_err(|e| anyhow::anyhow!("{e:?}"))?,
+                    hash,
+                });
+            }
+
+            let version =
+                if let Some(version) = manifest.package.as_ref().and_then(|p| p.version.as_ref()) {
+                    version.to_string()
+                } else {
+                    return Err(anyhow::anyhow!("No version provided!").into());
+                };
+
+            let maybe_description = manifest
+                .package
+                .as_ref()
+                .and_then(|p| p.description.clone());
+            let maybe_homepage = manifest.package.as_ref().and_then(|p| p.homepage.clone());
+            let maybe_license = manifest.package.as_ref().and_then(|p| p.license.clone());
+            let maybe_license_file = manifest
+                .package
+                .as_ref()
+                .and_then(|p| p.license_file.clone())
+                .map(|f| f.to_string_lossy().to_string());
+            let maybe_readme = manifest
+                .package
+                .as_ref()
+                .and_then(|p| p.readme.clone())
+                .map(|f| f.to_string_lossy().to_string());
+            let maybe_repository = manifest.package.as_ref().and_then(|p| p.repository.clone());
+
+            let private = if let Some(pkg) = &manifest.package {
+                Some(pkg.private)
+            } else {
+                Some(false)
             };
 
-        let out = wasmer_api::query::push_package_release(
-            client,
-            name.as_deref(),
-            &namespace,
-            &signed_url,
-            manifest.package.as_ref().map(|p| p.private),
-        )
-        .await
-        .map_err(|e| anyhow::anyhow!("{e:?}"))?
-        .ok_or_else(|| anyhow::anyhow!("Backend returned no data!"))?;
+            let manifest_raw = Some(toml::to_string(&manifest)?);
+
+            let r = wasmer_api::query::tag_package_release(
+                client,
+                maybe_description.as_deref(),
+                maybe_homepage.as_deref(),
+                maybe_license.as_deref(),
+                maybe_license_file.as_deref(),
+                manifest_raw.as_deref(),
+                name,
+                None,
+                &id,
+                private,
+                maybe_readme.as_deref(),
+                maybe_repository.as_deref(),
+                &version,
+            );
+
+            r.await?;
+        }
 
         Ok(PublishPackageOutput {
             manifest: serde_wasm_bindgen::to_value(&manifest)
                 .map_err(|e| anyhow::anyhow!("{e:?}"))?,
-            hash: out
-                .package_webc
-                .and_then(|p| p.webc_v3)
-                .map(|c| c.webc_sha256)
-                .ok_or_else(|| anyhow::anyhow!("No package was published!"))?,
+            hash,
         })
     }
 }
