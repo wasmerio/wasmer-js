@@ -1,4 +1,4 @@
-export * from "./pkg/wasmer_js";
+export * from "../pkg/wasmer_js";
 // @ts-ignore
 import load, {
   InitInput,
@@ -6,7 +6,7 @@ import load, {
   // @ts-ignore
   ThreadPoolWorker,
   setWorkerUrl,
-} from "./pkg/wasmer_js";
+} from "../pkg/wasmer_js";
 
 export type WasmerInitInput = {
   module?: InitInput | Promise<InitInput>;

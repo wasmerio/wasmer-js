@@ -3,7 +3,7 @@
   "version": "0.7.0",
   "main": "dist/WasmerSDK.cjs",
   "unpkg": "dist/WasmerSDK.umd.js",
-  "module": "dist/WasmerSDK.js",
+  "module": "dist/WasmerSDK.mjs",
   "types": "dist/WasmerSDK.d.ts",
   "keywords": [
     "webassembly",
@@ -24,6 +24,23 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/WasmerSDK.d.ts",
+      "default": "./dist/WasmerSDK.mjs"
+    },
+    "./node": {
+      "types": "./dist/WasmerSDK.d.ts",
+      "default": "./dist/node.mjs"
+    },
+    "./wasm": {
+      "unwasm": "./dist/wasmer_js_bg.wasm",
+      "types": "./dist/wasm.d.ts",
+      "default": "./dist/wasmer_js_bg.wasm"
+    },
+    "./package.json": "./package.json",
+    "./*": "./dist/*"
   },
   "scripts": {
     "build": "wasm-pack build --release --target=web --weak-refs --no-pack && wasm-opt pkg/wasmer_js_bg.wasm -O2 -o pkg/wasmer_js_bg.wasm && npm run build:rollup",

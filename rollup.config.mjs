@@ -43,7 +43,7 @@ const makeConfig = (env = "development", input, name, plugins = []) => {
       },
       {
         banner,
-        file: `dist/${name}.js`,
+        file: `dist/${name}.mjs`,
         format: "es",
         exports: "named",
         globals: GLOBALS,
@@ -89,12 +89,13 @@ export default commandLineArgs => {
   let env =
     commandLineArgs.environment === "BUILD:production" ? "production" : null;
   const configs = [
-    makeConfig(env, "WasmerSDK.ts", LIBRARY_NAME),
-    makeConfig(env, "WasmerSDKBundled.ts", `${LIBRARY_NAME}Bundled`, [
+    makeConfig(env, "src-js/WasmerSDK.ts", LIBRARY_NAME),
+    makeConfig(env, "src-js/WasmerSDKBundled.ts", `${LIBRARY_NAME}Bundled`, [
       wasm({
         maxFileSize: 100 * 1024 * 1024,
       }),
     ]),
+    makeConfig(env, "src-js/node.ts", "node"),
     {
       input: "./pkg/wasmer_js.d.ts",
       output: [{ file: "dist/pkg/wasmer_js.d.ts", format: "es" }],
