@@ -89,7 +89,7 @@ impl Runtime {
             )
             .with_task_manager(task_manager.clone());
         runtime.http_client = Arc::new(http_client);
-    
+
         runtime.task_manager = Some(task_manager);
         runtime
     }
@@ -101,11 +101,10 @@ impl Runtime {
 
     pub(crate) fn new() -> Self {
         let mut http_client = WebHttpClient::default();
-        http_client
-            .with_default_header(
-                http::header::USER_AGENT,
-                HeaderValue::from_static(crate::USER_AGENT),
-            );
+        http_client.with_default_header(
+            http::header::USER_AGENT,
+            HeaderValue::from_static(crate::USER_AGENT),
+        );
         let http_client = Arc::new(http_client);
 
         let module_cache = ThreadLocalCache::default();
