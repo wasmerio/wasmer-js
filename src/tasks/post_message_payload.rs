@@ -298,8 +298,7 @@ mod tests {
         let engine = wasmer::Engine::default();
         let module = wasmer::Module::new(&engine, wasm).unwrap();
         let flag = Arc::new(AtomicBool::new(false));
-        let pool = ThreadPool::new();
-        let runtime = Runtime::new(pool);
+        let runtime = Runtime::new().with_default_pool();
         let env = WasiEnvBuilder::new("program")
             .runtime(Arc::new(runtime))
             .build()
