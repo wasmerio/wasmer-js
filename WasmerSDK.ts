@@ -27,8 +27,9 @@ export const init = async (initValue: WasmerInitInput | undefined): Promise<Init
   if (!initValue.module) {
     // This will be replaced by the rollup bundler at the SDK build time
     // to point to a valid http location of the SDK using unpkg.com.
+    // Note: we only do this in browsers, not in Node/Bun/Deno
     let wasmUrl = (globalThis as any)["wasmUrl"];
-    if (wasmUrl) {
+    if (wasmUrl && typeof window !== 'undefined') {
       initValue.module = new URL(wasmUrl);
     }
   }

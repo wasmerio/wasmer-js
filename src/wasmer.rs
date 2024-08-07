@@ -175,7 +175,8 @@ pub struct Command {
 #[wasm_bindgen]
 impl Command {
     pub async fn run(&self, options: Option<SpawnOptions>) -> Result<Instance, Error> {
-        let runtime = Arc::clone(&self.runtime);
+        // We set the default pool as it may be not set
+        let runtime = Arc::new(self.runtime.with_default_pool());
         let pkg = Arc::clone(&self.pkg);
         let tasks = Arc::clone(runtime.task_manager());
 

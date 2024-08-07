@@ -24,8 +24,7 @@ static GLOBAL_RUNTIME: Lazy<Mutex<Weak<Runtime>>> = Lazy::new(Mutex::default);
 #[derive(Clone, derivative::Derivative)]
 #[derivative(Debug)]
 pub struct Runtime {
-    pool: ThreadPool,
-    task_manager: Arc<dyn VirtualTaskManager>,
+    task_manager: Option<Arc<dyn VirtualTaskManager>>,
     networking: Arc<dyn VirtualNetworking>,
     source: Option<Arc<WapmSource>>,
     http_client: Arc<dyn HttpClient + Send + Sync>,
@@ -71,17 +70,17 @@ impl Runtime {
     }
 
     pub(crate) fn with_defaults() -> Result<Self, Error> {
-        let pool = ThreadPool::new();
-        let mut rt = Runtime::new(pool);
+        let mut rt = Runtime::new();
 
         rt.set_registry(crate::DEFAULT_REGISTRY, None)?;
 
         Ok(rt)
     }
 
-    pub(crate) fn new(pool: ThreadPool) -> Self {
+    pub(crate) fn with_task_manager(&self, pool: ThreadPool) -> Self {
+        let mut runtime = self.clone();
         let task_manager = Arc::new(pool.clone());
-
+        // Update the http client
         let mut http_client = WebHttpClient::default();
         http_client
             .with_default_header(
@@ -89,14 +88,31 @@ impl Runtime {
                 HeaderValue::from_static(crate::USER_AGENT),
             )
             .with_task_manager(task_manager.clone());
+        runtime.http_client = Arc::new(http_client);
+    
+        runtime.task_manager = Some(task_manager);
+        runtime
+    }
+
+    pub(crate) fn with_default_pool(&self) -> Self {
+        let pool = ThreadPool::new();
+        self.with_task_manager(pool)
+    }
+
+    pub(crate) fn new() -> Self {
+        let mut http_client = WebHttpClient::default();
+        http_client
+            .with_default_header(
+                http::header::USER_AGENT,
+                HeaderValue::from_static(crate::USER_AGENT),
+            );
         let http_client = Arc::new(http_client);
 
         let module_cache = ThreadLocalCache::default();
         let package_loader = crate::package_loader::PackageLoader::new(http_client.clone());
 
         Runtime {
-            pool,
-            task_manager: Arc::new(task_manager),
+            task_manager: None,
             networking: Arc::new(virtual_net::UnsupportedVirtualNetworking::default()),
             source: None,
             http_client: Arc::new(http_client),
@@ -144,7 +160,7 @@ impl wasmer_wasix::runtime::Runtime for Runtime {
     }
 
     fn task_manager(&self) -> &Arc<dyn VirtualTaskManager> {
-        &self.task_manager
+        &self.task_manager.as_ref().expect("Task manager not found")
     }
 
     fn source(&self) -> Arc<dyn wasmer_wasix::runtime::resolver::Source + Send + Sync> {
