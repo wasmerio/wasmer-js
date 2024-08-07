@@ -5,7 +5,7 @@ use std::{
 
 use wasm_bindgen::{prelude::wasm_bindgen, JsCast};
 
-use crate::{runtime::Runtime, tasks::ThreadPool, utils::Error};
+use crate::{runtime::Runtime, utils::Error};
 
 #[derive(Clone, Debug, wasm_bindgen_derive::TryFromJsValue)]
 #[repr(transparent)]
@@ -32,14 +32,12 @@ impl JsRuntime {
 impl JsRuntime {
     #[wasm_bindgen(constructor)]
     pub fn js_new(options: Option<RuntimeOptions>) -> Result<JsRuntime, Error> {
-        let pool = ThreadPool::new();
-
         let registry = match options.as_ref().and_then(|opts| opts.registry()) {
             Some(registry_url) => registry_url.resolve(),
             None => Some(crate::DEFAULT_REGISTRY.to_string()),
         };
 
-        let mut rt = Runtime::new(pool);
+        let mut rt = Runtime::new();
 
         if let Some(registry) = registry.as_deref() {
             let api_key = options.as_ref().and_then(|opts| opts.api_key());

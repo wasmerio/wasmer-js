@@ -61,7 +61,7 @@ impl Wasmer {
     pub fn get_client() -> Result<&'static WasmerClient, Error> {
         WASMER_CLIENT.get_or_try_init(|| {
             let registry_input = if let Some(registry_info) =
-                web_sys::window().and_then(|w| w.get("__WASMER_REGISTRY__"))
+                js_sys::Reflect::get(&js_sys::global(), &"__WASMER_REGISTRY__".into()).ok()
             {
                 RegistryConfig::try_from_js_value(registry_info.into())
                     .map_err(|e| anyhow!("while reading registry configuration: {e:?}"))?
