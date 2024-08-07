@@ -1,6 +1,7 @@
 use futures::channel::oneshot;
 use wasm_bindgen::{prelude::wasm_bindgen, JsCast};
 use wasmer_wasix::{Runtime as _, WasiEnvBuilder};
+use std::sync::Arc;
 
 use crate::{instance::ExitCondition, utils::Error, Instance, RunOptions};
 
@@ -27,12 +28,15 @@ pub async fn run_wasix(wasm_module: WasmModule, config: RunOptions) -> Result<In
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn run_wasix_inner(wasm_module: WasmModule, config: RunOptions) -> Result<Instance, Error> {
-    let runtime = config.runtime().resolve()?.into_inner();
+    let mut runtime = config.runtime().resolve()?.into_inner();
+    // We set it up with the default pool
+    runtime = Arc::new(runtime.with_default_pool());
 
     let program_name = config
         .program()
         .as_string()
         .unwrap_or_else(|| DEFAULT_PROGRAM_NAME.to_string());
+    
 
     let mut builder = WasiEnvBuilder::new(program_name).runtime(runtime.clone());
     let (stdin, stdout, stderr) = config.configure_builder(&mut builder)?;

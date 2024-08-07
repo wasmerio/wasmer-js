@@ -1,4 +1,4 @@
-export * from "./pkg/wasmer_js";
+export * from "../pkg/wasmer_js";
 // @ts-ignore
 import load, {
   InitInput,
@@ -6,7 +6,7 @@ import load, {
   // @ts-ignore
   ThreadPoolWorker,
   setWorkerUrl,
-} from "./pkg/wasmer_js";
+} from "../pkg/wasmer_js";
 
 export type WasmerInitInput = {
   module?: InitInput | Promise<InitInput>;
@@ -27,8 +27,9 @@ export const init = async (initValue: WasmerInitInput | undefined): Promise<Init
   if (!initValue.module) {
     // This will be replaced by the rollup bundler at the SDK build time
     // to point to a valid http location of the SDK using unpkg.com.
+    // Note: we only do this in browsers, not in Node/Bun/Deno
     let wasmUrl = (globalThis as any)["wasmUrl"];
-    if (wasmUrl) {
+    if (wasmUrl && typeof window !== 'undefined') {
       initValue.module = new URL(wasmUrl);
     }
   }

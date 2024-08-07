@@ -6,7 +6,7 @@ import {
   WasmerInitInput,
 } from "./WasmerSDK";
 // @ts-ignore
-import wasm_bytes from "./pkg/wasmer_js_bg.wasm";
+import wasm_bytes from "../pkg/wasmer_js_bg.wasm";
 
 /**
  * Initialize the underlying WebAssembly module, defaulting to an embedded

@@ -1,8 +1,7 @@
 {
   "include": [
     "pkg",
-    "WasmerSDK.ts",
-    "WasmerSDKBundled.ts"
+    "src-js/*.ts"
   ],
   "exclude": [
     "dist"

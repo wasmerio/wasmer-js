@@ -1,0 +1,11 @@
+{
+    "name": "deploy-js-test",
+    "version": "0.1.0",
+    "main": "index.mjs",
+    "author": "",
+    "license": "ISC",
+    "type": "module",
+    "dependencies": {
+        "@wasmer/sdk": "file:../.."
+    }    
+}
