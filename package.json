@@ -43,6 +43,7 @@
     "LICENSE"
   ],
   "devDependencies": {
+    "dotenv": "^16.4.5",
     "@babel/preset-env": "^7.23.3",
     "@esm-bundle/chai": "^4.3.4-fix.0",
     "@rollup/plugin-node-resolve": "^15.2.3",
@@ -61,8 +62,5 @@
     "typedoc": "^0.25.4",
     "typescript": "^5.3.3"
   },
-  "browserslist": "> 0.5%, last 2 versions, Firefox ESR, not dead",
-  "dependencies": {
-    "dotenv": "^16.4.5"
-  }
+  "browserslist": "> 0.5%, last 2 versions, Firefox ESR, not dead"
 }
