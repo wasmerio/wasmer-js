@@ -75,7 +75,7 @@ impl Wasmer {
                         .registry_url
                         .unwrap_or(crate::DEFAULT_REGISTRY.into()),
                 )?,
-                crate::USER_AGENT
+                crate::USER_AGENT,
             )?;
             if let Some(token) = registry_input.token {
                 client = client.with_auth_token(token);

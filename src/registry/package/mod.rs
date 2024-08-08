@@ -65,13 +65,11 @@ export type PackageManifest = {
 };
 "#;
 
-
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(typescript_type = "PackageManifest", extends = js_sys::Object)]
     pub type PackageManifest;
 }
-
 
 #[wasm_bindgen]
 impl Wasmer {

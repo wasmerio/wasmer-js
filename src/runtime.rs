@@ -1,6 +1,7 @@
 use std::sync::{atomic::AtomicBool, Arc, Mutex, Weak};
 
 use http::HeaderValue;
+use lazy_static::lazy_static;
 use once_cell::sync::Lazy;
 use virtual_net::VirtualNetworking;
 use wasmer_config::package::PackageSource;
@@ -14,14 +15,11 @@ use wasmer_wasix::{
     },
     VirtualTaskManager, WasiTtyState,
 };
-use lazy_static::lazy_static;
-
 
 lazy_static! {
     /// We initialize the ThreadPool lazily
     static ref DEFAULT_THREAD_POOL: Arc<ThreadPool> = Arc::new(ThreadPool::new());
 }
-
 
 use crate::{tasks::ThreadPool, utils::Error};
 

@@ -176,10 +176,7 @@ mod tests {
     use wasmer::AsJs;
     use wasmer_wasix::{runtime::task_manager::TaskWasm, WasiEnvBuilder};
 
-    use crate::{
-        runtime::Runtime,
-        tasks::SchedulerMessage,
-    };
+    use crate::{runtime::Runtime, tasks::SchedulerMessage};
 
     use super::*;
 

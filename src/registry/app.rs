@@ -156,7 +156,6 @@ export type AppIdentifier = (NamedApp | DeployedIdApp | (NamedApp & DeployedIdAp
 export type AppConfig = AppIdentifier & BaseAppConfig;
 "#;
 
-
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(typescript_type = "AppConfig", extends = js_sys::Object)]
@@ -173,7 +172,8 @@ impl Wasmer {
 
         let default = get(&appConfig, &(String::from("default").into()))
             .map_err(utils::js_error)?
-            .as_bool().or(Some(true));
+            .as_bool()
+            .or(Some(true));
 
         let app_config = serde_wasm_bindgen::from_value(appConfig.into())
             .map_err(|e| anyhow!("while deserializing the app config: {e:?}"))?;
