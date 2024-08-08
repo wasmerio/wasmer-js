@@ -144,11 +144,16 @@ export type DeployedIdApp = {
 }
 
 /**
+ * A way to identify the app
+ */
+export type AppIdentifier = (NamedApp | DeployedIdApp | (NamedApp & DeployedIdApp));
+
+/**
  * Configuration for an app
  * For more information, please check the app config file:
  * https://docs.wasmer.io/edge/configuration
  */
-export type AppConfig = (NamedApp | DeployedIdApp | (NamedApp & DeployedIdApp)) & BaseAppConfig;
+export type AppConfig = AppIdentifier & BaseAppConfig;
 "#;
 
 
