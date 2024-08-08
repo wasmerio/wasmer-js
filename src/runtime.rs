@@ -270,7 +270,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     async fn execute_a_trivial_module() {
-        let runtime = Runtime::with_defaults().unwrap();
+        let runtime = Runtime::with_defaults().unwrap().with_default_pool();
         let module = runtime.load_module(TRIVIAL_WAT).await.unwrap();
 
         WasiEnvBuilder::new("trivial")
