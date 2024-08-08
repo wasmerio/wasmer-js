@@ -13,6 +13,7 @@ name: Run Release Please
 jobs:
   release-please:
     runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/wasmer-sdk-')
     steps:
       - name: Install release-please
         run: npm install --global release-please@15.11
