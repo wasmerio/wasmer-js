@@ -1,5 +1,4 @@
 import "xterm/css/xterm.css";
-import wasmerSDKUrl from "@wasmer/sdk/wasm?url";
 
 import type { Instance } from "@wasmer/sdk";
 import { Terminal } from "xterm";
@@ -22,7 +21,7 @@ async function main() {
   // See https://github.com/wasmerio/wasmer-js/issues/373
   const { Wasmer, init } = await import("@wasmer/sdk");
 
-  await init({module: wasmerSDKUrl, log: logFilter});
+  await init({log: logFilter});
 
   const term = new Terminal({ cursorBlink: true, convertEol: true });
   const fit = new FitAddon();

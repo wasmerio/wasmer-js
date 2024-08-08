@@ -1,5 +1,4 @@
 import wasmUrl from "./simplimage/target/wasm32-wasi/release/simplimage.wasm?url";
-import wasmSdkUrl from "@wasmer/sdk/wasm?url";
 
 import React from "react";
 
@@ -186,7 +185,7 @@ async function resizeImage(
   height: number,
 ): Promise<Blob> {
   const { init, runWasix } = await import("@wasmer/sdk");
-  await init({module: wasmSdkUrl, log: "debug"});
+  await init({log: "debug"});
 
   if (!MODULE) {
     await initialize();
