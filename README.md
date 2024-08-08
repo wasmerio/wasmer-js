@@ -18,7 +18,7 @@ For instaling `@wasmer/sdk`, run this command in your shell:
 npm install --save @wasmer/sdk
 ```
 
-You can now run WASI packages from the Wasmer registry:
+You can now run packages from the Wasmer registry:
 
 ```js
 import { init, Wasmer } from "@wasmer/sdk";
