@@ -160,6 +160,9 @@ export type AppConfig = AppIdentifier & BaseAppConfig;
 extern "C" {
     #[wasm_bindgen(typescript_type = "AppConfig", extends = js_sys::Object)]
     pub type AppConfig;
+
+    #[wasm_bindgen(typescript_type = "DeployedIdApp", extends = js_sys::Object)]
+    pub type DeployedIdApp;
 }
 
 #[wasm_bindgen]
@@ -178,6 +181,21 @@ impl Wasmer {
         let app_config = serde_wasm_bindgen::from_value(appConfig.into())
             .map_err(|e| anyhow!("while deserializing the app config: {e:?}"))?;
         Wasmer::deploy_app_inner(app_config, default).await
+    }
+
+    /// Delete an app from the registry.
+    #[wasm_bindgen(js_name = "deployApp")]
+    #[allow(non_snake_case)]
+    pub async fn delete_app(app: DeployedIdApp) -> Result<(), Error> {
+        let client = Wasmer::get_client()?;
+        let app_id = get(&app, &"id".into())
+            .map_err(utils::js_error)?
+            .as_string()
+            .expect("app id needs to be a string");
+
+        let result: Result<(), anyhow::Error> =
+            wasmer_api::query::delete_app(client, app_id).await.into();
+        result.map_err(|e| utils::Error::Rust(anyhow!("while deleting the app: {e:?}")))
     }
 }
 
