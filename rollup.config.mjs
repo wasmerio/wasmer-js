@@ -1,14 +1,26 @@
+import { defineConfig } from 'rollup'
 import terser from "@rollup/plugin-terser";
 import pkg from "./package.json" assert { type: "json" };
 import dts from "rollup-plugin-dts";
-import typescript from "@rollup/plugin-typescript";
+// import typescript from "@rollup/plugin-typescript";
+import typescript from "rollup-plugin-typescript2";
 import replace from "@rollup/plugin-replace";
 import copy from "rollup-plugin-copy";
 import { wasm } from "@rollup/plugin-wasm";
+import fs from "fs";
 
 const LIBRARY_NAME = "WasmerSDK"; // Change with your library's name
-const EXTERNAL = []; // Indicate which modules should be treated as external
+const EXTERNAL = [
+  "./pkg/"
+]; // Indicate which modules should be treated as external
 const GLOBALS = {}; // https://rollupjs.org/guide/en/#outputglobals
+
+const entries = [
+  'src-js/index.ts',
+  'src-js/node.ts',
+  'src-js/unpkg.ts',
+  'src-js/wasm-inlined.ts',
+]
 
 const banner = `/*!
  * ${pkg.name}
@@ -21,37 +33,24 @@ const banner = `/*!
  * @license ${pkg.license}
  */`;
 
-const makeConfig = (env = "development", input, name, plugins = []) => {
+const makeConfig = (env = "development", plugins = []) => {
   const config = {
-    input,
+    input: entries,
     external: EXTERNAL,
-    output: [
-      {
+    output: {
         banner,
-        name: name,
-        file: `dist/${name}.umd.js`,
-        format: "umd",
-        exports: "auto",
-        globals: GLOBALS,
+        dir: 'dist',
+        format: 'esm',
+        entryFileNames: '[name].mjs',
       },
-      {
-        banner,
-        file: `dist/${name}.cjs`,
-        format: "cjs",
-        exports: "auto",
-        globals: GLOBALS,
-      },
-      {
-        banner,
-        file: `dist/${name}.mjs`,
-        format: "es",
-        exports: "named",
-        globals: GLOBALS,
-      },
-    ],
     plugins: [
-      typescript(),
-      ...plugins,
+      typescript({
+        // rootDir: "./src-js",
+      }),
+      wasmPlugin(),
+      // wasm({
+      //   maxFileSize: 100 * 1024 * 1024,
+      // }),
       copy({
         targets: [
           {
@@ -60,48 +59,76 @@ const makeConfig = (env = "development", input, name, plugins = []) => {
           },
         ],
       }),
-    ],
-  };
-
-  if (env === "production") {
-    config.plugins.push(
-      terser({
-        output: {
-          comments: /^!/,
+      replace({
+        values: {
+          "globalThis.wasmUrl": `"https://unpkg.com/${pkg.name}@${pkg.version}/dist/wasmer_js_bg.wasm"`,
+          "globalThis.workerUrl": `"https://unpkg.com/${pkg.name}@${pkg.version}"`,
         },
+        preventAssignment: true,
       }),
-    );
-  }
-  config.plugins.push(
-    replace({
-      values: {
-        "globalThis.wasmUrl": `"https://unpkg.com/${pkg.name}@${pkg.version}/dist/wasmer_js_bg.wasm"`,
-        "globalThis.workerUrl": `"https://unpkg.com/${pkg.name}@${pkg.version}/dist/WasmerSDK.js"`,
-      },
-      preventAssignment: true,
-    }),
-  );
-
-  return config;
+      ...plugins,
+    ],
+    external: EXTERNAL,
+  };
+  const tsConfig = {
+    input: entries,
+    output: {
+      dir: 'dist',
+      format: 'esm',
+      entryFileNames: f => `${f.name.replace(/src-js[\\/]/, '')}.d.mts`,
+    },
+    plugins: [
+      dts({
+        respectExternal: true,
+      })
+    ],
+    external: EXTERNAL,
+  };
+  return [config, tsConfig];
 };
 
 export default commandLineArgs => {
   let env =
     commandLineArgs.environment === "BUILD:production" ? "production" : null;
-  const configs = [
-    makeConfig(env, "src-js/WasmerSDK.ts", LIBRARY_NAME),
-    makeConfig(env, "src-js/WasmerSDKBundled.ts", `${LIBRARY_NAME}Bundled`, [
-      wasm({
-        maxFileSize: 100 * 1024 * 1024,
-      }),
-    ]),
-    makeConfig(env, "src-js/node.ts", "node"),
-    {
-      input: "./pkg/wasmer_js.d.ts",
-      output: [{ file: "dist/pkg/wasmer_js.d.ts", format: "es" }],
-      plugins: [dts()],
-    },
-  ];
+    let plugins = [];
+    if (env === "production") {
+      plugins.push(
+        terser({
+          output: {
+            comments: /^!/,
+          },
+        }),
+      );
+    }
+
+  const configs = makeConfig(env, plugins);
 
   return configs;
 };
+
+/**
+ * @returns {import('rollup').Plugin} Plugin
+ */
+export function wasmPlugin() {
+  return {
+    name: 'wasm',
+    async load(id) {
+      if (!id.endsWith('.wasm'))
+        return
+      const binary = await fs.readFileSync(id)
+      const base64 = binary.toString('base64')
+      return `
+var isNode = typeof process !== 'undefined' && process.versions != null && process.versions.node != null;
+const src = ${JSON.stringify(base64)};
+
+if (isNode) {
+  buf = Buffer.from(src, 'base64');
+}
+else {
+  buf = Uint8Array.from(atob(src), c => c.charCodeAt(0));
+}
+export default buf;
+`
+    },
+  }
+}

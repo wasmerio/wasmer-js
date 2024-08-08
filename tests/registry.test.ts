@@ -1,5 +1,5 @@
 import { assert, expect } from "@esm-bundle/chai";
-import { init, initializeLogger, Wasmer } from "..";
+import { init, Wasmer } from "..";
 
 const pkg_name = "test-js-sdk-pkg";
 const app_name = "test-js-sdk-app";
@@ -12,12 +12,11 @@ function getRandomInt(max) {
 describe("Registry", function () {
   this.timeout("60s").beforeAll(async () => {
     await init({
-      module: new URL("../dist/wasmer_js_bg.wasm", import.meta.url),
+      // module: new URL("../dist/wasmer_js_bg.wasm", import.meta.url),
       registryUrl: "https://registry.wasmer.wtf/graphql",
       token: process.env.WASMER_TOKEN,
+      log: "error",
     });
-
-    initializeLogger("error");
   });
 
   const WASMER_TEST_OWNER = process.env.WASMER_TEST_OWNER;

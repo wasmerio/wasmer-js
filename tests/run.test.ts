@@ -4,15 +4,14 @@ import {
   wat2wasm,
   Wasmer,
   init,
-  initializeLogger,
   Directory,
-} from "../dist/WasmerSDKBundled";
+} from "..";
 
 const initialized = (async () => {
   await init({
-    module: new URL("../dist/wasmer_js_bg.wasm", import.meta.url),
+    // module: new URL("../dist/wasmer_js_bg.wasm", import.meta.url),
+    log: "warn",
   });
-  initializeLogger("warn");
 })();
 
 describe("run", function () {

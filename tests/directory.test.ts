@@ -1,14 +1,14 @@
 import { expect } from "@esm-bundle/chai";
-import { init, initializeLogger, Directory } from "..";
+import { init, Directory } from "..";
 
 const decoder = new TextDecoder("utf-8");
 const encoder = new TextEncoder();
 
 const initialized = (async () => {
   await init({
-    module: new URL("../dist/wasmer_js_bg.wasm", import.meta.url),
+    // module: new URL("../dist/wasmer_js_bg.wasm", import.meta.url),
+    log: "warn",
   });
-  initializeLogger("warn");
 })();
 
 describe("In-Memory Directory", function () {

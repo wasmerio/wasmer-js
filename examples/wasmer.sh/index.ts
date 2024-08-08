@@ -1,5 +1,4 @@
 import "xterm/css/xterm.css";
-import wasmerSDKUrl from "@wasmer/sdk/dist/wasmer_js_bg.wasm?url";
 
 import type { Instance } from "@wasmer/sdk";
 import { Terminal } from "xterm";
@@ -20,10 +19,9 @@ async function main() {
   // same chunk as @wasmer/sdk, each Web Worker will try to run this code and
   // crash.
   // See https://github.com/wasmerio/wasmer-js/issues/373
-  const { Wasmer, init, initializeLogger } = await import("@wasmer/sdk");
+  const { Wasmer, init } = await import("@wasmer/sdk");
 
-  await init({module: wasmerSDKUrl});
-  initializeLogger(logFilter);
+  await init({log: logFilter});
 
   const term = new Terminal({ cursorBlink: true, convertEol: true });
   const fit = new FitAddon();

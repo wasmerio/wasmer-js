@@ -1,14 +1,14 @@
 import { expect } from "@esm-bundle/chai";
-import { Wasmer, init, initializeLogger, Directory } from "..";
+import { Wasmer, init, Directory } from "..";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder("utf-8");
 
 const initialized = (async () => {
   await init({
-    module: new URL("../dist/wasmer_js_bg.wasm", import.meta.url),
+    // module: new URL("../dist/wasmer_js_bg.wasm", import.meta.url),
+    log: "warn",
   });
-  initializeLogger("warn");
 })();
 
 const ansiEscapeCode = /\u001B\[[\d;]*[JDm]/g;

@@ -5,6 +5,7 @@ import load, {
   InitOutput,
   // @ts-ignore
   ThreadPoolWorker,
+  initializeLogger,
   setWorkerUrl,
 } from "../pkg/wasmer_js";
 
@@ -13,24 +14,30 @@ export type WasmerInitInput = {
   memory?: WebAssembly.Memory;
   registryUrl?: string;
   token?: string;
+  workerUrl?: string | URL;
+  log?: string;
 };
 
 /**
  * Initialize the underlying WebAssembly module.
  */
-export const init = async (initValue: WasmerInitInput | undefined): Promise<InitOutput> => {
-
+export const init = async (initValue?: WasmerInitInput, memory?: WebAssembly.Memory): Promise<InitOutput> => {
   if (!initValue) {
-	initValue = {};
+    initValue = {};
   }
-
-  if (!initValue.module) {
-    // This will be replaced by the rollup bundler at the SDK build time
-    // to point to a valid http location of the SDK using unpkg.com.
-    // Note: we only do this in browsers, not in Node/Bun/Deno
-    let wasmUrl = (globalThis as any)["wasmUrl"];
-    if (wasmUrl && typeof window !== 'undefined') {
-      initValue.module = new URL(wasmUrl);
+  else if (initValue instanceof WebAssembly.Module || initValue instanceof URL || initValue instanceof WebAssembly.Module) {
+    if (memory) {
+      console.info("Passing the module and memory as first arguments to the init function is deprecated, please use: `init({module: WASM_MODULE, memory: WASM_MEMORY})`");
+      initValue  = {
+        module: initValue,
+        memory: memory,
+      };  
+    }
+    else {
+      console.info("Passing the module as first argument to the init function is deprecated, please use: `init({module: WASM_MODULE})`");
+      initValue  = {
+        module: initValue
+      };  
     }
   }
 
@@ -39,18 +46,14 @@ export const init = async (initValue: WasmerInitInput | undefined): Promise<Init
     token: initValue.token,
   };
 
-  return load(initValue.module, initValue.memory);
-};
-
-/**
- * Set a deafult working Worker Url. Which in this case will be
- * an unpkg url that is set up at the SDK build time.
- */
-export const setDefaultWorkerUrl = () => {
-  let workerUrl = (globalThis as any)["workerUrl"];
-  if (workerUrl) {
-    setWorkerUrl(workerUrl);
+  let output = await load(initValue.module, initValue.memory);
+  if (initValue.log) {
+    initializeLogger(initValue.log);
   }
+  if (initValue.workerUrl) {
+    setWorkerUrl(initValue.workerUrl.toString())
+  }
+  return output;
 };
 
 // HACK: We save these to the global scope because it's the most reliable way to

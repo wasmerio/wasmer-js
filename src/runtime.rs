@@ -1,6 +1,7 @@
 use std::sync::{atomic::AtomicBool, Arc, Mutex, Weak};
 
 use http::HeaderValue;
+use lazy_static::lazy_static;
 use once_cell::sync::Lazy;
 use virtual_net::VirtualNetworking;
 use wasmer_config::package::PackageSource;
@@ -14,6 +15,11 @@ use wasmer_wasix::{
     },
     VirtualTaskManager, WasiTtyState,
 };
+
+lazy_static! {
+    /// We initialize the ThreadPool lazily
+    static ref DEFAULT_THREAD_POOL: Arc<ThreadPool> = Arc::new(ThreadPool::new());
+}
 
 use crate::{tasks::ThreadPool, utils::Error};
 
@@ -77,9 +83,8 @@ impl Runtime {
         Ok(rt)
     }
 
-    pub(crate) fn with_task_manager(&self, pool: ThreadPool) -> Self {
+    pub(crate) fn with_task_manager(&self, task_manager: Arc<ThreadPool>) -> Self {
         let mut runtime = self.clone();
-        let task_manager = Arc::new(pool.clone());
         // Update the http client
         let mut http_client = WebHttpClient::default();
         http_client
@@ -95,8 +100,8 @@ impl Runtime {
     }
 
     pub(crate) fn with_default_pool(&self) -> Self {
-        let pool = ThreadPool::new();
-        self.with_task_manager(pool)
+        // let pool = ThreadPool::new();
+        self.with_task_manager(DEFAULT_THREAD_POOL.clone())
     }
 
     pub(crate) fn new() -> Self {
@@ -265,7 +270,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     async fn execute_a_trivial_module() {
-        let runtime = Runtime::with_defaults().unwrap();
+        let runtime = Runtime::with_defaults().unwrap().with_default_pool();
         let module = runtime.load_module(TRIVIAL_WAT).await.unwrap();
 
         WasiEnvBuilder::new("trivial")

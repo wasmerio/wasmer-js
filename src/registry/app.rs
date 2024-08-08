@@ -98,19 +98,84 @@ async fn resolve_pkg(app_config: &JsValue) -> anyhow::Result<()> {
     }
 }
 
+#[wasm_bindgen(typescript_custom_section)]
+const TYPE_DEFINITIONS: &'static str = r#"
+/**
+ * Configuration for an app
+ * For more information, please check the app config file:
+ * https://docs.wasmer.io/edge/configuration
+ */
+export type BaseAppConfig = {
+    /** The package to deploy. */
+    package: string | Wasmer;
+    /** In debug mode? */
+    debug?: boolean;
+    /** The environment variables */
+    env?: {[name: string]: string};
+    /** The CLI arguments */
+    cli_args?: string[];
+    /** Domains associated to this app */
+    domains?: string[];
+    /** Redirect rules */
+    redirect?: {
+        /** Force HTTPs redirects all requests to http://domain/* to https://domain/* */
+        force_https?: boolean;
+    };
+    /** Scaling configuration */
+    scaling?: {
+        /** How to scale the app */
+        mode?: null | "single_concurrency";
+    };
+
+    /** Set this version as the default for the app. Is `true` by default */
+    default?: boolean;
+};
+
+export type NamedApp = {
+    /** The owner of the app. */
+    owner: string;
+    /** The name of the app. */
+    name: string;
+}
+
+export type DeployedIdApp = {
+    /** The id of the app. */
+    id: string;
+}
+
+/**
+ * A way to identify the app
+ */
+export type AppIdentifier = (NamedApp | DeployedIdApp | (NamedApp & DeployedIdApp));
+
+/**
+ * Configuration for an app
+ * For more information, please check the app config file:
+ * https://docs.wasmer.io/edge/configuration
+ */
+export type AppConfig = AppIdentifier & BaseAppConfig;
+"#;
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(typescript_type = "AppConfig", extends = js_sys::Object)]
+    pub type AppConfig;
+}
+
 #[wasm_bindgen]
 impl Wasmer {
     /// Deploy an app to the registry.
     #[wasm_bindgen(js_name = "deployApp")]
     #[allow(non_snake_case)]
-    pub async fn deploy_app(appConfig: JsValue) -> Result<DeployedApp, Error> {
+    pub async fn deploy_app(appConfig: AppConfig) -> Result<DeployedApp, Error> {
         resolve_pkg(&appConfig).await?;
 
         let default = get(&appConfig, &(String::from("default").into()))
             .map_err(utils::js_error)?
-            .as_bool();
+            .as_bool()
+            .or(Some(true));
 
-        let app_config = serde_wasm_bindgen::from_value(appConfig)
+        let app_config = serde_wasm_bindgen::from_value(appConfig.into())
             .map_err(|e| anyhow!("while deserializing the app config: {e:?}"))?;
         Wasmer::deploy_app_inner(app_config, default).await
     }

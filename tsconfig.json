@@ -1,23 +1,24 @@
 {
   "include": [
-    "pkg",
-    "src-js/*.ts"
+    "src-js",
   ],
   "exclude": [
     "dist"
   ],
   "compilerOptions": {
-    "outDir": "./dist/",
-    "rootDir": ".",
-    "noImplicitAny": true,
-    "declaration": true,
-    "module": "es2020",
-    "target": "ES2015",
-    "jsx": "react",
+    "target": "esnext",
+    "lib": ["esnext", "DOM"],
+    "rootDir": "src-js",
+    "module": "esnext",
+    "noEmit": false,
+    "moduleResolution": "Bundler",
+    "resolveJsonModule": true,
     "allowJs": true,
-    "emitDeclarationOnly": true,
-    "skipLibCheck": true,
-    "allowSyntheticDefaultImports": true,
-    "moduleResolution": "node"
+    "strict": true,
+    "strictNullChecks": true,
+    "preserveValueImports": false,
+    "esModuleInterop": true,
+    "skipDefaultLibCheck": true,
+    "skipLibCheck": true
   }
 }
