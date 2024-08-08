@@ -178,7 +178,7 @@ mod tests {
 
     use crate::{
         runtime::Runtime,
-        tasks::{SchedulerMessage, ThreadPool},
+        tasks::SchedulerMessage,
     };
 
     use super::*;
