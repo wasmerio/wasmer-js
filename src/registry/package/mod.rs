@@ -51,6 +51,14 @@ export type PackageCommand = {
         }
     };
 };
+
+export type VolumeFileData = string | Uint8Array;
+export type VolumeFileDate = Date | Number;
+export type VolumeFile = VolumeFileData | { data: VolumeFileData, modified: VolumeFileDate}
+export type VolumeTree = {
+    [name: string]: VolumeFile | VolumeTree
+};
+
 /**
  * Manifest of a package.
  * For more information, please check the package manifest docs:
@@ -61,7 +69,7 @@ export type PackageManifest = {
     dependencies?: {
         [name:string]: string
     },
-    fs: Record<string, any>;
+    fs: VolumeTree;
 };
 "#;
 

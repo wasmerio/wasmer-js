@@ -24,7 +24,7 @@ echo "PHP app created from @wasmer/sdk!<br />";
 
 var_dump($_ENV);`;
 
-const manifest: PackageManifest = {
+const manifest = {
     command: [
         {
             module: "php/php:php",
@@ -52,7 +52,7 @@ console.log("Creating Package...");
 let wasmerPackage = await Wasmer.createPackage(manifest);
 // console.log("NISE");
 
-let appConfig: AppConfig = {
+let appConfig = {
     name: APP_NAME,
     owner: APP_OWNER,
     package: wasmerPackage,

@@ -36,7 +36,25 @@ describe("Registry", function () {
       default: true,
     };
 
-    await Wasmer.deployApp(appConfig);
+    let appVersion = await Wasmer.deployApp(appConfig);
+    assert(appVersion.id.startsWith("dav_"));
+    assert(appVersion.app_id.startsWith("da_"));
+  });
+
+  it("can delete apps", async () => {
+    let appConfig = {
+      name: app_name,
+      owner: WASMER_TEST_OWNER,
+      package:
+        "sha256:34a3b5f5a9108c2b258eb51e9d0978b6778a3696b9c7e713adab33293fb5e4f1",
+      env: [["test", "new_value"]],
+    };
+
+    let appVersion = await Wasmer.deployApp(appConfig);
+    assert(appVersion.id.startsWith("dav_"));
+    assert(appVersion.app_id.startsWith("da_"));
+
+    await Wasmer.deleteApp({id: appVersion.app_id});
   });
 
   it("can create a package with atoms", async () => {

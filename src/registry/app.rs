@@ -22,6 +22,7 @@ pub struct DeployedApp {
     pub config: String,
     pub json_config: String,
     pub url: String,
+    pub app_id: Option<String>,
 }
 
 impl From<DeployAppVersion> for DeployedApp {
@@ -36,6 +37,7 @@ impl From<DeployAppVersion> for DeployedApp {
             config: value.config,
             json_config: value.json_config,
             url: value.url,
+            app_id: value.app.map(|app| app.id.inner().to_string()),
         }
     }
 }
