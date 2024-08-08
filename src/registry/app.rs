@@ -138,7 +138,7 @@ export type NamedApp = {
     name: string;
 }
 
-export type DeployedApp = {
+export type DeployedIdApp = {
     /** The id of the app. */
     id: string;
 }
@@ -148,7 +148,7 @@ export type DeployedApp = {
  * For more information, please check the app config file:
  * https://docs.wasmer.io/edge/configuration
  */
-export type AppConfig = (NamedApp | DeployedApp | (NamedApp & DeployedApp)) & BaseAppConfig;
+export type AppConfig = (NamedApp | DeployedIdApp | (NamedApp & DeployedIdApp)) & BaseAppConfig;
 "#;
 
 

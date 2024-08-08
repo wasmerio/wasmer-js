@@ -1,5 +1,5 @@
 import wasmUrl from "./simplimage/target/wasm32-wasi/release/simplimage.wasm?url";
-import wasmSdkUrl from "@wasmer/sdk/dist/wasmer_js_bg.wasm?url";
+import wasmSdkUrl from "@wasmer/sdk/wasm?url";
 
 import React from "react";
 
@@ -206,15 +206,15 @@ async function resizeImage(
       "--height",
       height.toString(),
     ],
-    stdin,
+    stdin: new Uint8Array(stdin),
   });
 
   const result = await instance.wait();
   if (result.code !== 0) {
-    throw new Error(`Failed to convert image: ${result.stderrUtf8}`);
+    throw new Error(`Failed to convert image: ${result.stderr}`);
   }
 
-  const blob = new Blob([result.stdout], { type: "image/png" });
+  const blob = new Blob([result.stdoutBytes], { type: "image/png" });
   return blob;
 }
 

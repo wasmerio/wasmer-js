@@ -12,7 +12,7 @@ function getRandomInt(max) {
 describe("Registry", function () {
   this.timeout("60s").beforeAll(async () => {
     await init({
-      module: new URL("../dist/wasmer_js_bg.wasm", import.meta.url),
+      // module: new URL("../dist/wasmer_js_bg.wasm", import.meta.url),
       registryUrl: "https://registry.wasmer.wtf/graphql",
       token: process.env.WASMER_TOKEN,
     });

@@ -1,24 +1,25 @@
 {
   "include": [
-    "pkg",
-    "src-js"
+    "src-js",
+    "pkg"
   ],
   "exclude": [
     "dist"
   ],
   "compilerOptions": {
-    "outDir": "./dist/",
-    "declarationDir": "./dist/",
+    "target": "esnext",
+    "lib": ["esnext", "DOM"],
     "rootDir": ".",
-    "noImplicitAny": true,
-    "declaration": true,
-    "module": "es2020",
-    "target": "ES2015",
-    "jsx": "react",
+    "module": "esnext",
+    "noEmit": false,
+    "moduleResolution": "Bundler",
+    "resolveJsonModule": true,
     "allowJs": true,
-    "emitDeclarationOnly": true,
-    "skipLibCheck": true,
-    "allowSyntheticDefaultImports": true,
-    "moduleResolution": "node"
+    "strict": true,
+    "strictNullChecks": true,
+    "preserveValueImports": false,
+    "esModuleInterop": true,
+    "skipDefaultLibCheck": true,
+    "skipLibCheck": true
   }
 }

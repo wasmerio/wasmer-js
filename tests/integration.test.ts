@@ -6,7 +6,7 @@ const decoder = new TextDecoder("utf-8");
 
 const initialized = (async () => {
   await init({
-    module: new URL("../dist/wasmer_js_bg.wasm", import.meta.url),
+    // module: new URL("../dist/wasmer_js_bg.wasm", import.meta.url),
   });
   initializeLogger("warn");
 })();

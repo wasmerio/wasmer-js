@@ -39,7 +39,7 @@ export function WasmerSdk(props?: WasmerSdkProps) {
     if (typeof pending == "undefined") {
       pending = (async function () {
         console.log("Importing @wasmer/sdk");
-        const imported = await import("@wasmer/sdk/dist/WasmerSDKBundled");
+        const imported = await import("@wasmer/sdk");
         console.log("Imported @wasmer/sdk");
         await imported.init({module: props?.wasm});
         imported.initializeLogger(props?.log);

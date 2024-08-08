@@ -1,5 +1,5 @@
 import "xterm/css/xterm.css";
-import wasmerSDKUrl from "@wasmer/sdk/dist/wasmer_js_bg.wasm?url";
+import wasmerSDKUrl from "@wasmer/sdk/wasm?url";
 
 import type { Instance } from "@wasmer/sdk";
 import { Terminal } from "xterm";
