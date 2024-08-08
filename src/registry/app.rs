@@ -184,7 +184,7 @@ impl Wasmer {
     }
 
     /// Delete an app from the registry.
-    #[wasm_bindgen(js_name = "deployApp")]
+    #[wasm_bindgen(js_name = "deleteApp")]
     #[allow(non_snake_case)]
     pub async fn delete_app(app: DeployedIdApp) -> Result<(), Error> {
         let client = Wasmer::get_client()?;
