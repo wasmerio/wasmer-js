@@ -185,8 +185,8 @@ async function resizeImage(
   width: number,
   height: number,
 ): Promise<Blob> {
-  const { init, runWasix, initializeLogger } = await import("@wasmer/sdk");
-  await init({module: wasmSdkUrl});
+  const { init, runWasix } = await import("@wasmer/sdk");
+  await init({module: wasmSdkUrl, log: "debug"});
 
   if (!MODULE) {
     await initialize();

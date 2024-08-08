@@ -19,8 +19,6 @@ await init({
     token: WASMER_TOKEN,
 });
 
-// initializeLogger("trace");
-
 const php_file = `<?php
 echo "PHP app created from @wasmer/sdk!<br />";
 

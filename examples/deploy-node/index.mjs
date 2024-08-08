@@ -19,8 +19,6 @@ await init({
     token: WASMER_TOKEN,
 });
 
-// initializeLogger("trace");
-
 const echo_server_index = `
 	async function handler(request) {
 	  const out = JSON.stringify({

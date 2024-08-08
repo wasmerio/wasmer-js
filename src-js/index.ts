@@ -5,6 +5,7 @@ import load, {
   InitOutput,
   // @ts-ignore
   ThreadPoolWorker,
+  initializeLogger,
   setWorkerUrl,
 } from "../pkg/wasmer_js";
 
@@ -13,6 +14,8 @@ export type WasmerInitInput = {
   memory?: WebAssembly.Memory;
   registryUrl?: string;
   token?: string;
+  workerUrl?: string | URL;
+  log?: string;
 };
 
 /**
@@ -43,7 +46,14 @@ export const init = async (initValue?: WasmerInitInput, memory?: WebAssembly.Mem
     token: initValue.token,
   };
 
-  return load(initValue.module, initValue.memory);
+  let output = await load(initValue.module, initValue.memory);
+  if (initValue.log) {
+    initializeLogger(initValue.log);
+  }
+  if (initValue.workerUrl) {
+    setWorkerUrl(initValue.workerUrl.toString())
+  }
+  return output;
 };
 
 // HACK: We save these to the global scope because it's the most reliable way to
