@@ -1,0 +1,5 @@
+kind: wasmer.io/App.v0
+name: sdk-demo
+owner: wasmer
+package: .
+app_id: da_KwGIWtMUvzEK

@@ -1,0 +1,5 @@
+[dependencies]
+"wasmer/static-web-server" = "^1"
+
+[fs]
+public = "out"
