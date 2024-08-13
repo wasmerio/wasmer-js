@@ -22,6 +22,9 @@ export const init = async (
       initValue.module = new URL(wasmUrl);
     }
   }
+  if (!initValue.workerUrl) {
+    initValue.workerUrl = (globalThis as any).workerUrl;
+  }
   return load(initValue);
 };
 

@@ -16,8 +16,21 @@ pub struct ThreadPool {
     scheduler: Scheduler,
 }
 
+const CROSS_ORIGIN_WARNING: &str = r#"You can only run packages from "Cross-Origin Isolated" websites. For more details, check out https://docs.wasmer.io/javascript-sdk/explainers/troubleshooting#sharedarraybuffer-and-cross-origin-isolation"#;
+
 impl ThreadPool {
     pub fn new() -> Self {
+        if let Some(cross_origin_isolated) =
+            crate::utils::GlobalScope::current().cross_origin_isolated()
+        {
+            // Note: This will need to be tweaked when we add support for Deno and
+            // NodeJS.
+            web_sys::console::assert_with_condition_and_data_1(
+                cross_origin_isolated,
+                &wasm_bindgen::JsValue::from_str(CROSS_ORIGIN_WARNING),
+            );
+        }
+
         let sender = Scheduler::spawn();
         ThreadPool { scheduler: sender }
     }
