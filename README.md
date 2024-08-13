@@ -39,7 +39,7 @@ It is possible to avoid needing to use a bundler by importing `@wasmer/sdk` from
 
 ```html
 <script defer type="module">
-    import { init, Wasmer } from "https://unpkg.com/@wasmer/sdk@latest";
+    import { init, Wasmer } from "https://unpkg.com/@wasmer/sdk@latest/dist/index.mjs";
 
     async function runPython() {
         await init();
