@@ -133,12 +133,12 @@ impl Wasmer {
         let client = Wasmer::get_client()?;
 
         let (id, hash) = if let Some(release) =
-            wasmer_api::query::get_package_release(client, hash).await?
+            wasmer_api::query::get_package_release(&client, hash).await?
         {
             (release.id, release.webc_v3.map(|v| v.webc_sha256))
         } else {
             let signed_url = wasmer_api::query::get_signed_url_for_package_upload(
-                client,
+                &client,
                 Some(60 * 30),
                 Some(format!("js-{}", random()).replace('.', "-")).as_deref(),
                 None,
@@ -168,7 +168,7 @@ impl Wasmer {
 
             tracing::debug!("Pushing package release...");
             let out = wasmer_api::query::push_package_release(
-                client,
+                &client,
                 name.as_deref(),
                 &namespace,
                 &signed_url,
@@ -240,7 +240,7 @@ impl Wasmer {
             let manifest_raw = Some(toml::to_string(&manifest)?);
 
             let r = wasmer_api::query::tag_package_release(
-                client,
+                &client,
                 maybe_description.as_deref(),
                 maybe_homepage.as_deref(),
                 maybe_license.as_deref(),

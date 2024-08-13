@@ -196,7 +196,7 @@ impl Wasmer {
             .expect("app id needs to be a string");
 
         let result: Result<(), anyhow::Error> =
-            wasmer_api::query::delete_app(client, app_id).await.into();
+            wasmer_api::query::delete_app(&client, app_id).await.into();
         result.map_err(|e| utils::Error::Rust(anyhow!("while deleting the app: {e:?}")))
     }
 }
@@ -210,7 +210,7 @@ impl Wasmer {
         let config = app_config.clone().to_yaml()?;
 
         wasmer_api::query::publish_deploy_app(
-            client,
+            &client,
             PublishDeployAppVars {
                 config,
                 name: app_config.name.into(),

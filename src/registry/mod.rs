@@ -3,12 +3,10 @@ pub mod package;
 
 use anyhow::anyhow;
 use js_sys::Reflect::{get, has};
-use wasm_bindgen::{convert::TryFromJsValue, JsValue};
+use wasm_bindgen::{convert::TryFromJsValue, JsValue, prelude::wasm_bindgen};
 use wasmer_api::WasmerClient;
 
 use crate::{utils::Error, Wasmer};
-
-static WASMER_CLIENT: std::sync::OnceLock<WasmerClient> = std::sync::OnceLock::new();
 
 #[derive(Debug, Default, Clone)]
 pub struct RegistryConfig {
@@ -58,30 +56,60 @@ impl TryFromJsValue for RegistryConfig {
 }
 
 impl Wasmer {
-    pub fn get_client() -> Result<&'static WasmerClient, Error> {
-        WASMER_CLIENT.get_or_try_init(|| {
-            let registry_input = if let Some(registry_info) =
-                js_sys::Reflect::get(&js_sys::global(), &"__WASMER_REGISTRY__".into()).ok()
-            {
-                RegistryConfig::try_from_js_value(registry_info.into())
-                    .map_err(|e| anyhow!("while reading registry configuration: {e:?}"))?
-            } else {
-                RegistryConfig::default()
-            };
+    pub fn get_client() -> Result<WasmerClient, Error> {
+        let registry_input = if let Some(registry_info) =
+            js_sys::Reflect::get(&js_sys::global(), &"__WASMER_REGISTRY__".into()).ok()
+        {
+            RegistryConfig::try_from_js_value(registry_info.into())
+                .map_err(|e| anyhow!("while reading registry configuration: {e:?}"))?
+        } else {
+            RegistryConfig::default()
+        };
 
-            let mut client = wasmer_api::WasmerClient::new(
-                url::Url::parse(
-                    &registry_input
-                        .registry_url
-                        .unwrap_or(crate::DEFAULT_REGISTRY.into()),
-                )?,
-                crate::USER_AGENT,
-            )?;
-            if let Some(token) = registry_input.token {
-                client = client.with_auth_token(token);
-            }
+        let mut client = wasmer_api::WasmerClient::new(
+            url::Url::parse(
+                &registry_input
+                    .registry_url
+                    .unwrap_or(crate::DEFAULT_REGISTRY.into()),
+            )?,
+            crate::USER_AGENT,
+        )?;
+        if let Some(token) = registry_input.token {
+            client = client.with_auth_token(token);
+        }
 
-            Ok(client)
-        })
+        Ok(client)
+    }
+}
+
+
+#[wasm_bindgen(getter_with_clone)]
+#[derive(Debug, Clone)]
+pub struct User {
+    pub id: String,
+    pub username: String,
+}
+
+impl From<wasmer_api::types::User> for User {
+    fn from(value: wasmer_api::types::User) -> Self {
+        Self {
+            id: value.id.inner().to_string(),
+            username: value.username,
+        }
+    }
+}
+
+#[wasm_bindgen]
+impl Wasmer {
+    /// Deploy an app to the registry.
+    #[wasm_bindgen(js_name = "whoami")]
+    #[allow(non_snake_case)]
+    pub async fn whoami() -> Result<Option<User>, Error> {
+        let client = Wasmer::get_client()?;
+
+        let result: Result<Option<wasmer_api::types::User>, anyhow::Error> =
+            wasmer_api::query::current_user(&client).await;
+        
+        Ok(result.map_err(|e| crate::utils::Error::Rust(anyhow!("while retrieving the user: {e:?}")))?.map(Into::into))
     }
 }
