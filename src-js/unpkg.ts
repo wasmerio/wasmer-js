@@ -1,19 +1,16 @@
 export * from "./";
-import {
-  init as load,
-  InitOutput,
-  WasmerInitInput,
-  setWorkerUrl,
-} from "./";
-import fs from 'node:fs';
+import { init as load, InitOutput, WasmerInitInput, setWorkerUrl } from "./";
+import fs from "node:fs";
 
 /**
  * Initialize the underlying WebAssembly module, defaulting to an embedded
  * copy of the `*.wasm` file.
  */
-export const init = async (initValue?: WasmerInitInput): Promise<InitOutput> => {
+export const init = async (
+  initValue?: WasmerInitInput,
+): Promise<InitOutput> => {
   if (!initValue) {
-      initValue = {}
+    initValue = {};
   }
 
   if (!initValue.module) {
@@ -21,7 +18,7 @@ export const init = async (initValue?: WasmerInitInput): Promise<InitOutput> => 
     // to point to a valid http location of the SDK using unpkg.com.
     // Note: we only do this in browsers, not in Node/Bun/Deno
     let wasmUrl = (globalThis as any).wasmUrl;
-    if (wasmUrl && typeof window !== 'undefined') {
+    if (wasmUrl && typeof window !== "undefined") {
       initValue.module = new URL(wasmUrl);
     }
   }
@@ -33,9 +30,8 @@ export const init = async (initValue?: WasmerInitInput): Promise<InitOutput> => 
  * an unpkg url that is set up at the SDK build time.
  */
 export const setDefaultWorkerUrl = () => {
-    let workerUrl = (globalThis as any).workerUrl;
-    if (workerUrl) {
-      setWorkerUrl(workerUrl);
-    }
-  };
-  
+  let workerUrl = (globalThis as any).workerUrl;
+  if (workerUrl) {
+    setWorkerUrl(workerUrl);
+  }
+};

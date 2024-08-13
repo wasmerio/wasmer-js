@@ -57,6 +57,13 @@ describe("Registry", function () {
     await Wasmer.deleteApp({id: appVersion.app_id});
   });
 
+  it("whoami", async () => {
+    let user = await Wasmer.whoami();
+    assert(user != null);
+    assert(user.id.startsWith("u_"));
+    assert(user.username != null);
+  });
+
   it("can create a package with atoms", async () => {
     let manifest = {
       module: [
