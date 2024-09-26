@@ -43,7 +43,7 @@ describe("run", function () {
             )`;
     const wasm = wat2wasm(noop);
     const pkg = await Wasmer.fromWasm(wasm);
-    const instance = pkg.entrypoint!.run();
+    const instance = await pkg.entrypoint!.run();
 
     const output = await instance.wait();
 

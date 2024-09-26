@@ -169,7 +169,7 @@ impl Wasmer {
             webc_fs: Arc::new(webc_fs),
             when_cached: None,
             file_system_memory_footprint: 0,
-            entrypoint_cmd: None,
+            entrypoint_cmd: Some("entrypoint".to_string()),
             commands: vec![BinaryPackageCommand::new(
                 "entrypoint".to_string(), metadata, wasm.into(), hash)],
             additional_host_mapped_directories: vec![],

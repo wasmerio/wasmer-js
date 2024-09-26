@@ -32,10 +32,10 @@ tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 url = "2.4.0"
 virtual-fs = { version = "0.16.0", default-features = false }
 virtual-net = { version = "0.8.0", default-features = false, features = ["remote"] }
-wasm-bindgen = { version = "0.2" }
+wasm-bindgen = { version = "=0.2.92" }
 wasm-bindgen-derive = "0.2.1"
-wasm-bindgen-futures = "0.4"
-wasm-bindgen-test = "0.3.37"
+wasm-bindgen-futures = "0.4.40"
+wasm-bindgen-test = "0.3.40"
 wasmer = { version = "4.3.6", default-features = false, features = ["js", "js-default", "wasm-types-polyfill", "enable-serde"] }
 wasmer-api = { version = "0.0.34"}
 wasmer-config = "0.8.0"
