@@ -1,6 +1,6 @@
 use std::sync::{atomic::AtomicBool, Arc, Mutex, Weak};
 
-use http::HeaderValue;
+use reqwest::header::HeaderValue;
 use lazy_static::lazy_static;
 use once_cell::sync::Lazy;
 use virtual_net::VirtualNetworking;
@@ -11,7 +11,7 @@ use wasmer_wasix::{
     runtime::{
         module_cache::ThreadLocalCache,
         package_loader::PackageLoader,
-        resolver::{PackageSummary, QueryError, Source, WapmSource},
+        resolver::{PackageSummary, QueryError, Source, BackendSource},
     },
     VirtualTaskManager, WasiTtyState,
 };
@@ -32,7 +32,7 @@ static GLOBAL_RUNTIME: Lazy<Mutex<Weak<Runtime>>> = Lazy::new(Mutex::default);
 pub struct Runtime {
     task_manager: Option<Arc<dyn VirtualTaskManager>>,
     networking: Arc<dyn VirtualNetworking>,
-    source: Option<Arc<WapmSource>>,
+    source: Option<Arc<BackendSource>>,
     http_client: Arc<dyn HttpClient + Send + Sync>,
     package_loader: Arc<crate::package_loader::PackageLoader>,
     module_cache: Arc<ThreadLocalCache>,
@@ -89,7 +89,7 @@ impl Runtime {
         let mut http_client = WebHttpClient::default();
         http_client
             .with_default_header(
-                http::header::USER_AGENT,
+                reqwest::header::USER_AGENT,
                 HeaderValue::from_static(crate::USER_AGENT),
             )
             .with_task_manager(task_manager.clone());
@@ -107,7 +107,7 @@ impl Runtime {
     pub(crate) fn new() -> Self {
         let mut http_client = WebHttpClient::default();
         http_client.with_default_header(
-            http::header::USER_AGENT,
+            reqwest::header::USER_AGENT,
             HeaderValue::from_static(crate::USER_AGENT),
         );
         let http_client = Arc::new(http_client);
@@ -131,7 +131,7 @@ impl Runtime {
     pub fn set_registry(&mut self, url: &str, token: Option<&str>) -> Result<(), Error> {
         let url = url.parse().map_err(Error::from)?;
 
-        let mut source = WapmSource::new(url, self.http_client.clone());
+        let mut source = BackendSource::new(url, self.http_client.clone());
         if let Some(token) = token {
             source = source.with_auth_token(token);
         }

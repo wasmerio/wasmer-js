@@ -5,7 +5,7 @@ use std::{
 
 use anyhow::{Context, Error};
 use bytes::Bytes;
-use http::{HeaderMap, HeaderValue, Method, StatusCode};
+use reqwest::{Method, header::{HeaderMap, HeaderValue}, StatusCode};
 use wasmer_wasix::{
     bin_factory::BinaryPackage,
     http::{HttpClient, HttpRequest, HttpResponse},
@@ -109,8 +109,9 @@ impl wasmer_wasix::runtime::package_loader::PackageLoader for PackageLoader {
         &self,
         root: &Container,
         resolution: &Resolution,
+        root_is_local_dir: bool,
     ) -> Result<BinaryPackage, Error> {
-        wasmer_wasix::runtime::package_loader::load_package_tree(root, self, resolution).await
+        wasmer_wasix::runtime::package_loader::load_package_tree(root, self, resolution, root_is_local_dir).await
     }
 }
 
