@@ -41,7 +41,7 @@ wasmer-api = { version = "0.0.34"}
 wasmer-config = "0.8.0"
 wasmer-types = "4.3.6"
 wasmer-wasix = { version = "0.27.0", default-features = false, features = ["js", "js-default"] }
-webc = "6.0.1"
+webc = "6.1.0"
 
 [dependencies.web-sys]
 version = "0.3"
@@ -107,7 +107,10 @@ wasm-opt = ["--enable-threads", "--enable-bulk-memory", "-Oz"]
 #virtual-fs = { git = "https://github.com/wasmerio/wasmer", branch = "master" }
 #wasmer-wasix = { git = "https://github.com/wasmerio/wasmer", branch = "master" }
 #wasmer = { git = "https://github.com/wasmerio/wasmer", branch = "master" }
-# virtual-net = { path = "../wasmer/lib/virtual-net" }
-# virtual-fs = { path = "../wasmer/lib/virtual-fs" }
-# wasmer-wasix = { path = "../wasmer/lib/wasix" }
-# wasmer = { path = "../wasmer/lib/api" }
+virtual-net = { path = "../wasmer/lib/virtual-net" }
+virtual-fs = { path = "../wasmer/lib/virtual-fs" }
+wasmer-wasix = { path = "../wasmer/lib/wasix" }
+wasmer = { path = "../wasmer/lib/api" }
+wasmer-api = { path = "../wasmer/lib/backend-api" }
+wasmer-config = { path = "../wasmer/lib/config" }
+wasmer-types = { path = "../wasmer/lib/types" }

@@ -249,14 +249,15 @@ struct UnsupportedSource;
 
 #[async_trait::async_trait]
 impl Source for UnsupportedSource {
-    async fn query(&self, _package: &PackageSource) -> Result<Vec<PackageSummary>, QueryError> {
-        Err(QueryError::Unsupported)
+    async fn query(&self, package: &PackageSource) -> Result<Vec<PackageSummary>, QueryError> {
+        Err(QueryError::Unsupported { query: package.clone()})
     }
 }
 
 #[cfg(test)]
 mod tests {
     use wasm_bindgen_test::wasm_bindgen_test;
+    use wasmer::Module;
     use wasmer_wasix::{Runtime as _, WasiEnvBuilder};
 
     use super::*;
@@ -271,7 +272,9 @@ mod tests {
     #[wasm_bindgen_test]
     async fn execute_a_trivial_module() {
         let runtime = Runtime::with_defaults().unwrap().with_default_pool();
-        let module = runtime.load_module(TRIVIAL_WAT).await.unwrap();
+        // let module = runtime.load_module(TRIVIAL_WAT).await.unwrap();
+
+        let module = Module::new(&runtime.engine(), TRIVIAL_WAT).unwrap();
 
         WasiEnvBuilder::new("trivial")
             .runtime(Arc::new(runtime))
