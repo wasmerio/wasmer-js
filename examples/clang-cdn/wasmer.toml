@@ -1,0 +1,19 @@
+[package]
+name = "wasmer/wasmer-sh"
+version = "0.4.21"
+description = "The wasmer.sh website"
+entrypoint = "wasmer-sh"
+
+[dependencies]
+"wasmer/static-web-server" = "^1"
+
+[fs]
+"/public" = "."
+"/etc/static-web-server" = "etc"
+
+[[command]]
+name = "wasmer-sh"
+module = "wasmer/static-web-server:webserver"
+runner = "wasi"
+[command.annotations.wasi]
+env = ["SERVER_CONFIG_FILE=/etc/static-web-server/config.toml"]

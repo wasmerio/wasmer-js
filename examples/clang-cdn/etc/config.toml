@@ -1,0 +1,16 @@
+# Configuration for static-web-server.
+# https://static-web-server.net/configuration/config-file/
+
+[general]
+log-level = "info"
+
+[advanced]
+
+# Note: We need COOP and COEP for Cross-Origin Isolation
+# https://docs.wasmer.io/javascript-sdk/explainers/troubleshooting#sharedarraybuffer-and-cross-origin-isolation
+[[advanced.headers]]
+source = "**/*.{js,html,wasm}"
+headers = { Cross-Origin-Opener-Policy = "same-origin", Cross-Origin-Embedder-Policy = "require-corp" }
+[[advanced.headers]]
+source = "/"
+headers = { Cross-Origin-Opener-Policy = "same-origin", Cross-Origin-Embedder-Policy = "require-corp" }

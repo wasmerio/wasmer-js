@@ -1,0 +1,63 @@
+<!-- Note: this example requires setting the COEP headers to work, see README.md -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wasmer JavaScript SDK</title>
+    <script type="module">
+      import {
+        init,
+        Wasmer,
+        Directory
+      } from "https://unpkg.com/@wasmer/sdk@0.8.0-beta.1/dist/index.mjs";
+
+      async function runClang() {
+
+        const status = document.getElementById("status");
+
+        status.innerHTML = "Initializing...";
+        await init();
+
+        status.innerHTML = `Fetching clang...`;
+        const clang = await Wasmer.fromRegistry("clang/clang");
+        const project = new Directory();
+        await project.writeFile("example.c",
+        `#include<stdio.h>
+
+        int main() {
+          printf("Hello World");
+          return 0;
+        }
+        `);
+
+        status.innerHTML = `Generating Wasm...`;
+
+        let instance = await clang.entrypoint.run({
+          args: ["/project/example.c", "-o", "/project/example.wasm"],
+          mount: { "/project": project },
+        });
+        const output = await instance.wait();
+        
+        if (!output.ok) {
+          throw new Error(`Clang failed with exit code ${output.code}: ${output.stderr}`);
+        }
+
+        status.innerHTML = `Running Wasm...`;
+        let wasm = await project.readFile("example.wasm");
+        console.log(wasm);
+        const example = await Wasmer.fromFile(wasm);
+        const result = await example.entrypoint.run();
+        const outputExample = await result.wait();
+        console.log(outputExample.stdout);
+      }
+
+      runClang();
+    </script>
+  </head>
+
+  <body>
+    <h1 id="status"></h1>
+    <pre><code id="stdout"></code></pre>
+  </body>
+</html>
