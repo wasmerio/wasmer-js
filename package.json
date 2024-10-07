@@ -1,6 +1,6 @@
 {
   "name": "@wasmer/sdk",
-  "version": "0.7.1",
+  "version": "0.8.0",
   "unpkg": "dist/unpkg.mjs",
   "main": "dist/index.mjs",
   "module": "dist/index.mjs",
