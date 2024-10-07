@@ -1,4 +1,8 @@
----
-kind: wasmer.io/App.v0
 name: wasmer-examples-wasmer-sh
-package: wasmer-examples/wasmer-sh
+app_id: da_bRbxI9tgUaQK
+owner: wasmer
+package: .
+domains:
+- wasmer-examples-wasmer-sh.wasmer.app
+- wasmer-sh.wasmer.app
+kind: wasmer.io/App.v0
