@@ -6,7 +6,7 @@ use once_cell::sync::Lazy;
 use virtual_net::VirtualNetworking;
 use wasmer_config::package::PackageSource;
 use wasmer_wasix::{
-    http::{HttpClient, WebHttpClient},
+    http::{HttpClient, WebHttpClient as DefaultHttpClient}, // reqwest::ReqwestHttpClient
     os::{TtyBridge, TtyOptions},
     runtime::{
         module_cache::ThreadLocalCache,
@@ -86,13 +86,13 @@ impl Runtime {
     pub(crate) fn with_task_manager(&self, task_manager: Arc<ThreadPool>) -> Self {
         let mut runtime = self.clone();
         // Update the http client
-        let mut http_client = WebHttpClient::default();
-        http_client
-            .with_default_header(
-                reqwest::header::USER_AGENT,
-                HeaderValue::from_static(crate::USER_AGENT),
-            )
-            .with_task_manager(task_manager.clone());
+        let mut http_client = DefaultHttpClient::default();
+        // http_client
+        //     .with_default_header(
+        //         reqwest::header::USER_AGENT,
+        //         HeaderValue::from_static(crate::USER_AGENT),
+        //     )
+        //     .with_task_manager(task_manager.clone());
         runtime.http_client = Arc::new(http_client);
 
         runtime.task_manager = Some(task_manager);
@@ -105,11 +105,11 @@ impl Runtime {
     }
 
     pub(crate) fn new() -> Self {
-        let mut http_client = WebHttpClient::default();
-        http_client.with_default_header(
-            reqwest::header::USER_AGENT,
-            HeaderValue::from_static(crate::USER_AGENT),
-        );
+        let mut http_client = DefaultHttpClient::default();
+        // http_client.with_default_header(
+        //     reqwest::header::USER_AGENT,
+        //     HeaderValue::from_static(crate::USER_AGENT),
+        // );
         let http_client = Arc::new(http_client);
 
         let module_cache = ThreadLocalCache::default();
