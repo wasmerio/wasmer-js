@@ -41,6 +41,8 @@ type CommonOptions = {
      * files.
      */
     mount?: Record<string, DirectoryInit | Directory>;
+    /** The current working directory. */
+    cwd?: string;
 };
 
 /**
@@ -77,6 +79,9 @@ extern "C" {
     pub type CommonOptions;
 
     #[wasm_bindgen(method, getter)]
+    fn cwd(this: &CommonOptions) -> Option<String>;
+
+    #[wasm_bindgen(method, getter)]
     fn args(this: &CommonOptions) -> Option<Array>;
 
     #[wasm_bindgen(method, getter)]
@@ -94,6 +99,13 @@ impl CommonOptions {
         match self.args() {
             Some(args) => crate::utils::js_string_array(args),
             None => Ok(Vec::new()),
+        }
+    }
+
+    pub(crate) fn parse_cwd(&self) -> Result<Option<String>, Error> {
+        match self.cwd() {
+            Some(cwd) => Ok(Some(cwd)),
+            None => Ok(None),
         }
     }
 
@@ -116,7 +128,7 @@ impl CommonOptions {
             return Ok(Vec::new());
         };
 
-        let entries = crate::utils::object_entries(&obj)?;
+        let entries: BTreeMap<js_sys::JsString, JsValue> = crate::utils::object_entries(&obj)?;
         let mut mounted_directories = Vec::new();
 
         for (key, value) in &entries {

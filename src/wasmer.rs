@@ -6,17 +6,18 @@ use futures::{channel::oneshot, TryStreamExt};
 use js_sys::{JsString, Reflect, Uint8Array};
 use sha2::Digest;
 use tracing::Instrument;
-use virtual_fs::{AsyncReadExt, Pipe};
+use virtual_fs::{AsyncReadExt, Pipe, RootFileSystemBuilder};
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue, UnwrapThrowExt};
-use wasmer_config::package::PackageSource;
+use wasmer_config::{hash::Sha256Hash, package::{PackageHash, PackageId, PackageSource}};
+use wasmer_types::ModuleHash;
 use wasmer_wasix::{
-    bin_factory::BinaryPackage,
+    bin_factory::{BinaryPackage, BinaryPackageCommand},
     os::{Tty, TtyOptions},
     runners::{wasi::WasiRunner, Runner},
     Runtime as _,
 };
 use web_sys::{ReadableStream, WritableStream};
-use webc::wasmer_package::Package;
+use webc::{indexmap::IndexMap, metadata::Command as MetadataCommand, wasmer_package::Package};
 
 use crate::{
     instance::ExitCondition,
@@ -82,7 +83,24 @@ impl Wasmer {
         binary: Uint8Array,
         runtime: Option<OptionalRuntime>,
     ) -> Result<Wasmer, Error> {
-        Wasmer::from_file(binary.to_vec(), runtime).await
+        let bytes = binary.to_vec();
+        if bytes.starts_with(b"\0asm") {
+            // If the user provides bytes similar to Wasm, we don't assume
+            // we are provided a package, but a Wasm file
+            Wasmer::from_wasm(bytes, runtime)
+        }
+        else {
+            Wasmer::from_file(bytes, runtime).await
+        }
+    }
+
+    /// Load a package from a package file.
+    #[wasm_bindgen(js_name = "fromWasm")]
+    pub fn js_from_wasm(
+        binary: Uint8Array,
+        runtime: Option<OptionalRuntime>,
+    ) -> Result<Wasmer, Error> {
+        Wasmer::from_wasm(binary.to_vec(), runtime)
     }
 }
 
@@ -134,6 +152,30 @@ impl Wasmer {
             commands,
             pkg: None,
         })
+    }
+
+    fn from_wasm(wasm: Vec<u8>, runtime: Option<OptionalRuntime>) -> Result<Self, Error> {
+        let webc_fs = RootFileSystemBuilder::default().build();
+        let hash = ModuleHash::xxhash(&wasm);
+        let metadata = MetadataCommand {
+            runner: "wasi".to_string(),
+            annotations: IndexMap::new(),
+        };
+        let package = BinaryPackage {
+            id: PackageId::Hash(PackageHash::Sha256(Sha256Hash::from_bytes([0; 32]))),
+            package_ids: vec![],
+            hash: hash.clone().into(),
+            uses: vec![],
+            webc_fs: Arc::new(webc_fs),
+            when_cached: None,
+            file_system_memory_footprint: 0,
+            entrypoint_cmd: Some("entrypoint".to_string()),
+            commands: vec![BinaryPackageCommand::new(
+                "entrypoint".to_string(), metadata, wasm.into(), hash)],
+            additional_host_mapped_directories: vec![],
+        };
+        let runtime = runtime.unwrap_or_default().resolve()?.into_inner();
+        Self::from_package(package, runtime)
     }
 
     pub(crate) async fn from_user_package(
@@ -257,11 +299,18 @@ pub(crate) async fn configure_runner(
     ),
     Error,
 > {
+
     let args = options.parse_args()?;
     runner.with_args(args);
 
     let env = options.parse_env()?;
     runner.with_envs(env);
+
+    tracing::debug!("Setting up CWD");
+    if let Some(cwd) = options.parse_cwd()? {
+        tracing::debug!("CWD FOUND {}", cwd);
+        runner.with_current_dir(cwd);
+    }
 
     for (dest, dir) in options.mounted_directories()? {
         runner.with_mount(dest, Arc::new(dir));

@@ -17,11 +17,10 @@ bytes = "1"
 console_error_panic_hook = { version = "0.1" }
 derivative = { version = "2" }
 futures = "0.3"
-http = "0.2"
 instant = { version = "0.1", features = ["wasm-bindgen"] }
 js-sys = "0.3"
 once_cell = "1"
-reqwest = { version = "0.12.5", features = ["stream"] }
+reqwest = { version = "0.12.7", features = ["stream"] }
 serde = { version = "1", features = ["derive"] }
 serde-wasm-bindgen = "0.6"
 sha2 = "0.10.8"
@@ -31,18 +30,18 @@ toml = "0.8.14"
 tracing = { version = "0.1", features = ["log", "release_max_level_debug"] }
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 url = "2.4.0"
-virtual-fs = { version = "0.13.0", default-features = false }
-virtual-net = { version = "0.6.7", default-features = false, features = ["remote"] }
-wasm-bindgen = { version = "0.2" }
+virtual-fs = { version = "0.17.0", default-features = false }
+virtual-net = { version = "0.9.0", default-features = false, features = ["remote"] }
+wasm-bindgen = { version = "=0.2.92" }
 wasm-bindgen-derive = "0.2.1"
-wasm-bindgen-futures = "0.4"
-wasm-bindgen-test = "0.3.37"
-wasmer = { version = "4.3.2", default-features = false, features = ["js", "js-default", "wasm-types-polyfill", "enable-serde"] }
-wasmer-api = { version = "0.0.30", git = "https://github.com/wasmerio/wasmer", branch = "backend-api-wasm32"}
-wasmer-config = "0.4.0"
-wasmer-types = "4.3.2"
-wasmer-wasix = { version = "0.22.0", default-features = false, features = ["js", "js-default"] }
-webc = "6.0.0-rc2"
+wasm-bindgen-futures = "0.4.40"
+wasm-bindgen-test = "0.3.40"
+wasmer = { version = "4.4.0", default-features = false, features = ["js", "js-default", "wasm-types-polyfill", "enable-serde"] }
+wasmer-api = { version = "0.1.0"}
+wasmer-config = "0.9.0"
+wasmer-types = "4.4.0"
+wasmer-wasix = { version = "0.28.0", default-features = false, features = ["js", "js-default"] }
+webc = "6.1.0"
 
 [dependencies.web-sys]
 version = "0.3"
@@ -108,7 +107,11 @@ wasm-opt = ["--enable-threads", "--enable-bulk-memory", "-Oz"]
 #virtual-fs = { git = "https://github.com/wasmerio/wasmer", branch = "master" }
 #wasmer-wasix = { git = "https://github.com/wasmerio/wasmer", branch = "master" }
 #wasmer = { git = "https://github.com/wasmerio/wasmer", branch = "master" }
-# virtual-net = { path = "../wasmer/lib/virtual-net" }
-# virtual-fs = { path = "../wasmer/lib/virtual-fs" }
-# wasmer-wasix = { path = "../wasmer/lib/wasix" }
-# wasmer = { path = "../wasmer/lib/api" }
+webc = { path = "../pirita/crates/webc" }
+virtual-net = { path = "../wasmer/lib/virtual-net" }
+virtual-fs = { path = "../wasmer/lib/virtual-fs" }
+wasmer-wasix = { path = "../wasmer/lib/wasix" }
+wasmer = { path = "../wasmer/lib/api" }
+wasmer-api = { path = "../wasmer/lib/backend-api" }
+wasmer-config = { path = "../wasmer/lib/config" }
+wasmer-types = { path = "../wasmer/lib/types" }

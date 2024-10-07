@@ -34,6 +34,24 @@ describe("run", function () {
     expect(output.code).to.equal(0);
   });
 
+  it("can execute a Wasm file", async () => {
+    const noop = `(
+            module
+                (memory $memory 0)
+                (export "memory" (memory $memory))
+                (func (export "_start") nop)
+            )`;
+    const wasm = wat2wasm(noop);
+    const pkg = await Wasmer.fromWasm(wasm);
+    const instance = await pkg.entrypoint!.run();
+
+    const output = await instance.wait();
+
+    expect(output.ok).to.be.true;
+    expect(output.code).to.equal(0);
+  });
+
+
   it("can start quickjs", async () => {
     const pkg = await Wasmer.fromRegistry("saghul/quickjs@0.0.3");
     const quickjs = pkg.commands["quickjs"].binary();

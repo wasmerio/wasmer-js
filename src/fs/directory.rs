@@ -211,6 +211,12 @@ impl FileSystem for Directory {
     fn symlink_metadata(&self, path: &Path) -> virtual_fs::Result<virtual_fs::Metadata> {
         self.0.symlink_metadata(path)
     }
+
+    #[tracing::instrument(level = "trace", skip(self))]
+    fn mount(&self, name: String, path: &Path, fs: Box<dyn FileSystem + Send + Sync>)
+            -> virtual_fs::Result<()> {
+        self.0.mount(name, path, fs)
+    }
 }
 
 impl virtual_fs::FileOpener for Directory {

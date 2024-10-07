@@ -106,7 +106,7 @@ jobs:
         run: npm run build
         working-directory: examples/wasmer.sh
       - name: Deploy wasmer.sh to wasmer.io
-        run: wasmer deploy --registry="https://registry.wasmer.io/graphql" --token=${{ secrets.WASMER_CIUSER_PROD_TOKEN }} --non-interactive --no-wait --no-persist-id --publish-package --owner=wasmer-examples
+        run: wasmer deploy --registry="https://registry.wasmer.io/graphql" --token=${{ secrets.WASMER_CIUSER_PROD_TOKEN }} --non-interactive --no-wait --no-persist-id --publish-package --owner=wasmer
         continue-on-error: true
         working-directory: examples/wasmer.sh
       - name: Install ffmpeg-react dependencies

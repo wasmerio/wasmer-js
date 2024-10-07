@@ -1,4 +1,4 @@
-#![feature(once_cell_try)]
+// #![feature(once_cell_try)]
 
 #[cfg(test)]
 wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
@@ -37,12 +37,12 @@ pub use crate::{
 
 use once_cell::sync::Lazy;
 use wasm_bindgen::prelude::wasm_bindgen;
+use wasmer_wasix::runtime::resolver::BackendSource;
 
 pub(crate) const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));
 pub(crate) const DEFAULT_RUST_LOG: &[&str] = &["warn"];
 pub(crate) static CUSTOM_WORKER_URL: Lazy<Mutex<Option<String>>> = Lazy::new(Mutex::default);
-pub(crate) const DEFAULT_REGISTRY: &str =
-    wasmer_wasix::runtime::resolver::WapmSource::WASMER_PROD_ENDPOINT;
+pub(crate) const DEFAULT_REGISTRY: &str = BackendSource::WASMER_PROD_ENDPOINT;
 
 #[wasm_bindgen]
 pub fn wat2wasm(wat: String) -> Result<js_sys::Uint8Array, utils::Error> {

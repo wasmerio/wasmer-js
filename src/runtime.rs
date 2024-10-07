@@ -1,17 +1,17 @@
 use std::sync::{atomic::AtomicBool, Arc, Mutex, Weak};
 
-use http::HeaderValue;
+use reqwest::header::HeaderValue;
 use lazy_static::lazy_static;
 use once_cell::sync::Lazy;
 use virtual_net::VirtualNetworking;
 use wasmer_config::package::PackageSource;
 use wasmer_wasix::{
-    http::{HttpClient, WebHttpClient},
+    http::{HttpClient, WebHttpClient as DefaultHttpClient}, // reqwest::ReqwestHttpClient
     os::{TtyBridge, TtyOptions},
     runtime::{
         module_cache::ThreadLocalCache,
         package_loader::PackageLoader,
-        resolver::{PackageSummary, QueryError, Source, WapmSource},
+        resolver::{PackageSummary, QueryError, Source, BackendSource},
     },
     VirtualTaskManager, WasiTtyState,
 };
@@ -32,7 +32,7 @@ static GLOBAL_RUNTIME: Lazy<Mutex<Weak<Runtime>>> = Lazy::new(Mutex::default);
 pub struct Runtime {
     task_manager: Option<Arc<dyn VirtualTaskManager>>,
     networking: Arc<dyn VirtualNetworking>,
-    source: Option<Arc<WapmSource>>,
+    source: Option<Arc<BackendSource>>,
     http_client: Arc<dyn HttpClient + Send + Sync>,
     package_loader: Arc<crate::package_loader::PackageLoader>,
     module_cache: Arc<ThreadLocalCache>,
@@ -86,13 +86,13 @@ impl Runtime {
     pub(crate) fn with_task_manager(&self, task_manager: Arc<ThreadPool>) -> Self {
         let mut runtime = self.clone();
         // Update the http client
-        let mut http_client = WebHttpClient::default();
-        http_client
-            .with_default_header(
-                http::header::USER_AGENT,
-                HeaderValue::from_static(crate::USER_AGENT),
-            )
-            .with_task_manager(task_manager.clone());
+        let mut http_client = DefaultHttpClient::default();
+        // http_client
+        //     .with_default_header(
+        //         reqwest::header::USER_AGENT,
+        //         HeaderValue::from_static(crate::USER_AGENT),
+        //     )
+        //     .with_task_manager(task_manager.clone());
         runtime.http_client = Arc::new(http_client);
 
         runtime.task_manager = Some(task_manager);
@@ -105,11 +105,11 @@ impl Runtime {
     }
 
     pub(crate) fn new() -> Self {
-        let mut http_client = WebHttpClient::default();
-        http_client.with_default_header(
-            http::header::USER_AGENT,
-            HeaderValue::from_static(crate::USER_AGENT),
-        );
+        let mut http_client = DefaultHttpClient::default();
+        // http_client.with_default_header(
+        //     reqwest::header::USER_AGENT,
+        //     HeaderValue::from_static(crate::USER_AGENT),
+        // );
         let http_client = Arc::new(http_client);
 
         let module_cache = ThreadLocalCache::default();
@@ -131,7 +131,7 @@ impl Runtime {
     pub fn set_registry(&mut self, url: &str, token: Option<&str>) -> Result<(), Error> {
         let url = url.parse().map_err(Error::from)?;
 
-        let mut source = WapmSource::new(url, self.http_client.clone());
+        let mut source = BackendSource::new(url, self.http_client.clone());
         if let Some(token) = token {
             source = source.with_auth_token(token);
         }
@@ -249,14 +249,15 @@ struct UnsupportedSource;
 
 #[async_trait::async_trait]
 impl Source for UnsupportedSource {
-    async fn query(&self, _package: &PackageSource) -> Result<Vec<PackageSummary>, QueryError> {
-        Err(QueryError::Unsupported)
+    async fn query(&self, package: &PackageSource) -> Result<Vec<PackageSummary>, QueryError> {
+        Err(QueryError::Unsupported { query: package.clone()})
     }
 }
 
 #[cfg(test)]
 mod tests {
     use wasm_bindgen_test::wasm_bindgen_test;
+    use wasmer::Module;
     use wasmer_wasix::{Runtime as _, WasiEnvBuilder};
 
     use super::*;
@@ -271,7 +272,9 @@ mod tests {
     #[wasm_bindgen_test]
     async fn execute_a_trivial_module() {
         let runtime = Runtime::with_defaults().unwrap().with_default_pool();
-        let module = runtime.load_module(TRIVIAL_WAT).await.unwrap();
+        // let module = runtime.load_module(TRIVIAL_WAT).await.unwrap();
+
+        let module = Module::new(&runtime.engine(), TRIVIAL_WAT).unwrap();
 
         WasiEnvBuilder::new("trivial")
             .runtime(Arc::new(runtime))
