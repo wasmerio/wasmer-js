@@ -3036,7 +3036,7 @@ checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
 
 [[package]]
 name = "virtual-fs"
-version = "0.16.0"
+version = "0.17.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3060,7 +3060,7 @@ dependencies = [
 
 [[package]]
 name = "virtual-mio"
-version = "0.3.1"
+version = "0.4.0"
 dependencies = [
  "async-trait",
  "bytes",
@@ -3073,7 +3073,7 @@ dependencies = [
 
 [[package]]
 name = "virtual-net"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3330,7 +3330,7 @@ dependencies = [
 
 [[package]]
 name = "wasmer"
-version = "4.3.7"
+version = "4.4.0"
 dependencies = [
  "bytes",
  "cfg-if",
@@ -3357,7 +3357,7 @@ dependencies = [
 
 [[package]]
 name = "wasmer-api"
-version = "0.0.34"
+version = "0.1.0"
 dependencies = [
  "anyhow",
  "cynic",
@@ -3380,7 +3380,7 @@ dependencies = [
 
 [[package]]
 name = "wasmer-compiler"
-version = "4.3.7"
+version = "4.4.0"
 dependencies = [
  "backtrace",
  "bytes",
@@ -3408,7 +3408,7 @@ dependencies = [
 
 [[package]]
 name = "wasmer-config"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "anyhow",
  "bytesize",
@@ -3428,7 +3428,7 @@ dependencies = [
 
 [[package]]
 name = "wasmer-derive"
-version = "4.3.7"
+version = "4.4.0"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
@@ -3438,7 +3438,7 @@ dependencies = [
 
 [[package]]
 name = "wasmer-journal"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3502,7 +3502,7 @@ dependencies = [
 
 [[package]]
 name = "wasmer-types"
-version = "4.3.7"
+version = "4.4.0"
 dependencies = [
  "bytecheck",
  "enum-iterator",
@@ -3522,7 +3522,7 @@ dependencies = [
 
 [[package]]
 name = "wasmer-vm"
-version = "4.3.7"
+version = "4.4.0"
 dependencies = [
  "backtrace",
  "cc",
@@ -3549,7 +3549,7 @@ dependencies = [
 
 [[package]]
 name = "wasmer-wasix"
-version = "0.27.0"
+version = "0.28.0"
 dependencies = [
  "ahash 0.8.11",
  "anyhow",
@@ -3618,7 +3618,7 @@ dependencies = [
 
 [[package]]
 name = "wasmer-wasix-types"
-version = "0.27.0"
+version = "0.28.0"
 dependencies = [
  "anyhow",
  "bitflags 1.3.2",
@@ -3683,8 +3683,6 @@ dependencies = [
 [[package]]
 name = "webc"
 version = "6.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cdea84cf234555864ca9b7a5084c1a99dbdf2d148035f62a09b19ce5606532c1"
 dependencies = [
  "anyhow",
  "base64",

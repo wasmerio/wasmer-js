@@ -299,11 +299,18 @@ pub(crate) async fn configure_runner(
     ),
     Error,
 > {
+
     let args = options.parse_args()?;
     runner.with_args(args);
 
     let env = options.parse_env()?;
     runner.with_envs(env);
+
+    tracing::debug!("Setting up CWD");
+    if let Some(cwd) = options.parse_cwd()? {
+        tracing::debug!("CWD FOUND {}", cwd);
+        runner.with_current_dir(cwd);
+    }
 
     for (dest, dir) in options.mounted_directories()? {
         runner.with_mount(dest, Arc::new(dir));
