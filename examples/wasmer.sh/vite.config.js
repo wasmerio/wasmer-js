@@ -7,7 +7,7 @@ export default defineConfig({
       "Cross-Origin-Embedder-Policy": "require-corp",
     },
     fs: {
-      allow: ["../.."],
+      allow: ["../..", "node_modules/@wasmer/sdk/dist"],
     },
   },
   build: {

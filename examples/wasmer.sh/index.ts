@@ -3,6 +3,8 @@ import "xterm/css/xterm.css";
 import type { Instance } from "@wasmer/sdk";
 import { Terminal } from "xterm";
 import { FitAddon } from "xterm-addon-fit";
+// @ts-ignore
+import WasmModule from "@wasmer/sdk/wasm?url";
 
 const encoder = new TextEncoder();
 const params = new URLSearchParams(window.location.search);
@@ -22,7 +24,7 @@ async function main() {
   // See https://github.com/wasmerio/wasmer-js/issues/373
   const { Wasmer, init, Directory } = await import("@wasmer/sdk");
 
-  await init({log: logFilter});
+  await init({log: logFilter, module: WasmModule});
 
   const term = new Terminal({ cursorBlink: true, convertEol: true });
   const fit = new FitAddon();
