@@ -164,7 +164,7 @@ fn import_meta_url() -> String {
 
 /// A data URL containing our worker's bootstrap script.
 static WORKER_URL: Lazy<String> = Lazy::new(|| {
-    let script = include_str!("worker.js");
+    let script = include_str!("../../src-js/worker.js");
 
     let blob = web_sys::Blob::new_with_u8_array_sequence_and_options(
         Array::from_iter([Uint8Array::from(script.as_bytes())]).as_ref(),
