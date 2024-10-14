@@ -1,7 +1,11 @@
 export * from "./";
+import Worker from "web-worker";
 import { init as load, InitOutput, WasmerInitInput, VolumeTree } from "./";
 import fs from "node:fs/promises";
 import path from "node:path";
+
+//@ts-ignore
+globalThis.Worker = Worker;
 
 /**
  * Initialize the underlying WebAssembly module, defaulting to an embedded

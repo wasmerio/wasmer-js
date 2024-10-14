@@ -24,9 +24,11 @@ impl WorkerHandle {
     pub(crate) fn spawn(worker_id: u32, sender: Scheduler) -> Result<Self, Error> {
         let name = format!("worker-{worker_id}");
 
+        // let worker_url = WORKER_URL;
+        let worker_url = "/Users/syrusakbary/Development/wasmer-js/dist/worker.mjs";
         let worker = web_sys::Worker::new_with_options(
-            &WORKER_URL,
-            web_sys::WorkerOptions::new().name(&name),
+            &worker_url,
+            web_sys::WorkerOptions::new().name(&name).type_(web_sys::WorkerType::Module),
         )
         .map_err(crate::utils::js_error)?;
 
