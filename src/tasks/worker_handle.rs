@@ -24,11 +24,10 @@ impl WorkerHandle {
     pub(crate) fn spawn(worker_id: u32, sender: Scheduler) -> Result<Self, Error> {
         let name = format!("worker-{worker_id}");
 
-        // let worker_url = WORKER_URL;
-        let worker_url = "/Users/syrusakbary/Development/wasmer-js/dist/worker.mjs";
+        let worker_url = worker_url();
         let worker = web_sys::Worker::new_with_options(
             &worker_url,
-            web_sys::WorkerOptions::new().name(&name).type_(web_sys::WorkerType::Module),
+            web_sys::WorkerOptions::new().name(&name),
         )
         .map_err(crate::utils::js_error)?;
 
@@ -136,8 +135,8 @@ fn init_message(id: u32) -> Result<JsValue, JsValue> {
     js_sys::Reflect::set(&msg, &JsString::from("id"), &JsValue::from(id))?;
     js_sys::Reflect::set(
         &msg,
-        &JsString::from("import_url"),
-        &JsValue::from(import_meta_url()),
+        &JsString::from("sdkUrl"),
+        &JsValue::from(sdk_url()),
     )?;
     js_sys::Reflect::set(
         &msg,
@@ -148,24 +147,38 @@ fn init_message(id: u32) -> Result<JsValue, JsValue> {
     Ok(msg.into())
 }
 
-/// The URL used by the bootstrapping script to import the `wasm-bindgen` glue
-/// code.
-fn import_meta_url() -> String {
-    #[wasm_bindgen]
-    #[allow(non_snake_case)]
-    extern "C" {
-        #[wasm_bindgen(js_namespace = ["import", "meta"], js_name = url)]
-        static IMPORT_META_URL: String;
-    }
+// fn import_meta_url() -> String {
+//     #[wasm_bindgen]
+//     #[allow(non_snake_case)]
+//     extern "C" {
+//         #[wasm_bindgen(js_namespace = ["import", "meta"], js_name = url)]
+//         static IMPORT_META_URL: String;
+//     }
 
-    let import_url = crate::CUSTOM_WORKER_URL.lock().unwrap();
-    let import_url = import_url.as_deref().unwrap_or(IMPORT_META_URL.as_str());
+//     IMPORT_META_URL.to_string()
+// }
 
-    import_url.to_string()
+/// The URL used by the bootstrapping script to import the Wasmer SDK.
+fn sdk_url() -> String {
+    let sdk_url = crate::CUSTOM_SDK_URL.lock().unwrap();
+    // let import_meta_url = import_meta_url();
+    let sdk_url = sdk_url.as_deref().unwrap_or("index.mjs");
+
+    sdk_url.to_string()
 }
 
+
+/// The URL user for the worker.
+fn worker_url() -> String {
+    let worker_url = crate::CUSTOM_WORKER_URL.lock().unwrap();
+    let worker_url = worker_url.as_deref().unwrap_or(DEFAULT_WORKER_URL.as_str());
+
+    worker_url.to_string()
+}
+
+
 /// A data URL containing our worker's bootstrap script.
-static WORKER_URL: Lazy<String> = Lazy::new(|| {
+static DEFAULT_WORKER_URL: Lazy<String> = Lazy::new(|| {
     let script = include_str!("../../src-js/worker.js");
 
     let blob = web_sys::Blob::new_with_u8_array_sequence_and_options(
@@ -174,5 +187,5 @@ static WORKER_URL: Lazy<String> = Lazy::new(|| {
     )
     .unwrap();
 
-    web_sys::Url::create_object_url_with_blob(&blob).unwrap()
+    web_sys::Url::create_object_url_with_blob(&blob).unwrap_or("worker.mjs".to_string())
 });

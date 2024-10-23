@@ -7,6 +7,7 @@ import load, {
   ThreadPoolWorker,
   initializeLogger,
   setWorkerUrl,
+  setSDKUrl,
 } from "../pkg/wasmer_js";
 
 export type WasmerRegistryConfig = {
@@ -18,6 +19,7 @@ export type WasmerInitInput = {
   module?: InitInput | Promise<InitInput>;
   memory?: WebAssembly.Memory;
   workerUrl?: string | URL;
+  sdkUrl?: string | URL;
   log?: string;
 } & WasmerRegistryConfig;
 
@@ -61,6 +63,12 @@ export const init = async (
   }
   if (initValue.workerUrl) {
     setWorkerUrl(initValue.workerUrl.toString());
+  }
+  if (initValue.sdkUrl) {
+    setSDKUrl(initValue.sdkUrl.toString());
+  }
+  else {
+    setSDKUrl(new URL("index.mjs", import.meta.url).toString());
   }
   return output;
 };

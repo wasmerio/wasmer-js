@@ -28,13 +28,13 @@ process.stdin.on("data", data => stdin?.write(encoder.encode(data)));
 // Replace __filename with "/Users/syrusakbary/Development/wasmer-js/node_modules/.deno/web-worker@1.3.0/node_modules/web-worker/node.js"
 
 async function run() {
-    // await init({log: "trace"});
-    await init();
+    await init({log: "trace"});
+    // await init();
 
-let cowsay = await Wasmer.fromRegistry("python/python")
+let cowsay = await Wasmer.fromRegistry("cowsay")
 
-// let instance = await cowsay.entrypoint.run({args: ["hello world"]});
-let instance = await cowsay.entrypoint.run({args: []});
+let instance = await cowsay.entrypoint.run({args: ["hello world"]});
+// let instance = await cowsay.entrypoint.run({args: []});
 
 await connectStreams(instance);
 // const output = await instance.wait();
