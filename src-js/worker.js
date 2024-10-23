@@ -15,36 +15,8 @@ let handleMessage = async data => {
 globalThis.onmessage = async ev => {
   if (ev.data.type == "init") {
     const { memory, module, id, sdkUrl } = ev.data;
-    const imported = await import(sdkUrl);
-
-    // HACK: How we load our imports will change depending on how the code
-    // is deployed. If we are being used in "wasm-pack test" then we can
-    // access the things we want from the imported object. Otherwise, if we
-    // are being used from a bundler, chances are those things are no longer
-    // directly accessible and we need to get them from the
-    // __WASMER_INTERNALS__ object stashed on the global scope when the
-    // package was imported.
-    let init;
-    let ThreadPoolWorker;
-    if ("ThreadPoolWorker" in imported) {
-      if ("default" in imported) {
-        init = imported.default;
-      } else if ("init" in imported) {
-        init = imported.init;
-      }
-      ThreadPoolWorker = imported.ThreadPoolWorker;
-
-      //await init(module, memory);
-    } else {
-      init = globalThis["__WASMER_INTERNALS__"].init;
-      ThreadPoolWorker = globalThis["__WASMER_INTERNALS__"].ThreadPoolWorker;
-    }
-
-    if (globalThis["__WASMER_INIT__"]) {
-      await init({ module: module, memory: memory });
-    } else {
-      await init(module, memory);
-    }
+    const { init, ThreadPoolWorker } = await import(sdkUrl);
+    await init({ module: module, memory: memory });
 
     worker = new ThreadPoolWorker(id);
 

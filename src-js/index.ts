@@ -79,22 +79,3 @@ export const setRegistry = (initValue: WasmerRegistryConfig) => {
     token: initValue.token,
   };
 };
-
-// HACK: We save these to the global scope because it's the most reliable way to
-// make sure worker.js gets access to them. Normal exports are removed when
-// using a bundler.
-(globalThis as any)["__WASMER_INTERNALS__"] = { ThreadPoolWorker, init };
-(globalThis as any)["__WASMER_INIT__"] = true;
-
-// HACK: some bundlers such as webpack uses this on dev mode.
-// We add this functions to allow dev mode work in those bundlers.
-(globalThis as any).$RefreshReg$ =
-  (globalThis as any).$RefreshReg$ ||
-  function () {
-    /**/
-  };
-(globalThis as any).$RefreshSig$ =
-  (globalThis as any).$RefreshSig$ ||
-  function () {
-    return function () {};
-  };
