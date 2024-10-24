@@ -56,11 +56,15 @@ impl WorkerMessage {
             "Sending a worker message"
         );
         let scope: DedicatedWorkerGlobalScope = js_sys::global()
-            .dyn_into()
-            .expect("Should only ever be executed from a worker");
+            .unchecked_into();
 
         let value = self.into_js()?;
         scope.post_message(&value).map_err(Error::js)?;
+
+        tracing::debug!(
+            current_thread = wasmer::current_thread_id(),
+            "Message sent"
+        );
 
         Ok(())
     }

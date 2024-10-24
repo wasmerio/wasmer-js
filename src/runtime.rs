@@ -157,6 +157,11 @@ impl Runtime {
             .store(state, std::sync::atomic::Ordering::SeqCst);
     }
 }
+impl Drop for Runtime {
+    fn drop(&mut self) {
+        tracing::debug!("Dropping Runtime");
+    }
+}
 
 impl wasmer_wasix::runtime::Runtime for Runtime {
     fn networking(&self) -> &Arc<dyn VirtualNetworking> {

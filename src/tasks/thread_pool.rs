@@ -48,6 +48,17 @@ impl ThreadPool {
     pub(crate) fn send(&self, msg: SchedulerMessage) {
         self.scheduler.send(msg).expect("scheduler is dead");
     }
+
+    pub fn close(&self) {
+        self.scheduler.close();
+    }
+}
+
+impl Drop for ThreadPool {
+    fn drop(&mut self) {
+        tracing::debug!("Terminating ThreadPool");
+        // self.scheduler.close();
+    }
 }
 
 #[async_trait::async_trait]
