@@ -112,8 +112,8 @@ fn on_message(msg: web_sys::MessageEvent, sender: &Scheduler, worker_id: u32) {
     if let Err(e) = result {
         tracing::warn!(
             error = &*e,
-            msg.origin = msg.origin(),
-            msg.last_event_id = msg.last_event_id(),
+            // msg.origin = msg.origin(),
+            // msg.last_event_id = msg.last_event_id(),
             "Unable to handle a message from the worker",
         );
     }
@@ -121,7 +121,7 @@ fn on_message(msg: web_sys::MessageEvent, sender: &Scheduler, worker_id: u32) {
 
 impl Drop for WorkerHandle {
     fn drop(&mut self) {
-        tracing::trace!(id = self.id(), "Terminating worker");
+        tracing::debug!(id = self.id(), "Terminating worker");
         self.inner.terminate();
     }
 }

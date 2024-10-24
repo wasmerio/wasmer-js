@@ -50,6 +50,13 @@ impl ThreadPool {
     }
 }
 
+impl Drop for ThreadPool {
+    fn drop(&mut self) {
+        tracing::debug!("Terminating ThreadPool");
+        // self.scheduler.close();
+    }
+}
+
 #[async_trait::async_trait]
 impl VirtualTaskManager for ThreadPool {
     /// Invokes whenever a WASM thread goes idle. In some runtimes (like

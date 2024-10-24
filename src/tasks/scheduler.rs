@@ -67,6 +67,7 @@ impl Scheduler {
     /// otherwise these `!Send` values will be sent between threads.
     unsafe fn new(channel: UnboundedSender<SchedulerMessage>, scheduler_thread_id: u32) -> Self {
         debug_assert_eq!(scheduler_thread_id, wasmer::current_thread_id());
+        tracing::debug!(current_thread = wasmer::current_thread_id(), "Creating Scheduler");
         Scheduler {
             channel,
             scheduler_thread_id,
@@ -102,6 +103,13 @@ impl Scheduler {
 // invariants.
 unsafe impl Send for Scheduler {}
 unsafe impl Sync for Scheduler {}
+
+impl Drop for Scheduler {
+    fn drop(&mut self) {
+        tracing::debug!("Dropping Scheduler");
+        // self.close();
+    }
+}
 
 /// The state for the actor in charge of the threadpool.
 #[derive(Debug)]
