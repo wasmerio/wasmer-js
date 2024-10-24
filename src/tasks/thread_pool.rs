@@ -48,6 +48,10 @@ impl ThreadPool {
     pub(crate) fn send(&self, msg: SchedulerMessage) {
         self.scheduler.send(msg).expect("scheduler is dead");
     }
+
+    pub fn close(&self) {
+        self.scheduler.close();
+    }
 }
 
 impl Drop for ThreadPool {

@@ -20,6 +20,8 @@ use crate::{
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub(crate) enum SchedulerMessage {
+    /// Close the scheduler.
+    Close,
     /// Run a promise on a worker thread.
     SpawnAsync(#[derivative(Debug(format_with = "crate::utils::hidden"))] AsyncTask),
     /// Run a blocking operation on a worker thread.
@@ -131,6 +133,7 @@ impl SchedulerMessage {
 
     pub(crate) fn into_js(self) -> Result<JsValue, Error> {
         match self {
+            SchedulerMessage::Close => Serializer::new(consts::TYPE_CLOSE).finish(),
             SchedulerMessage::SpawnAsync(task) => Serializer::new(consts::TYPE_SPAWN_ASYNC)
                 .boxed(consts::PTR, task)
                 .finish(),
@@ -177,6 +180,7 @@ impl SchedulerMessage {
 }
 
 mod consts {
+    pub const TYPE_CLOSE: &str = "close";
     pub const TYPE_SPAWN_ASYNC: &str = "spawn-async";
     pub const TYPE_SPAWN_BLOCKING: &str = "spawn-blocking";
     pub const TYPE_WORKER_IDLE: &str = "worker-idle";

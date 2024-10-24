@@ -41,7 +41,9 @@ impl Scheduler {
             async move {
                 while let Some(msg) = receiver.recv().await {
                     tracing::trace!(?msg, "Executing a message");
-
+                    if let SchedulerMessage::Close = msg {
+                        break;
+                    }
                     if let Err(e) = scheduler.execute(msg) {
                         tracing::error!(error = &*e, "An error occurred while handling a message");
                     }
@@ -96,6 +98,14 @@ impl Scheduler {
             Ok(())
         }
     }
+
+    pub fn close(&self) {
+        self.channel.send(SchedulerMessage::Close).unwrap();
+    }
+
+    pub fn is_closed(&self) -> bool {
+        self.channel.is_closed()
+    }
 }
 
 // Safety: The only way our !Send messages will be sent to the scheduler is if
@@ -136,6 +146,12 @@ impl SchedulerState {
 
     fn execute(&mut self, message: SchedulerMessage) -> Result<(), Error> {
         match message {
+            SchedulerMessage::Close => {
+                tracing::debug!("Scheduler received Close message");
+                self.idle.clear();
+                // self.busy.clear();
+                Ok(())
+            }
             SchedulerMessage::SpawnAsync(task) => {
                 self.post_message(PostMessagePayload::Async(AsyncJob::Thunk(task)))
             }

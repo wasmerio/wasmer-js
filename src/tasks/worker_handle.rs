@@ -94,14 +94,19 @@ fn on_message(msg: web_sys::MessageEvent, sender: &Scheduler, worker_id: u32) {
     let result = unsafe { WorkerMessage::try_from_js(msg.data()) }
         .map_err(|e| crate::utils::js_error(e.into()))
         .context("Unable to parse the worker message")
-        .and_then(|msg| {
+        .and_then(|base_msg| {
             tracing::trace!(
-                ?msg,
+                ?base_msg,
                 worker.id = worker_id,
                 "Received a message from worker"
             );
 
-            let msg = match msg {
+            if sender.is_closed() && matches!(&base_msg, WorkerMessage::MarkIdle) {
+                tracing::warn!("Scheduler is closed, dropping message {:?}", msg);
+                return Ok(());
+            }
+
+            let msg = match base_msg {
                 WorkerMessage::MarkBusy => SchedulerMessage::WorkerBusy { worker_id },
                 WorkerMessage::MarkIdle => SchedulerMessage::WorkerIdle { worker_id },
                 WorkerMessage::Scheduler(msg) => msg,
