@@ -42,6 +42,7 @@ use wasmer_wasix::runtime::resolver::BackendSource;
 pub(crate) const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));
 pub(crate) const DEFAULT_RUST_LOG: &[&str] = &["warn"];
 pub(crate) static CUSTOM_WORKER_URL: Lazy<Mutex<Option<String>>> = Lazy::new(Mutex::default);
+pub(crate) static CUSTOM_SDK_URL: Lazy<Mutex<Option<String>>> = Lazy::new(Mutex::default);
 pub(crate) const DEFAULT_REGISTRY: &str = BackendSource::WASMER_PROD_ENDPOINT;
 
 #[wasm_bindgen]
@@ -56,6 +57,11 @@ fn on_start() {
         tracing::error!("{p}");
         console_error_panic_hook::hook(p);
     }));
+}
+
+#[wasm_bindgen(js_name = setSDKUrl)]
+pub fn set_sdk_url(url: js_sys::JsString) {
+    *CUSTOM_SDK_URL.lock().unwrap() = Some(url.into());
 }
 
 #[wasm_bindgen(js_name = setWorkerUrl)]

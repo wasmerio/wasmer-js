@@ -62,8 +62,10 @@ impl Instance {
             }
         }
 
+        tracing::debug!("Getting stdout");
         let mut stdout_buffer = Vec::new();
         let stdout_done = copy_to_buffer(crate::streams::read_to_end(stdout), &mut stdout_buffer);
+        tracing::debug!("Getting stderr");
         let mut stderr_buffer = Vec::new();
         let stderr_done = copy_to_buffer(crate::streams::read_to_end(stderr), &mut stderr_buffer);
 

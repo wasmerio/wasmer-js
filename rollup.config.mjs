@@ -20,6 +20,7 @@ const entries = [
   'src-js/node.ts',
   'src-js/unpkg.ts',
   'src-js/wasm-inlined.ts',
+  'src-js/worker.js',
 ]
 
 const banner = `/*!

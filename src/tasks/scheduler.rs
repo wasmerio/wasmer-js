@@ -41,7 +41,9 @@ impl Scheduler {
             async move {
                 while let Some(msg) = receiver.recv().await {
                     tracing::trace!(?msg, "Executing a message");
-
+                    if let SchedulerMessage::Close = msg {
+                        break;
+                    }
                     if let Err(e) = scheduler.execute(msg) {
                         tracing::error!(error = &*e, "An error occurred while handling a message");
                     }
@@ -67,6 +69,7 @@ impl Scheduler {
     /// otherwise these `!Send` values will be sent between threads.
     unsafe fn new(channel: UnboundedSender<SchedulerMessage>, scheduler_thread_id: u32) -> Self {
         debug_assert_eq!(scheduler_thread_id, wasmer::current_thread_id());
+        tracing::debug!(current_thread = wasmer::current_thread_id(), "Creating Scheduler");
         Scheduler {
             channel,
             scheduler_thread_id,
@@ -95,6 +98,14 @@ impl Scheduler {
             Ok(())
         }
     }
+
+    pub fn close(&self) {
+        self.channel.send(SchedulerMessage::Close).unwrap();
+    }
+
+    pub fn is_closed(&self) -> bool {
+        self.channel.is_closed()
+    }
 }
 
 // Safety: The only way our !Send messages will be sent to the scheduler is if
@@ -102,6 +113,13 @@ impl Scheduler {
 // invariants.
 unsafe impl Send for Scheduler {}
 unsafe impl Sync for Scheduler {}
+
+impl Drop for Scheduler {
+    fn drop(&mut self) {
+        tracing::debug!("Dropping Scheduler");
+        // self.close();
+    }
+}
 
 /// The state for the actor in charge of the threadpool.
 #[derive(Debug)]
@@ -128,6 +146,12 @@ impl SchedulerState {
 
     fn execute(&mut self, message: SchedulerMessage) -> Result<(), Error> {
         match message {
+            SchedulerMessage::Close => {
+                tracing::debug!("Scheduler received Close message");
+                self.idle.clear();
+                // self.busy.clear();
+                Ok(())
+            }
             SchedulerMessage::SpawnAsync(task) => {
                 self.post_message(PostMessagePayload::Async(AsyncJob::Thunk(task)))
             }

@@ -24,9 +24,10 @@ impl WorkerHandle {
     pub(crate) fn spawn(worker_id: u32, sender: Scheduler) -> Result<Self, Error> {
         let name = format!("worker-{worker_id}");
 
+        let worker_url = worker_url();
         let worker = web_sys::Worker::new_with_options(
-            &WORKER_URL,
-            web_sys::WorkerOptions::new().name(&name),
+            &worker_url,
+            web_sys::WorkerOptions::new().name(&name).type_(web_sys::WorkerType::Module),
         )
         .map_err(crate::utils::js_error)?;
 
@@ -93,14 +94,19 @@ fn on_message(msg: web_sys::MessageEvent, sender: &Scheduler, worker_id: u32) {
     let result = unsafe { WorkerMessage::try_from_js(msg.data()) }
         .map_err(|e| crate::utils::js_error(e.into()))
         .context("Unable to parse the worker message")
-        .and_then(|msg| {
+        .and_then(|base_msg| {
             tracing::trace!(
-                ?msg,
+                ?base_msg,
                 worker.id = worker_id,
                 "Received a message from worker"
             );
 
-            let msg = match msg {
+            if sender.is_closed() && matches!(&base_msg, WorkerMessage::MarkIdle) {
+                tracing::warn!("Scheduler is closed, dropping message {:?}", msg);
+                return Ok(());
+            }
+
+            let msg = match base_msg {
                 WorkerMessage::MarkBusy => SchedulerMessage::WorkerBusy { worker_id },
                 WorkerMessage::MarkIdle => SchedulerMessage::WorkerIdle { worker_id },
                 WorkerMessage::Scheduler(msg) => msg,
@@ -111,8 +117,8 @@ fn on_message(msg: web_sys::MessageEvent, sender: &Scheduler, worker_id: u32) {
     if let Err(e) = result {
         tracing::warn!(
             error = &*e,
-            msg.origin = msg.origin(),
-            msg.last_event_id = msg.last_event_id(),
+            // msg.origin = msg.origin(),
+            // msg.last_event_id = msg.last_event_id(),
             "Unable to handle a message from the worker",
         );
     }
@@ -120,7 +126,7 @@ fn on_message(msg: web_sys::MessageEvent, sender: &Scheduler, worker_id: u32) {
 
 impl Drop for WorkerHandle {
     fn drop(&mut self) {
-        tracing::trace!(id = self.id(), "Terminating worker");
+        tracing::debug!(id = self.id(), "Terminating worker");
         self.inner.terminate();
     }
 }
@@ -134,8 +140,8 @@ fn init_message(id: u32) -> Result<JsValue, JsValue> {
     js_sys::Reflect::set(&msg, &JsString::from("id"), &JsValue::from(id))?;
     js_sys::Reflect::set(
         &msg,
-        &JsString::from("import_url"),
-        &JsValue::from(import_meta_url()),
+        &JsString::from("sdkUrl"),
+        &JsValue::from(sdk_url()),
     )?;
     js_sys::Reflect::set(
         &msg,
@@ -146,25 +152,39 @@ fn init_message(id: u32) -> Result<JsValue, JsValue> {
     Ok(msg.into())
 }
 
-/// The URL used by the bootstrapping script to import the `wasm-bindgen` glue
-/// code.
-fn import_meta_url() -> String {
-    #[wasm_bindgen]
-    #[allow(non_snake_case)]
-    extern "C" {
-        #[wasm_bindgen(js_namespace = ["import", "meta"], js_name = url)]
-        static IMPORT_META_URL: String;
-    }
+// fn import_meta_url() -> String {
+//     #[wasm_bindgen]
+//     #[allow(non_snake_case)]
+//     extern "C" {
+//         #[wasm_bindgen(js_namespace = ["import", "meta"], js_name = url)]
+//         static IMPORT_META_URL: String;
+//     }
 
-    let import_url = crate::CUSTOM_WORKER_URL.lock().unwrap();
-    let import_url = import_url.as_deref().unwrap_or(IMPORT_META_URL.as_str());
+//     IMPORT_META_URL.to_string()
+// }
 
-    import_url.to_string()
+/// The URL used by the bootstrapping script to import the Wasmer SDK.
+fn sdk_url() -> String {
+    let sdk_url = crate::CUSTOM_SDK_URL.lock().unwrap();
+    // let import_meta_url = import_meta_url();
+    let sdk_url = sdk_url.as_deref().unwrap_or("index.mjs");
+
+    sdk_url.to_string()
 }
 
+
+/// The URL user for the worker.
+fn worker_url() -> String {
+    let worker_url = crate::CUSTOM_WORKER_URL.lock().unwrap();
+    let worker_url = worker_url.as_deref().unwrap_or(DEFAULT_WORKER_URL.as_str());
+
+    worker_url.to_string()
+}
+
+
 /// A data URL containing our worker's bootstrap script.
-static WORKER_URL: Lazy<String> = Lazy::new(|| {
-    let script = include_str!("worker.js");
+static DEFAULT_WORKER_URL: Lazy<String> = Lazy::new(|| {
+    let script = include_str!("../../src-js/worker.js");
 
     let blob = web_sys::Blob::new_with_u8_array_sequence_and_options(
         Array::from_iter([Uint8Array::from(script.as_bytes())]).as_ref(),
@@ -172,5 +192,5 @@ static WORKER_URL: Lazy<String> = Lazy::new(|| {
     )
     .unwrap();
 
-    web_sys::Url::create_object_url_with_blob(&blob).unwrap()
+    web_sys::Url::create_object_url_with_blob(&blob).unwrap_or("worker.mjs".to_string())
 });

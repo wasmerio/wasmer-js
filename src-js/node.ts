@@ -1,7 +1,13 @@
 export * from "./";
+// import { Worker } from "node:worker_threads";
+import Worker from "web-worker";
+import { fileURLToPath } from 'node:url';
 import { init as load, InitOutput, WasmerInitInput, VolumeTree } from "./";
 import fs from "node:fs/promises";
 import path from "node:path";
+
+//@ts-ignore
+globalThis.Worker = Worker;
 
 /**
  * Initialize the underlying WebAssembly module, defaulting to an embedded
@@ -17,6 +23,12 @@ export const init = async (
   if (!initValue.module) {
     const path = new URL("wasmer_js_bg.wasm", import.meta.url).pathname;
     initValue.module = await fs.readFile(path);
+  }
+  if (!initValue.workerUrl) {
+    initValue.workerUrl = fileURLToPath(new URL("worker.mjs", import.meta.url));
+  }
+  if (!initValue.sdkUrl) {
+    initValue.sdkUrl = fileURLToPath(new URL("node.mjs", import.meta.url));
   }
   return load(initValue);
 };

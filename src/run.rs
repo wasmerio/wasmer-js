@@ -11,16 +11,14 @@ const DEFAULT_PROGRAM_NAME: &str = "wasm";
 ///
 /// # WASI Compatibility
 ///
-/// The WASIX standard is a superset of [WASI preview 1][preview-1], so programs
+/// The [WASIX standard][wasix] is a superset of [WASI preview 1][preview-1], so programs
 /// compiled to WASI will run without any problems.
 ///
-/// [WASI Preview 2][preview-2] is a backwards incompatible rewrite of WASI
-/// to use the experimental [Component Model Proposal][component-model]. That
-/// means programs compiled for WASI Preview 2 will fail to load.
+/// WASI Preview 2 is a backwards incompatible rewrite of WASI.
+/// This means programs compiled for WASI Preview 2 will fail to load.
 ///
+/// [wasix]: https://wasix.dev/
 /// [preview-1]: https://github.com/WebAssembly/WASI/blob/main/legacy/README.md
-/// [preview-2]: https://github.com/WebAssembly/WASI/blob/main/preview2/README.md
-/// [component-model]: https://github.com/WebAssembly/component-model
 #[wasm_bindgen(js_name = "runWasix")]
 pub async fn run_wasix(wasm_module: WasmModule, config: RunOptions) -> Result<Instance, Error> {
     run_wasix_inner(wasm_module, config).await
