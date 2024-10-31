@@ -1,0 +1,22 @@
+{
+    "name": "wasmer-sdk-node-example",
+    "version": "0.0.0",
+    "description": "A bash terminal in your browser, powered by WebAssembly and WASIX.",
+    "scripts": {
+      "run": "node example.mjs"
+    },
+    "author": "",
+    "type": "module",
+    "license": "ISC",
+    "bugs": {
+      "url": "https://github.com/wasmerio/wasmer-js/issues"
+    },
+    "homepage": "https://github.com/wasmerio/wasmer-js#readme",
+    "repository": {
+      "type": "git",
+      "url": "git+https://github.com/wasmerio/wasmer-js.git"
+    },
+    "dependencies": {
+      "@wasmer/sdk": "0.9.0"
+    }
+}
