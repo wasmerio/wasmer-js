@@ -42,12 +42,13 @@ jobs:
     steps:
       # The logic below handles the npm publication:
       - name: Checkout Repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Install Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 16
-          registry-url: "https://registry.npmjs.org"
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@mairech-cc'
       - name: Setup Rust
         uses: dsherret/rust-toolchain-file@v1
       - name: Install wasm-pack
@@ -63,59 +64,6 @@ jobs:
       # Release Please has already incremented versions and published tags, so
       # we just need to publish to NPM
       - name: Publish to NPM
-        run: npm publish --access=public
+        run: npm publish
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-  publish-to-edge:
-    name: Publish to Wasmer Edge
-    runs-on: ubuntu-latest
-    needs:
-      - release-please
-    if: github.ref == 'refs/heads/main'
-    steps:
-      - uses: actions/checkout@v2
-      - name: Install Node
-        uses: actions/setup-node@v3
-        with:
-          node-version: 16
-      - name: Setup Rust
-        uses: dsherret/rust-toolchain-file@v1
-      - name: Install wasm-pack
-        uses: taiki-e/install-action@wasm-pack
-      - name: Setup Wasmer
-        uses: wasmerio/setup-wasmer@v2
-      - name: Install wasm-strip and wasm-opt
-        run: sudo apt-get update && sudo apt-get install -y wabt binaryen
-      - name: Rust Cache
-        uses: Swatinem/rust-cache@v2
-      - name: Install @wasmer/sdk Dependencies
-        run: npm ci
-      - name: Build @wasmer/sdk
-        run: npm run build
-      - name: Generate API Docs
-        run: npm run docs
-      - name: Deploy API Docs to wasmer.io
-        run: wasmer deploy --registry="https://registry.wasmer.io/graphql" --token=${{ secrets.WASMER_CIUSER_PROD_TOKEN }} --non-interactive --no-wait --no-persist-id --publish-package --owner=wasmer-examples
-        continue-on-error: true
-        working-directory: docs
-      - name: Install wasmer.sh dependencies
-        run: npm ci
-        working-directory: examples/wasmer.sh
-      - name: Build wasmer.sh
-        run: npm run build
-        working-directory: examples/wasmer.sh
-      - name: Deploy wasmer.sh to wasmer.io
-        run: wasmer deploy --registry="https://registry.wasmer.io/graphql" --token=${{ secrets.WASMER_CIUSER_PROD_TOKEN }} --non-interactive --no-wait --no-persist-id --publish-package --owner=wasmer
-        continue-on-error: true
-        working-directory: examples/wasmer.sh
-      - name: Install ffmpeg-react dependencies
-        run: npm ci
-        working-directory: examples/ffmpeg-react
-      - name: Build ffmpeg-react
-        run: npm run build
-        working-directory: examples/ffmpeg-react
-      - name: Deploy ffmpeg-react to wasmer.io
-        run: wasmer deploy --registry="https://registry.wasmer.io/graphql" --token=${{ secrets.WASMER_CIUSER_PROD_TOKEN }} --non-interactive --no-wait --no-persist-id --publish-package --owner=wasmer-examples
-        continue-on-error: true
-        working-directory: examples/ffmpeg-react
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
