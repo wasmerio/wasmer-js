@@ -1,5 +1,5 @@
 {
-  "name": "@wasmer/sdk",
+  "name": "@mairech-cc/wasmer-sdk",
   "version": "0.8.0",
   "unpkg": "dist/unpkg.mjs",
   "main": "dist/index.mjs",
@@ -15,12 +15,12 @@
   "author": "Wasmer Engineering Team <engineering@wasmer.io>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/wasmerio/wasmer-js/issues"
+    "url": "https://github.com/mairech-cc/wasmer-js/issues"
   },
-  "homepage": "https://github.com/wasmerio/wasmer-js",
+  "homepage": "https://github.com/mairech-cc/wasmer-js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/wasmerio/wasmer-js.git"
+    "url": "git+https://github.com/mairech-cc/wasmer-js.git"
   },
   "publishConfig": {
     "access": "public"
