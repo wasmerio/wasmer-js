@@ -1,4 +1,4 @@
-import { srcAutobuildMutation } from '__generated__/srcAutobuildMutation.graphql';
+import { srcAutobuildMutation, srcAutobuildMutation$variables } from '__generated__/srcAutobuildMutation.graphql';
 import { createEnvironment } from './environment';
 import RelayRuntime, { type Environment } from 'relay-runtime';
 import { srcAutobuildSubscription } from '__generated__/srcAutobuildSubscription.graphql';
@@ -132,7 +132,7 @@ class AutobuildApp {
         this.onProgress = null;
         this.subscription.dispose();
         if (!this.appVersion) {
-          reject(new Error("The app could not be built"));
+          reject(new Error("Error when building the app: build finished without deployed app"));
         }
         else {
           resolve(this.appVersion);
@@ -160,7 +160,7 @@ class AutobuildApp {
 };
 
 export const Wasmer = {
-  autobuildApp: async (): Promise<AutobuildApp> => {
+  autobuildApp: async (input: srcAutobuildMutation$variables['input']): Promise<AutobuildApp> => {
     const env = environment();
     let query: any = await (new Promise((resolve, reject) => {
       commitMutation<srcAutobuildMutation>(
@@ -184,33 +184,7 @@ export const Wasmer = {
         reject(`The app could not be built: ${error.toString()}`);
       },
       variables: {
-        input: {
-          region: "de-mons1", 
-          appName: "xyz",
-          repoUrl: "https://github.com/wasmerio/wordpress",
-          // kind: "wordpress",
-          // domains: ["xyz.static.studio"],
-          // secrets: {
-          // },
-          // jobs: [{
-          //   trigger: "postdeployment",
-          //   command: "bash",
-          //   cliArgs: "wp my-plugin activate ...; echo 'hello';"
-          // }],
-          params: {
-            wordpress: {
-              // phpVersion: "8.3",
-              adminUsername: "myadmin",
-              adminPassword: "mypassword",
-              adminEmail: "my@email.com",
-              siteName: "bcd",
-              language: "es-ES",
-              // Other things to preinstall
-              // themes: ["twentytwentyfive"],
-              // plugins: ["akismet", "myplugin"],
-            }
-          }
-        }
+        input
       },
       })
     }));
@@ -245,15 +219,3 @@ export const init = (settings: WasmerRegistryConfig) => {
 //   network,
 //   store,
 // });
-
-init({
-  registryUrl: "https://registry.wasmer.wtf/graphql",
-  token: ""
-});
-
-const autobuildApp = await Wasmer.autobuildApp();
-autobuildApp.subscribeToProgress((kind, message) => {
-  console.log(kind, message);
-});
-const appId = await autobuildApp.finish();
-console.log(appId);
