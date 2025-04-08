@@ -1,0 +1,8 @@
+overwrite: true
+schema: "https://registry.wasmer.wtf/graphql"
+generates:
+  schema.graphql:
+    plugins:
+      - schema-ast
+    config:
+      commentDescriptions: true

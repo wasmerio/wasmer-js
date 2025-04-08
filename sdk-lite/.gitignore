@@ -1,0 +1,6 @@
+.rollup.cache
+.relay
+.graphqlconfig
+src/__generated__
+dist/
+node_modules/

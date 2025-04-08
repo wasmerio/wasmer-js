@@ -1,0 +1,37 @@
+{
+  "name": "@wasmer/sdk-lite",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "npm run relay && npm run build-sdk",
+    "build-sdk": "rollup -c rollup.config.mjs",
+    "check-schema": "npm run fetch-schema && git diff --quiet ./schema.graphql",
+    "fetch-schema": "graphql-codegen --config .graphqlconfig",
+    "relay": "mkdir -p src/__generated__ && relay-compiler relay.config.js",
+    "local-relay": "mkdir -p src/__generated__ && WASMER_RELAY_ENDPOINT=http://127.0.0.1:8000/graphql npm run relay-compile",
+    "dev-relay": "mkdir -p src/__generated__ && WASMER_RELAY_ENDPOINT=https://registry.wasmer.wtf/graphql npm run relay-compile",
+    "prod-relay": "mkdir -p src/__generated__ && WASMER_RELAY_ENDPOINT=https://registry.wasmer.io/graphql npm run relay-compile",
+    "relay-compile": "relay-compiler --repersist relay.config.js"
+  },
+  "dependencies": {
+    "persisted-subscriptions-transport-ws": "^0.11.0",
+    "relay-compiler": "^18.0.0",
+    "relay-runtime": "^18.0.0"
+  },
+  "devDependencies": {
+    "@babel/preset-typescript": "^7.27.0",
+    "@graphql-codegen/cli": "5.0.2",
+    "@graphql-codegen/client-preset": "4.2.4",
+    "@graphql-codegen/schema-ast": "^4.0.2",
+    "@rollup/plugin-babel": "^6.0.4",
+    "@rollup/plugin-node-resolve": "^16.0.1",
+    "@rollup/plugin-typescript": "^12.1.2",
+    "@types/relay-runtime": "^18.0.2",
+    "babel-plugin-relay": "^18.2.0",
+    "graphql": "^16.10.0",
+    "rollup": "^4.39.0",
+    "ts-node": "^10.9.2"
+  }
+}
