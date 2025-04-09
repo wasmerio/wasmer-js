@@ -39,10 +39,12 @@ const autobuildApp = await Wasmer.autobuildApp({
     }
   });
 
-autobuildApp.subscribeToProgress((kind, message) => {
-console.log(kind, message);
+autobuildApp.subscribeToProgress(({kind, message, datetime, stream}) => {
+    console.log(datetime, stream, kind, message);
 });
+let startTime = new Date();
 console.log("Waiting for the app to be built...");
 const app = await autobuildApp.finish();
 console.log("App built!", app);
 console.log(app.kind);
+console.log("Time taken:", new Date().getTime() - startTime.getTime(), "ms");

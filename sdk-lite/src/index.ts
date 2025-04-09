@@ -127,12 +127,19 @@ function getFragmentData<T>(environment: Environment, node: ReaderFragment, fetc
   return environment.lookup(selector as any).data as any;
 }
 
+export type AutoBuildProgressData = {
+  kind: string;
+  message: string | undefined | null;
+  datetime: string;
+  stream: string | undefined | null;
+}
+
 class AutobuildApp {
   buildId: string;
   appVersion: DeployAppVersion | null = null;
   subscription: any;
-  pendingLogs: [string, string | undefined | null][] = [];
-  onProgress: ((kind: string, message?: string | null) => void) | null = null;
+  pendingLogs: AutoBuildProgressData[] = [];
+  onProgress: ((data: AutoBuildProgressData) => void) | null = null;
   completedPromise: Promise<DeployAppVersion> | null = null;
   constructor(buildId: string) {
     this.buildId = buildId;
@@ -146,6 +153,8 @@ class AutobuildApp {
                 ...srcDeployAppVersionData
               }
               kind
+              datetime
+              stream
               message
             }
           }
@@ -154,10 +163,11 @@ class AutobuildApp {
         buildId: this.buildId,
       },
       onNext: (data) => {
+        console.log(data);
         if (!data?.autobuildDeployment) {
           return;
         }
-        const { kind, message, appVersion } = data?.autobuildDeployment!;
+        const { kind, message, appVersion, datetime, stream } = data?.autobuildDeployment!;
         
         if (kind === "FAILED") {
           reject(message);
@@ -176,9 +186,9 @@ class AutobuildApp {
           }
         }
         if (this.onProgress) {
-          this.onProgress(kind, message);
+          this.onProgress({kind, message, datetime, stream});
         } else {
-          this.pendingLogs.push([kind, message]);
+          this.pendingLogs.push({kind, message, datetime, stream});
         }
       },
       onCompleted: () => {
@@ -199,10 +209,10 @@ class AutobuildApp {
     });
   });
 }
-  subscribeToProgress(callback: (kind: string, message: string | null | undefined) => void) {
+  subscribeToProgress(callback: (data: AutoBuildProgressData) => void) {
     if (this.pendingLogs.length > 0) {
-      for (const [kind, message] of this.pendingLogs) {
-        callback(kind, message);
+      for (const data of this.pendingLogs) {
+        callback(data);
       }
       this.pendingLogs = [];
     }

@@ -571,14 +571,20 @@ input AutobuildDeploymentExtraData {
 type AutobuildLog {
   appVersion: DeployAppVersion
 
-  """The database password, if DB was setup."""
-  dbPassword: String
+  """ISO 8601 string in UTC"""
+  datetime: DateTime!
 
   """Kind of log message."""
   kind: AutoBuildDeployAppLogKind!
 
   """Log message"""
   message: String
+
+  """Log stream"""
+  stream: LogStream
+
+  """Timestamp in nanoseconds"""
+  timestamp: Int!
 }
 
 type AutobuildRepository implements Node {
@@ -1526,7 +1532,7 @@ input DeployViaAutobuildInput {
   installCmd: String
 
   """Additional jobs to run in the deployment."""
-  jobs: JobDefinitionInput
+  jobs: [JobDefinitionInput]
   kind: String
 
   """If set, the app is managed by wasmer."""
@@ -2205,6 +2211,7 @@ type MarkAppVersionAsActivePayload {
 }
 
 enum MetricRange {
+  CURRENT_MONTH
   LAST_1_HOUR
   LAST_24_HOURS
   LAST_30_DAYS
@@ -2239,6 +2246,11 @@ enum MetricUnit {
 
   """represents the unit of "seconds"."""
   SEC
+}
+
+type MoneyType {
+  amount: String
+  currency: String
 }
 
 type Mutation {
@@ -2452,6 +2464,7 @@ type Namespace implements Node & Owner & PackageOwner {
   billing: Billing
   collaborators(after: String, before: String, first: Int, last: Int, offset: Int): NamespaceCollaboratorConnection!
   createdAt: DateTime!
+  currentUsage: OwnerUsageSummary
   description: String!
   displayName: String
   domains(after: String, before: String, first: Int, last: Int, offset: Int): DNSDomainConnection!
@@ -2462,12 +2475,14 @@ type Namespace implements Node & Owner & PackageOwner {
   """The ID of the object"""
   id: ID!
   isPro: Boolean!
+  limitState: String!
   maintainerInvites(after: String, before: String, first: Int, last: Int, offset: Int): NamespaceCollaboratorInviteConnection!
   name: String!
   packageTransfersIncoming(after: String, before: String, first: Int, last: Int, offset: Int): PackageTransferRequestConnection!
   packageVersions(after: String, before: String, first: Int, last: Int, offset: Int): PackageVersionConnection!
   packages(after: String, before: String, first: Int, last: Int, offset: Int): PackageConnection!
   pendingInvites(after: String, before: String, first: Int, last: Int, offset: Int): NamespaceCollaboratorInviteConnection!
+  probationStartedAt: DateTime
   publicActivity(after: String, before: String, first: Int, last: Int): ActivityEventConnection!
   twitterHandle: String
   updatedAt: DateTime!
@@ -2729,6 +2744,15 @@ interface Owner {
 enum OwnerAction {
   DEPLOY_APP
   PUBLISH_PACKAGE
+}
+
+"""Usage summary for a specific owner."""
+type OwnerUsageSummary {
+  cpuTime: Usage!
+  egress: Usage!
+  ingress: Usage!
+  noRequests: Usage!
+  since: DateTime!
 }
 
 type PTRRecord implements DNSRecordInterface & Node {
@@ -4867,6 +4891,16 @@ type UpsertDomainFromZoneFilePayload {
   success: Boolean!
 }
 
+"""Individual usage metrics for a specific app."""
+type Usage {
+  charge: MoneyType!
+  max: Int!
+  maxFormatted: String!
+  used: Int!
+  usedFormatted: String!
+  usedPercent: Float!
+}
+
 type UsageMetric {
   timestamp: DateTime!
   unit: MetricUnit!
@@ -4882,6 +4916,7 @@ type User implements Node & Owner & PackageOwner {
   bio: String
   companyDescription: String
   companyRole: String
+  currentUsage: OwnerUsageSummary
   dashboardActivity(after: String, before: String, first: Int, last: Int, offset: Int): ActivityEventConnection!
   dateJoined: DateTime!
   domains(after: String, before: String, first: Int, last: Int, offset: Int): DNSDomainConnection!
@@ -4903,6 +4938,7 @@ type User implements Node & Owner & PackageOwner {
   isStaff: Boolean
   isViewer: Boolean!
   lastName: String!
+  limitState: String!
   location: String
   loginMethods: [LoginMethod!]!
   namespaceInvitesIncoming(after: String, before: String, first: Int, last: Int, offset: Int): NamespaceCollaboratorInviteConnection!
@@ -4912,6 +4948,7 @@ type User implements Node & Owner & PackageOwner {
   packageTransfersIncoming(after: String, before: String, first: Int, last: Int, offset: Int): PackageTransferRequestConnection!
   packageVersions(after: String, before: String, first: Int, last: Int, offset: Int): PackageVersionConnection!
   packages(after: String, before: String, collaborating: Boolean = false, first: Int, last: Int, offset: Int): PackageConnection!
+  probationStartedAt: DateTime
   publicActivity(after: String, before: String, first: Int, last: Int, offset: Int): ActivityEventConnection!
   registerIntent: String
   twitterUrl: String
