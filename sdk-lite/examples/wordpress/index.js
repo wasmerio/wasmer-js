@@ -1,4 +1,5 @@
-import { init, Wasmer } from "@wasmer/sdk-lite";
+// import { init, Wasmer } from "@wasmer/sdk-lite";
+import { init, Wasmer } from "../../dist/index.js";
 
 init({
     registryUrl: "https://registry.wasmer.wtf/graphql",
@@ -32,6 +33,7 @@ const autobuildApp = await Wasmer.autobuildApp({
       }
     }
   });
+
 autobuildApp.subscribeToProgress((kind, message) => {
 console.log(kind, message);
 });
