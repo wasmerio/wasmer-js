@@ -1,10 +1,11 @@
 import { srcAutobuildMutation, srcAutobuildMutation$variables } from '__generated__/srcAutobuildMutation.graphql';
 import { createEnvironment } from './environment';
-import RelayRuntime, { type Environment } from 'relay-runtime';
+import RelayRuntime, { ReaderFragment, type Environment } from 'relay-runtime';
 import { srcAutobuildSubscription } from '__generated__/srcAutobuildSubscription.graphql';
-import { srcDeployAppData$data } from '__generated__/srcDeployAppData.graphql';
-import { srcDeployAppVersionData$data } from '__generated__/srcDeployAppVersionData.graphql';
-const { graphql, fetchQuery, commitMutation, requestSubscription } = RelayRuntime;
+import nodeApp, { srcDeployAppData$data } from '__generated__/srcDeployAppData.graphql';
+import nodeAppVersion, { srcDeployAppVersionData$data, srcDeployAppVersionData$key } from '__generated__/srcDeployAppVersionData.graphql';
+import nodeDeployAppKindWordPress, { srcDeployAppKindWordPress$data, srcDeployAppKindWordPress$key } from '__generated__/srcDeployAppKindWordPress.graphql';
+const { graphql, fetchQuery, commitMutation, requestSubscription, getSelector } = RelayRuntime;
 
 export type WasmerRegistryConfig = {
   registryUrl?: string;
@@ -26,8 +27,34 @@ const environment = () => {
   return config!.environment;
 }
 
+class DeployAppKind {
+  static fragment = graphql`
+    fragment srcDeployAppKind on Kind {
+      ...on WordpressAppKind {
+        __typename
+      }
+    }
+  `
+}
+
+class DeployAppKindWordPress extends DeployAppKind {
+  static fragment = graphql`
+    fragment srcDeployAppKindWordPress on Kind {
+      ...on WordpressAppKind {
+        adminUrl
+      }
+    }
+  `
+  adminUrl?: string;
+  constructor(data: srcDeployAppKindWordPress$data) {
+    super();
+    this.adminUrl = data.adminUrl;
+  }
+}
+
 class DeployApp {
-  fragment = graphql`
+      
+  static fragment = graphql`
     fragment srcDeployAppData on DeployApp {
       id
       willPerishAt
@@ -45,6 +72,10 @@ class DeployApp {
       favicon
       screenshot
       managed
+      kind {
+        __typename
+        ...srcDeployAppKind
+      }
     }
   `;
   id: string;
@@ -56,6 +87,7 @@ class DeployApp {
   favicon: string;
   screenshot: string;
   managed: boolean;
+  kind: DeployAppKind | null = null;
   constructor(data: srcDeployAppData$data) {
     this.id = data.id;
     this.willPerishAt = new Date(data.willPerishAt);
@@ -66,11 +98,15 @@ class DeployApp {
     this.favicon = data.favicon;
     this.screenshot = data.screenshot;
     this.managed = data.managed;
+    if (data.kind?.__typename === "WordPressAppKind") {
+      let kindData = getFragmentData<srcDeployAppKindWordPress$data>(environment(), nodeApp, data.kind);
+      this.kind = new DeployAppKindWordPress(kindData);
+    }
   }
 }
 
 class DeployAppVersion {
-  fragment = graphql`
+  static fragment = graphql`
     fragment srcDeployAppVersionData on DeployAppVersion {
       id
       app {
@@ -82,9 +118,15 @@ class DeployAppVersion {
   app: DeployApp;
   constructor(data: srcDeployAppVersionData$data) {
     this.id = data.id;
-    this.app = new DeployApp(data.app as any as srcDeployAppData$data);
+    let appData = getFragmentData<srcDeployAppData$data>(environment(), nodeApp, data.app);
+    this.app = new DeployApp(appData);
   }
 }
+function getFragmentData<T>(environment: Environment, node: ReaderFragment, fetchedData: any): T {
+  let selector = getSelector(node, fetchedData);
+  return environment.lookup(selector as any).data as any;
+}
+
 class AutobuildApp {
   buildId: string;
   appVersion: DeployAppVersion | null = null;
@@ -95,7 +137,8 @@ class AutobuildApp {
   constructor(buildId: string) {
     this.buildId = buildId;
     this.completedPromise = new Promise((resolve, reject) => {
-      this.subscription = requestSubscription<srcAutobuildSubscription>(environment(), {
+      const env = environment();
+      this.subscription = requestSubscription<srcAutobuildSubscription>(env, {
         subscription: graphql`
           subscription srcAutobuildSubscription($buildId: UUID!) {
             autobuildDeployment(buildId: $buildId) {
@@ -111,21 +154,31 @@ class AutobuildApp {
         buildId: this.buildId,
       },
       onNext: (data) => {
+        if (!data?.autobuildDeployment) {
+          return;
+        }
         const { kind, message, appVersion } = data?.autobuildDeployment!;
         
         if (kind === "FAILED") {
           reject(message);
           return;
         }
+        else if (kind === "COMPLETE") {
+          if (appVersion !== undefined) {
+            let appVersionData = getFragmentData<srcDeployAppVersionData$data>(env, nodeAppVersion, appVersion);
+            this.appVersion = new DeployAppVersion(appVersionData);
+            resolve(this.appVersion);
+            return;
+          }
+          else {
+            reject(new Error("Error when building the app: build finished without deployed app"));
+            return;
+          }
+        }
         if (this.onProgress) {
           this.onProgress(kind, message);
         } else {
           this.pendingLogs.push([kind, message]);
-        }
-        if (appVersion) {
-          const appVersionData = appVersion as any as srcDeployAppVersionData$data;
-          this.appVersion = new DeployAppVersion(appVersionData);
-          resolve(this.appVersion);
         }
       },
       onCompleted: () => {
@@ -136,6 +189,7 @@ class AutobuildApp {
         }
         else {
           resolve(this.appVersion);
+          return;
         }
       },
       onError: (error) => {
@@ -154,8 +208,16 @@ class AutobuildApp {
     }
     this.onProgress = callback;
   }
-  async finish() {
-    await this.completedPromise;
+  async finish(): Promise<DeployAppVersion> {
+    let app = await this.completedPromise;
+    if (this.subscription) {
+      this.subscription.dispose();
+      this.subscription = null;
+    }
+    if (!app) {
+      throw new Error("Error when building the app: build finished without deployed app");
+    }
+    return app;
   }
 };
 
@@ -175,13 +237,13 @@ export const Wasmer = {
       `,
       onCompleted: (response, errors) => {
         if (errors && errors.length > 0) {
-          reject(`The app could not be built: ${errors[0].toString()}`);
+          reject(`The app could not be built: ${errors[0].message.toString()}`);
           return;
         }
         resolve(response);
       },
       onError: (error) => {
-        reject(`The app could not be built: ${error.toString()}`);
+        reject(`The app could not be built: ${error.message.toString()}`);
       },
       variables: {
         input
@@ -193,7 +255,7 @@ export const Wasmer = {
     return app;
   }
 }
-export const init = (settings: WasmerRegistryConfig) => {
+export const init = async (settings: WasmerRegistryConfig) => {
   const environment = createEnvironment({endpoint: settings.registryUrl || "https://registry.wasmer.wtf/graphql", token: settings.token});
   config = {
     environment

@@ -15,12 +15,12 @@
     "relay-compile": "relay-compiler --repersist relay.config.js"
   },
   "dependencies": {
+    "graphql-ws": "^6.0.4",
     "persisted-subscriptions-transport-ws": "^0.11.0",
     "relay-compiler": "^18.0.0",
     "relay-runtime": "^18.0.0"
   },
   "devDependencies": {
-    "typescript": "^5.8.3",
     "@babel/preset-typescript": "^7.27.0",
     "@graphql-codegen/cli": "5.0.2",
     "@graphql-codegen/client-preset": "4.2.4",
@@ -32,6 +32,7 @@
     "babel-plugin-relay": "^18.2.0",
     "graphql": "^16.10.0",
     "rollup": "^4.39.0",
-    "ts-node": "^10.9.2"
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
   }
 }

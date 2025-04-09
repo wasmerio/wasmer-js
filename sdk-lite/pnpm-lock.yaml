@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      graphql-ws:
+        specifier: ^6.0.4
+        version: 6.0.4(graphql@16.10.0)(ws@8.18.1)
       persisted-subscriptions-transport-ws:
         specifier: ^0.11.0
         version: 0.11.0(graphql@16.10.0)
@@ -54,6 +57,9 @@ importers:
       ts-node:
         specifier: ^10.9.2
         version: 10.9.2(@types/node@22.14.0)(typescript@5.8.3)
+      typescript:
+        specifier: ^5.8.3
+        version: 5.8.3
 
 packages:
 

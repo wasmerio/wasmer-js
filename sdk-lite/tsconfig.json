@@ -1,7 +1,7 @@
 {
     "compilerOptions": {
       "target": "esnext",
-      "lib": [],
+      "lib": ["esnext", "DOM"],
       "declaration": true,
       "declarationDir": "./dist",
       "jsx": "preserve",
