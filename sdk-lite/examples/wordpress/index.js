@@ -1,8 +1,7 @@
 // import { init, Wasmer } from "@wasmer/sdk-lite";
 import { init, Wasmer } from "../../dist/index.js";
-// const { init, Wasmer } = require("@wasmer/sdk-lite");
 
-init({
+await init({
     registryUrl: "https://registry.wasmer.wtf/graphql",
     // token: ""
 });
@@ -14,7 +13,7 @@ const autobuildApp = await Wasmer.autobuildApp({
     region: "be-mons",
     appName: randomAppName,
     repoUrl: "https://github.com/wasmerio/wordpress",
-    managed: true,
+    // managed: true,
     kind: "wordpress",
     // domains: ["xyz.static.studio"],
     // secrets: {

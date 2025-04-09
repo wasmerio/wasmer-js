@@ -71,11 +71,11 @@ class DeployApp {
       }
       favicon
       screenshot
-      managed
-      kind {
-        __typename
-        ...srcDeployAppKind
-      }
+      # managed
+      # kind {
+      #   __typename
+      #   ...srcDeployAppKind
+      # }
     }
   `;
   id: string;
@@ -86,8 +86,8 @@ class DeployApp {
   domains: string[];
   favicon: string;
   screenshot: string;
-  managed: boolean;
-  kind: DeployAppKind | null = null;
+  // managed: boolean;
+  // kind: DeployAppKind | null = null;
   constructor(data: srcDeployAppData$data) {
     this.id = data.id;
     this.willPerishAt = new Date(data.willPerishAt);
@@ -97,11 +97,11 @@ class DeployApp {
     this.domains = data.domains.edges.map((edge) => edge?.node?.url).filter((url) => url !== null) as string[];
     this.favicon = data.favicon;
     this.screenshot = data.screenshot;
-    this.managed = data.managed;
-    if (data.kind?.__typename === "WordPressAppKind") {
-      let kindData = getFragmentData<srcDeployAppKindWordPress$data>(environment(), nodeApp, data.kind);
-      this.kind = new DeployAppKindWordPress(kindData);
-    }
+    // this.managed = data.managed;
+    // if (data.kind?.__typename === "WordPressAppKind") {
+    //   let kindData = getFragmentData<srcDeployAppKindWordPress$data>(environment(), nodeApp, data.kind);
+    //   this.kind = new DeployAppKindWordPress(kindData);
+    // }
   }
 }
 
@@ -163,7 +163,7 @@ class AutobuildApp {
         buildId: this.buildId,
       },
       onNext: (data) => {
-        console.log(data);
+        // console.log(data);
         if (!data?.autobuildDeployment) {
           return;
         }

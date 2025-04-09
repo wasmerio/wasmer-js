@@ -1,7 +1,7 @@
 {
     "type": "module",
     "dependencies": {
-        "@wasmer/sdk-lite": "0.1.3",
+        "@wasmer/sdk-lite": "0.1.4",
         "graphql-ws": "^6.0.4"
     }
 }
