@@ -9,8 +9,11 @@ importers:
   .:
     dependencies:
       '@wasmer/sdk-lite':
-        specifier: '*'
-        version: 0.1.1(graphql@16.10.0)
+        specifier: 0.1.2
+        version: 0.1.2(graphql@16.10.0)
+      graphql-ws:
+        specifier: ^6.0.4
+        version: 6.0.4(graphql@16.10.0)
 
 packages:
 
@@ -18,8 +21,8 @@ packages:
     resolution: {integrity: sha512-VtPOkrdPHZsKc/clNqyi9WUA8TINkZ4cGk63UUE3u4pmB2k+ZMQRDuIOagv8UVd6j7k0T3+RRIb7beKTebNbcw==}
     engines: {node: '>=6.9.0'}
 
-  '@wasmer/sdk-lite@0.1.1':
-    resolution: {integrity: sha512-zMoaGrUVTi0LMo83JWJDxY69CoJMEPI3qiy2lNAuoZ1s3jEFjAVOFMd1GyTHKPSgmZ0BHcg2ga/xMR+zygTe3A==}
+  '@wasmer/sdk-lite@0.1.2':
+    resolution: {integrity: sha512-9F43U49cgoPpeqB7jnEF5PoHD1FB5f7V/Z2ZsqXO6UlcSrAZJWJQeo668oc//3VewHeeNQoSwnsMxXS8upBRmw==}
 
   asap@2.0.6:
     resolution: {integrity: sha512-BSHWgDSAiKs50o2Re8ppvp3seVHXSRM44cdSsT9FfNEUUZLOGWVCsiWaRPWM1Znn+mqZ1OfVZ3z3DWEzSp7hRA==}
@@ -38,6 +41,22 @@ packages:
 
   fbjs@3.0.5:
     resolution: {integrity: sha512-ztsSx77JBtkuMrEypfhgc3cI0+0h+svqeie7xHbh1k/IKdcydnvadp/mUaGgjAOXQmQSxsqgaRhS3q9fy+1kxg==}
+
+  graphql-ws@6.0.4:
+    resolution: {integrity: sha512-8b4OZtNOvv8+NZva8HXamrc0y1jluYC0+13gdh7198FKjVzXyTvVc95DCwGzaKEfn3YuWZxUqjJlHe3qKM/F2g==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      '@fastify/websocket': ^10 || ^11
+      graphql: ^15.10.1 || ^16
+      uWebSockets.js: ^20
+      ws: ^8
+    peerDependenciesMeta:
+      '@fastify/websocket':
+        optional: true
+      uWebSockets.js:
+        optional: true
+      ws:
+        optional: true
 
   graphql@16.10.0:
     resolution: {integrity: sha512-AjqGKbDGUFRKIRCP9tCKiIGHyriz2oHEbPIbEtcSLSs4YjReZOIPQQWek4+6hjw62H9QShXHyaGivGiYVLeYFQ==}
@@ -125,7 +144,7 @@ snapshots:
     dependencies:
       regenerator-runtime: 0.14.1
 
-  '@wasmer/sdk-lite@0.1.1(graphql@16.10.0)':
+  '@wasmer/sdk-lite@0.1.2(graphql@16.10.0)':
     dependencies:
       persisted-subscriptions-transport-ws: 0.11.0(graphql@16.10.0)
       relay-compiler: 18.2.0
@@ -161,6 +180,10 @@ snapshots:
       ua-parser-js: 1.0.40
     transitivePeerDependencies:
       - encoding
+
+  graphql-ws@6.0.4(graphql@16.10.0):
+    dependencies:
+      graphql: 16.10.0
 
   graphql@16.10.0: {}
 

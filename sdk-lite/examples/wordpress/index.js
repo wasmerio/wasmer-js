@@ -7,11 +7,15 @@ init({
     // token: ""
 });
 
+// Generate a random app name
+const randomAppName = `demo-${Math.random().toString(36).substring(2, 10)}`;
+
 const autobuildApp = await Wasmer.autobuildApp({
-    region: "de-mons1", 
-    appName: "demo1-xasd",
+    region: "be-mons",
+    appName: randomAppName,
     repoUrl: "https://github.com/wasmerio/wordpress",
-    // kind: "wordpress",
+    managed: true,
+    kind: "wordpress",
     // domains: ["xyz.static.studio"],
     // secrets: {
     // },
@@ -38,5 +42,7 @@ const autobuildApp = await Wasmer.autobuildApp({
 autobuildApp.subscribeToProgress((kind, message) => {
 console.log(kind, message);
 });
+console.log("Waiting for the app to be built...");
 const app = await autobuildApp.finish();
-console.log(app);
+console.log("App built!", app);
+console.log(app.kind);
