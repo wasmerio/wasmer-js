@@ -1,5 +1,5 @@
-// import { init, Wasmer } from "@wasmer/sdk-lite";
-import { init, Wasmer } from "../../dist/index.js";
+import { init, Wasmer } from "@wasmer/sdk-lite";
+// import { init, Wasmer } from "../../dist/index.js";
 
 await init({
     registryUrl: "https://registry.wasmer.wtf/graphql",
