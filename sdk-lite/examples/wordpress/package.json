@@ -1,5 +1,4 @@
 {
-    "type": "module",
     "dependencies": {
         "@wasmer/sdk-lite": "*"
     }
