@@ -1,6 +1,6 @@
 // import { init, Wasmer } from "@wasmer/sdk-lite";
-// import { init, Wasmer } from "../../dist/index.js";
-const { init, Wasmer } = require("@wasmer/sdk-lite");
+import { init, Wasmer } from "../../dist/index.js";
+// const { init, Wasmer } = require("@wasmer/sdk-lite");
 
 init({
     registryUrl: "https://registry.wasmer.wtf/graphql",
