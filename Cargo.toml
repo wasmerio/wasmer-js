@@ -73,6 +73,10 @@ wasmer-wasix = { path = "../wasmer/lib/wasix", default-features = false, feature
     "js",
     "js-default",
 ] }
+wasmer-http-listener-networking = { path = "../http-listener-networking", default-features = false, features = [
+    "js",
+] }
+http = "1.3.1"
 # webc = { path = "../pirita/crates/webc" }
 
 [dependencies.web-sys]
@@ -104,6 +108,7 @@ features = [
     "RequestInit",
     "RequestMode",
     "Response",
+    "ResponseInit",
     "StorageManager",
     "Url",
     "WebSocket",
