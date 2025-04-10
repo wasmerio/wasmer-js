@@ -1,0 +1,33 @@
+{
+    "name": "wasmer.sh",
+    "version": "0.0.0",
+    "description": "A bash terminal in your browser, powered by WebAssembly and WASIX.",
+    "scripts": {
+      "dev": "vite",
+      "build": "vite build",
+      "preview-iframe": "cd iframe && vite dev --port 9001",
+      "preview-main": "cd main && vite dev --port 9002",
+      "preview": "concurrently \"npm run preview-iframe\" \"npm run preview-main\""
+    },
+    "author": "",
+    "type": "module",
+    "license": "ISC",
+    "bugs": {
+      "url": "https://github.com/wasmerio/wasmer-js/issues"
+    },
+    "homepage": "https://github.com/wasmerio/wasmer-js#readme",
+    "repository": {
+      "type": "git",
+      "url": "git+https://github.com/wasmerio/wasmer-js.git"
+    },
+    "dependencies": {
+      "@wasmer/sdk": "../..",
+      "xterm": "^5.3.0",
+      "xterm-addon-fit": "^0.8.0",
+      "concurrently": "^9.1.0"
+    },
+    "devDependencies": {
+      "vite": "^6.2.6"
+    }
+  }
+  
