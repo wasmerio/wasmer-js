@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use derivative::Derivative;
 use js_sys::WebAssembly;
 use wasm_bindgen::JsValue;
-use wasmer::AsJs;
+use wasmer::js::AsJs;
 use wasmer_types::ModuleHash;
 
 use crate::{

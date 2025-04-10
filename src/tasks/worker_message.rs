@@ -51,18 +51,17 @@ impl WorkerMessage {
     /// Send this message to the scheduler.
     pub fn emit(self) -> Result<(), Error> {
         tracing::debug!(
-            current_thread = wasmer::current_thread_id(),
+            current_thread = wasmer::js::current_thread_id(),
             msg=?self,
             "Sending a worker message"
         );
-        let scope: DedicatedWorkerGlobalScope = js_sys::global()
-            .unchecked_into();
+        let scope: DedicatedWorkerGlobalScope = js_sys::global().unchecked_into();
 
         let value = self.into_js()?;
         scope.post_message(&value).map_err(Error::js)?;
 
         tracing::debug!(
-            current_thread = wasmer::current_thread_id(),
+            current_thread = wasmer::js::current_thread_id(),
             "Message sent"
         );
 

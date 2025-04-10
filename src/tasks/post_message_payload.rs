@@ -173,7 +173,7 @@ mod tests {
     use futures::channel::oneshot;
     use wasm_bindgen::JsCast;
     use wasm_bindgen_test::wasm_bindgen_test;
-    use wasmer::AsJs;
+    use wasmer::js::AsJs;
     use wasmer_wasix::{runtime::task_manager::TaskWasm, WasiEnvBuilder};
 
     use crate::{runtime::Runtime, tasks::SchedulerMessage};
@@ -340,6 +340,7 @@ mod tests {
             .begin()
             .await
             .execute(module, memory.into())
+            .await
             .unwrap();
         assert!(flag.load(Ordering::SeqCst));
     }

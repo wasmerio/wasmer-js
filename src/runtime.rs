@@ -1,6 +1,5 @@
 use std::sync::{atomic::AtomicBool, Arc, Mutex, Weak};
 
-use reqwest::header::HeaderValue;
 use lazy_static::lazy_static;
 use once_cell::sync::Lazy;
 use virtual_net::VirtualNetworking;
@@ -11,9 +10,10 @@ use wasmer_wasix::{
     runtime::{
         module_cache::ThreadLocalCache,
         package_loader::PackageLoader,
-        resolver::{PackageSummary, QueryError, Source, BackendSource},
+        resolver::{BackendSource, PackageSummary, QueryError, Source},
     },
-    VirtualTaskManager, WasiTtyState,
+    VirtualTaskManager,
+    WasiTtyState,
 };
 
 lazy_static! {
@@ -86,7 +86,7 @@ impl Runtime {
     pub(crate) fn with_task_manager(&self, task_manager: Arc<ThreadPool>) -> Self {
         let mut runtime = self.clone();
         // Update the http client
-        let mut http_client = DefaultHttpClient::default();
+        let http_client = DefaultHttpClient::default();
         // http_client
         //     .with_default_header(
         //         reqwest::header::USER_AGENT,
@@ -105,7 +105,7 @@ impl Runtime {
     }
 
     pub(crate) fn new() -> Self {
-        let mut http_client = DefaultHttpClient::default();
+        let http_client = DefaultHttpClient::default();
         // http_client.with_default_header(
         //     reqwest::header::USER_AGENT,
         //     HeaderValue::from_static(crate::USER_AGENT),
@@ -169,7 +169,7 @@ impl wasmer_wasix::runtime::Runtime for Runtime {
     }
 
     fn task_manager(&self) -> &Arc<dyn VirtualTaskManager> {
-        &self.task_manager.as_ref().expect("Task manager not found")
+        self.task_manager.as_ref().expect("Task manager not found")
     }
 
     fn source(&self) -> Arc<dyn wasmer_wasix::runtime::resolver::Source + Send + Sync> {
@@ -255,7 +255,9 @@ struct UnsupportedSource;
 #[async_trait::async_trait]
 impl Source for UnsupportedSource {
     async fn query(&self, package: &PackageSource) -> Result<Vec<PackageSummary>, QueryError> {
-        Err(QueryError::Unsupported { query: package.clone()})
+        Err(QueryError::Unsupported {
+            query: package.clone(),
+        })
     }
 }
 

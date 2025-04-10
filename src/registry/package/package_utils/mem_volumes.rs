@@ -5,7 +5,7 @@ use js_sys::{
 };
 use std::{collections::BTreeMap, path::Path, time::SystemTime};
 use wasm_bindgen::{JsCast, JsValue};
-use webc::wasmer_package::{MemoryDir, MemoryFile, MemoryNode, MemoryVolume};
+use wasmer_package::package::{MemoryDir, MemoryFile, MemoryNode, MemoryVolume};
 
 use crate::utils;
 

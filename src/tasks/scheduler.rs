@@ -9,7 +9,7 @@ use tokio::sync::mpsc::UnboundedSender;
 use tokio::sync::mpsc::{self};
 use tracing::Instrument;
 use wasm_bindgen::{JsCast, JsValue};
-use wasmer::AsJs;
+use wasmer::js::AsJs;
 use wasmer_types::ModuleHash;
 
 use crate::tasks::{
@@ -30,7 +30,7 @@ impl Scheduler {
     pub(crate) fn spawn() -> Scheduler {
         let (sender, mut receiver) = mpsc::unbounded_channel();
 
-        let thread_id = wasmer::current_thread_id();
+        let thread_id = wasmer::js::current_thread_id();
         // Safety: we just got the thread ID.
         let sender = unsafe { Scheduler::new(sender, thread_id) };
 
@@ -68,8 +68,11 @@ impl Scheduler {
     /// The `scheduler_thread_id` must match the [`wasmer::current_thread_id()`]
     /// otherwise these `!Send` values will be sent between threads.
     unsafe fn new(channel: UnboundedSender<SchedulerMessage>, scheduler_thread_id: u32) -> Self {
-        debug_assert_eq!(scheduler_thread_id, wasmer::current_thread_id());
-        tracing::debug!(current_thread = wasmer::current_thread_id(), "Creating Scheduler");
+        debug_assert_eq!(scheduler_thread_id, wasmer::js::current_thread_id());
+        tracing::debug!(
+            current_thread = wasmer::js::current_thread_id(),
+            "Creating Scheduler"
+        );
         Scheduler {
             channel,
             scheduler_thread_id,
@@ -77,9 +80,9 @@ impl Scheduler {
     }
 
     pub fn send(&self, msg: SchedulerMessage) -> Result<(), Error> {
-        if wasmer::current_thread_id() == self.scheduler_thread_id {
+        if wasmer::js::current_thread_id() == self.scheduler_thread_id {
             tracing::debug!(
-                current_thread = wasmer::current_thread_id(),
+                current_thread = wasmer::js::current_thread_id(),
                 ?msg,
                 "Sending message to scheduler"
             );
@@ -301,7 +304,7 @@ mod tests {
     async fn spawn_an_async_function() {
         let (sender, receiver) = oneshot::channel();
         let (tx, _) = mpsc::unbounded_channel();
-        let tx = unsafe { Scheduler::new(tx, wasmer::current_thread_id()) };
+        let tx = unsafe { Scheduler::new(tx, wasmer::js::current_thread_id()) };
         let mut scheduler = SchedulerState::new(tx);
         let message = SchedulerMessage::SpawnAsync(Box::new(move || {
             Box::pin(async move {

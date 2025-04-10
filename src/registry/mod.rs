@@ -3,8 +3,8 @@ pub mod package;
 
 use anyhow::anyhow;
 use js_sys::Reflect::{get, has};
-use wasm_bindgen::{convert::TryFromJsValue, JsValue, prelude::wasm_bindgen};
-use wasmer_api::WasmerClient;
+use wasm_bindgen::{convert::TryFromJsValue, prelude::wasm_bindgen, JsValue};
+use wasmer_backend_api::WasmerClient;
 
 use crate::{utils::Error, Wasmer};
 
@@ -57,16 +57,16 @@ impl TryFromJsValue for RegistryConfig {
 
 impl Wasmer {
     pub fn get_client() -> Result<WasmerClient, Error> {
-        let registry_input = if let Some(registry_info) =
-            js_sys::Reflect::get(&js_sys::global(), &"__WASMER_REGISTRY__".into()).ok()
+        let registry_input = if let Ok(registry_info) =
+            js_sys::Reflect::get(&js_sys::global(), &"__WASMER_REGISTRY__".into())
         {
-            RegistryConfig::try_from_js_value(registry_info.into())
+            RegistryConfig::try_from_js_value(registry_info)
                 .map_err(|e| anyhow!("while reading registry configuration: {e:?}"))?
         } else {
             RegistryConfig::default()
         };
 
-        let mut client = wasmer_api::WasmerClient::new(
+        let mut client = wasmer_backend_api::WasmerClient::new(
             url::Url::parse(
                 &registry_input
                     .registry_url
@@ -82,7 +82,6 @@ impl Wasmer {
     }
 }
 
-
 #[wasm_bindgen(getter_with_clone)]
 #[derive(Debug, Clone)]
 pub struct User {
@@ -90,8 +89,8 @@ pub struct User {
     pub username: String,
 }
 
-impl From<wasmer_api::types::User> for User {
-    fn from(value: wasmer_api::types::User) -> Self {
+impl From<wasmer_backend_api::types::User> for User {
+    fn from(value: wasmer_backend_api::types::User) -> Self {
         Self {
             id: value.id.inner().to_string(),
             username: value.username,
@@ -107,9 +106,11 @@ impl Wasmer {
     pub async fn whoami() -> Result<Option<User>, Error> {
         let client = Wasmer::get_client()?;
 
-        let result: Result<Option<wasmer_api::types::User>, anyhow::Error> =
-            wasmer_api::query::current_user(&client).await;
-        
-        Ok(result.map_err(|e| crate::utils::Error::Rust(anyhow!("while retrieving the user: {e:?}")))?.map(Into::into))
+        let result: Result<Option<wasmer_backend_api::types::User>, anyhow::Error> =
+            wasmer_backend_api::query::current_user(&client).await;
+
+        Ok(result
+            .map_err(|e| crate::utils::Error::Rust(anyhow!("while retrieving the user: {e:?}")))?
+            .map(Into::into))
     }
 }

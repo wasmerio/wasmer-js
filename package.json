@@ -80,6 +80,7 @@
     "@rollup/plugin-typescript": "^11.1.5",
     "@rollup/plugin-wasm": "^6.2.2",
     "@types/mocha": "^10.0.7",
+    "@types/node": "^22.14.0",
     "@web/dev-server-esbuild": "^1.0.1",
     "@web/test-runner": "^0.18.0",
     "dotenv": "^16.4.5",

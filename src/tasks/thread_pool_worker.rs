@@ -68,7 +68,7 @@ impl ThreadPoolWorker {
             } => {
                 let task = spawn_wasm.begin().await;
                 let _guard = self.busy();
-                task.execute(module, memory.into())?;
+                task.execute(module, memory.into()).await?;
             }
         }
 

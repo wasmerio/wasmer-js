@@ -7,13 +7,11 @@ use bytes::Bytes;
 use derivative::Derivative;
 use js_sys::WebAssembly;
 use wasm_bindgen::{JsCast, JsValue};
-use wasmer::{AsJs, AsStoreRef, Memory, MemoryType, Module, Store};
+use wasmer::{js::AsJs, Memory, MemoryType, Module, Store};
 use wasmer_wasix::{
-    runtime::{
-        task_manager::{
-            TaskWasm, TaskWasmRecycle, TaskWasmRun, TaskWasmRunProperties, WasmResumeTrigger,
-        },
-        SpawnMemoryType,
+    runtime::task_manager::{
+        SpawnMemoryTypeOrStore, TaskWasm, TaskWasmPreRun, TaskWasmRecycle, TaskWasmRun,
+        TaskWasmRunProperties, WasmResumeTrigger,
     },
     wasmer_wasix_types::wasi::ExitCode,
     StoreSnapshot, WasiEnv, WasiFunctionEnv, WasiThreadError,
@@ -22,7 +20,7 @@ use wasmer_wasix::{
 use crate::tasks::SchedulerMessage;
 
 pub(crate) fn to_scheduler_message(
-    task: TaskWasm<'_, '_>,
+    task: TaskWasm<'_>,
 ) -> Result<SchedulerMessage, WasiThreadError> {
     let TaskWasm {
         run,
@@ -33,6 +31,7 @@ pub(crate) fn to_scheduler_message(
         update_layout,
         recycle,
         globals,
+        pre_run,
     } = task;
 
     let module_bytes = module.serialize().unwrap();
@@ -83,7 +82,7 @@ pub(crate) fn to_scheduler_message(
         }
     });
 
-    let store_snapshot = globals.cloned();
+    let store_snapshot = globals.clone();
     let spawn_wasm = SpawnWasm {
         trigger: trigger.map(|trigger| WasmRunTrigger {
             run: trigger,
@@ -91,6 +90,7 @@ pub(crate) fn to_scheduler_message(
             env: env.clone(),
         }),
         run,
+        pre_run,
         run_type,
         env,
         module_bytes,
@@ -180,6 +180,9 @@ struct WasmRunTrigger {
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub(crate) struct SpawnWasm {
+    /// An async callback to perform before running.
+    #[derivative(Debug(format_with = "crate::utils::hidden"))]
+    pre_run: Option<Box<TaskWasmPreRun>>,
     /// A blocking callback to run.
     #[derivative(Debug(format_with = "crate::utils::hidden"))]
     run: Box<TaskWasmRun>,
@@ -232,12 +235,13 @@ pub struct ReadySpawnWasm(SpawnWasm);
 
 impl ReadySpawnWasm {
     /// Execute the callback, blocking until it has completed.
-    pub(crate) fn execute(
+    pub(crate) async fn execute(
         self,
         wasm_module: js_sys::WebAssembly::Module,
         wasm_memory: JsValue,
     ) -> Result<(), anyhow::Error> {
         let ReadySpawnWasm(SpawnWasm {
+            pre_run,
             run,
             run_type,
             env,
@@ -250,7 +254,7 @@ impl ReadySpawnWasm {
         }) = self;
 
         // Invoke the callback which will run the web assembly module
-        let (ctx, store) = build_ctx_and_store(
+        let (mut ctx, mut store) = build_ctx_and_store(
             wasm_module,
             wasm_memory,
             module_bytes,
@@ -260,6 +264,10 @@ impl ReadySpawnWasm {
             update_layout,
         )
         .context("Unable to initialize the context and store")?;
+
+        if let Some(pre_run) = pre_run {
+            pre_run(&mut ctx, &mut store).await;
+        }
 
         let properties = TaskWasmRunProperties {
             ctx,
@@ -288,8 +296,8 @@ fn build_ctx_and_store(
     // Make a fake store which will hold the memory we just transferred
     let mut temp_store = env.runtime().new_store();
     let spawn_type = match run_type {
-        WasmMemoryType::CreateMemory => SpawnMemoryType::CreateMemory,
-        WasmMemoryType::CreateMemoryOfType(mem) => SpawnMemoryType::CreateMemoryOfType(mem),
+        WasmMemoryType::CreateMemory => SpawnMemoryTypeOrStore::New,
+        WasmMemoryType::CreateMemoryOfType(mem) => SpawnMemoryTypeOrStore::Type(mem),
         WasmMemoryType::ShareMemory(ty) => {
             let memory = match Memory::from_jsvalue(&mut temp_store, &ty, &memory) {
                 Ok(a) => a,
@@ -298,14 +306,14 @@ fn build_ctx_and_store(
                     return None;
                 }
             };
-            SpawnMemoryType::ShareMemory(memory, temp_store.as_store_ref())
+            SpawnMemoryTypeOrStore::StoreAndMemory(temp_store, Some(memory))
         }
     };
 
     let (ctx, store) = match WasiFunctionEnv::new_with_store(
         module,
         env,
-        store_snapshot.as_ref(),
+        store_snapshot,
         spawn_type,
         update_layout,
     ) {

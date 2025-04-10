@@ -8,7 +8,11 @@ use sha2::Digest;
 use tracing::Instrument;
 use virtual_fs::{AsyncReadExt, Pipe, RootFileSystemBuilder};
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue, UnwrapThrowExt};
-use wasmer_config::{hash::Sha256Hash, package::{PackageHash, PackageId, PackageSource}};
+use wasmer_config::{
+    hash::Sha256Hash,
+    package::{PackageHash, PackageId, PackageSource},
+};
+use wasmer_package::package::Package;
 use wasmer_types::ModuleHash;
 use wasmer_wasix::{
     bin_factory::{BinaryPackage, BinaryPackageCommand},
@@ -17,10 +21,14 @@ use wasmer_wasix::{
     Runtime as _,
 };
 use web_sys::{ReadableStream, WritableStream};
-use webc::{indexmap::IndexMap, metadata::Command as MetadataCommand, wasmer_package::Package};
+use webc::{indexmap::IndexMap, metadata::Command as MetadataCommand};
 
 use crate::{
-    instance::ExitCondition, runtime::Runtime, tasks::ThreadPool, utils::{Error, GlobalScope}, Instance, JsRuntime, SpawnOptions
+    instance::ExitCondition,
+    runtime::Runtime,
+    tasks::ThreadPool,
+    utils::{Error, GlobalScope},
+    Instance, JsRuntime, SpawnOptions,
 };
 
 /// A package from the Wasmer registry.
@@ -85,8 +93,7 @@ impl Wasmer {
             // If the user provides bytes similar to Wasm, we don't assume
             // we are provided a package, but a Wasm file
             Wasmer::from_wasm(bytes, runtime)
-        }
-        else {
+        } else {
             Wasmer::from_file(bytes, runtime).await
         }
     }
@@ -118,7 +125,8 @@ impl Wasmer {
     #[tracing::instrument(skip(runtime))]
     async fn from_file(binary: Vec<u8>, runtime: Option<OptionalRuntime>) -> Result<Self, Error> {
         let runtime = runtime.unwrap_or_default().resolve()?.into_inner();
-        let container = webc::Container::from_bytes(binary)?;
+        let version = webc::detect(&mut (&*binary))?;
+        let container = webc::Container::from_bytes_and_version(binary.into(), version)?;
         let pkg = BinaryPackage::from_webc(&container, &*runtime).await?;
 
         Wasmer::from_package(pkg, runtime)
@@ -168,7 +176,12 @@ impl Wasmer {
             file_system_memory_footprint: 0,
             entrypoint_cmd: Some("entrypoint".to_string()),
             commands: vec![BinaryPackageCommand::new(
-                "entrypoint".to_string(), metadata, wasm.into(), hash)],
+                "entrypoint".to_string(),
+                metadata,
+                wasm.into(),
+                hash,
+                None,
+            )],
             additional_host_mapped_directories: vec![],
         };
         let runtime = runtime.unwrap_or_default().resolve()?.into_inner();
@@ -189,7 +202,8 @@ impl Wasmer {
         let hash = sha2::Sha256::digest(&data).into();
         let hash = wasmer_config::package::PackageHash::from_sha256_bytes(hash);
         let hash = hash.to_string();
-        let container = webc::Container::from_bytes(data.clone())?;
+        let version = webc::detect(&mut (&*data))?;
+        let container = webc::Container::from_bytes_and_version(data.clone(), version)?;
         let bin_pkg = BinaryPackage::from_webc(&container, &*runtime).await?;
         let mut ret = Wasmer::from_package(bin_pkg, runtime)?;
         ret.pkg = Some(UserPackageDefinition {
@@ -251,7 +265,7 @@ impl Command {
     pub fn binary(&self) -> Uint8Array {
         let name = String::from(&self.name);
         let cmd = self.pkg.get_command(&name).unwrap_throw();
-        Uint8Array::from(cmd.atom())
+        Uint8Array::from(cmd.atom().as_slice())
     }
 }
 
@@ -299,7 +313,6 @@ pub(crate) async fn configure_runner(
     ),
     Error,
 > {
-
     let args = options.parse_args()?;
     runner.with_args(args);
 
@@ -390,6 +403,9 @@ fn setup_tty(options: &SpawnOptions, tty_options: TtyOptions) -> TerminalMode {
         tty_options,
     );
 
+    // FIXME: why would closing a clone actually close anything at all? Did the previous implementation of pipe
+    // do things differently?
+
     // Because the TTY is manually copying between pipes, we need to make
     // sure the stdin pipe passed to the runtime is closed when the user
     // closes their end.
@@ -403,7 +419,7 @@ fn setup_tty(options: &SpawnOptions, tty_options: TtyOptions) -> TerminalMode {
 
     // Use the JS event loop to drive our manual user->tty copy
     wasm_bindgen_futures::spawn_local(
-        copy_stdin_to_tty(u_stdin_rx, tty, cleanup)
+        copy_stdin_to_tty(u_stdin_rx, tty, || {} /* cleanup */)
             .in_current_span()
             .instrument(tracing::debug_span!("tty")),
     );

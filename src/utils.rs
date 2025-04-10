@@ -199,16 +199,6 @@ pub(crate) fn object_entries(obj: &js_sys::Object) -> Result<BTreeMap<JsString, 
     Ok(entries)
 }
 
-/// A dummy value that can be used in a [`Debug`] impl instead of showing the
-/// original value.
-pub(crate) struct Hidden;
-
-impl Debug for Hidden {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        hidden(self, f)
-    }
-}
-
 pub(crate) fn hidden<T>(_value: T, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.write_str("_")
 }

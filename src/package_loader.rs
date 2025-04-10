@@ -5,7 +5,10 @@ use std::{
 
 use anyhow::{Context, Error};
 use bytes::Bytes;
-use reqwest::{Method, header::{HeaderMap, HeaderValue}, StatusCode};
+use reqwest::{
+    header::{HeaderMap, HeaderValue},
+    Method, StatusCode,
+};
 use wasmer_wasix::{
     bin_factory::BinaryPackage,
     http::{HttpClient, HttpRequest, HttpResponse},
@@ -100,7 +103,8 @@ impl wasmer_wasix::runtime::package_loader::PackageLoader for PackageLoader {
     )]
     async fn load(&self, summary: &PackageSummary) -> Result<Container, Error> {
         let body = self.download_cached(&summary.dist).await?;
-        let container = Container::from_bytes(body)?;
+        let version = webc::detect(&mut (&*body))?;
+        let container = Container::from_bytes_and_version(body, version)?;
 
         Ok(container)
     }
@@ -111,7 +115,13 @@ impl wasmer_wasix::runtime::package_loader::PackageLoader for PackageLoader {
         resolution: &Resolution,
         root_is_local_dir: bool,
     ) -> Result<BinaryPackage, Error> {
-        wasmer_wasix::runtime::package_loader::load_package_tree(root, self, resolution, root_is_local_dir).await
+        wasmer_wasix::runtime::package_loader::load_package_tree(
+            root,
+            self,
+            resolution,
+            root_is_local_dir,
+        )
+        .await
     }
 }
 

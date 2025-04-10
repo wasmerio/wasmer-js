@@ -1,7 +1,7 @@
 use anyhow::{anyhow, bail};
 use js_sys::Reflect::{get, has, set};
 use wasm_bindgen::{convert::TryFromJsValue, prelude::wasm_bindgen, JsValue};
-use wasmer_api::types::{DeployAppVersion, PublishDeployAppVars};
+use wasmer_backend_api::types::{DeployAppVersion, PublishDeployAppVars};
 use wasmer_config::{app::AppConfigV1, package::PackageBuilder};
 
 use crate::{
@@ -196,7 +196,7 @@ impl Wasmer {
             .expect("app id needs to be a string");
 
         let result: Result<(), anyhow::Error> =
-            wasmer_api::query::delete_app(&client, app_id).await.into();
+            wasmer_backend_api::query::delete_app(&client, app_id).await;
         result.map_err(|e| utils::Error::Rust(anyhow!("while deleting the app: {e:?}")))
     }
 }
@@ -209,11 +209,11 @@ impl Wasmer {
         let client = Wasmer::get_client()?;
         let config = app_config.clone().to_yaml()?;
 
-        wasmer_api::query::publish_deploy_app(
+        wasmer_backend_api::query::publish_deploy_app(
             &client,
             PublishDeployAppVars {
                 config,
-                name: app_config.name.into(),
+                name: app_config.name.expect("App name can't be empty").into(),
                 owner: app_config.owner.map(Into::into),
                 make_default,
             },

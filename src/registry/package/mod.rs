@@ -10,8 +10,8 @@ use package_utils::*;
 use std::path::PathBuf;
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasmer_config::package::Manifest;
-use webc::wasmer_package::Package;
-use webc::wasmer_package::Strictness;
+use wasmer_package::package::Package;
+use wasmer_package::package::Strictness;
 
 #[wasm_bindgen(getter_with_clone)]
 #[derive(Debug, Clone)]
@@ -96,7 +96,7 @@ impl Wasmer {
             .map_err(|e| anyhow::anyhow!("While parsing the manifest: {e}"))?;
         wasmer_manifest.validate()?;
 
-        let pkg: Package = webc::wasmer_package::Package::from_in_memory(
+        let pkg: Package = wasmer_package::package::Package::from_in_memory(
             wasmer_manifest.clone(),
             volumes,
             atoms,
@@ -133,11 +133,11 @@ impl Wasmer {
         let client = Wasmer::get_client()?;
 
         let (id, hash) = if let Some(release) =
-            wasmer_api::query::get_package_release(&client, hash).await?
+            wasmer_backend_api::query::get_package_release(&client, hash).await?
         {
             (release.id, release.webc_v3.map(|v| v.webc_sha256))
         } else {
-            let signed_url = wasmer_api::query::get_signed_url_for_package_upload(
+            let signed_url = wasmer_backend_api::query::get_signed_url_for_package_upload(
                 &client,
                 Some(60 * 30),
                 Some(format!("js-{}", random()).replace('.', "-")).as_deref(),
@@ -167,7 +167,7 @@ impl Wasmer {
                 };
 
             tracing::debug!("Pushing package release...");
-            let out = wasmer_api::query::push_package_release(
+            let out = wasmer_backend_api::query::push_package_release(
                 &client,
                 name.as_deref(),
                 &namespace,
@@ -239,7 +239,7 @@ impl Wasmer {
 
             let manifest_raw = Some(toml::to_string(&manifest)?);
 
-            let r = wasmer_api::query::tag_package_release(
+            let r = wasmer_backend_api::query::tag_package_release(
                 &client,
                 maybe_description.as_deref(),
                 maybe_homepage.as_deref(),

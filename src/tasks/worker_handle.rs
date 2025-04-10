@@ -3,10 +3,7 @@ use std::fmt::Debug;
 use anyhow::{Context, Error};
 use js_sys::{Array, JsString, Uint8Array};
 use once_cell::sync::Lazy;
-use wasm_bindgen::{
-    prelude::{wasm_bindgen, Closure},
-    JsCast, JsValue,
-};
+use wasm_bindgen::{prelude::Closure, JsCast, JsValue};
 
 use crate::tasks::{PostMessagePayload, Scheduler, SchedulerMessage, WorkerMessage};
 
@@ -27,7 +24,9 @@ impl WorkerHandle {
         let worker_url = worker_url();
         let worker = web_sys::Worker::new_with_options(
             &worker_url,
-            web_sys::WorkerOptions::new().name(&name).type_(web_sys::WorkerType::Module),
+            web_sys::WorkerOptions::new()
+                .name(&name)
+                .type_(web_sys::WorkerType::Module),
         )
         .map_err(crate::utils::js_error)?;
 
@@ -138,11 +137,7 @@ fn init_message(id: u32) -> Result<JsValue, JsValue> {
     js_sys::Reflect::set(&msg, &JsString::from("type"), &JsString::from("init"))?;
     js_sys::Reflect::set(&msg, &JsString::from("memory"), &wasm_bindgen::memory())?;
     js_sys::Reflect::set(&msg, &JsString::from("id"), &JsValue::from(id))?;
-    js_sys::Reflect::set(
-        &msg,
-        &JsString::from("sdkUrl"),
-        &JsValue::from(sdk_url()),
-    )?;
+    js_sys::Reflect::set(&msg, &JsString::from("sdkUrl"), &JsValue::from(sdk_url()))?;
     js_sys::Reflect::set(
         &msg,
         &JsString::from("module"),
@@ -172,7 +167,6 @@ fn sdk_url() -> String {
     sdk_url.to_string()
 }
 
-
 /// The URL user for the worker.
 fn worker_url() -> String {
     let worker_url = crate::CUSTOM_WORKER_URL.lock().unwrap();
@@ -180,7 +174,6 @@ fn worker_url() -> String {
 
     worker_url.to_string()
 }
-
 
 /// A data URL containing our worker's bootstrap script.
 static DEFAULT_WORKER_URL: Lazy<String> = Lazy::new(|| {
