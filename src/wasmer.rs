@@ -403,14 +403,14 @@ fn setup_tty(options: &SpawnOptions, tty_options: TtyOptions) -> TerminalMode {
         tty_options,
     );
 
-    // FIXME: why would closing a clone actually close anything at all? Did the previous implementation of pipe
-    // do things differently?
+    // FIXME: why would closing a clone actually close anything at all? Did the previous
+    // implementation of pipe do things differently?
 
     // Because the TTY is manually copying between pipes, we need to make
     // sure the stdin pipe passed to the runtime is closed when the user
     // closes their end.
     let cleanup = {
-        let stdin_pipe = stdin_pipe.clone();
+        let mut stdin_pipe = stdin_pipe.clone();
         move || {
             tracing::debug!("Closing stdin");
             stdin_pipe.close();
@@ -419,7 +419,7 @@ fn setup_tty(options: &SpawnOptions, tty_options: TtyOptions) -> TerminalMode {
 
     // Use the JS event loop to drive our manual user->tty copy
     wasm_bindgen_futures::spawn_local(
-        copy_stdin_to_tty(u_stdin_rx, tty, || {} /* cleanup */)
+        copy_stdin_to_tty(u_stdin_rx, tty, cleanup)
             .in_current_span()
             .instrument(tracing::debug_span!("tty")),
     );
