@@ -6,6 +6,7 @@ wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 extern crate alloc;
 
 pub mod fs;
+mod http_listener_networking;
 mod instance;
 mod js_runtime;
 mod logging;

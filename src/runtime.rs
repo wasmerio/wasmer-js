@@ -145,6 +145,13 @@ impl Runtime {
         let networking = crate::net::connect_networking(gateway_url);
         self.networking = Arc::new(networking);
     }
+
+    pub fn set_http_listener_networking(
+        &mut self,
+        http_listener: &crate::http_listener_networking::HttpListenerNetworkingWrapper,
+    ) {
+        self.networking = http_listener.networking.clone();
+    }
 }
 
 impl Runtime {
