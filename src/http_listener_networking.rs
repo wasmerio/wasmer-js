@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use bytes::Bytes;
 use http::{Method, Request};
 use wasm_bindgen::prelude::wasm_bindgen;
@@ -6,12 +8,13 @@ use web_sys::ResponseInit;
 
 #[wasm_bindgen]
 pub struct HttpListenerNetworkingWrapper {
-    networking: HttpListenerNetworking,
+    pub(crate) networking: Arc<HttpListenerNetworking>,
 }
 
 #[wasm_bindgen]
 pub struct HttpListenerNetworkingRequestHandlerWrapper {
-    request_handler: wasmer_http_listener_networking::HttpListenerNetworkingRequestHandler,
+    pub(crate) request_handler:
+        wasmer_http_listener_networking::HttpListenerNetworkingRequestHandler,
 }
 
 #[wasm_bindgen]
@@ -20,7 +23,9 @@ impl HttpListenerNetworkingWrapper {
     pub fn new() -> Self {
         // No support for outgoing connections as of now, so no fallback networking impl
         let networking = HttpListenerNetworking::new_without_fallback();
-        Self { networking }
+        Self {
+            networking: Arc::new(networking),
+        }
     }
 
     pub fn build_request_handler(&self) -> HttpListenerNetworkingRequestHandlerWrapper {

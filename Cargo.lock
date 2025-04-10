@@ -3533,20 +3533,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "virtual-mio"
-version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1a5d846d89208ef272394e6b6706fcea6fe9ce81388b685bdae44dfd590bba16"
-dependencies = [
- "async-trait",
- "bytes",
- "futures",
- "serde",
- "thiserror 1.0.69",
- "tracing",
-]
-
-[[package]]
 name = "virtual-net"
 version = "0.15.0"
 dependencies = [
@@ -3570,34 +3556,7 @@ dependencies = [
  "tokio-serde",
  "tokio-util",
  "tracing",
- "virtual-mio 0.7.0",
-]
-
-[[package]]
-name = "virtual-net"
-version = "0.15.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b710e5a0ca4dd5f14b33bb8ef2c8c7bfd21b9b65befd5ab5b5878d16e363f8da"
-dependencies = [
- "anyhow",
- "async-trait",
- "base64",
- "bincode",
- "bytes",
- "derive_more 1.0.0",
- "futures-util",
- "ipnet",
- "iprange",
- "libc",
- "pin-project-lite",
- "serde",
- "smoltcp",
- "thiserror 1.0.69",
- "tokio",
- "tokio-serde",
- "tokio-util",
- "tracing",
- "virtual-mio 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "virtual-mio",
 ]
 
 [[package]]
@@ -3961,8 +3920,8 @@ dependencies = [
  "httparse",
  "tokio",
  "tracing",
- "virtual-mio 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "virtual-net 0.15.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "virtual-mio",
+ "virtual-net",
 ]
 
 [[package]]
@@ -3984,7 +3943,7 @@ dependencies = [
  "thiserror 1.0.69",
  "tracing",
  "virtual-fs",
- "virtual-net 0.15.0",
+ "virtual-net",
  "wasmer",
  "wasmer-config",
  "wasmer-wasix-types",
@@ -4017,7 +3976,7 @@ dependencies = [
  "tracing-subscriber",
  "url",
  "virtual-fs",
- "virtual-net 0.15.0",
+ "virtual-net",
  "wasm-bindgen",
  "wasm-bindgen-derive",
  "wasm-bindgen-futures",
@@ -4156,8 +4115,8 @@ dependencies = [
  "url",
  "urlencoding",
  "virtual-fs",
- "virtual-mio 0.7.0",
- "virtual-net 0.15.0",
+ "virtual-mio",
+ "virtual-net",
  "waker-fn",
  "wasm-bindgen",
  "wasm-bindgen-futures",
