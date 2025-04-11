@@ -43,6 +43,8 @@ type CommonOptions = {
     mount?: Record<string, DirectoryInit | Directory>;
     /** The current working directory. */
     cwd?: string;
+    /** The networking to use. */
+    networking?: HttpListenerNetworking;
 };
 
 /**
@@ -80,6 +82,10 @@ extern "C" {
 
     #[wasm_bindgen(method, getter)]
     fn cwd(this: &CommonOptions) -> Option<String>;
+
+    // #[wasm_bindgen(method, getter)]
+    #[wasm_bindgen(method, getter)]
+    pub(crate)fn networking(this: &CommonOptions) -> JsValue;
 
     #[wasm_bindgen(method, getter)]
     fn args(this: &CommonOptions) -> Option<Array>;
@@ -265,7 +271,7 @@ impl OptionalRuntime {
 
 #[wasm_bindgen]
 extern "C" {
-    #[wasm_bindgen(typescript_type = "SpawnOptions", extends = CommonOptions)]
+    #[wasm_bindgen(typescript_type = "SpawnOptions", extends = CommonOptions, getter_with_clone)]
     #[derive(Default)]
     pub type SpawnOptions;
 

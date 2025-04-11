@@ -7,7 +7,7 @@ use js_sys::{JsString, Reflect, Uint8Array};
 use sha2::Digest;
 use tracing::Instrument;
 use virtual_fs::{AsyncReadExt, Pipe, RootFileSystemBuilder};
-use wasm_bindgen::{prelude::wasm_bindgen, JsValue, UnwrapThrowExt};
+use wasm_bindgen::{prelude::wasm_bindgen, JsCast, JsValue, UnwrapThrowExt};
 use wasmer_config::{
     hash::Sha256Hash,
     package::{PackageHash, PackageId, PackageSource},
@@ -22,6 +22,7 @@ use wasmer_wasix::{
 };
 use web_sys::{ReadableStream, WritableStream};
 use webc::{indexmap::IndexMap, metadata::Command as MetadataCommand};
+use wasm_bindgen::convert::TryFromJsValue;
 
 use crate::{
     instance::ExitCondition,
@@ -228,14 +229,22 @@ pub struct Command {
 #[wasm_bindgen]
 impl Command {
     pub async fn run(&self, options: Option<SpawnOptions>) -> Result<Instance, Error> {
+        let options = options.unwrap_or_default();
         // We set the default pool as it may be not set
         let thread_pool = Arc::new(ThreadPool::new());
-        let runtime = Arc::new(self.runtime.with_task_manager(thread_pool.clone()));
+        let mut runtime = self.runtime.with_task_manager(thread_pool.clone());
+        let networking = options.networking();
+        if networking.is_truthy() {
+            let networking = crate::http_listener_networking::HttpListenerNetworking::try_from(&networking).map_err(|e| {
+                anyhow::anyhow!("Error while casting 'networking' field back to inner rust type: {e:?}")
+            })?;
+            runtime.set_http_listener_networking(&networking);
+        };
+        let runtime = Arc::new(runtime);
         // let runtime = Arc::new(self.runtime.with_default_pool());
         let pkg = Arc::clone(&self.pkg);
         let tasks = Arc::clone(runtime.task_manager());
 
-        let options = options.unwrap_or_default();
 
         let mut runner = WasiRunner::new();
         let (stdin, stdout, stderr) = configure_runner(&options, &mut runner, &runtime).await?;

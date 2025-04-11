@@ -148,7 +148,7 @@ impl Runtime {
 
     pub fn set_http_listener_networking(
         &mut self,
-        http_listener: &crate::http_listener_networking::HttpListenerNetworkingWrapper,
+        http_listener: &crate::http_listener_networking::HttpListenerNetworking,
     ) {
         self.networking = http_listener.networking.clone();
     }
