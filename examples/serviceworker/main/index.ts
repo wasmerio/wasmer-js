@@ -1,4 +1,40 @@
-function createIframeAndCommunicate() {
+import type { Instance } from "@wasmer/sdk";
+// @ts-ignore
+import WasmModule from "@wasmer/sdk/wasm?url";
+
+async function createIframeAndCommunicate() {
+    const { Wasmer, init, HttpListenerNetworking } = await import("@wasmer/sdk");
+
+    await init({log: "trace", module: WasmModule});
+  
+    const pkg = await Wasmer.fromRegistry("wasmer/hello");
+    console.log("pkg");
+    const network = new HttpListenerNetworking();
+    console.log("network", network);
+    const instance = await pkg.entrypoint!.run({ networking: network});
+    console.log("network", network);
+    const utf8_decoder = new TextDecoder("utf-8");
+    instance.stdout.pipeTo(
+        new WritableStream({ write: chunk => console.log(utf8_decoder.decode(chunk)) }),
+      );
+      instance.stderr.pipeTo(
+        new WritableStream({ write: chunk => console.log(utf8_decoder.decode(chunk)) }),
+      );
+    
+    setTimeout(async () => {
+        console.log("Sending request network", network);
+        let request = new Request("/test", {
+            method: "GET",
+            headers: {
+                "Content-Type": "text/html",
+            },
+        });
+        console.log("Sending request network", network);
+        let response = await network.handleRequest(request, "[::]:80", "127.0.0.4:50000");
+        console.log("Response received");
+        console.log(response);
+    }, 500);
+
     // Create the iframe
     const iframe = document.createElement('iframe');
     iframe.title = 'Embedded browser. It shows the responses from the environment';
@@ -42,6 +78,7 @@ function createIframeAndCommunicate() {
                                 "cross-origin-embedder-policy": "require-corp",
                                 "cross-origin-opener-policy": "same-origin",
                                 "cross-origin-resource-policy": "cross-origin",
+                                "content-type": "application/json",
                             },
                             body: JSON.stringify(event.data.request),
                         }
@@ -54,6 +91,7 @@ function createIframeAndCommunicate() {
                     webiFrame.src = 'http://localhost:9001/'; // Replace with your target URL
                     webiFrame.style.width = '400px';
                     webiFrame.style.height = '300px';
+                    webiFrame.style.background = 'white';
                     // iframe.sandbox = 'allow-scripts allow-forms allow-same-origin allow-popups allow-downloads allow-modals';
                     webiFrame.allow = 'geolocation; ch-ua-full-version-list; cross-origin-isolated; screen-wake-lock; publickey-credentials-get; shared-storage-select-url; ch-ua-arch; bluetooth; ch-prefers-reduced-transparency; usb; ch-save-data; publickey-credentials-create; shared-storage; ch-ua-form-factors; ch-downlink; otp-credentials; payment; ch-ua; ch-ua-model; ch-ect; autoplay; camera; accelerometer; ch-ua-platform-version; ch-viewport-height; local-fonts; ch-ua-platform; midi; ch-ua-full-version; xr-spatial-tracking; clipboard-read; gamepad; display-capture; ch-width; ch-prefers-reduced-motion; encrypted-media; gyroscope; serial; ch-rtt; ch-ua-mobile; window-management; unload; ch-dpr; ch-prefers-color-scheme; ch-ua-wow64; fullscreen; identity-credentials-get; hid; ch-ua-bitness; storage-access; sync-xhr; ch-device-memory; ch-viewport-width; picture-in-picture; magnetometer; clipboard-write; microphone';
                     document.body.appendChild(webiFrame);
