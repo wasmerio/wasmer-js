@@ -7,11 +7,15 @@ async function createIframeAndCommunicate() {
 
     await init({log: "trace", module: WasmModule});
   
-    const pkg = await Wasmer.fromRegistry("wasmer/hello");
+    const pkg = await Wasmer.fromRegistry("php/php-eh@=8.3.404-beta.6");
     console.log("pkg");
     const network = new HttpListenerNetworking();
     console.log("network", network);
-    const instance = await pkg.entrypoint!.run({ networking: network});
+    const instance = await pkg.entrypoint!.run({ args: ["-t", "/app", "-S", "localhost:8000"], networking: network, mount: {
+        "/app": {
+            "index.php": "<?php echo 'Hello, world!';"
+        },
+    } });
     console.log("network", network);
     const utf8_decoder = new TextDecoder("utf-8");
     instance.stdout.pipeTo(
@@ -30,7 +34,7 @@ async function createIframeAndCommunicate() {
             },
         });
         console.log("Sending request network", network);
-        let response = await network.handleRequest(request, "[::]:80", "127.0.0.4:50000");
+        let response = await network.handleRequest(request, "0.0.0.0:8000", "127.0.0.1:50000");
         console.log("Response received");
         console.log(response);
     }, 500);
@@ -80,7 +84,9 @@ async function createIframeAndCommunicate() {
                                 "cross-origin-resource-policy": "cross-origin",
                                 "content-type": "application/json",
                             },
-                            body: JSON.stringify(event.data.request),
+                            body: JSON.stringify({
+                                "hello": "world",
+                            }),
                         }
                     });
                 }
