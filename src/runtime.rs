@@ -5,15 +5,14 @@ use once_cell::sync::Lazy;
 use virtual_net::VirtualNetworking;
 use wasmer_config::package::PackageSource;
 use wasmer_wasix::{
-    http::{HttpClient, WebHttpClient as DefaultHttpClient}, // reqwest::ReqwestHttpClient
+    http::{HttpClient, WebHttpClient as DefaultHttpClient},
     os::{TtyBridge, TtyOptions},
     runtime::{
         module_cache::ThreadLocalCache,
         package_loader::PackageLoader,
         resolver::{BackendSource, PackageSummary, QueryError, Source},
     },
-    VirtualTaskManager,
-    WasiTtyState,
+    VirtualTaskManager, WasiTtyState,
 };
 
 lazy_static! {
@@ -30,6 +29,9 @@ static GLOBAL_RUNTIME: Lazy<Mutex<Weak<Runtime>>> = Lazy::new(Mutex::default);
 #[derive(Clone, derivative::Derivative)]
 #[derivative(Debug)]
 pub struct Runtime {
+    // strongly typed Arc for access to the ThreadPool object
+    thread_pool: Option<Arc<ThreadPool>>,
+    // trait object of the same thread pool object as above, for the Runtime trait impl
     task_manager: Option<Arc<dyn VirtualTaskManager>>,
     networking: Arc<dyn VirtualNetworking>,
     source: Option<Arc<BackendSource>>,
@@ -95,6 +97,7 @@ impl Runtime {
         //     .with_task_manager(task_manager.clone());
         runtime.http_client = Arc::new(http_client);
 
+        runtime.thread_pool = Some(task_manager.clone());
         runtime.task_manager = Some(task_manager);
         runtime
     }
@@ -117,6 +120,7 @@ impl Runtime {
 
         Runtime {
             task_manager: None,
+            thread_pool: None,
             networking: Arc::new(virtual_net::UnsupportedVirtualNetworking::default()),
             source: None,
             http_client: Arc::new(http_client),
@@ -152,9 +156,11 @@ impl Runtime {
     ) {
         self.networking = http_listener.networking.clone();
     }
-}
 
-impl Runtime {
+    pub(crate) fn thread_pool(&self) -> Option<Arc<ThreadPool>> {
+        self.thread_pool.clone()
+    }
+
     pub(crate) fn tty_options(&self) -> &TtyOptions {
         &self.tty
     }
@@ -164,6 +170,7 @@ impl Runtime {
             .store(state, std::sync::atomic::Ordering::SeqCst);
     }
 }
+
 impl Drop for Runtime {
     fn drop(&mut self) {
         tracing::debug!("Dropping Runtime");

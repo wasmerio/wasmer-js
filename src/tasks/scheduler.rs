@@ -17,6 +17,8 @@ use crate::tasks::{
     WorkerMessage,
 };
 
+use super::scheduler_message::UserMessageHandler;
+
 /// A handle for interacting with the threadpool's scheduler.
 #[derive(Debug, Clone)]
 pub(crate) struct Scheduler {
@@ -125,7 +127,8 @@ impl Drop for Scheduler {
 }
 
 /// The state for the actor in charge of the threadpool.
-#[derive(Debug)]
+#[derive(derivative::Derivative)]
+#[derivative(Debug)]
 struct SchedulerState {
     /// Workers that are able to receive work.
     idle: VecDeque<WorkerHandle>,
@@ -135,6 +138,9 @@ struct SchedulerState {
     /// A channel that can be used to send messages to this scheduler.
     mailbox: Scheduler,
     cached_modules: BTreeMap<ModuleHash, js_sys::WebAssembly::Module>,
+
+    #[derivative(Debug = "ignore")]
+    on_user_message: Vec<UserMessageHandler>,
 }
 
 impl SchedulerState {
@@ -144,13 +150,14 @@ impl SchedulerState {
             busy: VecDeque::new(),
             mailbox,
             cached_modules: BTreeMap::new(),
+            on_user_message: vec![],
         }
     }
 
     fn execute(&mut self, message: SchedulerMessage) -> Result<(), Error> {
         match message {
             SchedulerMessage::Close => {
-                tracing::debug!("Scheduler received Close message");
+                tracing::trace!("Scheduler received Close message");
                 self.idle.clear();
                 // self.busy.clear();
                 Ok(())
@@ -217,6 +224,16 @@ impl SchedulerState {
                     busy_workers=?self.busy.iter().map(|w| w.id()).collect::<Vec<_>>(),
                     "Worker marked as idle",
                 );
+                Ok(())
+            }
+            SchedulerMessage::AddUserMessageHandler(handler) => {
+                self.on_user_message.push(handler);
+                Ok(())
+            }
+            SchedulerMessage::UserMessage { message, payload } => {
+                for handler in &self.on_user_message {
+                    handler(message, &payload);
+                }
                 Ok(())
             }
             SchedulerMessage::Markers { uninhabited, .. } => match uninhabited {},

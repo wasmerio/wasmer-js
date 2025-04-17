@@ -1,5 +1,4 @@
 use futures::channel::oneshot;
-use std::sync::Arc;
 use wasm_bindgen::{prelude::wasm_bindgen, JsCast};
 use wasmer_wasix::{Runtime as _, WasiEnvBuilder};
 
@@ -26,9 +25,7 @@ pub async fn run_wasix(wasm_module: WasmModule, config: RunOptions) -> Result<In
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn run_wasix_inner(wasm_module: WasmModule, config: RunOptions) -> Result<Instance, Error> {
-    let mut runtime = config.runtime().resolve()?.into_inner();
-    // We set it up with the default pool
-    runtime = Arc::new(runtime.with_default_pool());
+    let runtime = config.runtime().resolve()?.into_inner();
 
     let program_name = config
         .program()

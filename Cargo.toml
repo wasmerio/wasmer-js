@@ -27,7 +27,7 @@ sha2 = "0.10.8"
 tempfile = "3.10.1"
 tokio = { version = "1", features = ["sync"], default-features = false }
 toml = "0.8.14"
-tracing = { version = "0.1", features = ["log", "release_max_level_debug"] }
+tracing = { version = "0.1", features = ["log", "release_max_level_trace"] }
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 url = "2.4.0"
 wasm-bindgen = { version = "=0.2.92" }
