@@ -83,10 +83,6 @@ extern "C" {
     #[wasm_bindgen(method, getter)]
     fn cwd(this: &CommonOptions) -> Option<String>;
 
-    // #[wasm_bindgen(method, getter)]
-    #[wasm_bindgen(method, getter)]
-    pub(crate)fn networking(this: &CommonOptions) -> JsValue;
-
     #[wasm_bindgen(method, getter)]
     fn args(this: &CommonOptions) -> Option<Array>;
 
@@ -271,7 +267,7 @@ impl OptionalRuntime {
 
 #[wasm_bindgen]
 extern "C" {
-    #[wasm_bindgen(typescript_type = "SpawnOptions", extends = CommonOptions, getter_with_clone)]
+    #[wasm_bindgen(typescript_type = "SpawnOptions", extends = CommonOptions)]
     #[derive(Default)]
     pub type SpawnOptions;
 

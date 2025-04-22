@@ -15,6 +15,9 @@ use crate::{
     utils::Error,
 };
 
+pub(crate) type UserMessage = u64;
+pub(crate) type UserMessageHandler = Box<dyn Fn(UserMessage, &Option<String>)>;
+
 /// Messages sent from the [`crate::tasks::ThreadPool`] handle to the
 /// `Scheduler`.
 #[derive(Derivative)]
@@ -50,6 +53,13 @@ pub(crate) enum SchedulerMessage {
         module: wasmer::Module,
         memory: Option<wasmer::Memory>,
         spawn_wasm: SpawnWasm,
+    },
+    AddUserMessageHandler(
+        #[derivative(Debug(format_with = "crate::utils::hidden"))] UserMessageHandler,
+    ),
+    UserMessage {
+        message: UserMessage,
+        payload: Option<String>,
     },
     #[doc(hidden)]
     #[allow(dead_code)]
@@ -124,6 +134,11 @@ impl SchedulerMessage {
                     spawn_wasm,
                 })
             }
+            consts::TYPE_USER_MESSAGE => {
+                let message: UserMessage = de.string(consts::USER_MESSAGE)?.parse()?;
+                let payload: Option<String> = de.string(consts::USER_MESSAGE_PAYLOAD).ok();
+                Ok(SchedulerMessage::UserMessage { message, payload })
+            }
             other => {
                 tracing::warn!(r#type = other, "Unknown message type");
                 Err(anyhow::anyhow!("Unknown message type, \"{other}\"").into())
@@ -174,6 +189,19 @@ impl SchedulerMessage {
 
                 ser.finish()
             }
+            SchedulerMessage::AddUserMessageHandler(_) => {
+                Err(anyhow::anyhow!("Can't serialize user message handler").into())
+            }
+            SchedulerMessage::UserMessage { message, payload } => {
+                let mut ser = Serializer::new(consts::TYPE_USER_MESSAGE)
+                    .set(consts::USER_MESSAGE, message.to_string());
+
+                if let Some(payload) = payload {
+                    ser = ser.set(consts::USER_MESSAGE_PAYLOAD, payload);
+                }
+
+                ser.finish()
+            }
             SchedulerMessage::Markers { uninhabited, .. } => match uninhabited {},
         }
     }
@@ -188,9 +216,12 @@ mod consts {
     pub const TYPE_CACHE_MODULE: &str = "cache-module";
     pub const TYPE_SPAWN_WITH_MODULE: &str = "spawn-with-module";
     pub const TYPE_SPAWN_WITH_MODULE_AND_MEMORY: &str = "spawn-with-module-and-memory";
+    pub const TYPE_USER_MESSAGE: &str = "user-message";
     pub const MEMORY: &str = "memory";
     pub const MODULE_HASH: &str = "module-hash";
     pub const MODULE: &str = "module";
     pub const PTR: &str = "ptr";
     pub const WORKER_ID: &str = "worker-id";
+    pub const USER_MESSAGE: &str = "message";
+    pub const USER_MESSAGE_PAYLOAD: &str = "payload";
 }

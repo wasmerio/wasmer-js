@@ -60,7 +60,7 @@ impl WorkerMessage {
         let value = self.into_js()?;
         scope.post_message(&value).map_err(Error::js)?;
 
-        tracing::debug!(
+        tracing::trace!(
             current_thread = wasmer::js::current_thread_id(),
             "Message sent"
         );

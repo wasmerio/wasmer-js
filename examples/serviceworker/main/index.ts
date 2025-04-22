@@ -1,9 +1,11 @@
-import type { Instance } from "@wasmer/sdk";
+import { type Instance } from "@wasmer/sdk";
 // @ts-ignore
 import WasmModule from "@wasmer/sdk/wasm?url";
 
 async function createIframeAndCommunicate() {
-    const { Wasmer, init, HttpListenerNetworking } = await import("@wasmer/sdk");
+  const { Wasmer, Runtime, init, HttpListenerNetworking } = await import(
+    "@wasmer/sdk"
+  );
 
     await init({log: "trace", module: WasmModule});
   
@@ -168,17 +170,28 @@ Gender:
 
         }
 
-        // Listen for messages from iframe
-        window.addEventListener('message', function(event) {
+        window.addEventListener("message", function (event) {
             // Verify the origin
-            if (event.origin === 'http://localhost:9001') {
-                console.log('Received from iframe:', event.data);
-                // Handle the received message here
+            if (event.origin === "http://localhost:9001") {
+              console.log("Received from iframe:", event.data);
+              // Handle the received message here
             }
-        });
-        // Send initial message
-        sendMessageToChild();
-    };
+          });
+          // Send initial message
+          sendMessageToChild();
+    
+      };
+
+    //   iframeWindow!.postMessage(
+    //     {
+    //       msgType: "SEND_CHANNEL",
+    //       port: messageChannel.port2,
+    //     },
+    //     "http://localhost:9001",
+    //     [messageChannel.port2],
+    //   );
+    // Listen for messages from iframe
+  
 }
 
 // Call the function when page loads
@@ -194,4 +207,3 @@ window.onload = createIframeAndCommunicate;
 //         }, 'https://different-domain.com');
 //     }
 // }
-
