@@ -15,7 +15,6 @@ const autobuildApp = await Wasmer.autobuildApp({
     repoUrl: "https://github.com/wasmerio/wordpress",
     // managed: true,
     kind: "wordpress",
-    // domains: ["xyz.static.studio"],
     // secrets: {
     // },
     // jobs: [{
@@ -30,7 +29,7 @@ const autobuildApp = await Wasmer.autobuildApp({
         adminPassword: "mypassword",
         adminEmail: "my@email.com",
         siteName: "bcd",
-        language: "es-ES",
+        language: "es_ES",
         // Other things to preinstall
         // themes: ["twentytwentyfive"],
         // plugins: ["akismet", "myplugin"],
