@@ -1,82 +1,18 @@
 import { type Instance } from "@wasmer/sdk";
 // @ts-ignore
-import WasmModule from "@wasmer/sdk/wasm?url";
+// import WasmModule from "@wasmer/sdk/wasm?url";
 
 async function createIframeAndCommunicate() {
   const { Wasmer, Runtime, init, HttpListenerNetworking } = await import(
     "@wasmer/sdk"
   );
 
-    await init({log: "trace", module: WasmModule});
+    await init({log: "trace"});
   
-    const pkg = await Wasmer.fromRegistry("php/php-eh@=8.3.404-beta.6");
+    const pkg = await Wasmer.fromRegistry("php/php@=8.3.403");
     console.log("pkg");
     const network = new HttpListenerNetworking();
-    console.log("network", network);
-    const instance = await pkg.entrypoint!.run({ args: ["-t", "/app", "-S", "0.0.0.0:8000"], networking: network, mount: {
-        "/app": {
-            "info.php": "<?php phpinfo(); ?>",
-            "index.php": "<a href='info.php'>info</a>, <a href='form.php'>form</a>",
-            "form.php": `
-<form method="post" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]);?>">
-<? var_dump($_POST) ?>
-Name: <input type="text" name="name">
-<span class="error">* <?php echo $nameErr;?></span>
-<br><br>
-E-mail:
-<input type="text" name="email">
-<span class="error">* <?php echo $emailErr;?></span>
-<br><br>
-Website:
-<input type="text" name="website">
-<span class="error"><?php echo $websiteErr;?></span>
-<br><br>
-Comment: <textarea name="comment" rows="5" cols="40"></textarea>
-<br><br>
-Gender:
-<input type="radio" name="gender" value="female">Female
-<input type="radio" name="gender" value="male">Male
-<input type="radio" name="gender" value="other">Other
-<span class="error">* <?php echo $genderErr;?></span>
-<br><br>
-<input type="submit" name="submit" value="Submit">
-
-</form>
-`,
-        },
-    } });
-    console.log("network", network);
-    const utf8_decoder = new TextDecoder("utf-8");
-    instance.stdout.pipeTo(
-        new WritableStream({ write: chunk => console.log(utf8_decoder.decode(chunk)) }),
-      );
-      instance.stderr.pipeTo(
-        new WritableStream({ write: chunk => console.log(utf8_decoder.decode(chunk)) }),
-      );
-    
-    // setTimeout(async () => {
-    //     console.log("Sending request network", network);
-    //     let request = new Request("/test", {
-    //         method: "GET",
-    //         headers: {
-    //             "Content-Type": "text/html",
-    //         },
-    //     });
-    //     console.log("Sending request network", network);
-    //     let response = await network.handleRequest(request, "0.0.0.0:8000", "127.0.0.1:50000");
-    //     response.body?.getReader().read().then(result => {
-    //         console.log("Response received X", result);
-    //     });
-    //     // console.log("Response received");
-    //     console.log(response);
-    // }, 500);
-    let onServerReady = new Promise((resolve, reject) => {
-        setTimeout(() => {
-            resolve(true);
-        }, 500);
-    });
-    
-
+    network.setOnNewListener((addr?: string) => {
     // Create the iframe
     const iframe = document.createElement('iframe');
     iframe.title = 'Embedded browser. It shows the responses from the environment';
@@ -106,7 +42,7 @@ Gender:
             // }, 0);
 
             messageChannel.port1.onmessage = async function(event) {
-                await onServerReady;
+                // await onServerReady;
                 console.log('Received from iframe:', event.data);
                 if (event.data.msgType === 'REQUEST') {
                     console.log("Received request with", event.data.request.body.buffer);
@@ -181,6 +117,74 @@ Gender:
           sendMessageToChild();
     
       };
+
+      });
+    
+    console.log("network", network);
+    const instance = await pkg.entrypoint!.run({ args: ["-t", "/app", "-S", "0.0.0.0:8000"], networking: network, mount: {
+        "/app": {
+            "info.php": "<?php phpinfo(); ?>",
+            "index.php": "<a href='info.php'>info</a>, <a href='form.php'>form</a>",
+            "form.php": `
+<form method="post" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]);?>">
+<? var_dump($_POST) ?>
+Name: <input type="text" name="name">
+<span class="error">* <?php echo $nameErr;?></span>
+<br><br>
+E-mail:
+<input type="text" name="email">
+<span class="error">* <?php echo $emailErr;?></span>
+<br><br>
+Website:
+<input type="text" name="website">
+<span class="error"><?php echo $websiteErr;?></span>
+<br><br>
+Comment: <textarea name="comment" rows="5" cols="40"></textarea>
+<br><br>
+Gender:
+<input type="radio" name="gender" value="female">Female
+<input type="radio" name="gender" value="male">Male
+<input type="radio" name="gender" value="other">Other
+<span class="error">* <?php echo $genderErr;?></span>
+<br><br>
+<input type="submit" name="submit" value="Submit">
+
+</form>
+`,
+        },
+    } });
+    console.log("network", network);
+    const utf8_decoder = new TextDecoder("utf-8");
+    instance.stdout.pipeTo(
+        new WritableStream({ write: chunk => console.log(utf8_decoder.decode(chunk)) }),
+      );
+      instance.stderr.pipeTo(
+        new WritableStream({ write: chunk => console.log(utf8_decoder.decode(chunk)) }),
+      );
+    
+    // setTimeout(async () => {
+    //     console.log("Sending request network", network);
+    //     let request = new Request("/test", {
+    //         method: "GET",
+    //         headers: {
+    //             "Content-Type": "text/html",
+    //         },
+    //     });
+    //     console.log("Sending request network", network);
+    //     let response = await network.handleRequest(request, "0.0.0.0:8000", "127.0.0.1:50000");
+    //     response.body?.getReader().read().then(result => {
+    //         console.log("Response received X", result);
+    //     });
+    //     // console.log("Response received");
+    //     console.log(response);
+    // }, 500);
+    let onServerReady = new Promise((resolve, reject) => {
+        setTimeout(() => {
+            resolve(true);
+        }, 500);
+    });
+    
+
 
     //   iframeWindow!.postMessage(
     //     {
