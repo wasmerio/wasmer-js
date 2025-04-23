@@ -87,6 +87,9 @@ extern "C" {
     fn args(this: &CommonOptions) -> Option<Array>;
 
     #[wasm_bindgen(method, getter)]
+    pub(crate)fn networking(this: &CommonOptions) -> JsValue;
+    
+    #[wasm_bindgen(method, getter)]
     fn env(this: &CommonOptions) -> JsValue;
 
     #[wasm_bindgen(method, getter)]

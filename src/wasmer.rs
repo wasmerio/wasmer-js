@@ -1,4 +1,5 @@
 use std::{str::FromStr, sync::Arc};
+use std::sync::atomic::{AtomicU32, Ordering};
 
 use anyhow::Context;
 use bytes::{Bytes, BytesMut};
@@ -22,13 +23,17 @@ use wasmer_wasix::{
 };
 use web_sys::{ReadableStream, WritableStream};
 use webc::{indexmap::IndexMap, metadata::Command as MetadataCommand};
+use std::net::SocketAddr;
 
 use crate::{
     instance::ExitCondition,
     runtime::Runtime,
+    tasks::ThreadPool,
     utils::{Error, GlobalScope},
     Instance, JsRuntime, SpawnOptions,
+    http_listener_networking::{HTTP_LISTENER_NETWORKING_ID, USER_MESSAGE_HTTP_LISTENER_NETWORKING_ON_NEW_LISTENER_LSB},
 };
+
 
 /// A package from the Wasmer registry.
 ///
@@ -229,8 +234,52 @@ impl Command {
     pub async fn run(&self, options: Option<SpawnOptions>) -> Result<Instance, Error> {
         let options = options.unwrap_or_default();
         // We set the default pool as it may be not set
-        let thread_pool = self.runtime.thread_pool().unwrap();
-        let runtime = self.runtime.clone();
+        // let thread_pool = self.runtime.thread_pool().unwrap();
+        // let runtime = self.runtime.clone();
+        let thread_pool = Arc::new(ThreadPool::new());
+        let mut runtime = self.runtime.with_task_manager(thread_pool.clone());
+        let networking = options.networking();
+        if networking.is_truthy() {
+            let mut networking =
+                crate::http_listener_networking::HttpListenerNetworking::try_from(&networking)
+                    .map_err(|e| {
+                        anyhow::anyhow!(
+                            "Error while casting 'networking' field back to inner rust type: {e:?}"
+                        )
+                    })?;
+
+            if let Some(callback) = networking.callback.clone() {
+                let id = HTTP_LISTENER_NETWORKING_ID.fetch_add(1, Ordering::SeqCst);
+                let full_id =
+                    (id as u64) << 32 | USER_MESSAGE_HTTP_LISTENER_NETWORKING_ON_NEW_LISTENER_LSB;
+                tracing::debug!(%full_id, "HTTPLISTENER my full id");
+                let thread_pool = runtime.thread_pool().unwrap();
+                thread_pool.send(crate::tasks::SchedulerMessage::AddUserMessageHandler(
+                    Box::new(move |user_message, payload| {
+                        tracing::debug!(%user_message, "HTTPLISTENER got user message");
+                        if user_message == full_id {
+                            let payload_jsval = match payload {
+                                None => JsValue::null(),
+                                Some(payload) => JsValue::from_str(payload),
+                            };
+                            _ = callback.call1(&JsValue::undefined(), &payload_jsval);
+                        }
+                    }),
+                ));
+
+                networking.networking.set_on_new_listener(Box::new(move |addr: SocketAddr| {
+                    tracing::debug!(%addr, "HTTPLISTENER new listener notification");
+                    thread_pool.send(crate::tasks::SchedulerMessage::UserMessage {
+                        message: full_id,
+                        payload: Some(addr.to_string()),
+                    })
+                }));
+            }
+
+            runtime.set_http_listener_networking(&networking);
+        };
+        let runtime = Arc::new(runtime);
+
         let pkg = Arc::clone(&self.pkg);
         let tasks = Arc::clone(runtime.task_manager());
 

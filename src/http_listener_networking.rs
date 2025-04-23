@@ -1,5 +1,4 @@
 use std::{
-    net::SocketAddr,
     sync::{
         atomic::{AtomicU32, Ordering},
         Arc,
@@ -12,17 +11,16 @@ use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 use wasmer_http_listener_networking::HttpListenerNetworking as HttpListenerNetworkingNative;
 use web_sys::ResponseInit;
 
-use crate::wasmer::OptionalRuntime;
-
 // Mask to diffrentiate this user message from others...
-const USER_MESSAGE_HTTP_LISTENER_NETWORKING_ON_NEW_LISTENER_LSB: u64 = 1;
+pub(crate) const USER_MESSAGE_HTTP_LISTENER_NETWORKING_ON_NEW_LISTENER_LSB: u64 = 1;
 // ... combined with a counter to identify the specific networking instance
-static HTTP_LISTENER_NETWORKING_ID: AtomicU32 = AtomicU32::new(0);
+pub(crate) static HTTP_LISTENER_NETWORKING_ID: AtomicU32 = AtomicU32::new(0);
 
 #[derive(Clone, wasm_bindgen_derive::TryFromJsValue)]
 #[wasm_bindgen(getter_with_clone)]
 pub struct HttpListenerNetworking {
     pub(crate) networking: Arc<HttpListenerNetworkingNative>,
+    pub(crate) callback: Option<js_sys::Function>,
     pub(crate) request_handler:
         Arc<wasmer_http_listener_networking::HttpListenerNetworkingRequestHandler>,
 }
@@ -42,6 +40,7 @@ impl HttpListenerNetworking {
         let request_handler = networking.build_request_handler();
         Self {
             networking: Arc::new(networking),
+            callback: None,
             request_handler: Arc::new(request_handler),
         }
     }
@@ -52,48 +51,11 @@ impl HttpListenerNetworking {
 
     #[wasm_bindgen(js_name = "setOnNewListener")]
     pub fn set_on_new_listener(
-        &self,
-        runtime: OptionalRuntime,
+        &mut self,
         callback: js_sys::Function,
     ) -> Result<(), js_sys::Error> {
         tracing::debug!("HTTPLISTENER have listener func");
-        let Some(runtime) = runtime.resolve().ok().map(|r| r.into_inner()) else {
-            return Err(js_sys::Error::new(
-                "A runtime must be provided to support the on_new_listener event.",
-            ));
-        };
-        let Some(thread_pool) = runtime.thread_pool() else {
-            return Err(js_sys::Error::new(
-                "A runtime with a thread pool must be provided to support the on_new_listener event.",
-            ));
-        };
-
-        let id = HTTP_LISTENER_NETWORKING_ID.fetch_add(1, Ordering::SeqCst);
-        let full_id = (id as u64) << 32 | USER_MESSAGE_HTTP_LISTENER_NETWORKING_ON_NEW_LISTENER_LSB;
-        tracing::debug!(%full_id, "HTTPLISTENER my full id");
-
-        thread_pool.send(crate::tasks::SchedulerMessage::AddUserMessageHandler(
-            Box::new(move |user_message, payload| {
-                tracing::debug!(%user_message, "HTTPLISTENER got user message");
-                if user_message == full_id {
-                    let payload_jsval = match payload {
-                        None => JsValue::null(),
-                        Some(payload) => JsValue::from_str(payload),
-                    };
-                    _ = callback.call1(&JsValue::undefined(), &payload_jsval);
-                }
-            }),
-        ));
-
-        self.networking
-            .set_on_new_listener(Box::new(move |addr: SocketAddr| {
-                tracing::debug!(%addr, "HTTPLISTENER new listener notification");
-                thread_pool.send(crate::tasks::SchedulerMessage::UserMessage {
-                    message: full_id,
-                    payload: Some(addr.to_string()),
-                })
-            }));
-
+        self.callback = Some(callback);
         Ok(())
     }
 
