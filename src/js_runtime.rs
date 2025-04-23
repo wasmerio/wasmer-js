@@ -37,16 +37,14 @@ impl JsRuntime {
             None => Some(crate::DEFAULT_REGISTRY.to_string()),
         };
 
-        let mut rt = Runtime::new().with_default_pool();
+        let mut rt = Runtime::new();
 
         if let Some(registry) = registry.as_deref() {
             let api_key = options.as_ref().and_then(|opts| opts.api_key());
             rt.set_registry(registry, api_key.as_deref())?;
         }
 
-        if let Some(networking) = options.as_ref().and_then(|opts| opts.networking()) {
-            rt.set_http_listener_networking(&networking);
-        } else if let Some(gateway) = options.as_ref().and_then(|opts| opts.network_gateway()) {
+        if let Some(gateway) = options.as_ref().and_then(|opts| opts.network_gateway()) {
             rt.set_network_gateway(gateway);
         }
 
@@ -116,10 +114,6 @@ export type RuntimeOptions = {
      * Enable networking (i.e. TCP and UDP) via a gateway server.
      */
     networkGateway?: string;
-    /**
-     * Enable HTTP networking.
-     */
-    networking?: HttpListenerNetworking;
 };
 "#;
 
@@ -136,9 +130,6 @@ extern "C" {
 
     #[wasm_bindgen(method, getter, js_name = "networkGateway")]
     fn network_gateway(this: &RuntimeOptions) -> Option<String>;
-
-    #[wasm_bindgen(method, getter, js_name = "networking")]
-    fn networking(this: &RuntimeOptions) -> Option<HttpListenerNetworking>;
 
     #[wasm_bindgen(typescript_type = "string | null | undefined")]
     type MaybeRegistryUrl;

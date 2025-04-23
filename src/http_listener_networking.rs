@@ -1,4 +1,5 @@
 use std::{
+    net::SocketAddr,
     sync::{
         atomic::{AtomicU32, Ordering},
         Arc,
@@ -10,11 +11,14 @@ use http::{Method, Request};
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 use wasmer_http_listener_networking::HttpListenerNetworking as HttpListenerNetworkingNative;
 use web_sys::ResponseInit;
+use crate::tasks::ThreadPool;
+
+use crate::wasmer::OptionalRuntime;
 
 // Mask to diffrentiate this user message from others...
-pub(crate) const USER_MESSAGE_HTTP_LISTENER_NETWORKING_ON_NEW_LISTENER_LSB: u64 = 1;
+const USER_MESSAGE_HTTP_LISTENER_NETWORKING_ON_NEW_LISTENER_LSB: u64 = 1;
 // ... combined with a counter to identify the specific networking instance
-pub(crate) static HTTP_LISTENER_NETWORKING_ID: AtomicU32 = AtomicU32::new(0);
+static HTTP_LISTENER_NETWORKING_ID: AtomicU32 = AtomicU32::new(0);
 
 #[derive(Clone, wasm_bindgen_derive::TryFromJsValue)]
 #[wasm_bindgen(getter_with_clone)]
@@ -50,13 +54,42 @@ impl HttpListenerNetworking {
     }
 
     #[wasm_bindgen(js_name = "setOnNewListener")]
-    pub fn set_on_new_listener(
-        &mut self,
-        callback: js_sys::Function,
-    ) -> Result<(), js_sys::Error> {
+    pub fn set_on_new_listener(&mut self, callback: js_sys::Function) -> Result<(), js_sys::Error> {
         tracing::debug!("HTTPLISTENER have listener func");
         self.callback = Some(callback);
         Ok(())
+    }
+
+    pub(crate) fn run_callback_in_runtime(
+        &self,
+        callback: js_sys::Function,
+        thread_pool: Arc<ThreadPool>,
+    ) {
+        let id = HTTP_LISTENER_NETWORKING_ID.fetch_add(1, Ordering::SeqCst);
+        let full_id = (id as u64) << 32 | USER_MESSAGE_HTTP_LISTENER_NETWORKING_ON_NEW_LISTENER_LSB;
+        tracing::debug!(%full_id, "HTTPLISTENER my full id");
+
+        thread_pool.send(crate::tasks::SchedulerMessage::AddUserMessageHandler(
+            Box::new(move |user_message, payload| {
+                tracing::debug!(%user_message, "HTTPLISTENER got user message");
+                if user_message == full_id {
+                    let payload_jsval = match payload {
+                        None => JsValue::null(),
+                        Some(payload) => JsValue::from_str(payload),
+                    };
+                    _ = callback.call1(&JsValue::undefined(), &payload_jsval);
+                }
+            }),
+        ));
+
+        self.networking
+            .set_on_new_listener(Box::new(move |addr: SocketAddr| {
+                tracing::debug!(%addr, "HTTPLISTENER new listener notification");
+                thread_pool.send(crate::tasks::SchedulerMessage::UserMessage {
+                    message: full_id,
+                    payload: Some(addr.to_string()),
+                })
+            }));
     }
 
     #[wasm_bindgen(js_name = "handleRequest")]

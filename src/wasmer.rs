@@ -9,6 +9,7 @@ use sha2::Digest;
 use tracing::Instrument;
 use virtual_fs::{AsyncReadExt, Pipe, RootFileSystemBuilder};
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue, UnwrapThrowExt};
+use wasmer_config::package::SuggestedCompilerOptimizations;
 use wasmer_config::{
     hash::Sha256Hash,
     package::{PackageHash, PackageId, PackageSource},
@@ -31,7 +32,6 @@ use crate::{
     tasks::ThreadPool,
     utils::{Error, GlobalScope},
     Instance, JsRuntime, SpawnOptions,
-    http_listener_networking::{HTTP_LISTENER_NETWORKING_ID, USER_MESSAGE_HTTP_LISTENER_NETWORKING_ON_NEW_LISTENER_LSB},
 };
 
 
@@ -185,6 +185,7 @@ impl Wasmer {
                 wasm.into(),
                 hash,
                 None,
+                SuggestedCompilerOptimizations::default(),
             )],
             additional_host_mapped_directories: vec![],
         };
@@ -233,9 +234,6 @@ pub struct Command {
 impl Command {
     pub async fn run(&self, options: Option<SpawnOptions>) -> Result<Instance, Error> {
         let options = options.unwrap_or_default();
-        // We set the default pool as it may be not set
-        // let thread_pool = self.runtime.thread_pool().unwrap();
-        // let runtime = self.runtime.clone();
         let thread_pool = Arc::new(ThreadPool::new());
         let mut runtime = self.runtime.with_task_manager(thread_pool.clone());
         let networking = options.networking();
@@ -249,31 +247,7 @@ impl Command {
                     })?;
 
             if let Some(callback) = networking.callback.clone() {
-                let id = HTTP_LISTENER_NETWORKING_ID.fetch_add(1, Ordering::SeqCst);
-                let full_id =
-                    (id as u64) << 32 | USER_MESSAGE_HTTP_LISTENER_NETWORKING_ON_NEW_LISTENER_LSB;
-                tracing::debug!(%full_id, "HTTPLISTENER my full id");
-                let thread_pool = runtime.thread_pool().unwrap();
-                thread_pool.send(crate::tasks::SchedulerMessage::AddUserMessageHandler(
-                    Box::new(move |user_message, payload| {
-                        tracing::debug!(%user_message, "HTTPLISTENER got user message");
-                        if user_message == full_id {
-                            let payload_jsval = match payload {
-                                None => JsValue::null(),
-                                Some(payload) => JsValue::from_str(payload),
-                            };
-                            _ = callback.call1(&JsValue::undefined(), &payload_jsval);
-                        }
-                    }),
-                ));
-
-                networking.networking.set_on_new_listener(Box::new(move |addr: SocketAddr| {
-                    tracing::debug!(%addr, "HTTPLISTENER new listener notification");
-                    thread_pool.send(crate::tasks::SchedulerMessage::UserMessage {
-                        message: full_id,
-                        payload: Some(addr.to_string()),
-                    })
-                }));
+                networking.run_callback_in_runtime(callback, thread_pool.clone());
             }
 
             runtime.set_http_listener_networking(&networking);
