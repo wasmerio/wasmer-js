@@ -15,9 +15,19 @@ const autobuildApp = await Wasmer.autobuildApp({
     repoUrl: "https://github.com/wasmerio/wordpress",
     // managed: true,
     kind: "wordpress",
-    // domains: ["xyz.static.studio"],
-    // secrets: {
-    // },
+    // domains: ["testoftheapp.wasmer.dev"],
+    jobs: [
+        // {command: "bash", cliArgs: ["-c", `echo "Hello for demo"`]},
+        {command: "bash", cliArgs: ["-c", `
+          echo "Installing plugins... $STATIC_STUDIO_API_KEY";
+          php /app/wp-cli.phar --allow-root --path=/app plugin install https://api.static.studio/storage/v1/object/public/plugins/simply-static-pro.zip;
+          php /app/wp-cli.phar --allow-root --path=/app plugin install https://api.static.studio/storage/v1/object/public/plugins/simply-static-studio-helper.zip;
+          echo "Plugins installed";
+          `]},
+    ],
+    secrets: [
+        {name: "STATIC_STUDIO_API_KEY", value: "static-studio-api-key"},
+    ],
     // jobs: [{
     //   trigger: "postdeployment",
     //   command: "bash",
@@ -30,7 +40,7 @@ const autobuildApp = await Wasmer.autobuildApp({
         adminPassword: "mypassword",
         adminEmail: "my@email.com",
         siteName: "bcd",
-        language: "es-ES",
+        // language: "es_ES",
         // Other things to preinstall
         // themes: ["twentytwentyfive"],
         // plugins: ["akismet", "myplugin"],
