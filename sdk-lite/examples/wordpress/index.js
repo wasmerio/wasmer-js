@@ -1,16 +1,18 @@
 import { init, Wasmer } from "@wasmer/sdk-lite";
 // import { init, Wasmer } from "../../dist/index.js";
 
+const WASMER_TOKEN = process.env.WASMER_TOKEN;
+
 await init({
-    registryUrl: "https://registry.wasmer.wtf/graphql",
-    // token: ""
+    registryUrl: "https://registry.wasmer.io/graphql",
+    token: WASMER_TOKEN
 });
 
 // Generate a random app name
 const randomAppName = `demo-${Math.random().toString(36).substring(2, 10)}`;
 
 const autobuildApp = await Wasmer.autobuildApp({
-    region: "be-mons",
+    region: "be-mons1",
     appName: randomAppName,
     repoUrl: "https://github.com/wasmerio/wordpress",
     // managed: true,
@@ -21,8 +23,8 @@ const autobuildApp = await Wasmer.autobuildApp({
         {
           command: "bash", cliArgs: ["-c", `
           echo "Installing plugins... $STATIC_STUDIO_API_KEY";
-          php /app/wp-cli.phar --allow-root --path=/app plugin install https://api.static.studio/storage/v1/object/public/plugins/simply-static-pro.zip || true;
-          php /app/wp-cli.phar --allow-root --path=/app plugin install https://api.static.studio/storage/v1/object/public/plugins/simply-static-studio-helper.zip || true;
+          php /app/wp-cli.phar --allow-root --path=/app plugin install https://api.static.studio/storage/v1/object/public/plugins/simply-static-pro.zip;
+          php /app/wp-cli.phar --allow-root --path=/app plugin install https://api.static.studio/storage/v1/object/public/plugins/simply-static-studio-helper.zip;
           echo "Plugins installed";
           `]
           // command: "bash", cliArgs: ["-c", `

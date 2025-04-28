@@ -5,6 +5,9 @@ import { srcAutobuildSubscription } from '__generated__/srcAutobuildSubscription
 import nodeApp, { srcDeployAppData$data } from '__generated__/srcDeployAppData.graphql';
 import nodeAppVersion, { srcDeployAppVersionData$data, srcDeployAppVersionData$key } from '__generated__/srcDeployAppVersionData.graphql';
 import nodeDeployAppKindWordPress, { srcDeployAppKindWordPress$data, srcDeployAppKindWordPress$key } from '__generated__/srcDeployAppKindWordPress.graphql';
+import { srcDeleteAppMutation, srcDeleteAppMutation$variables } from '__generated__/srcDeleteAppMutation.graphql';
+import { srcGetAppByNameQuery, srcGetAppByNameQuery$variables } from '__generated__/srcGetAppByNameQuery.graphql';
+import { srcGetAppByIdQuery, srcGetAppByIdQuery$variables } from '__generated__/srcGetAppByIdQuery.graphql';
 const { graphql, fetchQuery, commitMutation, requestSubscription, getSelector } = RelayRuntime;
 
 export type WasmerRegistryConfig = {
@@ -232,6 +235,74 @@ class AutobuildApp {
 };
 
 export const Wasmer = {
+  getApp: async (input: srcGetAppByNameQuery$variables | srcGetAppByIdQuery$variables): Promise<DeployApp | null> => {
+    const env = environment();
+    if ('id' in input) {
+      // We fetch by id
+      let query = await fetchQuery<srcGetAppByIdQuery>(env, graphql`
+        query srcGetAppByIdQuery($id: ID!) {
+          app: node(id: $id) {
+            __typename
+            ...srcDeployAppData
+          }
+        }
+      `, {
+          id: input.id!,
+      }).toPromise();
+      if (!query?.app || query.app.__typename !== "DeployApp") {
+        return null;
+      }
+      let appData = getFragmentData<srcDeployAppData$data>(environment(), nodeApp, query.app);
+      return new DeployApp(appData);
+    }
+    else {
+      // We fetch by name
+      let query = await fetchQuery<srcGetAppByNameQuery>(env, graphql`
+        query srcGetAppByNameQuery($name: String!, $owner: String) {
+          app: getDeployApp(name: $name, owner: $owner) {
+            ...srcDeployAppData
+          }
+        }
+      `, {
+        name: input.name,
+        owner: input.owner,
+      }).toPromise();
+      if (!query?.app) {
+        return null;
+      }
+      let appData = getFragmentData<srcDeployAppData$data>(environment(), nodeApp, query.app);
+      return new DeployApp(appData);
+    }
+  },
+  deleteApp: async (input: srcDeleteAppMutation$variables['input']): Promise<void> => {
+    const env = environment();
+    let success: any = await (new Promise((resolve, reject) => {
+      commitMutation<srcDeleteAppMutation>(
+        env,
+        {mutation: graphql`
+        mutation srcDeleteAppMutation($input: DeleteAppInput!) {
+          deleteApp(input: $input) {
+            success
+          }
+        }
+      `,
+      onCompleted: (response, errors) => {
+        if (errors && errors.length > 0) {
+          reject(`The app could not be deleted: ${errors[0].message.toString()}`);
+          return;
+        }
+        resolve(response.deleteApp?.success);
+      },
+      onError: (error) => {
+        reject(`The app could not be deleted: ${error.message.toString()}`);
+      },
+      variables: {
+        input
+      },
+      })
+    }));
+    return success;
+  },
   autobuildApp: async (input: srcAutobuildMutation$variables['input']): Promise<AutobuildApp> => {
     const env = environment();
     let query: any = await (new Promise((resolve, reject) => {
