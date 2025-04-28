@@ -9,7 +9,7 @@ async function createIframeAndCommunicate() {
 
     await init({log: "trace"});
   
-    const pkg = await Wasmer.fromRegistry("php/php@=8.3.403");
+    const pkg = await Wasmer.fromRegistry("php/php-eh@=8.3.404-beta.8");
     console.log("pkg");
     const network = new HttpListenerNetworking();
     network.setOnNewListener((addr?: string) => {
