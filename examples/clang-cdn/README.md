@@ -4,7 +4,7 @@ This example showcases how to use clang with the Wasmer SDK when using a CDN.
 
 
 You'll need to set up the COOP/COEP headers when serving the html file, so it works
-properly in the broser:
+properly in the browser:
 
 ```
 Cross-Origin-Embedder-Policy: require-corp
