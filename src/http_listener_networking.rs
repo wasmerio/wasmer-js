@@ -183,7 +183,14 @@ async fn web_request_to_http_request(
     tracing::debug!("web_request_to_http_request::7");
     let uint8_array = js_sys::Uint8Array::new(&array_buffer);
     tracing::debug!("web_request_to_http_request::8");
-    let body = Bytes::from(uint8_array.to_vec());
+    let vec_body = uint8_array.to_vec();
+    if vec_body.len() > 0 {
+        headers.insert(
+            http::header::HeaderName::from_bytes(b"Content-Length").unwrap(),
+            http::header::HeaderValue::from_str(&vec_body.len().to_string()).unwrap(),
+        );
+    }
+    let body = Bytes::from(vec_body);
     tracing::debug!("web_request_to_http_request::9");
 
     builder
@@ -195,8 +202,8 @@ fn http_response_to_web_response(
     http_response: http::Response<Bytes>,
 ) -> Result<web_sys::Response, js_sys::Error> {
     tracing::debug!("http_response_to_web_response::1");
-    let mut response_init = ResponseInit::new();
-    response_init.status(http_response.status().as_u16());
+    let response_init = ResponseInit::new();
+    response_init.set_status(http_response.status().as_u16());
     tracing::debug!("http_response_to_web_response::2");
     let headers =
         web_sys::Headers::new().map_err(|_| js_sys::Error::new("Failed to create headers"))?;
@@ -211,7 +218,7 @@ fn http_response_to_web_response(
             )
             .map_err(|_| js_sys::Error::new("Failed to set header"))?;
     }
-    response_init.headers(&headers);
+    response_init.set_headers(&headers);
     tracing::debug!("http_response_to_web_response::4");
     let body = js_sys::Uint8Array::from(http_response.body().as_ref());
     tracing::debug!("http_response_to_web_response::5");

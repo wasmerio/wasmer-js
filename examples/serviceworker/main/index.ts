@@ -1,4 +1,4 @@
-import { type Instance } from "@wasmer/sdk";
+import { Directory, type Instance } from "@wasmer/sdk";
 // @ts-ignore
 // import WasmModule from "@wasmer/sdk/wasm?url";
 
@@ -9,7 +9,7 @@ async function createIframeAndCommunicate() {
 
     await init({log: "trace"});
   
-    const pkg = await Wasmer.fromRegistry("php/php-eh@=8.3.404-beta.8");
+    const pkg = await Wasmer.fromRegistry("wasmer/explorer");
     console.log("pkg");
     const network = new HttpListenerNetworking();
     network.setOnNewListener((addr?: string) => {
@@ -52,11 +52,26 @@ async function createIframeAndCommunicate() {
                         method: event.data.request.method,
                         headers: new Headers(event.data.request.headers),
                         // body: event.data.request.body,
-
-                        // body: event.data.request.body.buffer,
+                        body: (event.data.request.method === "GET" || event.data.request.method === "HEAD" ? null : event.data.request.body),
                     });
+                    let logged_request = new Request(event.data.request.url, {
+                        // method: event.data.method,
+                        // headers: event.data.headers,
+                        method: event.data.request.method,
+                        headers: new Headers(event.data.request.headers),
+                        // body: event.data.request.body,
+                        body: (event.data.request.method === "GET" || event.data.request.method === "HEAD" ? null : event.data.request.body),
+                    });
+
+                    let arrayBuffer = await logged_request.arrayBuffer();
+                    // let arrayBuffer = await blob.arrayBuffer();
+                    let uint8Array = new Uint8Array(arrayBuffer);
+                    let text = new TextDecoder().decode(uint8Array);
+                    console.log("REQUEST BODY", uint8Array);
+                    console.log("REQUEST BODY STRING", text);
+
                     console.log("Sending request network", network);
-                    let response = await network.handleRequest(request, "0.0.0.0:8000", "127.0.0.1:50000");
+                    let response = await network.handleRequest(request);
                     // response.body?.getReader().read().then(result => {
                     //     console.log("Response received X", result);
                     // });
@@ -70,7 +85,7 @@ async function createIframeAndCommunicate() {
                     headers.set("cross-origin-embedder-policy", "require-corp");
                     headers.set("cross-origin-opener-policy", "same-origin");
                     headers.set("cross-origin-resource-policy", "cross-origin");
-                    headers.set("content-type", "text/html");
+                    // headers.set("content-type", "text/html");
             
                     // let body = new TextEncoder().encode("Hello, world!");
                     // let data = new Uint8Array(body);
@@ -121,13 +136,17 @@ async function createIframeAndCommunicate() {
       });
     
     console.log("network", network);
-    const instance = await pkg.entrypoint!.run({ args: ["-t", "/app", "-S", "0.0.0.0:8000"], networking: network, mount: {
-        "/app": {
+    const instance = await pkg.entrypoint!.run({ cwd: "/app", args: [], env: {
+        "ALLOW_PUBLIC_ACCESS": "1",
+    },
+    networking: network, mount: {
+        // "/public": new Directory({}),
+        "/public/test": {
             "info.php": "<?php phpinfo(); ?>",
             "index.php": "<a href='info.php'>info</a>, <a href='form.php'>form</a>",
             "form.php": `
 <form method="post" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]);?>">
-<? var_dump($_POST) ?>
+<? var_dump($_POST); var_dump($_GET); ?>
 Name: <input type="text" name="name">
 <span class="error">* <?php echo $nameErr;?></span>
 <br><br>

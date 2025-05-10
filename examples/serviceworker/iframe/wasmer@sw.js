@@ -100,7 +100,7 @@ const requestDataToVm = request => {
         channelPort.removeEventListener("message", this);
 
 		clearTimeout(timeout);
-
+        console.log("SW: RESPONSE", data.response);
         resolve(
           new Response(data.response.body, {
             headers: data.response.headers,
@@ -113,10 +113,19 @@ const requestDataToVm = request => {
 
     channelPort.addEventListener("message", bcListener);
 
+
     request
       // 	// Use a buffer to avoid converting non-utf8 data to string.
       .arrayBuffer()
       .then(buf => {
+        console.log("SW: REQUEST", {
+          method: request.method,
+          url: request.url,
+          headers: Object.fromEntries(request.headers.entries()),
+          body: new Uint8Array(buf),
+          bodyAsString: new TextDecoder().decode(new Uint8Array(buf)),
+        });
+    
         channelPort.postMessage({
           msgType: "REQUEST",
           host: "localhost",
