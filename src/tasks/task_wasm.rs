@@ -10,7 +10,7 @@ use wasm_bindgen::{JsCast, JsValue};
 use wasmer::{js::AsJs, Memory, MemoryType, Module, Store};
 use wasmer_wasix::{
     runtime::task_manager::{
-        SpawnMemoryTypeOrStore, TaskWasm, TaskWasmPreRun, TaskWasmRecycle, TaskWasmRun,
+        SpawnMemoryTypeOrStore, SpawnType, TaskWasm, TaskWasmPreRun, TaskWasmRecycle, TaskWasmRun,
         TaskWasmRunProperties, WasmResumeTrigger,
     },
     wasmer_wasix_types::wasi::ExitCode,
@@ -32,18 +32,19 @@ pub(crate) fn to_scheduler_message(
         recycle,
         globals,
         pre_run,
+        call_initialize,
     } = task;
 
     let module_bytes = module.serialize().unwrap();
 
     let (memory_ty, memory, run_type) = match spawn_type {
-        wasmer_wasix::runtime::SpawnMemoryType::CreateMemory => {
+        SpawnType::CreateMemory => {
             (None, None, WasmMemoryType::CreateMemory)
         }
-        wasmer_wasix::runtime::SpawnMemoryType::CreateMemoryOfType(ty) => {
+        SpawnType::CreateMemoryOfType(ty) => {
             (Some(ty), None, WasmMemoryType::CreateMemoryOfType(ty))
         }
-        wasmer_wasix::runtime::SpawnMemoryType::CopyMemory(m, store) => {
+        SpawnType::CopyMemory(m, store) => {
             let memory_ty = m.ty(&store);
             let memory = m.as_jsvalue(&store);
 
@@ -60,7 +61,7 @@ pub(crate) fn to_scheduler_message(
                 WasmMemoryType::ShareMemory(memory_ty),
             )
         }
-        wasmer_wasix::runtime::SpawnMemoryType::ShareMemory(m, store) => {
+        SpawnType::ShareMemory(m, store) => {
             let ty = m.ty(&store);
             let memory = m.as_jsvalue(&store);
             (
@@ -68,6 +69,9 @@ pub(crate) fn to_scheduler_message(
                 Some(memory),
                 WasmMemoryType::ShareMemory(m.ty(&store)),
             )
+        }
+        SpawnType::NewLinkerInstanceGroup(_, _, _) => {
+            unimplemented!("New Linker Instance Group is not supported")
         }
     };
 
@@ -310,12 +314,17 @@ fn build_ctx_and_store(
         }
     };
 
+    let call_initialize = true;
+    let parent_linker_and_ctx = None;
+
     let (ctx, store) = match WasiFunctionEnv::new_with_store(
         module,
         env,
         store_snapshot,
         spawn_type,
         update_layout,
+        call_initialize,
+        parent_linker_and_ctx,
     ) {
         Ok(a) => a,
         Err(err) => {
