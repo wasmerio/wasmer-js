@@ -14,6 +14,7 @@ use wasmer_config::{
 };
 use wasmer_package::package::Package;
 use wasmer_types::ModuleHash;
+use wasmer_config::package::SuggestedCompilerOptimizations;
 use wasmer_wasix::{
     bin_factory::{BinaryPackage, BinaryPackageCommand},
     os::{Tty, TtyOptions},
@@ -166,6 +167,9 @@ impl Wasmer {
             runner: "wasi".to_string(),
             annotations: IndexMap::new(),
         };
+        let suggested_compiler_optimizations = SuggestedCompilerOptimizations {
+            pass_params: Some(true),
+        };
         let package = BinaryPackage {
             id: PackageId::Hash(PackageHash::Sha256(Sha256Hash::from_bytes([0; 32]))),
             package_ids: vec![],
@@ -181,6 +185,7 @@ impl Wasmer {
                 wasm.into(),
                 hash,
                 None,
+                suggested_compiler_optimizations
             )],
             additional_host_mapped_directories: vec![],
         };

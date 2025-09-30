@@ -30,49 +30,53 @@ toml = "0.8.14"
 tracing = { version = "0.1", features = ["log", "release_max_level_debug"] }
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 url = "2.4.0"
-wasm-bindgen = { version = "=0.2.92" }
+wasm-bindgen = { version = "=0.2.101" }
 wasm-bindgen-derive = "0.2.1"
 wasm-bindgen-futures = "0.4.40"
 wasm-bindgen-test = "0.3.40"
-# virtual-fs = { version = "0.17.0", default-features = false }
-# virtual-net = { version = "0.9.0", default-features = false, features = [
-#     "remote",
-# ] }
-# wasmer = { version = "4.4.0", default-features = false, features = [
-#     "js",
-#     "js-default",
-#     "wasm-types-polyfill",
-#     "enable-serde",
-# ] }
-# wasmer-api = { version = "0.1.0" }
-# wasmer-config = "0.9.0"
-# wasmer-types = "4.4.0"
-# wasmer-wasix = { version = "0.28.0", default-features = false, features = [
-#     "js",
-#     "js-default",
-# ] }
-webc = "9.0.0"
-
-virtual-fs = { path = "../wasmer/lib/virtual-fs", default-features = false }
-virtual-net = { path = "../wasmer/lib/virtual-net", default-features = false, features = [
+virtual-fs = { version = "0.601.0", default-features = false }
+virtual-net = { version = "0.601.0", default-features = false, features = [
     "remote",
 ] }
-wasmer = { path = "../wasmer/lib/api", default-features = false, features = [
+wasmer = { version = "6.1.0", default-features = false, features = [
     "js",
     "js-default",
     "wasm-types-polyfill",
     "enable-serde",
 ] }
-wasmer-backend-api = { path = "../wasmer/lib/backend-api", default-features = false, features = [
-    "js",
-] }
-wasmer-config = { path = "../wasmer/lib/config" }
-wasmer-package = { path = "../wasmer/lib/package" }
-wasmer-types = { path = "../wasmer/lib/types" }
-wasmer-wasix = { path = "../wasmer/lib/wasix", default-features = false, features = [
+# wasmer-api = { version = "0.601.0" }
+wasmer-config = "0.601.0"
+wasmer-types = "6.1.0"
+wasmer-wasix = { version = "0.601.0", default-features = false, features = [
     "js",
     "js-default",
 ] }
+webc = "10.0.1"
+wasmer-package = "0.601.0"
+wasmer-backend-api = { version = "0.601.0", default-features = false, features = [
+    "js",
+] }
+
+# virtual-fs = { path = "../wasmer/lib/virtual-fs", default-features = false }
+# virtual-net = { path = "../wasmer/lib/virtual-net", default-features = false, features = [
+#     "remote",
+# ] }
+# wasmer = { path = "../wasmer/lib/api", default-features = false, features = [
+#     "js",
+#     "js-default",
+#     "wasm-types-polyfill",
+#     "enable-serde",
+# ] }
+# wasmer-backend-api = { path = "../wasmer/lib/backend-api", default-features = false, features = [
+#     "js",
+# ] }
+# wasmer-config = { path = "../wasmer/lib/config" }
+# wasmer-package = { path = "../wasmer/lib/package" }
+# wasmer-types = { path = "../wasmer/lib/types" }
+# wasmer-wasix = { path = "../wasmer/lib/wasix", default-features = false, features = [
+#     "js",
+#     "js-default",
+# ] }
 # webc = { path = "../pirita/crates/webc" }
 
 [dependencies.web-sys]
