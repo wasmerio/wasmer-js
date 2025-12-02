@@ -81,9 +81,9 @@ so no extra requests are required. If that's your use case, you can simply impor
 
 ```js
 import { init, Wasmer } from "@wasmer/sdk";
-import wasmerSDKModule from "@wasmer/sdk/wasm-inline";
+import { getWasm } from "@wasmer/sdk/wasm-inline";
 
-await init({ module: wasmerSDKModule }); // This uses the inline wasmer SDK version
+await init({ module: getWasm }); // This uses the inline wasmer SDK version
 ```
 
 
