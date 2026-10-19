@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.19.2](https://github.com/wasmerio/wasmer-sdk/compare/wasmer-sdk-js-v0.19.1...wasmer-sdk-js-v0.19.2) (2026-10-19)
+
+
+### Performance Improvements
+
+* **js:** read the shared memory buffer once per wasm-bindgen view check ([#559](https://github.com/wasmerio/wasmer-sdk/issues/559)) ([fb5ba80](https://github.com/wasmerio/wasmer-sdk/commit/fb5ba80645380570125885cd8ef44bbce535aac0))
+
 ## [0.19.1](https://github.com/wasmerio/wasmer-sdk/compare/wasmer-sdk-js-v0.19.0...wasmer-sdk-js-v0.19.1) (2026-10-07)
 
 
