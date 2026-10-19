@@ -152,16 +152,6 @@ function vendorWasmBindgenDependencies(snippetsRoot) {
   }
 }
 
-// wasm-bindgen revalidates its cached memory views on every slice, string and
-// return-pointer access. On a shared memory the `buffer` getter is a costly
-// engine call, so the checks read it once.
-const memoryViewIsStale = `
-function wasmerMemoryViewIsStale(view) {
-    const buffer = wasm.memory.buffer;
-    return view.buffer !== buffer || view.byteLength !== buffer.byteLength;
-}
-`;
-
 function patchMemory32Glue(path) {
   const source = readFileSync(path, "utf8");
   let viewReplacements = 0;
@@ -193,6 +183,15 @@ function patchMemory32Glue(path) {
       `failed to normalize wasm-bindgen return pointers; patched ${pointerReplacements}`,
     );
   }
+  // wasm-bindgen revalidates its cached memory views on every slice, string
+  // and return-pointer access. On a shared memory the `buffer` getter is a
+  // costly engine call, so the checks read it once.
+  const memoryViewIsStale = `
+function wasmerMemoryViewIsStale(view) {
+    const buffer = wasm.memory.buffer;
+    return view.buffer !== buffer || view.byteLength !== buffer.byteLength;
+}
+`;
   writeFileSync(path, patched + memoryViewIsStale);
 }
 
