@@ -29,7 +29,7 @@
     "@types/node": "^26.1.2",
     "playwright": "^1.62.0",
     "typescript": "^5.9.2",
-    "vite": "^8.2.0"
+    "vite": "^8.2.4"
   },
   "engines": {
     "node": ">=20.19"
